@@ -1,0 +1,15 @@
+{
+  "scripts": {
+    "build": "lezer-generator --output src/parser src/lezer-grammar.lezer",
+    "start": "node -r esm dingus.js",
+    "dev": "nodemon --exec 'yarn build' -e lezer"
+  },
+  "dependencies": {
+    "esm": "^3.2.25",
+    "lezer": "^0.8.4"
+  },
+  "devDependencies": {
+    "lezer-generator": "^0.8.4",
+    "nodemon": "^2.0.3"
+  }
+}

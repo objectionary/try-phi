@@ -1,0 +1,212 @@
+@top LezerGrammar { definition* }
+
+@skip { whitespace | LineComment | BlockComment }
+
+braced<content> { "{" content? "}" }
+commaDelim<item> { item ("," item)* }
+barDelim<item> { item ("|" item)* }
+
+definition {
+  TopDefinition |
+  TokensDefinition { "@tokens" braced<(TokenDefinition+)?> } |
+  PrecedenceDefinition { "@precedence" braced<precedenceList> } |
+  DetectDelimDefinition { "@detectDelim" } |
+  SkipDefinition |
+  _ExternalDefinition |
+  RuleDefinition
+}
+
+TopDefinition {
+  "@top" TopRuleName { identifier }? braced<ruleChoice>
+}
+
+SkipDefinition {
+  "@skip" braced<ruleChoice> braced<RuleDefinition>?
+}
+
+_ExternalDefinition {
+  (ExternalTokenDefinition {
+    "@external" "tokens"
+    identifier "from" stringLiteral braced<commaDelim<TokenSignature>>
+  } |
+  ExternalPropNameDefinition {
+    "@external" "prop"
+    identifier "from" stringLiteral
+  } |
+  ExternalGrammarDefinition {
+    "@external" "grammar"
+    identifier ("from" stringLiteral | "empty")
+  })
+}
+
+TokenDefinition {
+  stringLiteral nodePropsTag? |
+  TokenPrecedence { "@precedence" braced<tokenPrecedenceList> } |
+  TokenSignature braced<tokenChoice>
+}
+
+TokenName { identifier }
+
+TokenSignature {
+  TokenName templateArguments? nodePropsTag?
+}
+
+RuleDefinition {
+  "@export"? RuleSignature braced<ruleChoice>
+}
+
+inlineRuleDefinition {
+  /* a rule definition but cannot be as a template. */
+  identifier nodePropsTag? braced<ruleChoice>
+}
+
+identifier {
+  capitalizedIdentifier |
+  normalIdentifier
+}
+
+nodePropsTag {
+  "[" commaDelim< PropAssignment > "]"
+}
+
+/* a template can either be a token template or a rule template */
+templateArguments {
+  ("<" commaDelim< TemplateArgument { tokenOrRuleChoice } > ">")
+}
+
+RuleSignature {
+  identifier
+  ("<" commaDelim< TemplateVariable { identifier } > ">")?
+  nodePropsTag?
+}
+
+PropAssignment {
+  identifier "=" (identifier | "{" identifier "}")+
+}
+
+tokenOrRuleChoice { barDelim<tokenOrRuleSeq> }
+
+tokenOrRuleSeq {
+  (possiblyWithSpecifier<ruleExpression |
+                         RangeLiteral |
+                         "(" tokenOrRuleChoice ")"> |
+   PrecedenceMarker |
+   AmbiguityMarker)+
+}
+
+tokenChoice { barDelim<TokenSeq> }
+
+TokenSeq {
+  (possiblyWithSpecifier<Token |
+                         RangeLiteral |
+                         "(" tokenChoice ")">)+
+}
+
+precedenceList {
+  commaDelim<precedenceSpecifier>
+}
+
+tokenPrecedenceList {
+  commaDelim<identifier>
+}
+
+precedenceSpecifier {
+  identifier ("@left" | "@right" | "@cut")?
+}
+
+ruleChoice { barDelim<RuleSeq> }
+
+ruleExpression {
+  identifier templateArguments? |
+  stringLiteral |
+  /* a token is implied above */
+  inlineRuleDefinition |
+  specialization<"@specialize"> |
+  specialization<"@extend">
+}
+
+RuleSeq {
+  (possiblyWithSpecifier<ruleExpression |
+                         "(" ruleChoice ")"> |
+   NestedGrammarExpression |
+   PrecedenceMarker |
+   AmbiguityMarker)+
+}
+
+NestedGrammarExpression {
+  NestedGrammarName
+  ("<" tokenChoice ("," ruleChoice)? ">")?
+}
+
+specifier<content, c> {
+ (_a[name=Specifier{c}] { content } c)
+}
+
+possiblyWithSpecifier<content> {
+  content |
+  specifier<content, "*"> |
+  specifier<content, "?"> |
+  specifier<content, "+">
+}
+
+specialization<type> {
+  type
+  nodePropsTag?
+  "<" TokenName "," (identifier | barDelim<stringLiteral>) ">"
+}
+
+Token {
+  identifier |
+  stringLiteral
+}
+
+@tokens {
+  whitespace { std.whitespace+ }
+
+  LineComment { "//" ![\r\n]* }
+  BlockComment { "/*" blockCommentRest }
+  blockCommentRest { ![*] blockCommentRest | "*" blockCommentAfterStar }
+  blockCommentAfterStar { "/" | "*" blockCommentAfterStar | ![/*] blockCommentRest }
+
+  identifierHead { std.asciiLetter | $[_\u{a1}-\u{10ffff}] }
+  identifierTail { (identifierHead | std.digit)* }
+  capitalizedIdentifier { std.asciiUppercase identifierTail }
+  normalIdentifier { identifierHead identifierTail }
+
+  @precedence { capitalizedIdentifier, normalIdentifier, whitespace }
+
+  PrecedenceMarker { "!" normalIdentifier }
+  AmbiguityMarker { "~" normalIdentifier }
+
+  hex  { $[0-9a-fA-F] }
+  unicodeLiteral { "\\u{" hex+ "}" | "\\u" hex hex hex hex }
+  stringLiteral {
+    '"' (![\\\n"] | "\\" _)* '"'? |
+    "'" (![\\\n'] | "\\" _)* "'"?
+  }
+
+  // no "-" (0x2d) and "\\" (0x5c)
+  char { $[\u{20}-\u{2c}\u{2e}-\u{5b}\u{5d}-\u{10ffff}] }
+  rangeEscapeSequence { "\\" ![u] }
+
+  StdRangeLiteral {
+    "std." std.asciiLetter+
+  }
+
+  RangeLiteral {
+    (("$" | "!") "[" rangeLiteralInner* "]") |
+    StdRangeLiteral
+  }
+  rangeLiteralChar { char | rangeEscapeSequence | unicodeLiteral }
+  rangeLiteralInner {
+    rangeLiteralChar ("-" rangeLiteralChar)?
+  }
+
+  @precedence { RangeLiteral, normalIdentifier }
+
+  NestedGrammarName {
+    "nest." normalIdentifier
+  }
+
+  @precedence { NestedGrammarName, normalIdentifier }
+}

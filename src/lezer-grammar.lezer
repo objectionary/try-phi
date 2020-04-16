@@ -2,92 +2,87 @@
 
 @skip { whitespace | LineComment | BlockComment }
 
-braced<content> { "{" content? "}" }
+at<term> { Keyword { term } }
+braced<body> { "{" body? "}" }
 commaDelim<item> { item ("," item)* }
 barDelim<item> { item ("|" item)* }
 
 definition {
   TopDefinition |
-  TokensDefinition { "@tokens" braced<(TokenDefinition+)?> } |
-  PrecedenceDefinition { "@precedence" braced<precedenceList> } |
-  DetectDelimDefinition { "@detectDelim" } |
+  TokensDefinition { at<"@tokens"> TokensDefinitionBody } |
+  PrecedenceDefinition { at<"@precedence"> braced<precedenceList> } |
+  DetectDelimDefinition { at<"@detectDelim"> } |
   SkipDefinition |
   _ExternalDefinition |
   RuleDefinition
 }
 
 TopDefinition {
-  "@top" TopRuleName { identifier }? braced<ruleChoice>
+  at<"@top"> RuleName? braced<ruleChoice>
 }
 
 SkipDefinition {
-  "@skip" braced<ruleChoice> braced<RuleDefinition>?
-}
-
-_ExternalDefinition {
-  (ExternalTokenDefinition {
-    "@external" "tokens"
-    identifier "from" stringLiteral braced<commaDelim<TokenSignature>>
-  } |
-  ExternalPropNameDefinition {
-    "@external" "prop"
-    identifier "from" stringLiteral
-  } |
-  ExternalGrammarDefinition {
-    "@external" "grammar"
-    identifier ("from" stringLiteral | "empty")
-  })
-}
-
-TokenDefinition {
-  stringLiteral nodePropsTag? |
-  TokenPrecedence { "@precedence" braced<tokenPrecedenceList> } |
-  TokenSignature braced<tokenChoice>
-}
-
-TokenName { identifier }
-
-TokenSignature {
-  TokenName templateArguments? nodePropsTag?
-}
-
-RuleDefinition {
-  "@export"? RuleSignature braced<ruleChoice>
-}
-
-inlineRuleDefinition {
-  /* a rule definition but cannot be as a template. */
-  identifier nodePropsTag? braced<ruleChoice>
+  at<"@skip"> braced<ruleChoice> braced<RuleDefinition>?
 }
 
 identifier {
   capitalizedIdentifier |
-  normalIdentifier |
-  @specialize[name=Any]<normalIdentifier, "_">
+  normalIdentifier
+}
+
+/* a template application can be resolved to either a token template or a rule template */
+templateArguments {
+  "<" commaDelim< TemplateArgument { tokenOrRuleChoice } > ">"
+}
+
+templateVariables {
+  "<" commaDelim< TemplateVariable { identifier } > ">"
+}
+
+TokenName { identifier }
+TokenSignature { TokenName templateVariables? nodePropsTag? }
+
+TokensDefinitionBody { braced<tokenDefinition+> }
+
+tokenDefinition {
+  (TokenDefinition {
+    StringLiteral nodePropsTag? |
+    TokenSignature braced<tokenChoice>
+  } |
+  TokenPrecedenceDefinition {
+    at<"@precedence"> braced<tokenPrecedenceList>
+  })
+}
+
+RuleDefinitionBody { braced<ruleChoice> }
+
+RuleDefinition {
+  at<"@export">? RuleSignature RuleDefinitionBody
+}
+
+inlineRuleDefinition {
+  /* a rule definition but cannot be as a template. */
+  RuleName nodePropsTag? braced<ruleChoice>
 }
 
 nodePropsTag {
   "[" commaDelim< PropAssignment > "]"
 }
 
-/* a template can either be a token template or a rule template */
-templateArguments {
-  ("<" commaDelim< TemplateArgument { tokenOrRuleChoice } > ">")
-}
+RuleName { identifier }
+RuleSignature { RuleName templateVariables? nodePropsTag? }
 
-RuleSignature {
-  identifier
-  ("<" commaDelim< TemplateVariable { identifier } > ">")?
-  nodePropsTag?
-}
-
+PropName { normalIdentifier }
 PropAssignment {
-  identifier "=" (identifier | stringLiteral | "{" identifier "}")+
+  PropName "="
+  PropValue {
+    (identifier | StringLiteral | "." | "{" identifier "}")+
+  }
 }
 
-tokenOrRuleChoice { barDelim<tokenOrRuleSeq> }
+tokenOrRuleChoice { barDelim<TokenOrRuleSeq> }
 
-tokenOrRuleSeq {
+TokenOrRuleSeq {
   (maybeWithRepeatSpec<ruleExpression |
                        RangeLiteral |
                        "(" tokenOrRuleChoice ")"> |
@@ -103,27 +98,21 @@ TokenSeq {
                        "(" tokenChoice ")">)+
 }
 
-precedenceList {
-  commaDelim<precedenceSpecifier>
-}
-
-tokenPrecedenceList {
-  commaDelim<identifier>
-}
-
-precedenceSpecifier {
-  identifier PrecedenceType { "@left" | "@right" | "@cut" }?
+specialization<type> {
+  type
+  nodePropsTag?
+  "<" tokenChoice "," tokenChoice ">"
 }
 
 ruleChoice { barDelim<RuleSeq> }
 
 ruleExpression {
   identifier templateArguments? |
-  stringLiteral |
-  /* a token is implied above */
+  StringLiteral |
+  /* a token is covered in above cases */
   inlineRuleDefinition |
-  specialization<"@specialize"> |
-  specialization<"@extend">
+  specialization<at<"@specialize">> |
+  specialization<at<"@extend">>
 }
 
 RuleSeq {
@@ -139,26 +128,51 @@ NestedGrammarExpression {
   ("<" tokenChoice ("," ruleChoice)? ">")?
 }
 
-specifier<content, c> {
-  (_a[name=Specifier{c}] { content } c)
+withRepeatSpec<content, c> {
+  (_spec[name=Specifier{c}] { content } c)
 }
 
 maybeWithRepeatSpec<content> {
   content |
-  specifier<content, "*"> |
-  specifier<content, "?"> |
-  specifier<content, "+">
-}
-
-specialization<type> {
-  type
-  nodePropsTag?
-  "<" tokenChoice "," tokenChoice ">"
+  withRepeatSpec<content, "*"> |
+  withRepeatSpec<content, "?"> |
+  withRepeatSpec<content, "+">
 }
 
 Token {
-  identifier |
-  stringLiteral
+  TokenName |
+  StringLiteral |
+  @specialize[name=TokenAny]<normalIdentifier, "_">
+}
+
+precedenceList {
+  commaDelim<precedenceSpecifier>
+}
+
+tokenPrecedenceList {
+  commaDelim<TokenName>
+}
+
+precedenceSpecifier {
+  PrecedenceMarkerName { identifier }
+  PrecedenceType { at<"@left"> | at<"@right"> | at<"@cut"> }?
+}
+
+ExternalSource { StringLiteral }
+
+_ExternalDefinition {
+  (ExternalTokenDefinition {
+    at<"@external"> "tokens"
+    TokenName "from" ExternalSource braced<commaDelim<TokenSignature>>
+  } |
+  ExternalPropNameDefinition {
+    at<"@external"> "prop"
+    PropName "from" ExternalSource
+  } |
+  ExternalGrammarDefinition {
+    at<"@external"> "grammar"
+    ExternalParserName { normalIdentifier } ("from" ExternalSource | "empty")
+  })
 }
 
 @tokens {
@@ -179,26 +193,30 @@ Token {
   PrecedenceMarker { "!" normalIdentifier }
   AmbiguityMarker { "~" normalIdentifier }
 
-  hex  { $[0-9a-fA-F] }
-  unicodeLiteral { "\\u{" hex+ "}" | "\\u" hex hex hex hex }
-  stringLiteral {
+  StringLiteral {
     '"' (![\\\n"] | "\\" _)* '"'? |
     "'" (![\\\n'] | "\\" _)* "'"?
   }
 
   // no "-" (0x2d) and "\\" (0x5c)
-  char { $[\u{20}-\u{2c}\u{2e}-\u{5b}\u{5d}-\u{10ffff}] }
-  rangeEscapeSequence { "\\" ![u] }
+  rangeChar { $[\u{20}-\u{2c}\u{2e}-\u{5b}\u{5d}-\u{10ffff}] }
+  hex  { $[0-9a-fA-F] }
+  rangeEscapeSequence {
+    "\\u{" hex+ "}" |
+    "\\u" hex hex hex hex |
+    "\\x" hex hex |
+    "\\" ![ux]
+  }
 
   StdRangeLiteral {
-    "std." std.asciiLetter+
+    "std." normalIdentifier
   }
 
   RangeLiteral {
     (("$" | "!") "[" rangeLiteralInner* "]") |
     StdRangeLiteral
   }
-  rangeLiteralChar { char | rangeEscapeSequence | unicodeLiteral }
+  rangeLiteralChar { rangeChar | rangeEscapeSequence }
   rangeLiteralInner {
     rangeLiteralChar ("-" rangeLiteralChar)?
   }
@@ -211,3 +229,5 @@ Token {
 
   @precedence { NestedGrammarName, normalIdentifier }
 }
+
+@detectDelim

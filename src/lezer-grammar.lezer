@@ -62,7 +62,8 @@ inlineRuleDefinition {
 
 identifier {
   capitalizedIdentifier |
-  normalIdentifier
+  normalIdentifier |
+  @specialize[name=Any]<normalIdentifier, "_">
 }
 
 nodePropsTag {
@@ -81,15 +82,15 @@ RuleSignature {
 }
 
 PropAssignment {
-  identifier "=" (identifier | "{" identifier "}")+
+  identifier "=" (identifier | stringLiteral | "{" identifier "}")+
 }
 
 tokenOrRuleChoice { barDelim<tokenOrRuleSeq> }
 
 tokenOrRuleSeq {
-  (possiblyWithSpecifier<ruleExpression |
-                         RangeLiteral |
-                         "(" tokenOrRuleChoice ")"> |
+  (maybeWithRepeatSpec<ruleExpression |
+                       RangeLiteral |
+                       "(" tokenOrRuleChoice ")"> |
    PrecedenceMarker |
    AmbiguityMarker)+
 }
@@ -97,9 +98,9 @@ tokenOrRuleSeq {
 tokenChoice { barDelim<TokenSeq> }
 
 TokenSeq {
-  (possiblyWithSpecifier<Token |
-                         RangeLiteral |
-                         "(" tokenChoice ")">)+
+  (maybeWithRepeatSpec<Token |
+                       RangeLiteral |
+                       "(" tokenChoice ")">)+
 }
 
 precedenceList {
@@ -111,7 +112,7 @@ tokenPrecedenceList {
 }
 
 precedenceSpecifier {
-  identifier ("@left" | "@right" | "@cut")?
+  identifier PrecedenceType { "@left" | "@right" | "@cut" }?
 }
 
 ruleChoice { barDelim<RuleSeq> }
@@ -126,8 +127,8 @@ ruleExpression {
 }
 
 RuleSeq {
-  (possiblyWithSpecifier<ruleExpression |
-                         "(" ruleChoice ")"> |
+  (maybeWithRepeatSpec<ruleExpression |
+                       "(" ruleChoice ")"> |
    NestedGrammarExpression |
    PrecedenceMarker |
    AmbiguityMarker)+
@@ -139,10 +140,10 @@ NestedGrammarExpression {
 }
 
 specifier<content, c> {
- (_a[name=Specifier{c}] { content } c)
+  (_a[name=Specifier{c}] { content } c)
 }
 
-possiblyWithSpecifier<content> {
+maybeWithRepeatSpec<content> {
   content |
   specifier<content, "*"> |
   specifier<content, "?"> |
@@ -152,7 +153,7 @@ possiblyWithSpecifier<content> {
 specialization<type> {
   type
   nodePropsTag?
-  "<" TokenName "," (identifier | barDelim<stringLiteral>) ">"
+  "<" tokenChoice "," tokenChoice ">"
 }
 
 Token {

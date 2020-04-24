@@ -3,7 +3,7 @@
 @skip { whitespace | LineComment | BlockComment }
 
 at<term> { Keyword { term } }
-braced<body> { "{" body? "}" }
+braced<body> { BlockBody { "{" body? "}" } }
 commaDelim<item> { item ("," item)* }
 barDelim<item> { item ("|" item)* }
 
@@ -13,12 +13,14 @@ definition {
   PrecedenceDefinition { at<"@precedence"> braced<precedenceList> } |
   DetectDelimDefinition { at<"@detectDelim"> } |
   SkipDefinition |
-  _ExternalDefinition |
+  externalDefinition |
   RuleDefinition
 }
 
 TopDefinition {
-  at<"@top"> RuleName? braced<ruleChoice>
+  at<"@top">
+  (RuleNameDefinition { identifier })?
+  braced<ruleChoice>
 }
 
 SkipDefinition {
@@ -40,7 +42,11 @@ templateVariables {
 }
 
 TokenName { identifier }
-TokenSignature { TokenName templateVariables? nodePropsTag? }
+TokenSignature {
+  TokenNameDefinition { identifier }
+  templateVariables?
+  nodePropsTag?
+}
 
 TokensDefinitionBody { braced<tokenDefinition+> }
 
@@ -62,15 +68,20 @@ RuleDefinition {
 
 inlineRuleDefinition {
   /* a rule definition but cannot be as a template. */
-  RuleName nodePropsTag? braced<ruleChoice>
+  RuleNameDefinition { identifier }
+  nodePropsTag?
+  braced<ruleChoice>
 }
 
 nodePropsTag {
   "[" commaDelim< PropAssignment > "]"
 }
 
-RuleName { identifier }
-RuleSignature { RuleName templateVariables? nodePropsTag? }
+RuleSignature {
+  RuleNameDefinition { identifier }
+  templateVariables?
+  nodePropsTag?
+}
 
 PropName { normalIdentifier }
 PropAssignment {
@@ -107,7 +118,7 @@ specialization<type> {
 ruleChoice { barDelim<RuleSeq> }
 
 ruleExpression {
-  identifier templateArguments? |
+  Identifier { identifier } templateArguments? |
   StringLiteral |
   /* a token is covered in above cases */
   inlineRuleDefinition |
@@ -129,7 +140,7 @@ NestedGrammarExpression {
 }
 
 withRepeatSpec<content, c> {
-  (_spec[name=Specifier{c}] { content } c)
+  (_repeatSpec[name=Specifier{c}] { content } c)
 }
 
 maybeWithRepeatSpec<content> {
@@ -160,10 +171,10 @@ precedenceSpecifier {
 
 ExternalSource { StringLiteral }
 
-_ExternalDefinition {
+externalDefinition {
   (ExternalTokenDefinition {
     at<"@external"> "tokens"
-    TokenName "from" ExternalSource braced<commaDelim<TokenSignature>>
+    ExternalTokenizerName { identifier } "from" ExternalSource braced<commaDelim<TokenSignature>>
   } |
   ExternalPropNameDefinition {
     at<"@external"> "prop"
@@ -228,6 +239,11 @@ _ExternalDefinition {
   }
 
   @precedence { NestedGrammarName, normalIdentifier }
+
+  "*" "?" "+"
+  "(" ")" "[" "]" "<" ">" "{" "}" "|"
+
+  "tokens" "props" "grammar" "from" "empty"
 }
 
 @detectDelim

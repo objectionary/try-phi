@@ -1,8 +1,10 @@
 {
   "scripts": {
     "build": "lezer-generator --output src/parser src/lezer-grammar.lezer",
+    "build:doc": "rollup -c",
     "start": "node -r esm dingus.js",
-    "dev": "nodemon --exec 'yarn build' -e lezer"
+    "dev": "nodemon --exec 'yarn build' -e lezer",
+    "dev:doc": "roolup -cw"
   },
   "dependencies": {
     "esm": "^3.2.25",

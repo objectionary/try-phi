@@ -9,6 +9,7 @@ barDelim<item> { item ("|" item)* }
 
 definition {
   TopDefinition |
+  DialectsDefinition |
   TokensDefinition { at<"@tokens"> TokensDefinitionBody } |
   PrecedenceDefinition { at<"@precedence"> braced<precedenceList> } |
   DetectDelimDefinition { at<"@detectDelim"> } |
@@ -22,6 +23,11 @@ TopDefinition {
   at<"@top">
   (RuleNameDefinition { identifier })?
   braced<ruleChoice>
+}
+
+DialectsDefinition {
+  at<"@dialects">
+  braced< commaDelim< Dialect { identifier } > >
 }
 
 SkipDefinition {
@@ -84,7 +90,12 @@ RuleSignature {
   NodePropsTag?
 }
 
-PropName { normalIdentifier }
+PropName {
+  normalIdentifier |
+  @specialize<normalIdentifier, "name"> |
+  @specialize<normalIdentifier, "dialect">
+}
+
 PropAssignment {
   PropName "="
   PropValue {
@@ -170,12 +181,18 @@ precedenceSpecifier {
   PrecedenceType { at<"@left"> | at<"@right"> | at<"@cut"> }?
 }
 
+RangeLiteral {
+  RangeExpression |
+  StdRangeLiteral
+}
+
 ExternalSource { StringLiteral }
 
 externalDefinition {
   (ExternalTokenDefinition {
     at<"@external"> "tokens"
-    ExternalTokenizerName { normalIdentifier } "from" ExternalSource braced<commaDelim<TokenSignature>>
+    ExternalTokenizerName { normalIdentifier }
+    "from" ExternalSource braced<commaDelim<TokenSignature>>
   } |
   ExternalPropNameDefinition {
     at<"@external"> "prop"
@@ -184,6 +201,11 @@ externalDefinition {
   ExternalGrammarDefinition {
     at<"@external"> "grammar"
     ExternalParserName { normalIdentifier } ("from" ExternalSource | "empty")
+  } |
+  ExternalSpecializationDefinition {
+    at<"@external"> "grammar"
+    braced<commaDelim<normalIdentifier>>
+    "from" ExternalSource braced<commaDelim<TokenSignature>>
   })
 }
 
@@ -224,16 +246,15 @@ externalDefinition {
     "std." normalIdentifier
   }
 
-  RangeLiteral {
-    (("$" | "!") "[" rangeLiteralInner* "]") |
-    StdRangeLiteral
+  RangeExpression {
+    (("$" | "!") "[" rangeLiteralInner* "]")
   }
   rangeLiteralChar { rangeChar | rangeEscapeSequence }
   rangeLiteralInner {
     rangeLiteralChar ("-" rangeLiteralChar)?
   }
 
-  @precedence { RangeLiteral, normalIdentifier }
+  @precedence { StdRangeLiteral, normalIdentifier }
 
   NestedGrammarName {
     "nest." normalIdentifier

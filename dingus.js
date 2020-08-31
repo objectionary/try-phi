@@ -1,6 +1,6 @@
 import fs from 'fs'
 import {NodeProp} from 'lezer'
-import {parser as parserCommonMark} from './src/parser'
+import {parser} from './src/parser'
 
 export class NodeInfo {
   constructor(type, start, end) {
@@ -28,7 +28,7 @@ export class NodeInfo {
 
 
 function parse(src) {
-  const tree = parserCommonMark.parse(src)
+  const tree = parser.parse(src)
   let hasError = false
 
   const stack = [new NodeInfo()]

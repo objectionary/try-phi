@@ -6,10 +6,16 @@
   },
   "dependencies": {
     "esm": "^3.2.25",
-    "lezer": "^0.8.4"
+    "lezer": "^0.10.1"
   },
   "devDependencies": {
-    "lezer-generator": "^0.8.4",
-    "nodemon": "^2.0.3"
+    "@codemirror/next": "^0.10.0",
+    "@rollup/plugin-commonjs": "^15.0.0",
+    "@rollup/plugin-node-resolve": "^9.0.0",
+    "lezer-generator": "^0.10.1",
+    "nodemon": "^2.0.3",
+    "rollup": "^2.26.8",
+    "rollup-plugin-livereload": "^2.0.0",
+    "rollup-plugin-string": "^3.0.0"
   }
 }

@@ -1,22 +1,23 @@
 {
   "scripts": {
-    "build": "lezer-generator --output src/parser src/lezer-grammar.lezer",
+    "build": "lezer-generator --output src/parser src/lezer.grammar",
     "build:doc": "rollup -c",
     "start": "node -r esm dingus.js",
     "dev": "nodemon --exec 'yarn build' -e lezer",
-    "dev:doc": "roolup -cw"
+    "dev:doc": "rollup -cw"
   },
+  "license": "Unlicensed",
   "dependencies": {
     "esm": "^3.2.25",
-    "lezer": "^0.10.1"
+    "lezer": "^0.10.4"
   },
   "devDependencies": {
-    "@codemirror/next": "^0.10.0",
-    "@rollup/plugin-commonjs": "^15.0.0",
+    "@codemirror/next": "^0.12.0",
+    "@rollup/plugin-commonjs": "^15.1.0",
     "@rollup/plugin-node-resolve": "^9.0.0",
-    "lezer-generator": "^0.10.1",
+    "lezer-generator": "^0.10.5",
     "nodemon": "^2.0.3",
-    "rollup": "^2.26.8",
+    "rollup": "^2.28.2",
     "rollup-plugin-livereload": "^2.0.0",
     "rollup-plugin-string": "^3.0.0"
   }

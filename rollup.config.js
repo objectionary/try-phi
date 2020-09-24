@@ -40,7 +40,7 @@ export default {
         resolve({
             browser: true
         }),
-        string({include: './src/*.lezer'}),
+        string({include: './src/*.grammar'}),
         commonjs(),
         !production && serve(),
         !production && livereload(PATH),

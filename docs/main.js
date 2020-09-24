@@ -1,6 +1,6 @@
 import {EditorState, EditorView, basicSetup} from '@codemirror/next/basic-setup'
 import {lezer} from './lezer'
-import grammarSourceCode from '../src/lezer-grammar.lezer'
+import grammarSourceCode from '../src/lezer.grammar'
 
 
 const myTheme = EditorView.baseTheme({

@@ -6,18 +6,18 @@
     "dev": "nodemon --exec 'yarn build' -e lezer",
     "dev:doc": "rollup -cw"
   },
-  "license": "Unlicensed",
+  "license": "Unlicense",
   "dependencies": {
     "esm": "^3.2.25",
-    "lezer": "^0.10.4"
+    "lezer": "^0.11.2"
   },
   "devDependencies": {
-    "@codemirror/next": "^0.12.0",
+    "@codemirror/next": "^0.13.1",
     "@rollup/plugin-commonjs": "^15.1.0",
     "@rollup/plugin-node-resolve": "^9.0.0",
-    "lezer-generator": "^0.10.5",
-    "nodemon": "^2.0.3",
-    "rollup": "^2.28.2",
+    "lezer-generator": "^0.11.2",
+    "nodemon": "^2.0.5",
+    "rollup": "^2.30.0",
     "rollup-plugin-livereload": "^2.0.0",
     "rollup-plugin-string": "^3.0.0"
   }

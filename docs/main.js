@@ -4,10 +4,10 @@ import grammarSourceCode from '../src/lezer.grammar'
 
 
 const myTheme = EditorView.baseTheme({
-  wrap: {
+  $: {
     maxHeight: '100vh',
   },
-  scroller: {
+  $scroller: {
     fontFamily: '"Fira Mono", monospace',
     fontSize: '14px',
   }

@@ -5,7 +5,8 @@ import grammarSourceCode from '../src/lezer.grammar'
 
 const myTheme = EditorView.baseTheme({
   $: {
-    maxHeight: '100vh',
+    maxHeight: '98vh',
+    outline: '1px auto #ddd',
   },
   $scroller: {
     fontFamily: '"Fira Mono", monospace',

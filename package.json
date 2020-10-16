@@ -1,4 +1,5 @@
 {
+  "name": "lezer-grammar",
   "scripts": {
     "build": "lezer-generator --output src/parser src/lezer.grammar",
     "build:doc": "rollup -c",

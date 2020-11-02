@@ -1,8 +1,14 @@
+/*
+ * (c) Qbane Pan, 2020
+ * Repository: https://github.com/andy0130tw/lezer-grammar
+ * License: Unlicense
+ */
+
 @top LezerGrammar { definition* }
 
 @skip { whitespace | LineComment | BlockComment }
 
-at<term> { @specialize[name=Keyword]<atToken, term> }
+at<term> { @specialize[@name=Keyword]<atToken, term> }
 braced<body> { BlockBody { "{" body? "}" } }
 commaDelim<item> { item ("," item)* }
 barDelim<item> { item ("|" item)* }
@@ -21,7 +27,7 @@ definition {
 
 TopDefinition {
   at<"@top">
-  (RuleNameDefinition { identifier })?
+  RuleNameDefinition { identifier }
   braced<ruleChoice>
 }
 
@@ -70,7 +76,7 @@ tokenDefinition {
 RuleDefinitionBody { braced<ruleChoice> }
 
 RuleDefinition {
-  at<"@export">? RuleSignature RuleDefinitionBody
+  RuleSignature RuleDefinitionBody
 }
 
 inlineRuleDefinition {
@@ -92,8 +98,13 @@ RuleSignature {
 
 PropName {
   normalIdentifier |
-  @specialize<normalIdentifier, "name"> |
-  @specialize<normalIdentifier, "dialect">
+  @specialize[@name=PseudoPropName]<atToken,
+    "@name" |
+    "@dialect" |
+    "@inline" |
+    "@dynamicPrec" |
+    "@export" |
+    "@isGroup">
 }
 
 PropAssignment {
@@ -106,7 +117,7 @@ PropAssignment {
 tokenOrRuleChoice { barDelim<TokenOrRuleSeq> }
 
 TokenOrRuleSeq {
-  (maybeWithRepeatSpec<ruleExpression |
+  (maybeWithQuantifier<ruleExpression |
                        RangeLiteral |
                        "(" tokenOrRuleChoice ")"> |
    PrecedenceMarker |
@@ -116,7 +127,7 @@ TokenOrRuleSeq {
 tokenChoice { barDelim<TokenSeq> }
 
 TokenSeq {
-  (maybeWithRepeatSpec<Token |
+  (maybeWithQuantifier<Token |
                        RangeLiteral |
                        "(" tokenChoice ")">)+
 }
@@ -139,7 +150,7 @@ ruleExpression {
 }
 
 RuleSeq {
-  (maybeWithRepeatSpec<ruleExpression |
+  (maybeWithQuantifier<ruleExpression |
                        "(" ruleChoice ")"> |
    NestedGrammarExpression |
    PrecedenceMarker |
@@ -151,21 +162,21 @@ NestedGrammarExpression {
   ("<" tokenChoice ("," ruleChoice)? ">")?
 }
 
-withRepeatSpec<content, c> {
-  (_repeatSpec[name=Specifier{c}] { content } c)
+withQuantifier<content, c> {
+  (_quantifier[@name=Quantifier{c}] { content } c)
 }
 
-maybeWithRepeatSpec<content> {
+maybeWithQuantifier<content> {
   content |
-  withRepeatSpec<content, "*"> |
-  withRepeatSpec<content, "?"> |
-  withRepeatSpec<content, "+">
+  withQuantifier<content, "*"> |
+  withQuantifier<content, "?"> |
+  withQuantifier<content, "+">
 }
 
 Token {
   TokenName |
   StringLiteral |
-  @specialize[name=TokenAny]<normalIdentifier, "_">
+  @specialize[@name=TokenAny]<normalIdentifier, "_">
 }
 
 precedenceList {
@@ -267,11 +278,12 @@ externalDefinition {
   "*" "?" "+"
   "(" ")" "[" "]" "<" ">" "{" "}" "|"
 
-  "tokens"[name=tokens]
-  "props"[name=props]
-  "grammar"[name=grammar]
-  "from"[name=from]
-  "empty"[name=empty]
+  // external imports
+  "tokens"[@name=tokens]
+  "props"[@name=props]
+  "grammar"[@name=grammar]
+  "from"[@name=from]
+  "empty"[@name=empty]
 }
 
 @detectDelim

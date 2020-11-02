@@ -15,15 +15,16 @@ export function lezer() {
     styleTags({
       LineComment: 'lineComment',
       BlockComment: 'blockComment',
-      Keyword: 'keyword',
+      'Keyword': 'keyword',
       StringLiteral: 'string',
       Identifier: 'variableName',
       'PropName TemplateArgument': 'propertyName',
+      'PseudoPropName': 'name#2',
       'StdRangeLiteral TokenAny': 'keyword',
       'RangeExpression': 'regexp',
       InvalidDefinition: 'invalid',
       'TokenNameDefinition RuleNameDefinition': 'className definition strong',
-      '* ? + PrecedenceMarker AmbiguityMarker': 'modifier',
+      '* ? + PrecedenceMarker AmbiguityMarker': 'modifier strong',
     })), {
       languageData: {
         closeBrackets: {brackets: ["(", "[", "{", "'", '"', "`"]},

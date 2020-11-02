@@ -723,52 +723,38 @@
     }
 
     /// The default maximum length of a `TreeBuffer` node.
-    const DefaultBufferLength = 1024;
-    class Iteration {
-        constructor(enter, leave) {
-            this.enter = enter;
-            this.leave = leave;
-            this.result = undefined;
-        }
-        get done() { return this.result !== undefined; }
-        doEnter(type, start, end) {
-            let value = this.enter(type, start, end);
-            if (value === undefined)
-                return true;
-            if (value !== false)
-                this.result = value;
-            return false;
-        }
-    }
-    let nextPropID = 0;
+    var DefaultBufferLength = 1024;
+    var nextPropID = 0;
+    var CachedNode = new WeakMap();
     /// Each [node type](#tree.NodeType) can have metadata associated with
     /// it in props. Instances of this class represent prop names.
-    class NodeProp {
+    var NodeProp = /** @class */ (function () {
         /// Create a new node prop type. You can optionally pass a
         /// `deserialize` function.
-        constructor({ deserialize } = {}) {
+        function NodeProp(_a) {
+            var deserialize = (_a === void 0 ? {} : _a).deserialize;
             this.id = nextPropID++;
-            this.deserialize = deserialize || (() => {
+            this.deserialize = deserialize || (function () {
                 throw new Error("This node type doesn't define a deserialize function");
             });
         }
         /// Create a string-valued node prop whose deserialize function is
         /// the identity function.
-        static string() { return new NodeProp({ deserialize: str => str }); }
+        NodeProp.string = function () { return new NodeProp({ deserialize: function (str) { return str; } }); };
         /// Create a number-valued node prop whose deserialize function is
         /// just `Number`.
-        static number() { return new NodeProp({ deserialize: Number }); }
+        NodeProp.number = function () { return new NodeProp({ deserialize: Number }); };
         /// Creates a boolean-valued node prop whose deserialize function
         /// returns true for any input.
-        static flag() { return new NodeProp({ deserialize: () => true }); }
+        NodeProp.flag = function () { return new NodeProp({ deserialize: function () { return true; } }); };
         /// Store a value for this prop in the given object. This can be
         /// useful when building up a prop object to pass to the
         /// [`NodeType`](#tree.NodeType) constructor. Returns its first
         /// argument.
-        set(propObj, value) {
+        NodeProp.prototype.set = function (propObj, value) {
             propObj[this.id] = value;
             return propObj;
-        }
+        };
         /// This is meant to be used with
         /// [`NodeGroup.extend`](#tree.NodeGroup.extend) or
         /// [`Parser.withProps`](#lezer.Parser.withProps) to compute prop
@@ -776,45 +762,34 @@
         /// object](#tree.NodeType^match) or function that returns undefined
         /// if the node type doesn't get this prop, and the prop's value if
         /// it does.
-        add(match) {
-            return new NodePropSource(this, typeof match == "function" ? match : NodeType.match(match));
-        }
-    }
-    /// The special node type that the parser uses to represent parse
-    /// errors has this flag set. (You shouldn't use it for custom nodes
-    /// that represent erroneous content.)
-    NodeProp.error = NodeProp.flag();
-    /// Nodes that were produced by skipped expressions (such as
-    /// comments) have this prop set to true.
-    NodeProp.skipped = NodeProp.flag();
-    /// Prop that is used to describe matching delimiters. For opening
-    /// delimiters, this holds an array of node names (written as a
-    /// space-separated string when declaring this prop in a grammar)
-    /// for the node types of closing delimiters that match it.
-    NodeProp.closedBy = new NodeProp({ deserialize: str => str.split(" ") });
-    /// The inverse of [`openedBy`](#tree.NodeProp^closedBy). This is
-    /// attached to closing delimiters, holding an array of node names
-    /// of types of matching opening delimiters.
-    NodeProp.openedBy = new NodeProp({ deserialize: str => str.split(" ") });
-    /// Indicates that this node indicates a top level document.
-    NodeProp.top = NodeProp.flag();
-    /// Type returned by [`NodeProp.add`](#tree.NodeProp.add). Describes
-    /// the way a prop should be added to each node type in a node group.
-    class NodePropSource {
-        /// @internal
-        constructor(
-        /// @internal
-        prop, 
-        /// @internal
-        f) {
-            this.prop = prop;
-            this.f = f;
-        }
-    }
+        NodeProp.prototype.add = function (match) {
+            var _this = this;
+            if (typeof match != "function")
+                match = NodeType.match(match);
+            return function (type) {
+                var result = match(type);
+                return result === undefined ? null : [_this, result];
+            };
+        };
+        /// Prop that is used to describe matching delimiters. For opening
+        /// delimiters, this holds an array of node names (written as a
+        /// space-separated string when declaring this prop in a grammar)
+        /// for the node types of closing delimiters that match it.
+        NodeProp.closedBy = new NodeProp({ deserialize: function (str) { return str.split(" "); } });
+        /// The inverse of [`openedBy`](#tree.NodeProp^closedBy). This is
+        /// attached to closing delimiters, holding an array of node names
+        /// of types of matching opening delimiters.
+        NodeProp.openedBy = new NodeProp({ deserialize: function (str) { return str.split(" "); } });
+        /// Used to assign node types to groups (for example, all node
+        /// types that represent an expression could be tagged with an
+        /// `"Expression"` group).
+        NodeProp.group = new NodeProp({ deserialize: function (str) { return str.split(" "); } });
+        return NodeProp;
+    }());
     /// Each node in a syntax tree has a node type associated with it.
-    class NodeType {
+    var NodeType = /** @class */ (function () {
         /// @internal
-        constructor(
+        function NodeType(
         /// The name of the node type. Not necessarily unique, but if the
         /// grammar was written properly, different node types with the
         /// same name within a node group should play the same semantic
@@ -824,29 +799,76 @@
         props, 
         /// The id of this node in its group. Corresponds to the term ids
         /// used in the parser.
-        id) {
+        id, 
+        /// @internal
+        flags) {
+            if (flags === void 0) { flags = 0; }
             this.name = name;
             this.props = props;
             this.id = id;
+            this.flags = flags;
         }
         /// Retrieves a node prop for this type. Will return `undefined` if
         /// the prop isn't present on this node.
-        prop(prop) { return this.props[prop.id]; }
+        NodeType.prototype.prop = function (prop) { return this.props[prop.id]; };
+        Object.defineProperty(NodeType.prototype, "isTop", {
+            /// True when this is the top node of a grammar.
+            get: function () { return (this.flags & 1) > 0; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(NodeType.prototype, "isSkipped", {
+            /// True when this node is produced by a skip rule.
+            get: function () { return (this.flags & 2) > 0; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(NodeType.prototype, "isError", {
+            /// Indicates whether this is an error node.
+            get: function () { return (this.flags & 4) > 0; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(NodeType.prototype, "isRepeated", {
+            /// When true, this node type is used to cache repetition, and is
+            /// not a user-defined named node.
+            get: function () { return (this.flags & 8) > 0; },
+            enumerable: true,
+            configurable: true
+        });
+        /// Returns true when this node's name or one of its
+        /// [groups](#tree.NodeProp^group) matches the given string.
+        NodeType.prototype.is = function (name) {
+            if (this.name == name)
+                return true;
+            var group = this.prop(NodeProp.group);
+            return group ? group.indexOf(name) > -1 : false;
+        };
         /// Create a function from node types to arbitrary values by
-        /// specifying an object whose property names are node names. Often
-        /// useful with [`NodeProp.add`](#tree.NodeProp.add). You can put
-        /// multiple node names, separated by spaces, in a single property
-        /// name to map multiple node names to a single value.
-        static match(map) {
-            let direct = Object.create(null);
-            for (let prop in map)
-                for (let name of prop.split(" "))
+        /// specifying an object whose property names are node or
+        /// [group](#tree.NodeProp^group) names. Often useful with
+        /// [`NodeProp.add`](#tree.NodeProp.add). You can put multiple
+        /// names, separated by spaces, in a single property name to map
+        /// multiple node names to a single value.
+        NodeType.match = function (map) {
+            var direct = Object.create(null);
+            for (var prop in map)
+                for (var _i = 0, _a = prop.split(" "); _i < _a.length; _i++) {
+                    var name = _a[_i];
                     direct[name] = map[prop];
-            return (node) => direct[node.name];
-        }
-    }
-    /// An empty dummy node type to use when no actual type is available.
-    NodeType.none = new NodeType("", Object.create(null), 0);
+                }
+            return function (node) {
+                for (var groups = node.prop(NodeProp.group), i = -1; i < (groups ? groups.length : 0); i++) {
+                    var found = direct[i < 0 ? node.name : groups[i]];
+                    if (found)
+                        return found;
+                }
+            };
+        };
+        /// An empty dummy node type to use when no actual type is available.
+        NodeType.none = new NodeType("", Object.create(null), 0);
+        return NodeType;
+    }());
     /// A node group holds a collection of node types. It is used to
     /// compactly represent trees by storing their type ids, rather than a
     /// full pointer to the type object, in a number array. Each parser
@@ -855,84 +877,44 @@
     /// from the same group. A group can have a maximum of 2**16 (65536)
     /// node types in it, so that the ids fit into 16-bit typed array
     /// slots.
-    class NodeGroup {
+    var NodeGroup = /** @class */ (function () {
         /// Create a group with the given types. The `id` property of each
         /// type should correspond to its position within the array.
-        constructor(
+        function NodeGroup(
         /// The node types in this group, by id.
         types) {
             this.types = types;
-            for (let i = 0; i < types.length; i++)
+            for (var i = 0; i < types.length; i++)
                 if (types[i].id != i)
                     throw new RangeError("Node type ids should correspond to array positions when creating a node group");
         }
         /// Create a copy of this group with some node properties added. The
         /// arguments to this method should be created with
         /// [`NodeProp.add`](#tree.NodeProp.add).
-        extend(...props) {
-            let newTypes = [];
-            for (let type of this.types) {
-                let newProps = null;
-                for (let source of props) {
-                    let value = source.f(type);
-                    if (value !== undefined) {
-                        if (!newProps) {
-                            newProps = Object.create(null);
-                            for (let prop in type.props)
-                                newProps[prop] = type.props[prop];
-                        }
-                        newProps[source.prop.id] = value;
+        NodeGroup.prototype.extend = function () {
+            var props = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                props[_i] = arguments[_i];
+            }
+            var newTypes = [];
+            for (var _a = 0, _b = this.types; _a < _b.length; _a++) {
+                var type = _b[_a];
+                var newProps = null;
+                for (var _c = 0, props_1 = props; _c < props_1.length; _c++) {
+                    var source = props_1[_c];
+                    var add = source(type);
+                    if (add) {
+                        if (!newProps)
+                            newProps = Object.assign({}, type.props);
+                        add[0].set(newProps, add[1]);
                     }
                 }
-                newTypes.push(newProps ? new NodeType(type.name, newProps, type.id) : type);
+                newTypes.push(newProps ? new NodeType(type.name, newProps, type.id, type.flags) : type);
             }
             return new NodeGroup(newTypes);
-        }
-    }
-    /// A subtree is a representation of part of the syntax tree. It may
-    /// either be the tree root, or a tagged node.
-    class Subtree {
-        // Shorthand for `.type.name`.
-        get name() { return this.type.name; }
-        /// The depth (number of parent nodes) of this subtree
-        get depth() {
-            let d = 0;
-            for (let p = this.parent; p; p = p.parent)
-                d++;
-            return d;
-        }
-        /// The root of the tree that this subtree is part of
-        get root() {
-            let cx = this;
-            while (cx.parent)
-                cx = cx.parent;
-            return cx;
-        }
-        /// Find the node at a given position. By default, this will return
-        /// the lowest-depth subtree that covers the position from both
-        /// sides, meaning that nodes starting or ending at the position
-        /// aren't entered. You can pass a `side` of `-1` to enter nodes
-        /// that end at the position, or `1` to enter nodes that start
-        /// there.
-        resolve(pos, side = 0) {
-            let result = this.resolveAt(pos);
-            // FIXME this is slightly inefficient in that it scans the result
-            // of resolveAt twice (but further complicating child-finding
-            // logic seems unattractive as well)
-            if (side != 0)
-                for (;;) {
-                    let child = (side < 0 ? result.childBefore(pos) : result.childAfter(pos));
-                    if (!child || (side < 0 ? child.end : child.start) != pos)
-                        break;
-                    result = child;
-                }
-            return result;
-        }
-        /// Get the first child of this subtree.
-        get firstChild() { return this.childAfter(this.start - 1); }
-        /// Find the last child of this subtree.
-        get lastChild() { return this.childBefore(this.end + 1); }
-    }
+        };
+        return NodeGroup;
+    }());
     /// A piece of syntax tree. There are two ways to approach these
     /// trees: the way they are actually stored in memory, and the
     /// convenient way.
@@ -943,15 +925,15 @@
     ///
     /// However, when you want to actually work with tree nodes, this
     /// representation is very awkward, so most client code will want to
-    /// use the `Subtree` interface instead, which provides a view on some
-    /// part of this data structure, and can be used (through `resolve`,
-    /// for example) to zoom in on any single node.
-    class Tree extends Subtree {
+    /// use the `TreeCursor` interface instead, which provides a view on
+    /// some part of this data structure, and can be used to move around
+    /// to adjacent nodes.
+    var Tree = /** @class */ (function () {
         /// Construct a new tree. You usually want to go through
         /// [`Tree.build`](#tree.Tree^build) instead.
-        constructor(type, 
+        function Tree(type, 
         /// The tree's child nodes. Children small enough to fit in a
-        /// `TreeBuffer` will be represented as such, other children can be
+        /// `TreeBuffer will be represented as such, other children can be
         /// further `Tree` instances with their own internal structure.
         children, 
         /// The positions (offsets relative to the start of this tree) of
@@ -959,27 +941,24 @@
         positions, 
         /// The total length of this tree
         length) {
-            super();
             this.type = type;
             this.children = children;
             this.positions = positions;
             this.length = length;
         }
-        get start() { return 0; }
-        get end() { return this.length; }
         /// @internal
-        toString() {
-            let children = this.children.map(c => c.toString()).join();
-            return !this.name ? children :
-                (/\W/.test(this.name) && !this.type.prop(NodeProp.error) ? JSON.stringify(this.name) : this.name) +
+        Tree.prototype.toString = function () {
+            var children = this.children.map(function (c) { return c.toString(); }).join();
+            return !this.type.name ? children :
+                (/\W/.test(this.type.name) && !this.type.isError ? JSON.stringify(this.type.name) : this.type.name) +
                     (children.length ? "(" + children + ")" : "");
-        }
-        partial(start, end, offset, children, positions) {
-            for (let i = 0; i < this.children.length; i++) {
-                let from = this.positions[i];
+        };
+        Tree.prototype.partial = function (start, end, offset, children, positions) {
+            for (var i = 0; i < this.children.length; i++) {
+                var from = this.positions[i];
                 if (from > end)
                     break;
-                let child = this.children[i], to = from + child.length;
+                var child = this.children[i], to = from + child.length;
                 if (to < start)
                     continue;
                 if (start <= from && end >= to) {
@@ -990,34 +969,35 @@
                     child.partial(start - from, end - from, offset + from, children, positions);
                 }
             }
-        }
+        };
         /// Apply a set of edits to a tree, removing all nodes that were
         /// touched by the edits, and moving remaining nodes so that their
         /// positions are updated for insertions/deletions before them. This
         /// is likely to destroy a lot of the structure of the tree, and
         /// mostly useful for extracting the nodes that can be reused in a
         /// subsequent incremental re-parse.
-        applyChanges(changes) {
+        Tree.prototype.applyChanges = function (changes) {
             if (changes.length == 0)
                 return this;
-            let children = [], positions = [];
+            var children = [], positions = [];
             function cutAt(tree, pos, side) {
-                let found = -1;
-                tree.iterate({
-                    from: pos,
-                    to: side < 0 ? 0 : tree.length,
-                    enter() { return found < 0 ? undefined : false; },
-                    leave(type, start, end) {
-                        if (found < 0 && (side < 0 ? end <= pos : start >= pos) && !type.prop(NodeProp.error))
-                            found = side < 0 ? Math.min(pos, end - 1) : Math.max(pos, start + 1);
-                    }
-                });
-                return found > -1 ? found : side < 0 ? 0 : tree.length;
+                var cursor = tree.cursor(pos, -side);
+                for (;;) {
+                    if (!cursor.enter(side, pos))
+                        for (;;) {
+                            if ((side < 0 ? cursor.to <= pos : cursor.from >= pos) && !cursor.type.isError)
+                                return side < 0 ? Math.min(pos, cursor.to - 1) : Math.max(pos, cursor.from + 1);
+                            if (cursor.sibling(side))
+                                break;
+                            if (!cursor.parent())
+                                return side < 0 ? 0 : tree.length;
+                        }
+                }
             }
-            let off = 0;
-            for (let i = 0, pos = 0;; i++) {
-                let next = i == changes.length ? null : changes[i];
-                let nextPos = next ? cutAt(this, next.fromA, -1) : this.length;
+            var off = 0;
+            for (var i = 0, pos = 0;; i++) {
+                var next = i == changes.length ? null : changes[i];
+                var nextPos = next ? cutAt(this, next.fromA, -1) : this.length;
                 if (nextPos > pos)
                     this.partial(pos, nextPos, off, children, positions);
                 if (!next)
@@ -1026,408 +1006,695 @@
                 off += (next.toB - next.fromB) - (next.toA - next.fromA);
             }
             return new Tree(NodeType.none, children, positions, this.length + off);
-        }
+        };
         /// Take the part of the tree up to the given position.
-        cut(at) {
+        Tree.prototype.cut = function (at) {
             if (at >= this.length)
                 return this;
-            let children = [], positions = [];
-            for (let i = 0; i < this.children.length; i++) {
-                let from = this.positions[i];
+            var children = [], positions = [];
+            for (var i = 0; i < this.children.length; i++) {
+                var from = this.positions[i];
                 if (from >= at)
                     break;
-                let child = this.children[i], to = from + child.length;
+                var child = this.children[i], to = from + child.length;
                 children.push(to <= at ? child : child.cut(at - from));
                 positions.push(from);
             }
             return new Tree(this.type, children, positions, at);
-        }
-        iterate({ from = this.start, to = this.end, enter, leave }) {
-            let iter = new Iteration(enter, leave);
-            this.iterInner(from, to, 0, iter);
-            return iter.result;
-        }
-        /// @internal
-        iterInner(from, to, offset, iter) {
-            if (this.type.name && !iter.doEnter(this.type, offset, offset + this.length))
-                return;
-            if (from <= to) {
-                for (let i = 0; i < this.children.length && !iter.done; i++) {
-                    let child = this.children[i], start = this.positions[i] + offset, end = start + child.length;
-                    if (start > to)
-                        break;
-                    if (end < from)
+        };
+        /// Get a [tree cursor](#tree.TreeCursor) rooted at this tree. When
+        /// `pos` is given, the cursor is [moved](#tree.TreeCursor.moveTo)
+        /// to the given position and side.
+        Tree.prototype.cursor = function (pos, side) {
+            if (side === void 0) { side = 0; }
+            var scope = (pos != null && CachedNode.get(this)) || this.topNode;
+            var cursor = new TreeCursor(scope);
+            if (pos != null) {
+                cursor.moveTo(pos, side);
+                CachedNode.set(this, cursor.tree);
+            }
+            return cursor;
+        };
+        Object.defineProperty(Tree.prototype, "topNode", {
+            /// Get a [syntax node](#tree.SyntaxNode) object for the top of the
+            /// tree.
+            get: function () {
+                return new TreeNode(this, 0, 0, null);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        /// Get the [syntax node](#tree.SyntaxNode) at the given position.
+        /// If `side` is -1, this will move into nodes that end at the
+        /// position. If 1, it'll move into nodes that start at the
+        /// position. With 0, it'll only enter nodes that cover the position
+        /// from both sides.
+        Tree.prototype.resolve = function (pos, side) {
+            if (side === void 0) { side = 0; }
+            return this.cursor(pos, side).node;
+        };
+        /// Iterate over the tree and its children, calling `enter` for any
+        /// node that touches the `from`/`to` region (if given) before
+        /// running over such a node's children, and `leave` (if given) when
+        /// leaving the node. When `enter` returns `false`, the given node
+        /// will not have its children iterated over (or `leave` called).
+        Tree.prototype.iterate = function (spec) {
+            var enter = spec.enter, leave = spec.leave, _a = spec.from, from = _a === void 0 ? 0 : _a, _b = spec.to, to = _b === void 0 ? this.length : _b;
+            for (var c = this.cursor();;) {
+                var mustLeave = false;
+                if (c.from <= to && c.to >= from && (c.type.isRepeated || enter(c.type, c.from, c.to) !== false)) {
+                    if (c.firstChild())
                         continue;
-                    child.iterInner(from, to, start, iter);
+                    mustLeave = true;
                 }
-            }
-            else {
-                for (let i = this.children.length - 1; i >= 0 && !iter.done; i--) {
-                    let child = this.children[i], start = this.positions[i] + offset, end = start + child.length;
-                    if (end < to)
+                for (;;) {
+                    if (mustLeave && leave)
+                        leave(c.type, c.from, c.to);
+                    if (c.nextSibling())
                         break;
-                    if (start > from)
-                        continue;
-                    child.iterInner(from, to, start, iter);
+                    if (!c.parent())
+                        return;
+                    mustLeave = true;
                 }
             }
-            if (iter.leave && this.type.name)
-                iter.leave(this.type, offset, offset + this.length);
-            return;
-        }
-        /// @internal
-        resolveAt(pos) {
-            if (cacheRoot == this) {
-                for (let tree = cached;;) {
-                    let next = tree.parent;
-                    if (!next)
-                        break;
-                    if (tree.start < pos && tree.end > pos)
-                        return tree.resolve(pos);
-                    tree = next;
-                }
-            }
-            cacheRoot = this;
-            return cached = this.resolveInner(pos, 0, this);
-        }
-        childBefore(pos) {
-            return this.findChild(pos, -1, 0, this);
-        }
-        childAfter(pos) {
-            return this.findChild(pos, 1, 0, this);
-        }
-        /// @internal
-        findChild(pos, side, start, parent) {
-            for (let i = 0; i < this.children.length; i++) {
-                let childStart = this.positions[i] + start, select = -1;
-                if (childStart >= pos) {
-                    if (side < 0 && i > 0)
-                        select = i - 1;
-                    else if (side > 0)
-                        select = i;
-                    else
-                        break;
-                }
-                if (select < 0 && (childStart + this.children[i].length > pos || side < 0 && i == this.children.length - 1))
-                    select = i;
-                if (select >= 0) {
-                    let child = this.children[select], childStart = this.positions[select] + start;
-                    if (child.length == 0 && childStart == pos)
-                        continue;
-                    if (child instanceof Tree) {
-                        if (child.type.name)
-                            return new NodeSubtree(child, childStart, parent);
-                        return child.findChild(pos, side, childStart, parent);
-                    }
-                    else {
-                        let found = child.findIndex(pos, side, childStart, 0, child.buffer.length);
-                        if (found > -1)
-                            return new BufferSubtree(child, childStart, found, parent);
-                    }
-                }
-            }
-            return null;
-        }
-        /// @internal
-        resolveInner(pos, start, parent) {
-            let found = this.findChild(pos, 0, start, parent);
-            return found ? found.resolveAt(pos) : parent;
-        }
+        };
         /// Append another tree to this tree. `other` must have empty space
         /// big enough to fit this tree at its start.
-        append(other) {
-            if (other.children.length && other.positions[0] < this.length)
+        Tree.prototype.append = function (other) {
+            if (!other.children.length)
+                return this;
+            if (other.positions[0] < this.length)
                 throw new Error("Can't append overlapping trees");
             return new Tree(this.type, this.children.concat(other.children), this.positions.concat(other.positions), other.length);
-        }
+        };
         /// Balance the direct children of this tree.
-        balance(maxBufferLength = DefaultBufferLength) {
+        Tree.prototype.balance = function (maxBufferLength) {
+            if (maxBufferLength === void 0) { maxBufferLength = DefaultBufferLength; }
             return this.children.length <= BalanceBranchFactor ? this
                 : balanceRange(this.type, NodeType.none, this.children, this.positions, 0, this.children.length, 0, maxBufferLength, this.length);
-        }
+        };
         /// Build a tree from a postfix-ordered buffer of node information,
-        /// or a cursor over such a buffer. 
-        static build(data) { return buildTree(data); }
-    }
-    /// The empty tree
-    Tree.empty = new Tree(NodeType.none, [], [], 0);
-    Tree.prototype.parent = null;
-    // Top-level `resolveAt` calls store their last result here, so that
-    // if the next call is near the last, parent trees can be cheaply
-    // reused.
-    let cacheRoot = Tree.empty;
-    let cached = Tree.empty;
+        /// or a cursor over such a buffer.
+        Tree.build = function (data) { return buildTree(data); };
+        /// The empty tree
+        Tree.empty = new Tree(NodeType.none, [], [], 0);
+        return Tree;
+    }());
     /// Tree buffers contain (type, start, end, endIndex) quads for each
     /// node. In such a buffer, nodes are stored in prefix order (parents
     /// before children, with the endIndex of the parent indicating which
     /// children belong to it)
-    class TreeBuffer {
+    var TreeBuffer = /** @class */ (function () {
         /// Create a tree buffer @internal
-        constructor(
+        function TreeBuffer(
         /// @internal
         buffer, 
         // The total length of the group of nodes in the buffer.
         length, 
         /// @internal
-        group, type = NodeType.none) {
+        group, type) {
+            if (type === void 0) { type = NodeType.none; }
             this.buffer = buffer;
             this.length = length;
             this.group = group;
             this.type = type;
         }
         /// @internal
-        toString() {
-            let parts = [];
-            for (let index = 0; index < this.buffer.length;)
-                index = this.childToString(index, parts);
-            return parts.join(",");
-        }
+        TreeBuffer.prototype.toString = function () {
+            var result = [];
+            for (var index = 0; index < this.buffer.length;) {
+                result.push(this.childString(index));
+                index = this.buffer[index + 3];
+            }
+            return result.join(",");
+        };
         /// @internal
-        childToString(index, parts) {
-            let id = this.buffer[index], endIndex = this.buffer[index + 3];
-            let type = this.group.types[id], result = type.name;
-            if (/\W/.test(result) && !type.prop(NodeProp.error))
+        TreeBuffer.prototype.childString = function (index) {
+            var id = this.buffer[index], endIndex = this.buffer[index + 3];
+            var type = this.group.types[id], result = type.name;
+            if (/\W/.test(result) && !type.isError)
                 result = JSON.stringify(result);
             index += 4;
-            if (endIndex > index) {
-                let children = [];
-                while (index < endIndex)
-                    index = this.childToString(index, children);
-                result += "(" + children.join(",") + ")";
+            if (endIndex == index)
+                return result;
+            var children = [];
+            while (index < endIndex) {
+                children.push(this.childString(index));
+                index = this.buffer[index + 3];
             }
-            parts.push(result);
-            return index;
-        }
+            return result + "(" + children.join(",") + ")";
+        };
         /// @internal
-        cut(at) {
-            let cutPoint = 0;
+        TreeBuffer.prototype.cut = function (at) {
+            var cutPoint = 0;
             while (cutPoint < this.buffer.length && this.buffer[cutPoint + 1] < at)
                 cutPoint += 4;
-            let newBuffer = new Uint16Array(cutPoint);
-            for (let i = 0; i < cutPoint; i += 4) {
+            var newBuffer = new Uint16Array(cutPoint);
+            for (var i = 0; i < cutPoint; i += 4) {
                 newBuffer[i] = this.buffer[i];
                 newBuffer[i + 1] = this.buffer[i + 1];
                 newBuffer[i + 2] = Math.min(at, this.buffer[i + 2]);
                 newBuffer[i + 3] = Math.min(this.buffer[i + 3], cutPoint);
             }
             return new TreeBuffer(newBuffer, Math.min(at, this.length), this.group);
-        }
-        iterate({ from = 0, to = this.length, enter, leave }) {
-            let iter = new Iteration(enter, leave);
-            this.iterInner(from, to, 0, iter);
-            return iter.result;
-        }
+        };
         /// @internal
-        iterInner(from, to, offset, iter) {
-            if (from <= to) {
-                for (let index = 0; index < this.buffer.length;)
-                    index = this.iterChild(from, to, offset, index, iter);
-            }
-            else {
-                this.iterRev(from, to, offset, 0, this.buffer.length, iter);
-            }
-        }
-        /// @internal
-        iterChild(from, to, offset, index, iter) {
-            let type = this.group.types[this.buffer[index++]], start = this.buffer[index++] + offset, end = this.buffer[index++] + offset, endIndex = this.buffer[index++];
-            if (start > to)
-                return this.buffer.length;
-            if (end >= from && iter.doEnter(type, start, end)) {
-                while (index < endIndex && !iter.done)
-                    index = this.iterChild(from, to, offset, index, iter);
-                if (iter.leave)
-                    iter.leave(type, start, end);
-            }
-            return endIndex;
-        }
-        parentNodesByEnd(startIndex, endIndex) {
-            // Build up an array of node indices reflecting the order in which
-            // non-empty nodes end, to avoid having to scan for parent nodes
-            // at every position during reverse iteration.
-            let order = [];
-            let scan = (index) => {
-                let end = this.buffer[index + 3];
-                if (end == index + 4)
-                    return end;
-                for (let i = index + 4; i < end;)
-                    i = scan(i);
-                order.push(index);
-                return end;
-            };
-            for (let index = startIndex; index < endIndex;)
-                index = scan(index);
-            return order;
-        }
-        /// @internal
-        iterRev(from, to, offset, startIndex, endIndex, iter) {
-            let endOrder = this.parentNodesByEnd(startIndex, endIndex);
-            // Index range for the next non-empty node
-            let nextStart = -1, nextEnd = -1;
-            let takeNext = () => {
-                if (endOrder.length > 0) {
-                    nextStart = endOrder.pop();
-                    nextEnd = this.buffer[nextStart + 3];
-                }
-                else {
-                    nextEnd = -1;
-                }
-            };
-            takeNext();
-            run: for (let index = endIndex; index > startIndex && !iter.done;) {
-                while (nextEnd == index) {
-                    let base = nextStart;
-                    let id = this.buffer[base], start = this.buffer[base + 1] + offset, end = this.buffer[base + 2] + offset;
-                    takeNext();
-                    if (start <= from && end >= to) {
-                        if (!iter.doEnter(this.group.types[id], start, end)) {
-                            // Skip the entire node
-                            index = base;
-                            while (nextEnd > base)
-                                takeNext();
-                            continue run;
-                        }
+        TreeBuffer.prototype.findChild = function (startIndex, endIndex, dir, after) {
+            var buffer = this.buffer, pick = -1;
+            for (var i = startIndex; i != endIndex; i = buffer[i + 3]) {
+                if (after != -100000000 /* None */) {
+                    var start = buffer[i + 1], end = buffer[i + 2];
+                    if (dir > 0) {
+                        if (end > after)
+                            pick = i;
+                        if (end > after)
+                            break;
+                    }
+                    else {
+                        if (start < after)
+                            pick = i;
+                        if (end >= after)
+                            break;
                     }
                 }
-                let endIndex = this.buffer[--index], end = this.buffer[--index] + offset, start = this.buffer[--index] + offset, id = this.buffer[--index];
-                if (start > from || end < to)
-                    continue;
-                if ((endIndex != index + 4 || iter.doEnter(this.group.types[id], start, end)) && iter.leave)
-                    iter.leave(this.group.types[id], start, end);
+                else {
+                    pick = i;
+                    if (dir > 0)
+                        break;
+                }
+            }
+            return pick;
+        };
+        return TreeBuffer;
+    }());
+    var TreeNode = /** @class */ (function () {
+        function TreeNode(node, from, index, _parent) {
+            this.node = node;
+            this.from = from;
+            this.index = index;
+            this._parent = _parent;
+        }
+        Object.defineProperty(TreeNode.prototype, "type", {
+            get: function () { return this.node.type; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(TreeNode.prototype, "name", {
+            get: function () { return this.node.type.name; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(TreeNode.prototype, "to", {
+            get: function () { return this.from + this.node.length; },
+            enumerable: true,
+            configurable: true
+        });
+        TreeNode.prototype.nextChild = function (i, dir, after) {
+            for (var parent = this;;) {
+                for (var _a = parent.node, children = _a.children, positions = _a.positions, e = dir > 0 ? children.length : -1; i != e; i += dir) {
+                    var next = children[i], start = positions[i] + parent.from;
+                    if (after != -100000000 /* None */ && (dir < 0 ? start >= after : start + next.length <= after))
+                        continue;
+                    if (next instanceof TreeBuffer) {
+                        var index = next.findChild(0, next.buffer.length, dir, after == -100000000 /* None */ ? -100000000 /* None */ : after - start);
+                        if (index > -1)
+                            return new BufferNode(new BufferContext(parent, next, i, start), null, index);
+                    }
+                    else if (!next.type.isRepeated || hasChild(next)) {
+                        var inner = new TreeNode(next, start, i, parent);
+                        return !inner.type.isRepeated ? inner : inner.nextChild(dir < 0 ? next.children.length - 1 : 0, dir, after);
+                    }
+                }
+                if (!parent.type.isRepeated)
+                    return null;
+                i = parent.index + dir;
+                parent = parent._parent;
+            }
+        };
+        Object.defineProperty(TreeNode.prototype, "firstChild", {
+            get: function () { return this.nextChild(0, 1, -100000000 /* None */); },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(TreeNode.prototype, "lastChild", {
+            get: function () { return this.nextChild(this.node.children.length - 1, -1, -100000000 /* None */); },
+            enumerable: true,
+            configurable: true
+        });
+        TreeNode.prototype.childAfter = function (pos) { return this.nextChild(0, 1, pos); };
+        TreeNode.prototype.childBefore = function (pos) { return this.nextChild(this.node.children.length - 1, -1, pos); };
+        TreeNode.prototype.nextSignificant = function () {
+            var val = this;
+            while (val.type.isRepeated)
+                val = val._parent;
+            return val;
+        };
+        Object.defineProperty(TreeNode.prototype, "parent", {
+            get: function () {
+                return this._parent ? this._parent.nextSignificant() : null;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(TreeNode.prototype, "nextSibling", {
+            get: function () {
+                return this._parent ? this._parent.nextChild(this.index + 1, 1, -1) : null;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(TreeNode.prototype, "prevSibling", {
+            get: function () {
+                return this._parent ? this._parent.nextChild(this.index - 1, -1, -1) : null;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(TreeNode.prototype, "cursor", {
+            get: function () { return new TreeCursor(this); },
+            enumerable: true,
+            configurable: true
+        });
+        TreeNode.prototype.resolve = function (pos, side) {
+            if (side === void 0) { side = 0; }
+            return this.cursor.moveTo(pos, side).node;
+        };
+        TreeNode.prototype.getChild = function (type, before, after) {
+            if (before === void 0) { before = null; }
+            if (after === void 0) { after = null; }
+            var r = getChildren(this, type, before, after);
+            return r.length ? r[0] : null;
+        };
+        TreeNode.prototype.getChildren = function (type, before, after) {
+            if (before === void 0) { before = null; }
+            if (after === void 0) { after = null; }
+            return getChildren(this, type, before, after);
+        };
+        /// @internal
+        TreeNode.prototype.toString = function () { return this.node.toString(); };
+        return TreeNode;
+    }());
+    function getChildren(node, type, before, after) {
+        var cur = node.cursor, result = [];
+        if (!cur.firstChild())
+            return result;
+        if (before != null)
+            while (!cur.type.is(before))
+                if (!cur.nextSibling())
+                    return result;
+        for (;;) {
+            if (after != null && cur.type.is(after))
+                return result;
+            if (cur.type.is(type))
+                result.push(cur.node);
+            if (!cur.nextSibling())
+                return after == null ? result : [];
+        }
+    }
+    var BufferContext = /** @class */ (function () {
+        function BufferContext(parent, buffer, index, start) {
+            this.parent = parent;
+            this.buffer = buffer;
+            this.index = index;
+            this.start = start;
+        }
+        return BufferContext;
+    }());
+    var BufferNode = /** @class */ (function () {
+        function BufferNode(context, _parent, index) {
+            this.context = context;
+            this._parent = _parent;
+            this.index = index;
+            this.type = context.buffer.group.types[context.buffer.buffer[index]];
+        }
+        Object.defineProperty(BufferNode.prototype, "name", {
+            get: function () { return this.type.name; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(BufferNode.prototype, "from", {
+            get: function () { return this.context.start + this.context.buffer.buffer[this.index + 1]; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(BufferNode.prototype, "to", {
+            get: function () { return this.context.start + this.context.buffer.buffer[this.index + 2]; },
+            enumerable: true,
+            configurable: true
+        });
+        BufferNode.prototype.child = function (dir, after) {
+            var buffer = this.context.buffer;
+            var index = buffer.findChild(this.index + 4, buffer.buffer[this.index + 3], dir, after == -100000000 /* None */ ? -100000000 /* None */ : after - this.context.start);
+            return index < 0 ? null : new BufferNode(this.context, this, index);
+        };
+        Object.defineProperty(BufferNode.prototype, "firstChild", {
+            get: function () { return this.child(1, -100000000 /* None */); },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(BufferNode.prototype, "lastChild", {
+            get: function () { return this.child(-1, -100000000 /* None */); },
+            enumerable: true,
+            configurable: true
+        });
+        BufferNode.prototype.childAfter = function (pos) { return this.child(1, pos); };
+        BufferNode.prototype.childBefore = function (pos) { return this.child(-1, pos); };
+        Object.defineProperty(BufferNode.prototype, "parent", {
+            get: function () {
+                return this._parent || this.context.parent.nextSignificant();
+            },
+            enumerable: true,
+            configurable: true
+        });
+        BufferNode.prototype.externalSibling = function (dir) {
+            return this._parent ? null : this.context.parent.nextChild(this.context.index + dir, dir, -1);
+        };
+        Object.defineProperty(BufferNode.prototype, "nextSibling", {
+            get: function () {
+                var buffer = this.context.buffer;
+                var after = buffer.buffer[this.index + 3];
+                if (after < (this._parent ? buffer.buffer[this._parent.index + 3] : buffer.buffer.length))
+                    return new BufferNode(this.context, this._parent, after);
+                return this.externalSibling(1);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(BufferNode.prototype, "prevSibling", {
+            get: function () {
+                var buffer = this.context.buffer;
+                var parentStart = this._parent ? this._parent.index + 4 : 0;
+                if (this.index == parentStart)
+                    return this.externalSibling(-1);
+                return new BufferNode(this.context, this._parent, buffer.findChild(parentStart, this.index, -1, -100000000 /* None */));
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(BufferNode.prototype, "cursor", {
+            get: function () { return new TreeCursor(this); },
+            enumerable: true,
+            configurable: true
+        });
+        BufferNode.prototype.resolve = function (pos, side) {
+            if (side === void 0) { side = 0; }
+            return this.cursor.moveTo(pos, side).node;
+        };
+        /// @internal
+        BufferNode.prototype.toString = function () { return this.context.buffer.childString(this.index); };
+        BufferNode.prototype.getChild = function (type, before, after) {
+            if (before === void 0) { before = null; }
+            if (after === void 0) { after = null; }
+            var r = getChildren(this, type, before, after);
+            return r.length ? r[0] : null;
+        };
+        BufferNode.prototype.getChildren = function (type, before, after) {
+            if (before === void 0) { before = null; }
+            if (after === void 0) { after = null; }
+            return getChildren(this, type, before, after);
+        };
+        return BufferNode;
+    }());
+    /// A tree cursor object focuses on a given node in a syntax tree, and
+    /// allows you to move to adjacent nodes.
+    var TreeCursor = /** @class */ (function () {
+        /// @internal
+        function TreeCursor(node) {
+            this.buffer = null;
+            this.stack = [];
+            this.index = 0;
+            this.bufferNode = null;
+            if (node instanceof TreeNode) {
+                this.yieldNode(node);
+            }
+            else {
+                this.tree = node.context.parent;
+                this.buffer = node.context;
+                for (var n = node._parent; n; n = n._parent)
+                    this.stack.unshift(n.index);
+                this.bufferNode = node;
+                this.yieldBuf(node.index);
             }
         }
+        Object.defineProperty(TreeCursor.prototype, "name", {
+            /// Shorthand for `.type.name`.
+            get: function () { return this.type.name; },
+            enumerable: true,
+            configurable: true
+        });
+        TreeCursor.prototype.yieldNode = function (node) {
+            if (!node)
+                return false;
+            this.tree = node;
+            this.type = node.type;
+            this.from = node.from;
+            this.to = node.to;
+            return true;
+        };
+        TreeCursor.prototype.yieldBuf = function (index, type) {
+            this.index = index;
+            var _a = this.buffer, start = _a.start, buffer = _a.buffer;
+            this.type = type || buffer.group.types[buffer.buffer[index]];
+            this.from = start + buffer.buffer[index + 1];
+            this.to = start + buffer.buffer[index + 2];
+            return true;
+        };
+        TreeCursor.prototype.yield = function (node) {
+            if (!node)
+                return false;
+            if (node instanceof TreeNode) {
+                this.buffer = null;
+                return this.yieldNode(node);
+            }
+            this.buffer = node.context;
+            return this.yieldBuf(node.index, node.type);
+        };
         /// @internal
-        findIndex(pos, side, start, from, to) {
-            let lastI = -1;
-            for (let i = from, buf = this.buffer; i < to;) {
-                let start1 = buf[i + 1] + start, end1 = buf[i + 2] + start;
-                let ignore = start1 == end1 && start1 == pos;
-                if (start1 >= pos) {
-                    if (side > 0 && !ignore)
-                        return i;
+        TreeCursor.prototype.toString = function () {
+            return this.buffer ? this.buffer.buffer.childString(this.index) : this.tree.toString();
+        };
+        /// @internal
+        TreeCursor.prototype.enter = function (dir, after) {
+            if (!this.buffer)
+                return this.yield(this.tree.nextChild(dir < 0 ? this.tree.node.children.length - 1 : 0, dir, after));
+            var buffer = this.buffer.buffer;
+            var index = buffer.findChild(this.index + 4, buffer.buffer[this.index + 3], dir, after == -100000000 /* None */ ? -100000000 /* None */ : after - this.buffer.start);
+            if (index < 0)
+                return false;
+            this.stack.push(this.index);
+            return this.yieldBuf(index);
+        };
+        /// Move the cursor to this node's first child. When this returns
+        /// false, the node has no child, and the cursor has not been moved.
+        TreeCursor.prototype.firstChild = function () { return this.enter(1, -100000000 /* None */); };
+        /// Move the cursor to this node's last child.
+        TreeCursor.prototype.lastChild = function () { return this.enter(-1, -100000000 /* None */); };
+        /// Move the cursor to the first child that starts at or after `pos`.
+        TreeCursor.prototype.childAfter = function (pos) { return this.enter(1, pos); };
+        /// Move to the last child that ends at or before `pos`.
+        TreeCursor.prototype.childBefore = function (pos) { return this.enter(-1, pos); };
+        /// Move the node's parent node, if this isn't the top node.
+        TreeCursor.prototype.parent = function () {
+            if (!this.buffer)
+                return this.yieldNode(this.tree.parent);
+            if (this.stack.length)
+                return this.yieldBuf(this.stack.pop());
+            var parent = this.buffer.parent.nextSignificant();
+            this.buffer = null;
+            return this.yieldNode(parent);
+        };
+        /// @internal
+        TreeCursor.prototype.sibling = function (dir) {
+            if (!this.buffer)
+                return this.tree._parent ? this.yield(this.tree._parent.nextChild(this.tree.index + dir, dir, -100000000 /* None */)) : false;
+            var buffer = this.buffer.buffer, d = this.stack.length - 1;
+            if (dir < 0) {
+                var parentStart = d < 0 ? 0 : this.stack[d] + 4;
+                if (this.index != parentStart)
+                    return this.yieldBuf(buffer.findChild(parentStart, this.index, -1, -100000000 /* None */));
+            }
+            else {
+                var after_1 = buffer.buffer[this.index + 3];
+                if (after_1 < (d < 0 ? buffer.buffer.length : buffer.buffer[this.stack[d] + 3]))
+                    return this.yieldBuf(after_1);
+            }
+            return d < 0 ? this.yield(this.buffer.parent.nextChild(this.buffer.index + dir, dir, -100000000 /* None */)) : false;
+        };
+        /// Move to this node's next sibling, if any.
+        TreeCursor.prototype.nextSibling = function () { return this.sibling(1); };
+        /// Move to this node's previous sibling, if any.
+        TreeCursor.prototype.prevSibling = function () { return this.sibling(-1); };
+        TreeCursor.prototype.atLastNode = function (dir) {
+            var _a, _b;
+            var index, parent, buffer = this.buffer;
+            if (buffer) {
+                if (dir > 0) {
+                    if (this.index < buffer.buffer.buffer.length)
+                        return false;
+                }
+                else {
+                    for (var i = 0; i < this.index; i++)
+                        if (buffer.buffer.buffer[i + 3] < this.index)
+                            return false;
+                }
+                (index = buffer.index, parent = buffer.parent);
+            }
+            else {
+                (_a = this.tree, index = _a.index, parent = _a._parent);
+            }
+            for (; parent; _b = parent, index = _b.index, parent = _b._parent, _b) {
+                for (var i = index + dir, e = dir < 0 ? -1 : parent.node.children.length; i != e; i += dir) {
+                    var child = parent.node.children[i];
+                    if (!child.type.isRepeated || child instanceof TreeBuffer || hasChild(child))
+                        return false;
+                }
+            }
+            return true;
+        };
+        TreeCursor.prototype.move = function (dir) {
+            if (this.enter(dir, -100000000 /* None */))
+                return true;
+            for (;;) {
+                if (this.sibling(dir))
+                    return true;
+                if (this.atLastNode(dir) || !this.parent())
+                    return false;
+            }
+        };
+        /// Move to the next node in a
+        /// [pre-order](https://en.wikipedia.org/wiki/Tree_traversal#Pre-order_(NLR))
+        /// traversal, going from a node to its first child or, if the
+        /// current node is empty, its next sibling or the next sibling of
+        /// the first parent node that has one.
+        TreeCursor.prototype.next = function () { return this.move(1); };
+        /// Move to the next node in a last-to-first pre-order traveral. A
+        /// node is followed by ist last child or, if it has none, its
+        /// previous sibling or the previous sibling of the first parent
+        /// node that has one.
+        TreeCursor.prototype.prev = function () { return this.move(-1); };
+        /// Move the cursor to the innermost node that covers `pos`. If
+        /// `side` is -1, it will enter nodes that end at `pos`. If it is 1,
+        /// it will enter nodes that start at `pos`.
+        TreeCursor.prototype.moveTo = function (pos, side) {
+            if (side === void 0) { side = 0; }
+            // Move up to a node that actually holds the position, if possible
+            while (this.from == this.to ||
+                (side < 1 ? this.from >= pos : this.from > pos) ||
+                (side > -1 ? this.to <= pos : this.to < pos))
+                if (!this.parent())
+                    break;
+            // Then scan down into child nodes as far as possible
+            for (;;) {
+                if (side < 0 ? !this.childBefore(pos) : !this.childAfter(pos))
+                    break;
+                if (this.from == this.to ||
+                    (side < 1 ? this.from >= pos : this.from > pos) ||
+                    (side > -1 ? this.to <= pos : this.to < pos)) {
+                    this.parent();
                     break;
                 }
-                if (end1 > pos)
-                    return i;
-                if (!ignore)
-                    lastI = i;
-                i = buf[i + 3];
             }
-            return side < 0 ? lastI : -1;
-        }
+            return this;
+        };
+        Object.defineProperty(TreeCursor.prototype, "node", {
+            /// Get a [syntax node](#tree.SyntaxNode) at the cursor's current
+            /// position.
+            get: function () {
+                if (!this.buffer)
+                    return this.tree;
+                var cache = this.bufferNode, result = null, depth = 0;
+                if (cache && cache.context == this.buffer) {
+                    scan: for (var index = this.index, d = this.stack.length; d >= 0;) {
+                        for (var c = cache; c; c = c._parent)
+                            if (c.index == index) {
+                                if (index == this.index)
+                                    return c;
+                                result = c;
+                                depth = d + 1;
+                                break scan;
+                            }
+                        index = this.stack[--d];
+                    }
+                }
+                for (var i = depth; i < this.stack.length; i++)
+                    result = new BufferNode(this.buffer, result, this.stack[i]);
+                return this.bufferNode = new BufferNode(this.buffer, result, this.index);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        return TreeCursor;
+    }());
+    function hasChild(tree) {
+        return tree.children.some(function (ch) { return !ch.type.isRepeated || ch instanceof TreeBuffer || hasChild(ch); });
     }
-    class NodeSubtree extends Subtree {
-        constructor(node, start, parent) {
-            super();
-            this.node = node;
-            this.start = start;
-            this.parent = parent;
-        }
-        get type() { return this.node.type; }
-        get end() { return this.start + this.node.length; }
-        resolveAt(pos) {
-            if (pos <= this.start || pos >= this.end)
-                return this.parent.resolveAt(pos);
-            return this.node.resolveInner(pos, this.start, this);
-        }
-        childBefore(pos) {
-            return this.node.findChild(pos, -1, this.start, this);
-        }
-        childAfter(pos) {
-            return this.node.findChild(pos, 1, this.start, this);
-        }
-        toString() { return this.node.toString(); }
-        iterate({ from = this.start, to = this.end, enter, leave }) {
-            let iter = new Iteration(enter, leave);
-            this.node.iterInner(from, to, this.start, iter);
-            return iter.result;
-        }
-    }
-    class BufferSubtree extends Subtree {
-        constructor(buffer, bufferStart, index, parent) {
-            super();
-            this.buffer = buffer;
-            this.bufferStart = bufferStart;
-            this.index = index;
-            this.parent = parent;
-        }
-        get type() { return this.buffer.group.types[this.buffer.buffer[this.index]]; }
-        get start() { return this.buffer.buffer[this.index + 1] + this.bufferStart; }
-        get end() { return this.buffer.buffer[this.index + 2] + this.bufferStart; }
-        get endIndex() { return this.buffer.buffer[this.index + 3]; }
-        childBefore(pos) {
-            let index = this.buffer.findIndex(pos, -1, this.bufferStart, this.index + 4, this.endIndex);
-            return index < 0 ? null : new BufferSubtree(this.buffer, this.bufferStart, index, this);
-        }
-        childAfter(pos) {
-            let index = this.buffer.findIndex(pos, 1, this.bufferStart, this.index + 4, this.endIndex);
-            return index < 0 ? null : new BufferSubtree(this.buffer, this.bufferStart, index, this);
-        }
-        iterate({ from = this.start, to = this.end, enter, leave }) {
-            let iter = new Iteration(enter, leave);
-            if (from <= to)
-                this.buffer.iterChild(from, to, this.bufferStart, this.index, iter);
-            else
-                this.buffer.iterRev(from, to, this.bufferStart, this.index, this.endIndex, iter);
-            return iter.result;
-        }
-        resolveAt(pos) {
-            if (pos <= this.start || pos >= this.end)
-                return this.parent.resolveAt(pos);
-            let found = this.buffer.findIndex(pos, 0, this.bufferStart, this.index + 4, this.endIndex);
-            return found < 0 ? this : new BufferSubtree(this.buffer, this.bufferStart, found, this).resolveAt(pos);
-        }
-        toString() {
-            let result = [];
-            this.buffer.childToString(this.index, result);
-            return result.join("");
-        }
-    }
-    class FlatBufferCursor {
-        constructor(buffer, index) {
+    var FlatBufferCursor = /** @class */ (function () {
+        function FlatBufferCursor(buffer, index) {
             this.buffer = buffer;
             this.index = index;
         }
-        get id() { return this.buffer[this.index - 4]; }
-        get start() { return this.buffer[this.index - 3]; }
-        get end() { return this.buffer[this.index - 2]; }
-        get size() { return this.buffer[this.index - 1]; }
-        get pos() { return this.index; }
-        next() { this.index -= 4; }
-        fork() { return new FlatBufferCursor(this.buffer, this.index); }
-    }
-    const BalanceBranchFactor = 8;
+        Object.defineProperty(FlatBufferCursor.prototype, "id", {
+            get: function () { return this.buffer[this.index - 4]; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(FlatBufferCursor.prototype, "start", {
+            get: function () { return this.buffer[this.index - 3]; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(FlatBufferCursor.prototype, "end", {
+            get: function () { return this.buffer[this.index - 2]; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(FlatBufferCursor.prototype, "size", {
+            get: function () { return this.buffer[this.index - 1]; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(FlatBufferCursor.prototype, "pos", {
+            get: function () { return this.index; },
+            enumerable: true,
+            configurable: true
+        });
+        FlatBufferCursor.prototype.next = function () { this.index -= 4; };
+        FlatBufferCursor.prototype.fork = function () { return new FlatBufferCursor(this.buffer, this.index); };
+        return FlatBufferCursor;
+    }());
+    var BalanceBranchFactor = 8;
     function buildTree(data) {
-        let { buffer, group, topID = 0, maxBufferLength = DefaultBufferLength, reused = [], minRepeatType = group.types.length } = data;
-        let cursor = Array.isArray(buffer) ? new FlatBufferCursor(buffer, buffer.length) : buffer;
-        let types = group.types;
+        var _a = data, buffer = _a.buffer, group = _a.group, _b = _a.topID, topID = _b === void 0 ? 0 : _b, _c = _a.maxBufferLength, maxBufferLength = _c === void 0 ? DefaultBufferLength : _c, _d = _a.reused, reused = _d === void 0 ? [] : _d, _e = _a.minRepeatType, minRepeatType = _e === void 0 ? group.types.length : _e;
+        var cursor = Array.isArray(buffer) ? new FlatBufferCursor(buffer, buffer.length) : buffer;
+        var types = group.types;
         function takeNode(parentStart, minPos, children, positions, inRepeat) {
-            let { id, start, end, size } = cursor;
+            var id = cursor.id, start = cursor.start, end = cursor.end, size = cursor.size;
             while (id == inRepeat) {
                 cursor.next();
-                ({ id, start, end, size } = cursor);
+                (id = cursor.id, start = cursor.start, end = cursor.end, size = cursor.size);
             }
-            let startPos = start - parentStart;
+            var startPos = start - parentStart;
             if (size < 0) { // Reused node
                 children.push(reused[id]);
                 positions.push(startPos);
                 cursor.next();
                 return;
             }
-            let type = types[id], node, buffer;
+            var type = types[id], node, buffer;
             if (end - start <= maxBufferLength && (buffer = findBufferSize(cursor.pos - minPos, inRepeat))) {
                 // Small enough for a buffer, and no reused nodes inside
-                let data = new Uint16Array(buffer.size - buffer.skip);
-                let endPos = cursor.pos - buffer.size, index = data.length;
+                var data_1 = new Uint16Array(buffer.size - buffer.skip);
+                var endPos = cursor.pos - buffer.size, index = data_1.length;
                 while (cursor.pos > endPos)
-                    index = copyToBuffer(buffer.start, data, index, inRepeat);
-                node = new TreeBuffer(data, end - buffer.start, group, inRepeat < 0 ? NodeType.none : types[inRepeat]);
+                    index = copyToBuffer(buffer.start, data_1, index, inRepeat);
+                node = new TreeBuffer(data_1, end - buffer.start, group, inRepeat < 0 ? NodeType.none : types[inRepeat]);
                 startPos = buffer.start - parentStart;
             }
             else { // Make it a node
-                let endPos = cursor.pos - size;
+                var endPos = cursor.pos - size;
                 cursor.next();
-                let localChildren = [], localPositions = [];
-                let localInRepeat = id >= minRepeatType ? id : -1;
+                var localChildren = [], localPositions = [];
+                var localInRepeat = id >= minRepeatType ? id : -1;
                 while (cursor.pos > endPos)
                     takeNode(start, endPos, localChildren, localPositions, localInRepeat);
                 localChildren.reverse();
@@ -1447,10 +1714,10 @@
             // If `inRepeat` is > -1, ignore node boundaries of that type for
             // nesting, but make sure the end falls either at the start
             // (`maxSize`) or before such a node.
-            let fork = cursor.fork();
-            let size = 0, start = 0, skip = 0, minStart = fork.end - maxBufferLength;
-            let result = { size: 0, start: 0, skip: 0 };
-            scan: for (let minPos = fork.pos - maxSize; fork.pos > minPos;) {
+            var fork = cursor.fork();
+            var size = 0, start = 0, skip = 0, minStart = fork.end - maxBufferLength;
+            var result = { size: 0, start: 0, skip: 0 };
+            scan: for (var minPos = fork.pos - maxSize; fork.pos > minPos;) {
                 // Pretend nested repeat nodes of the same type don't exist
                 if (fork.id == inRepeat) {
                     // Except that we store the current state as a valid return
@@ -1463,11 +1730,11 @@
                     fork.next();
                     continue;
                 }
-                let nodeSize = fork.size, startPos = fork.pos - nodeSize;
+                var nodeSize = fork.size, startPos = fork.pos - nodeSize;
                 if (nodeSize < 0 || startPos < minPos || fork.start < minStart)
                     break;
-                let localSkipped = fork.id >= minRepeatType ? 4 : 0;
-                let nodeStart = fork.start;
+                var localSkipped = fork.id >= minRepeatType ? 4 : 0;
+                var nodeStart = fork.start;
                 fork.next();
                 while (fork.pos > startPos) {
                     if (fork.size < 0)
@@ -1488,13 +1755,13 @@
             return result.size > 4 ? result : undefined;
         }
         function copyToBuffer(bufferStart, buffer, index, inRepeat) {
-            let { id, start, end, size } = cursor;
+            var id = cursor.id, start = cursor.start, end = cursor.end, size = cursor.size;
             cursor.next();
             if (id == inRepeat)
                 return index;
-            let startIndex = index;
+            var startIndex = index;
             if (size > 4) {
-                let endPos = cursor.pos - (size - 4);
+                var endPos = cursor.pos - (size - 4);
                 while (cursor.pos > endPos)
                     index = copyToBuffer(bufferStart, buffer, index, inRepeat);
             }
@@ -1506,34 +1773,34 @@
             }
             return index;
         }
-        let children = [], positions = [];
+        var children = [], positions = [];
         while (cursor.pos > 0)
             takeNode(0, 0, children, positions, -1);
-        let length = children.length ? positions[0] + children[0].length : 0;
+        var length = children.length ? positions[0] + children[0].length : 0;
         return new Tree(group.types[topID], children.reverse(), positions.reverse(), length);
     }
     function balanceRange(outerType, innerType, children, positions, from, to, start, maxBufferLength, length) {
-        let localChildren = [], localPositions = [];
+        var localChildren = [], localPositions = [];
         if (length <= maxBufferLength) {
-            for (let i = from; i < to; i++) {
+            for (var i = from; i < to; i++) {
                 localChildren.push(children[i]);
                 localPositions.push(positions[i] - start);
             }
         }
         else {
-            let maxChild = Math.max(maxBufferLength, Math.ceil(length * 1.5 / BalanceBranchFactor));
-            for (let i = from; i < to;) {
-                let groupFrom = i, groupStart = positions[i];
+            var maxChild = Math.max(maxBufferLength, Math.ceil(length * 1.5 / BalanceBranchFactor));
+            for (var i = from; i < to;) {
+                var groupFrom = i, groupStart = positions[i];
                 i++;
                 for (; i < to; i++) {
-                    let nextEnd = positions[i] + children[i].length;
+                    var nextEnd = positions[i] + children[i].length;
                     if (nextEnd - groupStart > maxChild)
                         break;
                 }
                 if (i == groupFrom + 1) {
-                    let only = children[groupFrom];
+                    var only = children[groupFrom];
                     if (only instanceof Tree && only.type == innerType && only.length > maxChild << 1) { // Too big, collapse
-                        for (let j = 0; j < only.children.length; j++) {
+                        for (var j = 0; j < only.children.length; j++) {
                             localChildren.push(only.children[j]);
                             localPositions.push(only.positions[j] + groupStart - start);
                         }
@@ -1545,7 +1812,7 @@
                     localChildren.push(children[groupFrom]);
                 }
                 else {
-                    let inner = balanceRange(innerType, innerType, children, positions, groupFrom, i, groupStart, maxBufferLength, positions[i - 1] + children[i - 1].length - groupStart);
+                    var inner = balanceRange(innerType, innerType, children, positions, groupFrom, i, groupStart, maxBufferLength, positions[i - 1] + children[i - 1].length - groupStart);
                     if (innerType != NodeType.none && !containsType(inner.children, innerType))
                         inner = new Tree(NodeType.none, inner.children, inner.positions, inner.length);
                     localChildren.push(inner);
@@ -1556,9 +1823,11 @@
         return new Tree(outerType, localChildren, localPositions, length);
     }
     function containsType(nodes, type) {
-        for (let elt of nodes)
+        for (var _i = 0, nodes_1 = nodes; _i < nodes_1.length; _i++) {
+            var elt = nodes_1[_i];
             if (elt.type == type)
                 return true;
+        }
         return false;
     }
 
@@ -1569,11 +1838,11 @@
         /// Map a position to a valid new position, even when its context
         /// was deleted.
         MapMode[MapMode["Simple"] = 0] = "Simple";
-        /// Return -1 if deletion happens across the position.
+        /// Return null if deletion happens across the position.
         MapMode[MapMode["TrackDel"] = 1] = "TrackDel";
-        /// Return -1 if the character _before_ the position is deleted.
+        /// Return null if the character _before_ the position is deleted.
         MapMode[MapMode["TrackBefore"] = 2] = "TrackBefore";
-        /// Return -1 if the character _after_ the position is deleted.
+        /// Return null if the character _after_ the position is deleted.
         MapMode[MapMode["TrackAfter"] = 3] = "TrackAfter";
     })(MapMode || (MapMode = {}));
     /// A change description is a variant of [change set](#state.ChangeSet)
@@ -1651,19 +1920,6 @@
         /// as `other`, over another set of changes, so that it can be
         /// applied after it.
         mapDesc(other, before = false) { return other.empty ? this : mapSet(this, other, before); }
-        /// Map a given position through these changes.
-        ///
-        /// `assoc` indicates which side the position should be associated
-        /// with. When it is negative or zero, the mapping will try to keep
-        /// the position close to the character before it (if any), and will
-        /// move it before insertions at that point or replacements across
-        /// that point. When it is positive, the position is associated with
-        /// the character after it, and will be moved forward for insertions
-        /// at or replacements across the position. Defaults to -1.
-        ///
-        /// `mode` determines whether deletions should be
-        /// [reported](#state.MapMode). It defaults to `MapMode.Simple`
-        /// (don't report deletions).
         mapPos(pos, assoc = -1, mode = MapMode.Simple) {
             let posA = 0, posB = 0;
             for (let i = 0; i < this.sections.length;) {
@@ -1678,7 +1934,7 @@
                         (mode == MapMode.TrackDel && posA < pos && endA > pos ||
                             mode == MapMode.TrackBefore && posA < pos ||
                             mode == MapMode.TrackAfter && endA > pos))
-                        return -1;
+                        return null;
                     if (endA > pos || endA == pos && assoc < 0 && !len)
                         return pos == posA || assoc < 0 ? posB : posB + ins;
                     posB += ins;
@@ -1687,32 +1943,6 @@
             }
             if (pos > posA)
                 throw new RangeError(`Position ${pos} is out of range for changeset of length ${posA}`);
-            return posB;
-        }
-        /// Map a position in a way that reliably produces the same position
-        /// for a sequence of changes, regardless of the order in which they
-        /// were [mapped](#state.ChangeSet.map) and applied. This will map a
-        /// position to the start (or end) through _all_ adjacent changes
-        /// next to it, and often produces more surprising results than
-        /// [`mapPos`](#state.ChangeDesc.mapPos). But it can be useful in
-        /// cases where it is important that all clients in a collaborative
-        /// setting end up doing the precise same mapping.
-        mapPosStable(pos, side = -1) {
-            let posA = 0, posB = 0, lastB = 0;
-            for (let i = 0; i < this.sections.length;) {
-                let len = this.sections[i++], ins = this.sections[i++], endA = posA + len;
-                if (ins < 0) {
-                    if (endA > pos)
-                        return posB + Math.max(0, pos - posA);
-                    lastB = posB += len;
-                }
-                else {
-                    if (side <= 0 && endA >= pos)
-                        return lastB;
-                    posB += ins;
-                }
-                posA = endA;
-            }
             return posB;
         }
         /// Check whether these changes touch a given range. When one of the
@@ -3414,7 +3644,7 @@
     const SET = typeof Symbol == "undefined" ? "__styleSet" + Math.floor(Math.random() * 1e8) : Symbol("styleSet");
     const top = typeof global == "undefined" ? window : global;
 
-    // Style modules encapsulate a set of CSS rules defined from
+    // :: - Style modules encapsulate a set of CSS rules defined from
     // JavaScript. Their definitions are only available in a given DOM
     // root after it has been _mounted_ there with `StyleModule.mount`.
     //
@@ -3447,13 +3677,14 @@
           let local = [], isAt = /^@(\w+)\b/.exec(selectors[0]);
           if (isAt && spec == null) return target.push(selectors[0] + ";")
           for (let prop in spec) {
+            let value = spec[prop];
             if (/&/.test(prop)) {
-              render(selectors.map(s => extend ? extend(prop, s) : prop.replace(/&/, s)), spec[prop], target);
-            } else if (typeof spec[prop] == "object") {
+              render(selectors.map(s => extend ? extend(prop, s) : prop.replace(/&/, s)), value, target);
+            } else if (value && typeof value == "object") {
               if (!isAt) throw new RangeError("The value of a property (" + prop + ") should be a primitive value.")
-              render(isAt[1] == "keyframes" ? [prop] : processSelector(prop), spec[prop], local);
-            } else {
-              local.push(prop.replace(/_.*/, "").replace(/[A-Z]/g, l => "-" + l.toLowerCase()) + ": " + spec[prop] + ";");
+              render(isAt[1] == "keyframes" ? [prop] : processSelector(prop), value, local);
+            } else if (value != null) {
+              local.push(prop.replace(/_.*/, "").replace(/[A-Z]/g, l => "-" + l.toLowerCase()) + ": " + value + ";");
             }
           }
           if (local.length || isAt && isAt[1] == "keyframes") target.push(selectors.join(",") + " {" + local.join(" ") + "}");
@@ -3646,7 +3877,7 @@
                 let val = this.value[i], curFrom = this.from[i] + offset, curTo = this.to[i] + offset, newFrom, newTo;
                 if (curFrom == curTo) {
                     let mapped = changes.mapPos(curFrom, val.startSide, val.mapMode);
-                    if (mapped < 0)
+                    if (mapped == null)
                         continue;
                     newFrom = newTo = mapped;
                 }
@@ -4730,14 +4961,14 @@
                     fromI = i;
                     fromStart = pos;
                 }
-                if (end >= to && toI == -1) {
+                if (end >= to && end != pos && toI == -1) {
                     toI = i;
                     toEnd = end;
                     break;
                 }
                 pos = end + child.breakAfter;
             }
-            return { from: fromStart, to: toEnd, startDOM: (fromI ? this.children[fromI - 1].dom.nextSibling : null) || this.dom.firstChild, endDOM: toI < this.children.length - 1 ? this.children[toI + 1].dom : null };
+            return { from: fromStart, to: toEnd < 0 ? offset + this.length : toEnd, startDOM: (fromI ? this.children[fromI - 1].dom.nextSibling : null) || this.dom.firstChild, endDOM: toI < this.children.length - 1 && toI >= 0 ? this.children[toI + 1].dom : null };
         }
         // FIXME track precise dirty ranges, to avoid full DOM sync on every touched node?
         markDirty(andParent = false) {
@@ -8016,9 +8247,9 @@
         let lineStart = block.from;
         // If this is outside of the rendered viewport, we can't determine a position
         if (lineStart < view.viewport.from)
-            return view.viewport.from == 0 ? 0 : -1;
+            return view.viewport.from == 0 ? 0 : null;
         if (lineStart > view.viewport.to)
-            return view.viewport.to == view.state.doc.length ? view.state.doc.length : -1;
+            return view.viewport.to == view.state.doc.length ? view.state.doc.length : null;
         // Clip x to the viewport sides
         x = Math.max(content.left + 1, Math.min(content.right - 1, x));
         let root = view.root, element = root.elementFromPoint(x, y);
@@ -8052,7 +8283,7 @@
             let editorRect = view.dom.getBoundingClientRect();
             let pos = view.posAtCoords({ x: forward == (view.textDirection == Direction.LTR) ? editorRect.right - 1 : editorRect.left + 1,
                 y: (coords.top + coords.bottom) / 2 });
-            if (pos > -1)
+            if (pos != null)
                 return EditorSelection.cursor(pos, forward ? -1 : 1);
         }
         let lineView = LineView.find(view.docView, start.head);
@@ -8105,7 +8336,7 @@
             let dist = distance !== null && distance !== void 0 ? distance : 5;
             for (let startY = dir < 0 ? startCoords.top : startCoords.bottom, extra = 0; extra < 50; extra += 10) {
                 let pos = posAtCoords(view, { x: resolvedGoal, y: startY + (dist + extra) * dir }, dir);
-                if (pos < 0)
+                if (pos == null)
                     break;
                 if (pos != startPos)
                     return EditorSelection.cursor(pos, undefined, undefined, goal);
@@ -8466,7 +8697,7 @@
     }
     function queryPos(view, event) {
         let pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
-        if (pos < 0)
+        if (pos == null)
             return null;
         return { pos, bias: findPositionSide(view, pos, event.clientX, event.clientY) };
     }
@@ -8532,7 +8763,7 @@
             return;
         let dropPos = view.posAtCoords({ x: event.clientX, y: event.clientY });
         let text = event.dataTransfer.getData("Text");
-        if (dropPos < 0 || !text)
+        if (dropPos == null || !text)
             return;
         event.preventDefault();
         let { mouseSelection } = view.inputState;
@@ -8893,15 +9124,13 @@
         return null;
     }
 
-    // FIXME reconsider this kludge (does it break reading dom text with newlines?)
-    const LineSep = "\ufdda"; // A Unicode 'non-character', used to denote newlines internally
     function applyDOMChange(view, start, end, typeOver) {
         let change, newSel;
         let sel = view.state.selection.primary, bounds;
         if (start > -1 && (bounds = view.docView.domBoundsAround(start, end, 0))) {
             let { from, to } = bounds;
             let selPoints = view.docView.impreciseHead || view.docView.impreciseAnchor ? [] : selectionPoints(view.contentDOM, view.root);
-            let reader = new DOMReader(selPoints);
+            let reader = new DOMReader(selPoints, view.state.lineBreak);
             reader.readRange(bounds.startDOM, bounds.endDOM);
             newSel = selectionFromPoints(selPoints, from);
             let preferredPos = sel.from, preferredSide = null;
@@ -8910,10 +9139,10 @@
                 preferredPos = sel.to;
                 preferredSide = "end";
             }
-            let diff = findDiff(view.state.doc.sliceString(from, to, LineSep), reader.text, preferredPos - from, preferredSide);
+            let diff = findDiff(view.state.sliceDoc(from, to), reader.text, preferredPos - from, preferredSide);
             if (diff)
                 change = { from: from + diff.from, to: from + diff.toA,
-                    insert: Text.of(reader.text.slice(diff.from, diff.toB).split(LineSep)) };
+                    insert: view.state.toText(reader.text.slice(diff.from, diff.toB)) };
         }
         else if (view.hasFocus) {
             let domSel = getSelection(view.root);
@@ -8951,9 +9180,10 @@
                 return;
             let tr;
             if (change.from >= sel.from && change.to <= sel.to && change.to - change.from >= (sel.to - sel.from) / 3) {
-                let before = sel.from < change.from ? startState.doc.sliceString(sel.from, change.from, LineSep) : "";
-                let after = sel.to > change.to ? startState.doc.sliceString(change.to, sel.to, LineSep) : "";
-                tr = startState.replaceSelection(Text.of((before + change.insert.sliceString(0, undefined, LineSep) + after).split(LineSep)));
+                let before = sel.from < change.from ? startState.sliceDoc(sel.from, change.from) : "";
+                let after = sel.to > change.to ? startState.sliceDoc(change.to, sel.to) : "";
+                tr = startState.replaceSelection(view.state.toText(before + change.insert.sliceString(0, undefined, view.state.lineBreak) +
+                    after));
             }
             else {
                 let changes = startState.changes(change);
@@ -9007,8 +9237,9 @@
         return { from, toA, toB };
     }
     class DOMReader {
-        constructor(points) {
+        constructor(points, lineSep) {
             this.points = points;
+            this.lineSep = lineSep;
             this.text = "";
         }
         readRange(start, end) {
@@ -9024,7 +9255,7 @@
                 let view = ContentView.get(cur), nextView = ContentView.get(next);
                 if ((view ? view.breakAfter : isBlockElement(cur)) ||
                     ((nextView ? nextView.breakAfter : isBlockElement(next)) && !(cur.nodeName == "BR" && !cur.cmIgnore)))
-                    this.text += LineSep;
+                    this.text += this.lineSep;
                 cur = next;
             }
             this.findPointBefore(parent, end);
@@ -9036,11 +9267,11 @@
             let fromView = view && view.overrideDOMText;
             let text;
             if (fromView != null)
-                text = fromView.sliceString(0, undefined, LineSep);
+                text = fromView.sliceString(0, undefined, this.lineSep);
             else if (node.nodeType == 3)
                 text = node.nodeValue;
             else if (node.nodeName == "BR")
-                text = node.nextSibling ? LineSep : "";
+                text = node.nextSibling ? this.lineSep : "";
             else if (node.nodeType == 1)
                 this.readRange(node.firstChild, null);
             if (text != null) {
@@ -9290,6 +9521,7 @@
                     updated.flags |= changed;
                 this.updateState = 2 /* Updating */;
                 this.updatePlugins(update);
+                this.updateAttrs();
                 if (changed)
                     this.docView.update(update);
                 for (let i = 0; i < measuring.length; i++)
@@ -9485,11 +9717,9 @@
             this.requestMeasure();
         }
         /// Get the document position at the given screen coordinates.
-        /// Returns -1 if no valid position could be found.
+        /// Returns null if no valid position could be found.
         posAtCoords(coords) {
             this.readMeasured();
-            // FIXME return null instead, so you at least get a type error
-            // when you forget the failure case?
             return posAtCoords(this, coords);
         }
         /// Get the screen coordinates at the given document position.
@@ -11213,28 +11443,25 @@
             return matchPlainBrackets(state, pos, dir, tree, sub.type, maxScanDistance, brackets);
     }
     function matchMarkedBrackets(_state, _pos, dir, token, matching, brackets) {
-        let parent = token.parent, firstToken = { from: token.start, to: token.end };
-        let depth = 0;
-        return (parent && parent.iterate({
-            from: dir < 0 ? token.start : token.end,
-            to: dir < 0 ? parent.start : parent.end,
-            enter(type, from, to) {
-                if (dir < 0 ? to > token.start : from < token.end)
-                    return undefined;
-                if (depth == 0 && matching.indexOf(type.name) > -1) {
-                    return { start: firstToken, end: { from, to }, matched: true };
+        let parent = token.parent, firstToken = { from: token.from, to: token.to };
+        let depth = 0, cursor = parent === null || parent === void 0 ? void 0 : parent.cursor;
+        if (cursor && (dir < 0 ? cursor.childBefore(token.from) : cursor.childAfter(token.to)))
+            do {
+                if (dir < 0 ? cursor.to <= token.from : cursor.from >= token.to) {
+                    if (depth == 0 && matching.indexOf(cursor.type.name) > -1) {
+                        return { start: firstToken, end: { from: cursor.from, to: cursor.to }, matched: true };
+                    }
+                    else if (matchingNodes(cursor.type, dir, brackets)) {
+                        depth++;
+                    }
+                    else if (matchingNodes(cursor.type, -dir, brackets)) {
+                        depth--;
+                        if (depth == 0)
+                            return { start: firstToken, end: { from: cursor.from, to: cursor.to }, matched: false };
+                    }
                 }
-                else if (matchingNodes(type, dir, brackets)) {
-                    depth++;
-                }
-                else if (matchingNodes(type, -dir, brackets)) {
-                    depth--;
-                    if (depth == 0)
-                        return { start: firstToken, end: { from, to }, matched: false };
-                }
-                return false;
-            }
-        })) || { start: firstToken, matched: false };
+            } while (dir < 0 ? cursor.prevSibling() : cursor.nextSibling());
+        return { start: firstToken, matched: false };
     }
     function matchPlainBrackets(state, pos, dir, tree, tokenType, maxScanDistance, brackets) {
         let startCh = dir < 0 ? state.sliceDoc(pos - 1, pos) : state.sliceDoc(pos, pos + 1);
@@ -11307,8 +11534,8 @@
     function interestingNode(state, node, bracketProp) {
         if (node.type.prop(bracketProp))
             return true;
-        let len = node.end - node.start;
-        return len && (len > 2 || /[^\s,.;:]/.test(state.sliceDoc(node.start, node.end))) || node.firstChild;
+        let len = node.to - node.from;
+        return len && (len > 2 || /[^\s,.;:]/.test(state.sliceDoc(node.from, node.to))) || node.firstChild;
     }
     function moveBySyntax(state, start, forward) {
         let pos = state.tree.resolve(start.head);
@@ -11322,13 +11549,13 @@
             if (interestingNode(state, next, bracketProp))
                 pos = next;
             else
-                at = forward ? next.end : next.start;
+                at = forward ? next.to : next.from;
         }
         let bracket = pos.type.prop(bracketProp), match, newPos;
-        if (bracket && (match = forward ? matchBrackets(state, pos.start, 1) : matchBrackets(state, pos.end, -1)) && match.matched)
+        if (bracket && (match = forward ? matchBrackets(state, pos.from, 1) : matchBrackets(state, pos.to, -1)) && match.matched)
             newPos = forward ? match.end.to : match.end.from;
         else
-            newPos = forward ? pos.end : pos.start;
+            newPos = forward ? pos.to : pos.from;
         return EditorSelection.cursor(newPos, forward ? -1 : 1);
     }
     /// Move the cursor over the next syntactic element to the left.
@@ -11485,11 +11712,11 @@
         let selection = updateSel(state.selection, range => {
             var _a;
             let context = state.tree.resolve(range.head, 1);
-            while (!((context.start < range.from && context.end >= range.to) ||
-                (context.end > range.to && context.start <= range.from) ||
+            while (!((context.from < range.from && context.to >= range.to) ||
+                (context.to > range.to && context.from <= range.from) ||
                 !((_a = context.parent) === null || _a === void 0 ? void 0 : _a.parent)))
                 context = context.parent;
-            return EditorSelection.range(context.end, context.start);
+            return EditorSelection.range(context.to, context.from);
         });
         dispatch(setSel(state, selection));
         return true;
@@ -11692,9 +11919,9 @@
             return { from: pos, to: pos };
         let context = state.tree.resolve(pos);
         let before = context.childBefore(pos), after = context.childAfter(pos), closedBy;
-        if (before && after && before.end <= pos && after.start >= pos &&
+        if (before && after && before.to <= pos && after.from >= pos &&
             (closedBy = before.type.prop(NodeProp.closedBy)) && closedBy.indexOf(after.name) > -1)
-            return { from: before.end, to: after.start };
+            return { from: before.to, to: after.from };
         return null;
     }
     /// Replace the selection with a newline and indent the newly created
@@ -12061,7 +12288,7 @@
     }
     function nodeStart(state, pos) {
         let tree = state.tree.resolve(pos + 1);
-        return tree.parent && tree.start == pos;
+        return tree.parent && tree.from == pos;
     }
 
     const panelConfig = Facet.define({
@@ -12870,7 +13097,7 @@
             }
             let pos = this.view.contentDOM.contains(lastMove.target)
                 ? this.view.posAtCoords({ x: lastMove.clientX, y: lastMove.clientY }) : -1;
-            let open = pos < 0 ? null : this.source(this.view, (from, to) => {
+            let open = pos == null ? null : this.source(this.view, (from, to) => {
                 return from <= pos && to >= pos && (from == to || isOverRange(this.view, from, to, lastMove.clientX, lastMove.clientY));
             });
             if (open)
@@ -12939,7 +13166,7 @@
                         return effect.value;
                 if (value && tr.docChanged) {
                     let newPos = tr.changes.mapPos(value.pos, -1, MapMode.TrackDel);
-                    if (newPos < 0)
+                    if (newPos == null)
                         return null;
                     let copy = Object.assign(Object.create(null), value);
                     copy.pos = newPos;
@@ -12985,8 +13212,8 @@
             let token = this.state.tree.resolve(this.pos, -1);
             while (token && types.indexOf(token.name) < 0)
                 token = token.parent;
-            return token ? { from: token.start, to: this.pos,
-                text: this.state.sliceDoc(token.start, this.pos),
+            return token ? { from: token.from, to: this.pos,
+                text: this.state.sliceDoc(token.from, this.pos),
                 type: token.type } : null;
         }
         /// Get the match of the given expression directly before the
@@ -13336,18 +13563,13 @@
             this.range = rangeAroundSelected(options.length, selected, config.maxRenderedOptions);
             this.dom = document.createElement("div");
             this.dom.addEventListener("mousedown", (e) => {
-                let index = this.range.from, dom = e.target;
-                while (dom && dom != this.list && dom.parentNode != this.list)
-                    dom = dom.parentNode;
-                for (;;) {
-                    dom = dom.previousSibling;
-                    if (!dom)
-                        break;
-                    index++;
+                for (let dom = e.target, match; dom && dom != this.dom; dom = dom.parentNode) {
+                    if (dom.nodeName == "LI" && (match = /-(\d+)$/.exec(dom.id)) && +match[1] < options.length) {
+                        applyCompletion(view, options[+match[1]]);
+                        e.preventDefault();
+                        return;
+                    }
                 }
-                if (index >= 0 && index < options.length)
-                    applyCompletion(view, options[index]);
-                e.preventDefault();
             });
             this.list = this.dom.appendChild(createListBox(options, cState.id, this.range));
             this.list.addEventListener("scroll", () => {
@@ -14137,7 +14359,9 @@
         return ref ? Math.round(Math.abs((ref.left - x) / view.defaultCharacterWidth)) : -1;
     }
     function getPos(view, event) {
-        let offset = view.posAtCoords({ x: event.clientX, y: event.clientY }); // FIXME
+        let offset = view.posAtCoords({ x: event.clientX, y: event.clientY });
+        if (offset == null)
+            return null;
         let line = view.state.doc.lineAt(offset), off = offset - line.from;
         let col = off > MaxOff ? -1
             : off == line.length ? absoluteColumn(view, event.clientX)
@@ -14146,6 +14370,8 @@
     }
     function rectangleSelectionStyle(view, event) {
         let start = getPos(view, event), startSel = view.state.selection;
+        if (!start)
+            return null;
         return {
             update(update) {
                 if (update.docChanged) {
@@ -14156,7 +14382,10 @@
                 }
             },
             get(event, _extend, multiple) {
-                let cur = getPos(view, event), ranges = rectangleFor(view.state, start, cur);
+                let cur = getPos(view, event);
+                if (!cur)
+                    return startSel;
+                let ranges = rectangleFor(view.state, start, cur);
                 if (!ranges.length)
                     return startSel;
                 if (multiple)
@@ -15140,6 +15369,8 @@
         static open(view) { return new LintPanel(view); }
     }
     function underline(color) {
+        if (typeof btoa != "function")
+            return "none";
         let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="6" height="3">
     <path d="m0 3 l2 -2 l1 0 l2 2 l1 0" stroke="${color}" fill="none" stroke-width=".7"/>
   </svg>`;
@@ -15574,8 +15805,8 @@
             enumerable: true,
             configurable: true
         });
-        /// Find the start position of the innermost instance of any of the
-        /// given term types, or return `-1` when none of them are found.
+        /// Find the start position of an instance of any of the given term
+        /// types, or return `null` when none of them are found.
         ///
         /// **Note:** this is only reliable when there is at least some
         /// state that unambiguously matches the given rule on the stack.
@@ -15590,17 +15821,21 @@
         /// `b` is on the stack. You _can_ pass `[b, c]` to reliably check
         /// for either of those two rules (assuming that `a` isn't part of
         /// some rule that includes other things starting with `"x"`).
-        Stack.prototype.startOf = function (types) {
+        ///
+        /// When `before` is given, this keeps scanning up the stack until
+        /// it finds a match that starts before that position.
+        Stack.prototype.startOf = function (types, before) {
             var state = this.state, frame = this.stack.length, parser = this.cx.parser;
             for (;;) {
                 var force = parser.stateSlot(state, 5 /* ForcedReduce */);
                 var depth = force >> 19 /* ReduceDepthShift */, term = force & 65535 /* ValueMask */;
                 if (types.indexOf(term) > -1) {
-                    var base = frame - (3 * (force >> 19 /* ReduceDepthShift */));
-                    return this.stack[base + 1];
+                    var base = frame - (3 * (force >> 19 /* ReduceDepthShift */)), pos = this.stack[base + 1];
+                    if (before == null || before > pos)
+                        return pos;
                 }
                 if (frame == 0)
-                    return -1;
+                    return null;
                 if (depth == 0) {
                     frame -= 3;
                     state = this.stack[frame];
@@ -16463,8 +16698,11 @@
     var Parser = /** @class */ (function () {
         /// @internal
         function Parser(spec) {
+            var _this = this;
             this.nextStateCache = [];
             this.cachedDialect = null;
+            if (spec.version != 12 /* Version */)
+                throw new RangeError("Parser version (" + spec.version + ") doesn't match runtime version (" + 12 /* Version */ + ")");
             var tokenArray = decodeArray(spec.tokenData);
             var nodeNames = spec.nodeNames.split(" ");
             this.minRepeatTerm = nodeNames.length;
@@ -16478,13 +16716,22 @@
                     nodeProps[nodeID] = Object.create(null);
                 prop.set(nodeProps[nodeID], prop.deserialize(String(value)));
             }
-            setProp(0, NodeProp.error, "");
             if (spec.nodeProps)
                 for (var _i = 0, _a = spec.nodeProps; _i < _a.length; _i++) {
                     var propSpec = _a[_i];
                     var prop = propSpec[0];
-                    for (var i = 1; i < propSpec.length; i += 2)
-                        setProp(propSpec[i], prop, propSpec[i + 1]);
+                    for (var i = 1; i < propSpec.length;) {
+                        var next = propSpec[i++];
+                        if (next >= 0) {
+                            setProp(next, prop, propSpec[i++]);
+                        }
+                        else {
+                            var value = propSpec[i + -next];
+                            for (var j = -next; j > 0; j--)
+                                setProp(propSpec[i++], prop, value);
+                            i++;
+                        }
+                    }
                 }
             this.specialized = new Uint16Array(spec.specialized ? spec.specialized.length : 0);
             this.specializers = [];
@@ -16496,7 +16743,14 @@
             this.states = decodeArray(spec.states, Uint32Array);
             this.data = decodeArray(spec.stateData);
             this.goto = decodeArray(spec.goto);
-            this.group = new NodeGroup(nodeNames.map(function (name, i) { return new NodeType(name, nodeProps[i], i); }));
+            var topTerms = Object.keys(spec.topRules).map(function (r) { return spec.topRules[r][1]; });
+            this.group = new NodeGroup(nodeNames.map(function (name, i) {
+                var flags = (i >= _this.minRepeatTerm ? 8 /* Repeated */ : 0) |
+                    (topTerms.indexOf(i) > -1 ? 1 /* Top */ : 0) |
+                    (i == 0 ? 4 /* Error */ : 0) |
+                    (spec.skippedNodes && spec.skippedNodes.indexOf(i) > -1 ? 2 /* Skipped */ : 0);
+                return new NodeType(name, nodeProps[i], i, flags);
+            }));
             this.maxTerm = spec.maxTerm;
             this.tokenizers = spec.tokenizers.map(function (value) { return typeof value == "number" ? new TokenGroup(tokenArray, value) : value; });
             this.topRules = spec.topRules;
@@ -16751,26 +17005,26 @@
     }
 
     // This file was generated by lezer-generator. You probably shouldn't edit it.
-    const spec_atToken = {__proto__:null,"@top":10, "@specialize":80, "@extend":96, "@dialects":110, "@tokens":120, "@precedence":142, "@left":154, "@right":156, "@cut":158, "@detectDelim":162, "@skip":166, "@export":172, "@external":182};
-    const spec_normalIdentifier = {__proto__:null,name:278, dialect:280, _:88};
+    const spec_atToken = {__proto__:null,"@top":10, "@name":78, "@dialect":78, "@inline":78, "@dynamicPrec":78, "@export":78, "@isGroup":78, "@specialize":82, "@extend":98, "@dialects":112, "@tokens":122, "@precedence":144, "@left":156, "@right":158, "@cut":160, "@detectDelim":164, "@skip":168, "@external":182};
+    const spec_normalIdentifier = {__proto__:null,_:90};
     const parser = Parser.deserialize({
-      states: "CjQ!QQPOOOOQO'#FP'#FPOOQO'#EW'#EWO!UQPO'#EVO!aQPO'#ETOOQO'#Fk'#FkOOQO'#Eh'#EhOOQO'#E}'#E}OOQO'#Ei'#EiQ!QQPOOO!fQPO'#C`O!qQPO'#DdO!vQPO'#DiO!{QPO'#DwOOQO'#EO'#EOOxQPO'#ETO!aQPO'#EQO#QQQO'#EbO#]QPO'#DQOxQPO'#DpOOQO,5:q,5:qO#hQPO,5:qO$_QPO'#CeOOQO,5:o,5:oOOQO'#EX'#EXOOQO-E8g-E8gOOQO'#Cb'#CbOOQO,58z,58zO!aQPO,58zO$fQPO'#DfOOQO,5:O,5:OO$qQPO'#DlOOQO'#Dk'#DkOOQO,5:T,5:TO%SQPO'#DxOOQO,5:c,5:cO!aQPO,5:oO%_QPO,5:lO&YQPO,5:tO#]QPO,5:{O&_QPO,5:|OOQO'#DS'#DSO&gQPO'#DRO&lQPO'#F[O&tQPO,59lOOQO'#Dq'#DqO&yQPO'#FgO'RQPO,5:[OOQO1G0]1G0]O'WQPO'#CgO(nQPO'#FUOOQO'#FU'#FUO*OQPO'#D_O+SQPO'#DbOOQO'#Ej'#EjO,QQPO'#CfO,bQPO'#FSOOQO,59P,59PO,pQPO'#FZO,xQPO'#FaO-QQPO'#FdO$bQPO'#D_O-YQPO'#FTO-_QPO'#FTO-dQPO'#FTO-iQPO,59POOQO1G.f1G.fOOQO'#Dg'#DgO-nQPO'#FeOOQO,5:Q,5:QO-vQPO,5:QOOQO'#Do'#DoO-{QPO'#DnO.^QPO'#DmOOQO'#Ff'#FfOOQO'#Et'#EtO.rQPO,5:WOOQO,5:W,5:WO/TQPO'#DmO/YQPO'#DtOOQO'#Dy'#DyO/_QPO'#FjO/pQPO'#FiOOQO,5:d,5:dO/xQPO,5:dOOQO1G0Z1G0ZO/}QPO'#ESOOQO1G0W1G0WOOQO'#E]'#E]O0]QQO1G0`O0bQQO1G0gOOQO'#Ed'#EdO0gQPO'#EgO0oQQO1G0hO0wQQO1G0lO1_QPO,59mO#]QPO'#EoO1cQPO,5;vOOQO1G/W1G/WOxQPO'#EuO1kQPO,5<ROOQO1G/v1G/vO2eQPO'#CjOOQO,5;p,5;pO3QQPO,59|OOQO-E8h-E8hO$bQPO'#ErO3UQPO,5;nOOQO,5;u,5;uO!aQPO,5;uO3QQPO,5;{O3dQPO,5;{O3QQPO,5<OO3iQPO,5<OO3nQPO,59yOOQO,5;o,5;oOOQO1G.k1G.kOxQPO'#EsO3sQPO,5<POOQO1G/l1G/lOOQO,5:Y,5:YO3{QPO,5:YOOQO,5:X,5:XOOQO-E8r-E8rOOQO1G/r1G/rO4ZQPO'#DsO4bQPO'#DvOOQO,5:`,5:`OOQO,5<U,5<UOOQO'#Dz'#DzOxQPO'#EwO4mQPO,5<TOOQO1G0O1G0OOOQO,5:n,5:nO4uQPO,5:nO4zQPO7+%zO4zQPO7+&RO5PQPO'#FnOOQO,5;R,5;RO5XQPO,5;RO4zQPO7+&SOOQO7+&S7+&SO4zQPO7+&WOOQO'#En'#EnOxQPO'#EnO5^QPO'#DTOOQO1G/X1G/XOOQO,5;Z,5;ZOOQO-E8m-E8mOOQO'#Dr'#DrOOQO,5;a,5;aOOQO-E8s-E8sOOQO'#Cm'#CmO5hQPO'#CrOOQO'#Ek'#EkO6oQPO'#ClO7PQPO'#FWO7_QPO'#FVO7gQPO,59UO2eQPO'#CrO7lQPO'#FXO7qQPO'#FXO7vQPO'#FXOOQO'#Ck'#CkOOQO'#DX'#DXOOQO'#DW'#DWO7{QPO'#DZOOQO'#Ep'#EpO8|QPO'#DVO9aQPO'#FbO3QQPO'#DZO9rQPO'#FcO9wQPO'#FcO9|QPO'#FcO:RQPO1G/hOOQO,5;^,5;^OOQO-E8p-E8pOOQO1G1a1G1aO:ZQPO1G1gO3QQPO1G1gO:`QPO1G1jO3QQPO1G1jO:eQPO1G/eOOQO'#Dh'#DhOOQO,5;_,5;_OOQO-E8q-E8qOOQO1G/t1G/tOOQO,5:_,5:_O;iQPO,5:_O;nQPO'#FhOOQO,5:b,5:bO;vQPO,5:bOOQO,5;c,5;cOOQO-E8u-E8uOOQO1G0Y1G0YOOQO'#E_'#E_O;{QPO<<IfOOQO<<Im<<ImO<QQPO'#EyO<VQPO,5<YOOQO1G0m1G0mOOQO<<In<<InO;{QPO<<IrO<_QPO,5;YOOQO-E8l-E8lOOQO-E8i-E8iO2eQPO'#ElO<dQPO,5;rO2eQPO'#EmO<rQPO,5;qOOQO1G.p1G.pO<zQPO,59^OOQO,5;s,5;sOOQO-E8n-E8nO3QQPO'#EqO=PQPO,5;|O=bQPO,59uOOQO,5;},5;}OOQO7+%S7+%SO$bQPO7+%SO3QQPO7+'RO=gQPO7+'RO3QQPO7+'UO=lQPO7+'UOOQO1G/y1G/yOxQPO'#EvO=qQPO,5<SOOQO1G/|1G/|O=yQPO'#E`OOQOAN?QAN?QOOQO,5;e,5;eOOQO-E8w-E8wOOQOAN?^AN?^OOQO1G0t1G0tOOQO,5;W,5;WOOQO-E8j-E8jOOQO,5;X,5;XOOQO'#C{'#C{OOQO-E8k-E8kO>UQPO1G.xOOQO,5;],5;]OOQO-E8o-E8oO?]QPO1G/aO@^QPO<<HnO@cQPO<<JmO3QQPO<<JmO@hQPO<<JpO3QQPO<<JpOOQO,5;b,5;bOOQO-E8t-E8tO@mQPO'#FlOOQO,5:z,5:zO@uQPO,5:zOOQOAN>YAN>YOOQOAN@XAN@XO@zQPOAN@XOOQOAN@[AN@[OAPQPOAN@[OxQPO'#ExOAUQPO,5<WOOQO1G0f1G0fOOQOG25sG25sOOQOG25vG25vOOQO,5;d,5;dOOQO-E8v-E8v",
-      stateData: "Aa~O#pOSPOSQOS~OTYO!XZO!^[O!i]O!s^O!u`O!x_O!}aO#rUO#tPO#uPO~O~P]O]cOsbOW!yX~OWfO~OWfO#tPO#uPO~OWmO~OWoO~OWrO~O#OvO#VxO$awO~O#uyO$PyO$QyO~OsbOW!ya~Od!_Ol!WOm!WOp!TOx!]O!Q!^O!V!VO#tPO#uPO~OV!ZO~P#pOV!gO#tPO#uPO~OV!oOp!kO!i!qO#tPO#uPO~OV!uO#tPO#uPO~OW!xOT!ta!X!ta!^!ta!i!ta!s!ta!u!ta!x!ta!}!ta#n!ta#r!ta#t!ta#u!ta~O#u!zO~OW#OO#u!}O~O$R#RO~O#|#SOr$OX~Or#UO~O#|#VO[$ZX~O[#XO~OVZXWqX]ZXdZXgZXiZXkZXlZXmZXnZXpZXsqXxZX!QZX!VZX#tZX#uZXeZX[ZXbZXcZX#|ZX~O]#YOV#xXd#xXg#xXi#xXk#xXl#xXm#xXn#xXp#xXx#xX!Q#xX!V#xX#t#xX#u#xXe#xX[#xXb#xXc#xX#|#xX~OV#wXd#wXg!RXi!SXk!TXl#wXm#wXn#wXp#wXx#wX!Q#wX!V#wX#t#wX#u#wXe#wX[#wX~O]#[OV!UXd!UXl!UXm!UXn!UXp!UXx!UX!Q!UX!V!UX#t!UX#u!UXe!UX[!UX~OVYXnYXeYX[YX~P#pOn#^OV#vXe#vX[#vX~OWfOsbO~O]#bOsbO~O]#dOsbO~Og#gO~Oi#gO~Ok#gO~OV#hO~O#|#iOV$XX~OV#kO~O]cOsbOW!bXV!bX#|!bX~OsbOV!aXp!aX!i!aX#t!aX#u!aX~OV#pOp!kO!i!qO#tPO#uPO~OW#qO~OW#rO~O!o#uO!p#uO!q#uOV$^X#|$^X~O#|#vOV$]X~OV#xO~OV#yO!x_O#tPO#uPO~O#Q#{O~O#Q#|O~OV$OO#u#}O~O#Q$QO#X$RO~O#Q$SO~OW$UOp$TO#tPO#uPO$S$TO~O~P0|O#|#SOr$Oa~O#|#VO[$Za~Ob$^Oc$^Od$eOl$`Om$`Op!TOx!]O!Q!^O#tPO#uPO~O~P1sOb$^Oc$^Od$pOp$kO|$kO#tPO#uPO~O~P2iOn#^OV#vae#va[#va~O]$yO~O]${O~Oe$|O~O#|#iOV$Xa~OsbOW!baV!ba#|!ba~OV%RO~P2iOV%UO#tPO#uPO~O#|#vOV$]a~OV%YO~Op%ZO~O#|%^OV$bX~OV%`O~OrwX#|wX~P0|O[#{Xb#{Xc#{Xd#{XgfXihXkjXl#{Xm#{Xn#{Xp#{Xx#{X!Q#{X#t#{X#u#{X#|#{Xe#{X~O[`Xn`X#|`Xe`X~P1sOn%fO[#zX#|#zXe#zX~O#|%hO[#yX~O[%jO~Og%lO~Oi%lO~Ok%lO~O[$VXb$VXc$VXd$VXg}Xi!OXk!PXn$VXp$VX|$VX#t$VX#u$VX#|$VXV$VXe$VX~O[yXnyX#|yXVyXeyX~P2iOn%nO[$UX#|$UXV$UXe$UX~Og%qO~Oi%qO~Ok%qO~O[%rO#|%sO~O#|%tO~O#|%vO~OV#wid#wig!Rii!Sik!Til#wim#win#wip#wix#wi!Q#wi!V#wi#t#wi#u#wie#wi[#wi~OV%xO~O#|%yOV$[X~OV%{O~OW%|O~O#u&OO~O#|%^OV$ba~OV&RO~On%fO[#za#|#zae#za~O#|%hO[#ya~Oe&XO~On%nO[$Ua#|$UaV$Uae$Ua~Oe&[O~O#|&_O~O#|&aO~O#|%yOV$[a~OV&eO#tPO#uPO~O[#{ib#{ic#{id#{igfiihikjil#{im#{in#{ip#{ix#{i!Q#{i#t#{i#u#{i#|#{ie#{i~O[$Vib$Vic$Vid$Vig}ii!Oik!Pin$Vip$Vi|$Vi#t$Vi#u$Vi#|$ViV$Vie$Vi~O[&gO~O[&hO~O[&jO~O#|&lOV$`X~OV&nO~O[&oO~O[&pO~O#|&lOV$`a~O#u#u~",
-      goto: "3}$cPPPP$dP$hPP$k%O%WPP%d%g%j%rPPPP&YP&aP&hPPPP&oP&rPP'O'h'n'uP'x%y(YP(o)O)_P)n)u)|*TP$dP*[*_*b$dP*e*h*k*o*y+P+V+Y+]*kP+`$d+c+f+jPPP$dP$dP+m+pP+w,P,V,]PP,aP,d,p,],]P,vP,],y$d,|-S-]-f-l-r-x.O.a.g.m.s.y/P/V/]/cPPP/iP/mPP1S*T1]1k1n1wP2O2[PPPP2O2_3Q2O3a3d3h3k3n3q$d3wP3zTVOXRlYShStQkYQu`Q!dlQ#`![R$w#aU!Yf!_%sR$u#^e!Sf!X!_#Y#^$a$e%f%h%sR#Z!SR$c#YU$b#Y$e%hR&S%fY$_#Y$a$e%f%hk$l#[#b#d#q$n$p$y${%n%t%v&_&aZ$f#Y$a$e%f%hZ$g#Y$a$e%f%hZ$h#Y$a$e%f%hR&U%he![f!X!_#Y#^$a$e%f%h%sQdRQ!QeQ#a![Q#c!]Q#e!^Q#l!jQ#n!kR%Q#mQ{bR$X#SSzb#SR!|wR$W#Rf$o#[#b#d#q$p$y${%t%v&_&aR&Y%nj$k#[#b#d#q$n$p$y${%n%t%v&_&aQ%T#rR&b%yk$q#[#b#d#q$n$p$y${%n%t%v&_&ak$r#[#b#d#q$n$p$y${%n%t%v&_&ak$s#[#b#d#q$n$p$y${%n%t%v&_&aZ!`f!X!_#^%sZ!af!X!_#^%sZ!bf!X!_#^%sZ!Wf!X!_#^%sRnZR!fmR%O#iRq[Rp[T!lo!nS!po!nQ&d%|R&q&lX!jo!n%|&lQeRR#m!jR!OcR$[#VR#n!pR#s!qRs]T!sr#vR#t!sR!yuSVOXR#z!xUSOX!xRt_XROX_!xQgSR!wtTTOXR!{vQ%[#{Q%]#|Q%a$QR%b$SQ%}%[R&Q%bR#PxR#QxQXORiXW!Xf!_#^%sR#]!XW$a#Y$e%f%hR%e$aQ%g$bR&T%gQ%i$cR&W%iQ$V#RR%d$VQ#T{R$Y#Th$n#[#b#d#q$p$y${%n%t%v&_&aR%m$nQ%o$oR&Z%oQ#_!YR$v#_Q#j!fR%P#jQ!noR#o!nQ#W!OR$]#WQ%z%TR&c%zQ#w!tR%X#wQ&m&dR&r&mQ%_#}R&P%_TWOXWQOX_!xQjYQ}cd!Rf!X!_#Y#^$a$e%f%h%sQ!emW!io!n%|&lS!rr#vS$T#R$VQ$Z#Vn$j#[#b#d#q#r$n$p$y${%n%t%v%y&_&aQ$}#iR%c$UQ!cfQ#f!_R&]%sY!Uf!X!_#^%sZ$_#Y$a$e%f%hR$d#YQ$i#YQ%k$eR&V%hZ$`#Y$a$e%f%he!Tf!X!_#Y#^$a$e%f%h%sR|bQ$t#[Q$x#bQ$z#dQ%S#qQ%p$pQ%u$yQ%w${Q&^%tQ&`%vQ&i&_R&k&ak$m#[#b#d#q$n$p$y${%n%t%v&_&aR!hmT!mo!nR!PcR%V#rR!vrQ!trR%W#vR&f%|R$P#O",
-      nodeNames: "⚠ LineComment BlockComment LezerGrammar TopDefinition Keyword RuleNameDefinition } { BlockBody RuleSeq Identifier > < TemplateArguments TemplateArgument TokenOrRuleSeq RangeLiteral RangeExpression StdRangeLiteral ( ) Specifier* * Specifier? ? Specifier+ + PrecedenceMarker AmbiguityMarker | TemplateArgument StringLiteral RuleNameDefinition ] [ NodePropsTag PropAssignment PropName PropValue Keyword TokenSeq Token TokenName TokenAny Specifier* Specifier? Specifier+ Keyword Specifier* Specifier? Specifier+ NestedGrammarExpression NestedGrammarName DialectsDefinition Keyword BlockBody Dialect Dialect TokensDefinition Keyword TokensDefinitionBody BlockBody TokenDefinition TokenSignature TokenNameDefinition TemplateVariables TemplateVariable TemplateVariable BlockBody TokenPrecedenceDefinition Keyword BlockBody PrecedenceDefinition BlockBody PrecedenceMarkerName PrecedenceType Keyword Keyword Keyword DetectDelimDefinition Keyword SkipDefinition Keyword BlockBody RuleDefinition Keyword RuleSignature RuleNameDefinition RuleDefinitionBody ExternalTokenDefinition Keyword tokens ExternalTokenizerName from ExternalSource BlockBody ExternalPropNameDefinition ExternalGrammarDefinition grammar ExternalParserName empty ExternalSpecializationDefinition BlockBody InvalidDefinition",
-      maxTerm: 156,
+      version: 12,
+      states: "CQQ]QPOOOOQO'#FP'#FPOOQO'#EW'#EWO}QPO'#EVO!YQPO'#EUOOQO'#Fi'#FiOOQO'#Eh'#EhOOQO'#E}'#E}OOQO'#Ei'#EiQ]QPOOOuQPO'#C`O!_QPO'#DeO!dQPO'#DjO!iQPO'#DxOOQO'#EP'#EPO!YQPO'#ERO!nQQO'#EbO!yQPO'#DQOuQPO'#DqOOQO,5:q,5:qO#RQPO,5:qO#xQPO'#CeOOQO,5:p,5:pOOQO'#EX'#EXOOQO-E8g-E8gOOQO'#Cb'#CbO!YQPO,58zO$PQPO'#DgOOQO,5:P,5:PO$[QPO'#DmOOQO'#Dl'#DlOOQO,5:U,5:UO$mQPO'#DyOOQO,5:d,5:dO$xQPO,5:mO%pQPO,5:tO!yQPO,5:{O%uQPO,5:|OOQO'#DS'#DSO%}QPO'#DRO&SQPO'#F[O&[QPO,59lOOQO'#Dr'#DrO&aQPO'#FeO&iQPO,5:]OOQO1G0]1G0]O&nQPO'#CgO(UQPO'#FUOOQO'#FU'#FUO)fQPO'#D`O*jQPO'#DcOOQO'#Ej'#EjO+hQPO'#CfO+xQPO'#FSOOQO,59P,59PO,WQPO'#FZO,`QPO'#F_O,hQPO'#FbO#ZQPO'#D`O,pQPO'#FTO,uQPO'#FTO,zQPO'#FTO-PQPO,59POOQO1G.f1G.fOOQO'#Dh'#DhO-UQPO'#FcOOQO,5:R,5:RO-^QPO,5:ROOQO'#Dp'#DpO-cQPO'#DoO-tQPO'#DnOOQO'#Fd'#FdOOQO'#Et'#EtO.YQPO,5:XOOQO,5:X,5:XO.kQPO'#DnO.pQPO'#DuOOQO'#Dz'#DzO.uQPO'#FhO/WQPO'#FgOOQO,5:e,5:eO/`QPO,5:eO/eQPO'#ETOOQO1G0X1G0XOOQO'#E]'#E]O/pQQO1G0`O/uQQO1G0gOOQO'#Ed'#EdO/zQPO'#EgO0SQQO1G0hO0[QQO1G0lO0aQPO,59mO!yQPO'#EoO0rQPO,5;vOOQO1G/W1G/WOuQPO'#EuO0zQPO,5<POOQO1G/w1G/wO1SQPO'#CjOOQO,5;p,5;pO1tQPO,59}OOQO-E8h-E8hO#ZQPO'#ErO2]QPO,5;nOOQO,5;u,5;uO!YQPO,5;uO1tQPO,5;yO2kQPO,5;yO1tQPO,5;|O2pQPO,5;|O2uQPO,59zOOQO,5;o,5;oOOQO1G.k1G.kOuQPO'#EsO2zQPO,5;}OOQO1G/m1G/mOOQO,5:Z,5:ZO3SQPO,5:ZOOQO,5:Y,5:YOOQO-E8r-E8rOOQO1G/s1G/sO3bQPO'#DtO3iQPO'#DwOOQO,5:a,5:aOOQO,5<S,5<SOOQO'#D{'#D{OuQPO'#EwO3tQPO,5<ROOQO1G0P1G0POOQO,5:o,5:oO3|QPO,5:oO4RQPO7+%zO4RQPO7+&RO4WQPO'#FlOOQO,5;R,5;RO4`QPO,5;RO4RQPO7+&SOOQO7+&S7+&SO4RQPO7+&WOOQO'#En'#EnOuQPO'#EnO4eQPO'#DUOOQO1G/X1G/XOOQO,5;Z,5;ZOOQO-E8m-E8mOOQO'#Ds'#DsOOQO,5;a,5;aOOQO-E8s-E8sOOQO'#Cm'#CmO4oQPO'#CrOOQO'#Ek'#EkO5vQPO'#ClO6WQPO'#FWO6fQPO'#FVO6nQPO,59UO1SQPO'#CrO6sQPO'#FXO6xQPO'#FXO6}QPO'#FXOOQO'#Ck'#CkOOQO'#DY'#DYOOQO'#DX'#DXO7SQPO'#D[OOQO'#Ep'#EpO8TQPO'#DWO8hQPO'#F`O1tQPO'#D[O8yQPO'#FaO9OQPO'#FaO9TQPO'#FaO9YQPO1G/iOOQO,5;^,5;^OOQO-E8p-E8pOOQO1G1a1G1aO9bQPO1G1eO1tQPO1G1eO9gQPO1G1hO1tQPO1G1hO9lQPO1G/fOOQO'#Di'#DiOOQO,5;_,5;_OOQO-E8q-E8qOOQO1G/u1G/uOOQO,5:`,5:`O:pQPO,5:`O:uQPO'#FfOOQO,5:c,5:cO:}QPO,5:cOOQO,5;c,5;cOOQO-E8u-E8uOOQO1G0Z1G0ZOOQO'#E_'#E_O;SQPO<<IfOOQO<<Im<<ImO;XQPO'#EyO;^QPO,5<WOOQO1G0m1G0mOOQO<<In<<InO;SQPO<<IrO;fQPO,5;YOOQO-E8l-E8lOOQO-E8i-E8iO1SQPO'#ElO;kQPO,5;rO1SQPO'#EmO;yQPO,5;qOOQO1G.p1G.pO<RQPO,59^OOQO,5;s,5;sOOQO-E8n-E8nO1tQPO'#EqO<WQPO,5;zO<iQPO,59vOOQO,5;{,5;{OOQO7+%T7+%TO#ZQPO7+%TO1tQPO7+'PO<nQPO7+'PO1tQPO7+'SO<sQPO7+'SOOQO1G/z1G/zOuQPO'#EvO<xQPO,5<QOOQO1G/}1G/}O=QQPO'#E`OOQOAN?QAN?QOOQO,5;e,5;eOOQO-E8w-E8wOOQOAN?^AN?^OOQO1G0t1G0tOOQO,5;W,5;WOOQO-E8j-E8jOOQO,5;X,5;XOOQO'#C{'#C{OOQO-E8k-E8kO=]QPO1G.xOOQO,5;],5;]OOQO-E8o-E8oO>dQPO1G/bO?eQPO<<HoO?jQPO<<JkO1tQPO<<JkO?oQPO<<JnO1tQPO<<JnOOQO,5;b,5;bOOQO-E8t-E8tO?tQPO'#FjOOQO,5:z,5:zO?|QPO,5:zOOQOAN>ZAN>ZOOQOAN@VAN@VO@RQPOAN@VOOQOAN@YAN@YO@WQPOAN@YOuQPO'#ExO@]QPO,5<UOOQO1G0f1G0fOOQOG25qG25qOOQOG25tG25tOOQO,5;d,5;dOOQO-E8v-E8v",
+      stateData: "@h~O#pOSPOSQOS~OTYO!YZO!_[O!j]O!t^O!v_O!}`O#rUO#tPO#uPO~O]bOsaOW!yX~OWeO~OWkO~OWmO~OWpO~O#OsO#VuO$_tO~OwvO#uvO~OsaOW!ya~Od![Ol!TOm!TOp!QOy!YO!R!ZO!W!SO#tPO#uPO~OV!WO~P#ZOV!dO#tPO#uPO~OV!lOp!hO!j!nO#tPO#uPO~OV!rO#tPO#uPO~OW!tOT!ua!Y!ua!_!ua!j!ua!t!ua!v!ua!}!ua#n!ua#r!ua#t!ua#u!ua~O#u!vO~OW!zO#u!yO~O$P!}O~O#|#OOr$OX~Or#QO~O#|#RO[$XX~O[#TO~OVZXWqX]ZXdZXgZXiZXkZXlZXmZXnZXpZXsqXyZX!RZX!WZX#tZX#uZXeZX[ZXbZXcZX#|ZX~O]#UOV#xXd#xXg#xXi#xXk#xXl#xXm#xXn#xXp#xXy#xX!R#xX!W#xX#t#xX#u#xXe#xX[#xXb#xXc#xX#|#xX~OV#wXd#wXg!SXi!TXk!UXl#wXm#wXn#wXp#wXy#wX!R#wX!W#wX#t#wX#u#wXe#wX[#wX~O]#WOV!VXd!VXl!VXm!VXn!VXp!VXy!VX!R!VX!W!VX#t!VX#u!VXe!VX[!VX~OVYXnYXeYX[YX~P#ZOn#YOV#vXe#vX[#vX~OWeOsaO~O]#^OsaO~O]#`OsaO~Og#cO~Oi#cO~Ok#cO~OV#dO~O#|#eOV$VX~OV#gO~O]bOsaOW!cXV!cX#|!cX~OsaOV!bXp!bX!j!bX#t!bX#u!bX~OV#lOp!hO!j!nO#tPO#uPO~OW#mO~OW#nO~O!p#qO!q#qO!r#qOV$[X#|$[X~O#|#rOV$ZX~OV#tO~OV#uO#tPO#uPO~O#Q#wO~O#Q#xO~OV#zO#u#yO~O#Q#|O#X#}O~O#Q$OO~OW$QOp$PO#tPO#uPO$Q$PO~O#|#OOr$Oa~O#|#RO[$Xa~Ob$YOc$YOd$aOl$[Om$[Op!QOy!YO!R!ZO#tPO#uPO~Ob$YOc$YOd$lOp$gO}$gO#tPO#uPO~On#YOV#vae#va[#va~O]$uO~O]$wO~Oe$xO~O#|#eOV$Va~OsaOW!caV!ca#|!ca~OV$}O~P1tOV%QO#tPO#uPO~O#|#rOV$Za~OV%UO~Op%VO~O#|%YOV$`X~OV%[O~OrxX#|xX~P0aO[#{Xb#{Xc#{Xd#{XgfXihXkjXl#{Xm#{Xn#{Xp#{Xy#{X!R#{X#t#{X#u#{X#|#{Xe#{X~O[`Xn`X#|`Xe`X~P1SOn%bO[#zX#|#zXe#zX~O#|%dO[#yX~O[%fO~Og%hO~Oi%hO~Ok%hO~O[$TXb$TXc$TXd$TXg!OXi!PXk!QXn$TXp$TX}$TX#t$TX#u$TX#|$TXV$TXe$TX~O[zXnzX#|zXVzXezX~P1tOn%jO[$SX#|$SXV$SXe$SX~Og%mO~Oi%mO~Ok%mO~O[%nO#|%oO~O#|%pO~O#|%rO~OV#wid#wig!Sii!Tik!Uil#wim#win#wip#wiy#wi!R#wi!W#wi#t#wi#u#wie#wi[#wi~OV%tO~O#|%uOV$YX~OV%wO~OW%xO~O#u%zO~O#|%YOV$`a~OV%}O~On%bO[#za#|#zae#za~O#|%dO[#ya~Oe&TO~On%jO[$Sa#|$SaV$Sae$Sa~Oe&WO~O#|&ZO~O#|&]O~O#|%uOV$Ya~OV&aO#tPO#uPO~O[#{ib#{ic#{id#{igfiihikjil#{im#{in#{ip#{iy#{i!R#{i#t#{i#u#{i#|#{ie#{i~O[$Tib$Tic$Tid$Tig!Oii!Pik!Qin$Tip$Ti}$Ti#t$Ti#u$Ti#|$TiV$Tie$Ti~O[&cO~O[&dO~O[&fO~O#|&hOV$^X~OV&jO~O[&kO~O[&lO~O#|&hOV$^a~O#u#u~",
+      goto: "3o$aPPPP$bP$fPP$i$x%QPP%^%a%d%lPPPP&SP&ZP&bPPPP&iP&lPP&x'b'hP'oP'r%s(SP(i(x)XP)h)o)v)}P$bP*U*X*[$bP*_*b*e*i*s*y+P+S+V*eP+Y$b+]+`+dPPP$bP$bP+g+j+q+v+{,OPP,SP,V,c,O,OP,iP,O,l$b,o,u-O-X-_-e-k-q.S.Y.`.f.l.r.x/O/UPPP/[P/`PP0t)}0}1]1`1iP1p1|PP1p2P2r1p3R3U3Y3]3`3c$b3iP3lTVOXRjYQgSQr_Q!ajQ#[!XR$s#]U!Ve![%oR$q#Ye!Pe!U![#U#Y$]$a%b%d%oR#V!PR$_#UU$^#U$a%dR&O%bY$Z#U$]$a%b%dk$h#W#^#`#m$j$l$u$w%j%p%r&Z&]Z$b#U$]$a%b%dZ$c#U$]$a%b%dZ$d#U$]$a%b%dR&Q%de!Xe!U![#U#Y$]$a%b%d%oQcRQ}dQ#]!XQ#_!YQ#a!ZQ#h!gQ#j!hR$|#iQxaR$T#OSwa#OR!xtR$S!}f$k#W#^#`#m$l$u$w%p%r&Z&]R&U%jj$g#W#^#`#m$j$l$u$w%j%p%r&Z&]Q%P#nR&^%uk$m#W#^#`#m$j$l$u$w%j%p%r&Z&]k$n#W#^#`#m$j$l$u$w%j%p%r&Z&]k$o#W#^#`#m$j$l$u$w%j%p%r&Z&]Z!]e!U![#Y%oZ!^e!U![#Y%oZ!_e!U![#Y%oZ!Te!U![#Y%oRlZR!ckR$z#eRo[Rn[T!im!kS!mm!kQ&`%xR&m&hX!gm!k%x&hQdRR#i!gR{bR$W#RR#j!mR#o!nRq]T!pp#rR#p!pR!urSVOXR#v!tVSOX!tVROX!tRfSTTOXR!wsQ%W#wQ%X#xQ%]#|R%^$OQ%y%WR%|%^R!{uR!|uQXORhXW!Ue![#Y%oR#X!UW$]#U$a%b%dR%a$]Q%c$^R&P%cQ%e$_R&S%eQ$R!}R%`$RQ#PxR$U#Ph$j#W#^#`#m$l$u$w%j%p%r&Z&]R%i$jQ%k$kR&V%kQ#Z!VR$r#ZQ#f!cR${#fQ!kmR#k!kQ#S{R$X#SQ%v%PR&_%vQ#s!qR%T#sQ&i&`R&n&iQ%Z#yR%{%ZTWOXUQOX!tQiYQzbd!Oe!U![#U#Y$]$a%b%d%oQ!bkW!fm!k%x&hS!op#rS$P!}$RQ$V#Rn$f#W#^#`#m#n$j$l$u$w%j%p%r%u&Z&]Q$y#eR%_$QQ!`eQ#b![R&X%oY!Re!U![#Y%oZ$Z#U$]$a%b%dR$`#UQ$e#UQ%g$aR&R%dZ$[#U$]$a%b%de!Qe!U![#U#Y$]$a%b%d%oRyaQ$p#WQ$t#^Q$v#`Q%O#mQ%l$lQ%q$uQ%s$wQ&Y%pQ&[%rQ&e&ZR&g&]k$i#W#^#`#m$j$l$u$w%j%p%r&Z&]R!ekT!jm!kR|bR%R#nR!spQ!qpR%S#rR&b%xR#{!z",
+      nodeNames: "⚠ LineComment BlockComment LezerGrammar TopDefinition Keyword RuleNameDefinition } { BlockBody RuleSeq Identifier > < TemplateArguments TemplateArgument TokenOrRuleSeq RangeLiteral RangeExpression StdRangeLiteral ( ) Quantifier* * Quantifier? ? Quantifier+ + PrecedenceMarker AmbiguityMarker | TemplateArgument StringLiteral RuleNameDefinition ] [ NodePropsTag PropAssignment PropName PseudoPropName PropValue Keyword TokenSeq Token TokenName TokenAny Quantifier* Quantifier? Quantifier+ Keyword Quantifier* Quantifier? Quantifier+ NestedGrammarExpression NestedGrammarName DialectsDefinition Keyword BlockBody Dialect Dialect TokensDefinition Keyword TokensDefinitionBody BlockBody TokenDefinition TokenSignature TokenNameDefinition TemplateVariables TemplateVariable TemplateVariable BlockBody TokenPrecedenceDefinition Keyword BlockBody PrecedenceDefinition BlockBody PrecedenceMarkerName PrecedenceType Keyword Keyword Keyword DetectDelimDefinition Keyword SkipDefinition Keyword BlockBody RuleDefinition RuleSignature RuleNameDefinition RuleDefinitionBody ExternalTokenDefinition Keyword tokens ExternalTokenizerName from ExternalSource BlockBody ExternalPropNameDefinition ExternalGrammarDefinition grammar ExternalParserName empty ExternalSpecializationDefinition BlockBody InvalidDefinition",
+      maxTerm: 154,
       nodeProps: [
-        [NodeProp.skipped, 1,true,2,true],
-        [NodeProp.top, 3,true],
         [NodeProp.openedBy, 7,"{",12,"<",34,"["],
         [NodeProp.closedBy, 8,"}",13,">",35,"]"]
       ],
+      skippedNodes: [0,1,2],
       repeatNodeCount: 17,
-      tokenData: "Hx~R!VX^$hpq$hqr%]rs-Otu-rwx-xxy.gyz.lz{.q{|.v|}.{!O!P/Q!P!Q/V!^!_0c!_!`0h!`!a0m!a!b0r!b!c0w!c!}1n!}#O2U#P#Q2Z#R#S2`#T#X2`#X#Y2t#Y#Z5h#Z#[7p#[#b2`#b#c;d#c#d2`#d#e>b#e#g2`#g#h@j#h#iB|#i#o2`#o#pF[#p#qFa#q#rFf#r#sFk#y#z$h$f$g$h$g#BY2`#BY#BZG`#BZ$IS2`$IS$I_G`$I_$I|2`$I|$JOG`$JO$JT2`$JT$JUG`$JU$KV2`$KV$KWG`$KW&FU2`&FU&FVG`&FV~2`~$mY#p~X^$hpq$h#y#z$h$f$g$h#BY#BZ$h$IS$I_$h$I|$JO$h$JT$JU$h$KV$KW$h&FU&FV$h~%`T!c!}%o!}#O&T#R#S%o#T#o%o$g~%o~%tTl~!Q![%o!c!}%o#R#S%o#T#o%o$g~%o~&WTp}&g!O#O&g#O#P)y#P#Q,g#Q~&g~&jUp}&g}!O&|!O#O&g#O#P)y#P#Q,g#Q~&g~'PSp}&T!O#O&T#O#P']#P~&T~'`TO#i&T#i#j'o#j#l&T#l#m)a#m~&T~'rS!Q![(O!c!i(O#T#Z(O#o#p(t~(RR!Q![([!c!i([#T#Z([~(_R!Q![(h!c!i(h#T#Z(h~(kR!Q![&T!c!i&T#T#Z&T~(wR!Q![)Q!c!i)Q#T#Z)Q~)TS!Q![)Q!c!i)Q#T#Z)Q#q#r&T~)dR!Q![)m!c!i)m#T#Z)m~)pR!Q![&T!c!i&T#T#Z&T~)|TO#i&g#i#j*]#j#l&g#l#m+}#m~&g~*`S!Q![*l!c!i*l#T#Z*l#o#p+b~*oR!Q![*x!c!i*x#T#Z*x~*{R!Q![+U!c!i+U#T#Z+U~+XR!Q![&g!c!i&g#T#Z&g~+eR!Q![+n!c!i+n#T#Z+n~+qS!Q![+n!c!i+n#T#Z+n#q#r&g~,QR!Q![,Z!c!i,Z#T#Z,Z~,^R!Q![&g!c!i&g#T#Z&g~,lUb~p}&g}!O&|!O#O&g#O#P)y#P#Q,g#Q~&g~-TUp~OY-OZr-Ors-gs#O-O#O#P-l#P~-O~-lOp~~-oPO~-O~-uP!}#O&T~-}Up~OY-xZw-xwx-gx#O-x#O#P.a#P~-x~.dPO~-x~.lOd~~.qOe~~.vOg~~.{Ok~~/QO#|~~/VO$S~~/YQz{/`!P!Q0T~/cROz/`z{/l{~/`~/oTOz/`z{/l{!P/`!P!Q0O!Q~/`~0TOQ~~0YRP~OY0TZ]0T^~0T~0hO]~~0mO$R~~0rO[~~0wOi~~0|S#r~!c!}1Y#R#S1Y#T#o1Y$g~1Y~1_T#r~!Q![1Y!c!}1Y#R#S1Y#T#o1Y$g~1Y~1uT#t~#uP!Q![1n!c!}1n#R#S1n#T#o1n$g~1n~2ZOs~~2`Or~P2eT#uP!Q![2`!c!}2`#R#S2`#T#o2`$g~2`R2yV#uP!Q![2`!c!}2`#R#S2`#T#a2`#a#b3`#b#o2`$g~2`R3eV#uP!Q![2`!c!}2`#R#S2`#T#d2`#d#e3z#e#o2`$g~2`R4PV#uP!Q![2`!c!}2`#R#S2`#T#h2`#h#i4f#i#o2`$g~2`R4kV#uP!Q![2`!c!}2`#R#S2`#T#m2`#m#n5Q#n#o2`$g~2`R5XT#XQ#uP!Q![2`!c!}2`#R#S2`#T#o2`$g~2`R5mV#uP!Q![2`!c!}2`#R#S2`#T#f2`#f#g6S#g#o2`$g~2`R6XV#uP!Q![2`!c!}2`#R#S2`#T#c2`#c#d6n#d#o2`$g~2`R6sV#uP!Q![2`!c!}2`#R#S2`#T#a2`#a#b7Y#b#o2`$g~2`R7aT#QQ#uP!Q![2`!c!}2`#R#S2`#T#o2`$g~2`R7uV#uP!Q![2`!c!}2`#R#S2`#T#f2`#f#g8[#g#o2`$g~2`R8aU#uP!Q![2`!c!}2`#R#S2`#T#U8s#U#o2`$g~2`R8xV#uP!Q![2`!c!}2`#R#S2`#T#a2`#a#b9_#b#o2`$g~2`R9dV#uP!Q![2`!c!}2`#R#S2`#T#a2`#a#b9y#b#o2`$g~2`R:OU#uP!Q![2`!c!}2`#R#S2`#T#U:b#U#o2`$g~2`R:gV#uP!Q![2`!c!}2`#R#S2`#T#f2`#f#g:|#g#o2`$g~2`R;TT#VQ#uP!Q![2`!c!}2`#R#S2`#T#o2`$g~2`~;iV#uP!Q![2`!c!}2`#R#S2`#T#X2`#X#Y<O#Y#o2`$g~2`~<TV#uP!Q![2`!c!}2`#R#S2`#T#g2`#g#h<j#h#o2`$g~2`~<oV#uP!Q![2`!c!}2`#R#S2`#T#h2`#h#i=U#i#o2`$g~2`~=ZU#uP!O!P=m!Q![2`!c!}2`#R#S2`#T#o2`$g~2`~=pS!c!}=|#R#S=|#T#o=|$g~=|~>RT!V~!Q![=|!c!}=|#R#S=|#T#o=|$g~=|R>gV#uP!Q![2`!c!}2`#R#S2`#T#f2`#f#g>|#g#o2`$g~2`R?RV#uP!Q![2`!c!}2`#R#S2`#T#c2`#c#d?h#d#o2`$g~2`R?mV#uP!Q![2`!c!}2`#R#S2`#T#d2`#d#e@S#e#o2`$g~2`R@ZT$aQ#uP!Q![2`!c!}2`#R#S2`#T#o2`$g~2`~@oV#uP!Q![2`!c!}2`#R#S2`#T#h2`#h#iAU#i#o2`$g~2`~AZV#uP!Q![2`!c!}2`#R#S2`#T#W2`#W#XAp#X#o2`$g~2`~AuU#uP!O!PBX!Q![2`!c!}2`#R#S2`#T#o2`$g~2`~B[S!c!}Bh#R#SBh#T#oBh$g~Bh~BmTc~!Q![Bh!c!}Bh#R#SBh#T#oBh$g~BhRCRV#uP!Q![2`!c!}2`#R#S2`#T#c2`#c#dCh#d#o2`$g~2`RCmV#uP!Q![2`!c!}2`#R#S2`#T#_2`#_#`DS#`#o2`$g~2`RDXV#uP!Q![2`!c!}2`#R#S2`#T#X2`#X#YDn#Y#o2`$g~2`RDsV#uP!Q![2`!c!}2`#R#S2`#T#b2`#b#cEY#c#o2`$g~2`RE_V#uP!Q![2`!c!}2`#R#S2`#T#g2`#g#hEt#h#o2`$g~2`RE{T#OQ#uP!Q![2`!c!}2`#R#S2`#T#o2`$g~2`~FaOW~~FfOn~~FkOV~~FnS!c!}Fz#R#SFz#T#oFz$g~Fz~GPTm~!Q![Fz!c!}Fz#R#SFz#T#oFz$g~Fz~Gge#p~#uPX^$hpq$h!Q![2`!c!}2`#R#S2`#T#o2`#y#z$h$f$g$h$g#BY2`#BY#BZG`#BZ$IS2`$IS$I_G`$I_$I|2`$I|$JOG`$JO$JT2`$JT$JUG`$JU$KV2`$KV$KWG`$KW&FU2`&FU&FVG`&FV~2`",
+      tokenData: "Hx~R!VX^$hpq$hqr%]rs-Otu-rwx-xxy.gyz.lz{.q{|.v|}.{!O!P/Q!P!Q/V!^!_0c!_!`0h!`!a0m!a!b0r!b!c0w!c!}1n!}#O2U#P#Q2Z#R#S2`#T#X2`#X#Y2t#Y#Z5h#Z#[7p#[#b2`#b#c;d#c#d2`#d#e>b#e#g2`#g#h@j#h#iB|#i#o2`#o#pF[#p#qFa#q#rFf#r#sFk#y#z$h$f$g$h$g#BY2`#BY#BZG`#BZ$IS2`$IS$I_G`$I_$I|2`$I|$JOG`$JO$JT2`$JT$JUG`$JU$KV2`$KV$KWG`$KW&FU2`&FU&FVG`&FV~2`~$mY#p~X^$hpq$h#y#z$h$f$g$h#BY#BZ$h$IS$I_$h$I|$JO$h$JT$JU$h$KV$KW$h&FU&FV$h~%`T!c!}%o!}#O&T#R#S%o#T#o%o$g~%o~%tTl~!Q![%o!c!}%o#R#S%o#T#o%o$g~%o~&WTp}&g!O#O&g#O#P)y#P#Q,g#Q~&g~&jUp}&g}!O&|!O#O&g#O#P)y#P#Q,g#Q~&g~'PSp}&T!O#O&T#O#P']#P~&T~'`TO#i&T#i#j'o#j#l&T#l#m)a#m~&T~'rS!Q![(O!c!i(O#T#Z(O#o#p(t~(RR!Q![([!c!i([#T#Z([~(_R!Q![(h!c!i(h#T#Z(h~(kR!Q![&T!c!i&T#T#Z&T~(wR!Q![)Q!c!i)Q#T#Z)Q~)TS!Q![)Q!c!i)Q#T#Z)Q#q#r&T~)dR!Q![)m!c!i)m#T#Z)m~)pR!Q![&T!c!i&T#T#Z&T~)|TO#i&g#i#j*]#j#l&g#l#m+}#m~&g~*`S!Q![*l!c!i*l#T#Z*l#o#p+b~*oR!Q![*x!c!i*x#T#Z*x~*{R!Q![+U!c!i+U#T#Z+U~+XR!Q![&g!c!i&g#T#Z&g~+eR!Q![+n!c!i+n#T#Z+n~+qS!Q![+n!c!i+n#T#Z+n#q#r&g~,QR!Q![,Z!c!i,Z#T#Z,Z~,^R!Q![&g!c!i&g#T#Z&g~,lUb~p}&g}!O&|!O#O&g#O#P)y#P#Q,g#Q~&g~-TUp~OY-OZr-Ors-gs#O-O#O#P-l#P~-O~-lOp~~-oPO~-O~-uP!}#O&T~-}Up~OY-xZw-xwx-gx#O-x#O#P.a#P~-x~.dPO~-x~.lOd~~.qOe~~.vOg~~.{Ok~~/QO#|~~/VO$Q~~/YQz{/`!P!Q0T~/cROz/`z{/l{~/`~/oTOz/`z{/l{!P/`!P!Q0O!Q~/`~0TOQ~~0YRP~OY0TZ]0T^~0T~0hO]~~0mO$P~~0rO[~~0wOi~~0|S#r~!c!}1Y#R#S1Y#T#o1Y$g~1Y~1_T#r~!Q![1Y!c!}1Y#R#S1Y#T#o1Y$g~1Y~1uT#t~#uP!Q![1n!c!}1n#R#S1n#T#o1n$g~1n~2ZOs~~2`Or~P2eT#uP!Q![2`!c!}2`#R#S2`#T#o2`$g~2`R2yV#uP!Q![2`!c!}2`#R#S2`#T#a2`#a#b3`#b#o2`$g~2`R3eV#uP!Q![2`!c!}2`#R#S2`#T#d2`#d#e3z#e#o2`$g~2`R4PV#uP!Q![2`!c!}2`#R#S2`#T#h2`#h#i4f#i#o2`$g~2`R4kV#uP!Q![2`!c!}2`#R#S2`#T#m2`#m#n5Q#n#o2`$g~2`R5XT#XQ#uP!Q![2`!c!}2`#R#S2`#T#o2`$g~2`R5mV#uP!Q![2`!c!}2`#R#S2`#T#f2`#f#g6S#g#o2`$g~2`R6XV#uP!Q![2`!c!}2`#R#S2`#T#c2`#c#d6n#d#o2`$g~2`R6sV#uP!Q![2`!c!}2`#R#S2`#T#a2`#a#b7Y#b#o2`$g~2`R7aT#QQ#uP!Q![2`!c!}2`#R#S2`#T#o2`$g~2`R7uV#uP!Q![2`!c!}2`#R#S2`#T#f2`#f#g8[#g#o2`$g~2`R8aU#uP!Q![2`!c!}2`#R#S2`#T#U8s#U#o2`$g~2`R8xV#uP!Q![2`!c!}2`#R#S2`#T#a2`#a#b9_#b#o2`$g~2`R9dV#uP!Q![2`!c!}2`#R#S2`#T#a2`#a#b9y#b#o2`$g~2`R:OU#uP!Q![2`!c!}2`#R#S2`#T#U:b#U#o2`$g~2`R:gV#uP!Q![2`!c!}2`#R#S2`#T#f2`#f#g:|#g#o2`$g~2`R;TT#VQ#uP!Q![2`!c!}2`#R#S2`#T#o2`$g~2`~;iV#uP!Q![2`!c!}2`#R#S2`#T#X2`#X#Y<O#Y#o2`$g~2`~<TV#uP!Q![2`!c!}2`#R#S2`#T#g2`#g#h<j#h#o2`$g~2`~<oV#uP!Q![2`!c!}2`#R#S2`#T#h2`#h#i=U#i#o2`$g~2`~=ZU#uP!O!P=m!Q![2`!c!}2`#R#S2`#T#o2`$g~2`~=pS!c!}=|#R#S=|#T#o=|$g~=|~>RT!W~!Q![=|!c!}=|#R#S=|#T#o=|$g~=|R>gV#uP!Q![2`!c!}2`#R#S2`#T#f2`#f#g>|#g#o2`$g~2`R?RV#uP!Q![2`!c!}2`#R#S2`#T#c2`#c#d?h#d#o2`$g~2`R?mV#uP!Q![2`!c!}2`#R#S2`#T#d2`#d#e@S#e#o2`$g~2`R@ZT$_Q#uP!Q![2`!c!}2`#R#S2`#T#o2`$g~2`~@oV#uP!Q![2`!c!}2`#R#S2`#T#h2`#h#iAU#i#o2`$g~2`~AZV#uP!Q![2`!c!}2`#R#S2`#T#W2`#W#XAp#X#o2`$g~2`~AuU#uP!O!PBX!Q![2`!c!}2`#R#S2`#T#o2`$g~2`~B[S!c!}Bh#R#SBh#T#oBh$g~Bh~BmTc~!Q![Bh!c!}Bh#R#SBh#T#oBh$g~BhRCRV#uP!Q![2`!c!}2`#R#S2`#T#c2`#c#dCh#d#o2`$g~2`RCmV#uP!Q![2`!c!}2`#R#S2`#T#_2`#_#`DS#`#o2`$g~2`RDXV#uP!Q![2`!c!}2`#R#S2`#T#X2`#X#YDn#Y#o2`$g~2`RDsV#uP!Q![2`!c!}2`#R#S2`#T#b2`#b#cEY#c#o2`$g~2`RE_V#uP!Q![2`!c!}2`#R#S2`#T#g2`#g#hEt#h#o2`$g~2`RE{T#OQ#uP!Q![2`!c!}2`#R#S2`#T#o2`$g~2`~FaOW~~FfOn~~FkOV~~FnS!c!}Fz#R#SFz#T#oFz$g~Fz~GPTm~!Q![Fz!c!}Fz#R#SFz#T#oFz$g~Fz~Gge#p~#uPX^$hpq$h!Q![2`!c!}2`#R#S2`#T#o2`#y#z$h$f$g$h$g#BY2`#BY#BZG`#BZ$IS2`$IS$I_G`$I_$I|2`$I|$JOG`$JO$JT2`$JT$JUG`$JU$KV2`$KV$KWG`$KW&FU2`&FU&FVG`&FV~2`",
       tokenizers: [0, 1],
       topRules: {"LezerGrammar":[0,3]},
       specialized: [{term: 126, get: value => spec_atToken[value] || -1},{term: 129, get: value => spec_normalIdentifier[value] || -1}],
-      tokenPrec: 1486
+      tokenPrec: 1447
     });
 
     /// A syntax tree node prop used to associate indentation strategies
@@ -16794,13 +17048,13 @@
             let last = scan.childBefore(scanPos);
             if (!last)
                 break;
-            if (last.type.prop(NodeProp.error) && last.start == last.end) {
+            if (last.type.isError && last.from == last.to) {
                 tree = scan;
-                scanPos = last.start;
+                scanPos = last.from;
             }
             else {
                 scan = last;
-                scanPos = scan.end + 1;
+                scanPos = scan.to + 1;
             }
         }
         for (; tree; tree = tree.parent) {
@@ -16821,7 +17075,7 @@
         let first = tree.firstChild, close;
         if (first && (close = first.type.prop(NodeProp.closedBy))) {
             let last = tree.lastChild, closed = last && close.indexOf(last.name) > -1;
-            return cx => delimitedStrategy(cx, true, 1, undefined, closed && !ignoreClosed(cx) ? last.start : undefined);
+            return cx => delimitedStrategy(cx, true, 1, undefined, closed && !ignoreClosed(cx) ? last.from : undefined);
         }
         return tree.parent == null ? topIndent : null;
     }
@@ -16851,15 +17105,15 @@
         /// so, the line at the start of that node is tried, again skipping
         /// on if it is covered by another such node.
         get baseIndent() {
-            let line = this.state.doc.lineAt(this.node.start);
+            let line = this.state.doc.lineAt(this.node.from);
             // Skip line starts that are covered by a sibling (or cousin, etc)
             for (;;) {
                 let atBreak = this.node.resolve(line.from);
-                while (atBreak.parent && atBreak.parent.start == atBreak.start)
+                while (atBreak.parent && atBreak.parent.from == atBreak.from)
                     atBreak = atBreak.parent;
                 if (isParent(atBreak, this.node))
                     break;
-                line = this.state.doc.lineAt(atBreak.start);
+                line = this.state.doc.lineAt(atBreak.from);
             }
             return this.lineIndent(line);
         }
@@ -16876,19 +17130,19 @@
     function bracketedAligned(context) {
         var _a;
         let tree = context.node;
-        let openToken = tree.childAfter(tree.start), last = tree.lastChild;
+        let openToken = tree.childAfter(tree.from), last = tree.lastChild;
         if (!openToken)
             return null;
         let sim = (_a = context.options) === null || _a === void 0 ? void 0 : _a.simulateBreak;
-        let openLine = context.state.doc.lineAt(openToken.start);
+        let openLine = context.state.doc.lineAt(openToken.from);
         let lineEnd = sim == null || sim <= openLine.from ? openLine.to : Math.min(openLine.to, sim);
-        for (let pos = openToken.end;;) {
+        for (let pos = openToken.to;;) {
             let next = tree.childAfter(pos);
             if (!next || next == last)
                 return null;
-            if (!next.type.prop(NodeProp.skipped))
-                return next.start < lineEnd ? openToken : null;
-            pos = next.end;
+            if (!next.type.isSkipped)
+                return next.from < lineEnd ? openToken : null;
+            pos = next.to;
         }
     }
     function delimitedStrategy(context, align, units, closing, closedAt) {
@@ -16896,12 +17150,12 @@
         let closed = closing && after.slice(space, space + closing.length) == closing || closedAt == context.pos + space;
         let aligned = align ? bracketedAligned(context) : null;
         if (aligned)
-            return closed ? context.column(aligned.start) : context.column(aligned.end);
+            return closed ? context.column(aligned.from) : context.column(aligned.to);
         return context.baseIndent + (closed ? 0 : context.unit * units);
     }
 
     /// This node prop is used to associate folding information with node
-    /// types. Given a subtree, it should check whether that tree is
+    /// types. Given a syntax node, it should check whether that tree is
     /// foldable and return the range that can be collapsed when it is.
     const foldNodeProp = new NodeProp();
     function syntaxFolding(syntax) {
@@ -16909,9 +17163,9 @@
             let inner = syntax.getTree(state).resolve(end);
             let found = null;
             for (let cur = inner; cur; cur = cur.parent) {
-                if (cur.end <= end || cur.start > end)
+                if (cur.to <= end || cur.from > end)
                     continue;
-                if (found && cur.start < start)
+                if (found && cur.from < start)
                     break;
                 let prop = cur.type.prop(foldNodeProp);
                 if (prop) {
@@ -17166,15 +17420,16 @@
         styleTags({
           LineComment: 'lineComment',
           BlockComment: 'blockComment',
-          Keyword: 'keyword',
+          'Keyword': 'keyword',
           StringLiteral: 'string',
           Identifier: 'variableName',
           'PropName TemplateArgument': 'propertyName',
+          'PseudoPropName': 'name#2',
           'StdRangeLiteral TokenAny': 'keyword',
           'RangeExpression': 'regexp',
           InvalidDefinition: 'invalid',
           'TokenNameDefinition RuleNameDefinition': 'className definition strong',
-          '* ? + PrecedenceMarker AmbiguityMarker': 'modifier',
+          '* ? + PrecedenceMarker AmbiguityMarker': 'modifier strong',
         })), {
           languageData: {
             closeBrackets: {brackets: ["(", "[", "{", "'", '"', "`"]},
@@ -17184,7 +17439,7 @@
       ]
     }
 
-    var grammarSourceCode = "@top LezerGrammar { definition* }\n\n@skip { whitespace | LineComment | BlockComment }\n\nat<term> { @specialize[name=Keyword]<atToken, term> }\nbraced<body> { BlockBody { \"{\" body? \"}\" } }\ncommaDelim<item> { item (\",\" item)* }\nbarDelim<item> { item (\"|\" item)* }\n\ndefinition {\n  TopDefinition |\n  DialectsDefinition |\n  TokensDefinition { at<\"@tokens\"> TokensDefinitionBody } |\n  PrecedenceDefinition { at<\"@precedence\"> braced<precedenceList> } |\n  DetectDelimDefinition { at<\"@detectDelim\"> } |\n  SkipDefinition |\n  externalDefinition |\n  RuleDefinition |\n  InvalidDefinition { atToken }\n}\n\nTopDefinition {\n  at<\"@top\">\n  (RuleNameDefinition { identifier })?\n  braced<ruleChoice>\n}\n\nDialectsDefinition {\n  at<\"@dialects\">\n  braced< commaDelim< Dialect { identifier } > >\n}\n\nSkipDefinition {\n  at<\"@skip\"> braced<ruleChoice> braced<RuleDefinition>?\n}\n\nidentifier {\n  capitalizedIdentifier |\n  normalIdentifier\n}\n\n/* a template application can be resolved to either a token template or a rule template */\nTemplateArguments {\n  \"<\" commaDelim< TemplateArgument { tokenOrRuleChoice } > \">\"\n}\n\nTemplateVariables {\n  \"<\" commaDelim< TemplateVariable { identifier } > \">\"\n}\n\nTokenName { identifier }\nTokenSignature {\n  TokenNameDefinition { identifier }\n  TemplateVariables?\n  NodePropsTag?\n}\n\nTokensDefinitionBody { braced<tokenDefinition+> }\n\ntokenDefinition {\n  (TokenDefinition {\n    StringLiteral NodePropsTag? |\n    TokenSignature braced<tokenChoice>\n  } |\n  TokenPrecedenceDefinition {\n    at<\"@precedence\"> braced<tokenPrecedenceList>\n  })\n}\n\nRuleDefinitionBody { braced<ruleChoice> }\n\nRuleDefinition {\n  at<\"@export\">? RuleSignature RuleDefinitionBody\n}\n\ninlineRuleDefinition {\n  /* a rule definition but cannot be as a template. */\n  RuleNameDefinition { identifier }\n  NodePropsTag?\n  braced<ruleChoice>\n}\n\nNodePropsTag {\n  \"[\" commaDelim< PropAssignment > \"]\"\n}\n\nRuleSignature {\n  RuleNameDefinition { identifier }\n  TemplateVariables?\n  NodePropsTag?\n}\n\nPropName {\n  normalIdentifier |\n  @specialize<normalIdentifier, \"name\"> |\n  @specialize<normalIdentifier, \"dialect\">\n}\n\nPropAssignment {\n  PropName \"=\"\n  PropValue {\n    (identifier | StringLiteral | \".\" | \"{\" identifier \"}\")+\n  }\n}\n\ntokenOrRuleChoice { barDelim<TokenOrRuleSeq> }\n\nTokenOrRuleSeq {\n  (maybeWithRepeatSpec<ruleExpression |\n                       RangeLiteral |\n                       \"(\" tokenOrRuleChoice \")\"> |\n   PrecedenceMarker |\n   AmbiguityMarker)+\n}\n\ntokenChoice { barDelim<TokenSeq> }\n\nTokenSeq {\n  (maybeWithRepeatSpec<Token |\n                       RangeLiteral |\n                       \"(\" tokenChoice \")\">)+\n}\n\nspecialization<type> {\n  type\n  NodePropsTag?\n  \"<\" tokenChoice \",\" tokenChoice \">\"\n}\n\nruleChoice { barDelim<RuleSeq> }\n\nruleExpression {\n  Identifier { identifier } TemplateArguments? |\n  StringLiteral |\n  /* a token is covered in above cases */\n  inlineRuleDefinition |\n  specialization<at<\"@specialize\">> |\n  specialization<at<\"@extend\">>\n}\n\nRuleSeq {\n  (maybeWithRepeatSpec<ruleExpression |\n                       \"(\" ruleChoice \")\"> |\n   NestedGrammarExpression |\n   PrecedenceMarker |\n   AmbiguityMarker)+\n}\n\nNestedGrammarExpression {\n  NestedGrammarName\n  (\"<\" tokenChoice (\",\" ruleChoice)? \">\")?\n}\n\nwithRepeatSpec<content, c> {\n  (_repeatSpec[name=Specifier{c}] { content } c)\n}\n\nmaybeWithRepeatSpec<content> {\n  content |\n  withRepeatSpec<content, \"*\"> |\n  withRepeatSpec<content, \"?\"> |\n  withRepeatSpec<content, \"+\">\n}\n\nToken {\n  TokenName |\n  StringLiteral |\n  @specialize[name=TokenAny]<normalIdentifier, \"_\">\n}\n\nprecedenceList {\n  commaDelim<precedenceSpecifier>\n}\n\ntokenPrecedenceList {\n  commaDelim<TokenName>\n}\n\nprecedenceSpecifier {\n  PrecedenceMarkerName { identifier }\n  PrecedenceType { at<\"@left\"> | at<\"@right\"> | at<\"@cut\"> }?\n}\n\nRangeLiteral {\n  RangeExpression |\n  StdRangeLiteral\n}\n\nExternalSource { StringLiteral }\n\nexternalDefinition {\n  (ExternalTokenDefinition {\n    at<\"@external\"> \"tokens\"\n    ExternalTokenizerName { normalIdentifier }\n    \"from\" ExternalSource braced<commaDelim<TokenSignature>>\n  } |\n  ExternalPropNameDefinition {\n    at<\"@external\"> \"prop\"\n    PropName \"from\" ExternalSource\n  } |\n  ExternalGrammarDefinition {\n    at<\"@external\"> \"grammar\"\n    ExternalParserName { normalIdentifier } (\"from\" ExternalSource | \"empty\")\n  } |\n  ExternalSpecializationDefinition {\n    at<\"@external\"> \"grammar\"\n    braced<commaDelim<normalIdentifier>>\n    \"from\" ExternalSource braced<commaDelim<TokenSignature>>\n  })\n}\n\n@tokens {\n  whitespace { std.whitespace+ }\n\n  LineComment { \"//\" ![\\r\\n]* }\n  BlockComment { \"/*\" blockCommentRest }\n  blockCommentRest { ![*] blockCommentRest | \"*\" blockCommentAfterStar }\n  blockCommentAfterStar { \"/\" | \"*\" blockCommentAfterStar | ![/*] blockCommentRest }\n\n  identifierHead { std.asciiLetter | $[_\\u{a1}-\\u{10ffff}] }\n  identifierTail { (identifierHead | std.digit)* }\n  capitalizedIdentifier { std.asciiUppercase identifierTail }\n  normalIdentifier { identifierHead identifierTail }\n\n  @precedence { capitalizedIdentifier, normalIdentifier, whitespace }\n\n  PrecedenceMarker { \"!\" normalIdentifier }\n  AmbiguityMarker { \"~\" normalIdentifier }\n\n  StringLiteral {\n    '\"' (![\\\\\\n\"] | \"\\\\\" _)* '\"'? |\n    \"'\" (![\\\\\\n'] | \"\\\\\" _)* \"'\"?\n  }\n\n  // no \"-\" (0x2d) and \"\\\\\" (0x5c)\n  rangeChar { $[\\u{20}-\\u{2c}\\u{2e}-\\u{5b}\\u{5d}-\\u{10ffff}] }\n  hex  { $[0-9a-fA-F] }\n  rangeEscapeSequence {\n    \"\\\\u{\" hex+ \"}\" |\n    \"\\\\u\" hex hex hex hex |\n    \"\\\\x\" hex hex |\n    \"\\\\\" ![ux]\n  }\n\n  StdRangeLiteral {\n    \"std.\" normalIdentifier\n  }\n\n  RangeExpression {\n    ((\"$\" | \"!\") \"[\" rangeLiteralInner* \"]\")\n  }\n  rangeLiteralChar { rangeChar | rangeEscapeSequence }\n  rangeLiteralInner {\n    rangeLiteralChar (\"-\" rangeLiteralChar)?\n  }\n\n  @precedence { StdRangeLiteral, normalIdentifier }\n\n  NestedGrammarName {\n    \"nest.\" normalIdentifier\n  }\n\n  @precedence { NestedGrammarName, normalIdentifier }\n\n  atToken { \"@\" normalIdentifier? }\n\n  \"*\" \"?\" \"+\"\n  \"(\" \")\" \"[\" \"]\" \"<\" \">\" \"{\" \"}\" \"|\"\n\n  \"tokens\"[name=tokens]\n  \"props\"[name=props]\n  \"grammar\"[name=grammar]\n  \"from\"[name=from]\n  \"empty\"[name=empty]\n}\n\n@detectDelim\n";
+    var grammarSourceCode = "/*\n * (c) Qbane Pan, 2020\n * Repository: https://github.com/andy0130tw/lezer-grammar\n * License: Unlicense\n */\n\n@top LezerGrammar { definition* }\n\n@skip { whitespace | LineComment | BlockComment }\n\nat<term> { @specialize[@name=Keyword]<atToken, term> }\nbraced<body> { BlockBody { \"{\" body? \"}\" } }\ncommaDelim<item> { item (\",\" item)* }\nbarDelim<item> { item (\"|\" item)* }\n\ndefinition {\n  TopDefinition |\n  DialectsDefinition |\n  TokensDefinition { at<\"@tokens\"> TokensDefinitionBody } |\n  PrecedenceDefinition { at<\"@precedence\"> braced<precedenceList> } |\n  DetectDelimDefinition { at<\"@detectDelim\"> } |\n  SkipDefinition |\n  externalDefinition |\n  RuleDefinition |\n  InvalidDefinition { atToken }\n}\n\nTopDefinition {\n  at<\"@top\">\n  RuleNameDefinition { identifier }\n  braced<ruleChoice>\n}\n\nDialectsDefinition {\n  at<\"@dialects\">\n  braced< commaDelim< Dialect { identifier } > >\n}\n\nSkipDefinition {\n  at<\"@skip\"> braced<ruleChoice> braced<RuleDefinition>?\n}\n\nidentifier {\n  capitalizedIdentifier |\n  normalIdentifier\n}\n\n/* a template application can be resolved to either a token template or a rule template */\nTemplateArguments {\n  \"<\" commaDelim< TemplateArgument { tokenOrRuleChoice } > \">\"\n}\n\nTemplateVariables {\n  \"<\" commaDelim< TemplateVariable { identifier } > \">\"\n}\n\nTokenName { identifier }\nTokenSignature {\n  TokenNameDefinition { identifier }\n  TemplateVariables?\n  NodePropsTag?\n}\n\nTokensDefinitionBody { braced<tokenDefinition+> }\n\ntokenDefinition {\n  (TokenDefinition {\n    StringLiteral NodePropsTag? |\n    TokenSignature braced<tokenChoice>\n  } |\n  TokenPrecedenceDefinition {\n    at<\"@precedence\"> braced<tokenPrecedenceList>\n  })\n}\n\nRuleDefinitionBody { braced<ruleChoice> }\n\nRuleDefinition {\n  RuleSignature RuleDefinitionBody\n}\n\ninlineRuleDefinition {\n  /* a rule definition but cannot be as a template. */\n  RuleNameDefinition { identifier }\n  NodePropsTag?\n  braced<ruleChoice>\n}\n\nNodePropsTag {\n  \"[\" commaDelim< PropAssignment > \"]\"\n}\n\nRuleSignature {\n  RuleNameDefinition { identifier }\n  TemplateVariables?\n  NodePropsTag?\n}\n\nPropName {\n  normalIdentifier |\n  @specialize[@name=PseudoPropName]<atToken,\n    \"@name\" |\n    \"@dialect\" |\n    \"@inline\" |\n    \"@dynamicPrec\" |\n    \"@export\" |\n    \"@isGroup\">\n}\n\nPropAssignment {\n  PropName \"=\"\n  PropValue {\n    (identifier | StringLiteral | \".\" | \"{\" identifier \"}\")+\n  }\n}\n\ntokenOrRuleChoice { barDelim<TokenOrRuleSeq> }\n\nTokenOrRuleSeq {\n  (maybeWithQuantifier<ruleExpression |\n                       RangeLiteral |\n                       \"(\" tokenOrRuleChoice \")\"> |\n   PrecedenceMarker |\n   AmbiguityMarker)+\n}\n\ntokenChoice { barDelim<TokenSeq> }\n\nTokenSeq {\n  (maybeWithQuantifier<Token |\n                       RangeLiteral |\n                       \"(\" tokenChoice \")\">)+\n}\n\nspecialization<type> {\n  type\n  NodePropsTag?\n  \"<\" tokenChoice \",\" tokenChoice \">\"\n}\n\nruleChoice { barDelim<RuleSeq> }\n\nruleExpression {\n  Identifier { identifier } TemplateArguments? |\n  StringLiteral |\n  /* a token is covered in above cases */\n  inlineRuleDefinition |\n  specialization<at<\"@specialize\">> |\n  specialization<at<\"@extend\">>\n}\n\nRuleSeq {\n  (maybeWithQuantifier<ruleExpression |\n                       \"(\" ruleChoice \")\"> |\n   NestedGrammarExpression |\n   PrecedenceMarker |\n   AmbiguityMarker)+\n}\n\nNestedGrammarExpression {\n  NestedGrammarName\n  (\"<\" tokenChoice (\",\" ruleChoice)? \">\")?\n}\n\nwithQuantifier<content, c> {\n  (_quantifier[@name=Quantifier{c}] { content } c)\n}\n\nmaybeWithQuantifier<content> {\n  content |\n  withQuantifier<content, \"*\"> |\n  withQuantifier<content, \"?\"> |\n  withQuantifier<content, \"+\">\n}\n\nToken {\n  TokenName |\n  StringLiteral |\n  @specialize[@name=TokenAny]<normalIdentifier, \"_\">\n}\n\nprecedenceList {\n  commaDelim<precedenceSpecifier>\n}\n\ntokenPrecedenceList {\n  commaDelim<TokenName>\n}\n\nprecedenceSpecifier {\n  PrecedenceMarkerName { identifier }\n  PrecedenceType { at<\"@left\"> | at<\"@right\"> | at<\"@cut\"> }?\n}\n\nRangeLiteral {\n  RangeExpression |\n  StdRangeLiteral\n}\n\nExternalSource { StringLiteral }\n\nexternalDefinition {\n  (ExternalTokenDefinition {\n    at<\"@external\"> \"tokens\"\n    ExternalTokenizerName { normalIdentifier }\n    \"from\" ExternalSource braced<commaDelim<TokenSignature>>\n  } |\n  ExternalPropNameDefinition {\n    at<\"@external\"> \"prop\"\n    PropName \"from\" ExternalSource\n  } |\n  ExternalGrammarDefinition {\n    at<\"@external\"> \"grammar\"\n    ExternalParserName { normalIdentifier } (\"from\" ExternalSource | \"empty\")\n  } |\n  ExternalSpecializationDefinition {\n    at<\"@external\"> \"grammar\"\n    braced<commaDelim<normalIdentifier>>\n    \"from\" ExternalSource braced<commaDelim<TokenSignature>>\n  })\n}\n\n@tokens {\n  whitespace { std.whitespace+ }\n\n  LineComment { \"//\" ![\\r\\n]* }\n  BlockComment { \"/*\" blockCommentRest }\n  blockCommentRest { ![*] blockCommentRest | \"*\" blockCommentAfterStar }\n  blockCommentAfterStar { \"/\" | \"*\" blockCommentAfterStar | ![/*] blockCommentRest }\n\n  identifierHead { std.asciiLetter | $[_\\u{a1}-\\u{10ffff}] }\n  identifierTail { (identifierHead | std.digit)* }\n  capitalizedIdentifier { std.asciiUppercase identifierTail }\n  normalIdentifier { identifierHead identifierTail }\n\n  @precedence { capitalizedIdentifier, normalIdentifier, whitespace }\n\n  PrecedenceMarker { \"!\" normalIdentifier }\n  AmbiguityMarker { \"~\" normalIdentifier }\n\n  StringLiteral {\n    '\"' (![\\\\\\n\"] | \"\\\\\" _)* '\"'? |\n    \"'\" (![\\\\\\n'] | \"\\\\\" _)* \"'\"?\n  }\n\n  // no \"-\" (0x2d) and \"\\\\\" (0x5c)\n  rangeChar { $[\\u{20}-\\u{2c}\\u{2e}-\\u{5b}\\u{5d}-\\u{10ffff}] }\n  hex  { $[0-9a-fA-F] }\n  rangeEscapeSequence {\n    \"\\\\u{\" hex+ \"}\" |\n    \"\\\\u\" hex hex hex hex |\n    \"\\\\x\" hex hex |\n    \"\\\\\" ![ux]\n  }\n\n  StdRangeLiteral {\n    \"std.\" normalIdentifier\n  }\n\n  RangeExpression {\n    ((\"$\" | \"!\") \"[\" rangeLiteralInner* \"]\")\n  }\n  rangeLiteralChar { rangeChar | rangeEscapeSequence }\n  rangeLiteralInner {\n    rangeLiteralChar (\"-\" rangeLiteralChar)?\n  }\n\n  @precedence { StdRangeLiteral, normalIdentifier }\n\n  NestedGrammarName {\n    \"nest.\" normalIdentifier\n  }\n\n  @precedence { NestedGrammarName, normalIdentifier }\n\n  atToken { \"@\" normalIdentifier? }\n\n  \"*\" \"?\" \"+\"\n  \"(\" \")\" \"[\" \"]\" \"<\" \">\" \"{\" \"}\" \"|\"\n\n  // external imports\n  \"tokens\"[@name=tokens]\n  \"props\"[@name=props]\n  \"grammar\"[@name=grammar]\n  \"from\"[@name=from]\n  \"empty\"[@name=empty]\n}\n\n@detectDelim\n";
 
     const myTheme = EditorView.baseTheme({
       $: {

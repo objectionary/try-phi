@@ -17,7 +17,7 @@ function serve() {
     return {
         writeBundle() {
             if (server) return;
-            server = require('child_process').spawn('npx', ['node-static', PATH], {
+            server = require('child_process').spawn('node', ['node_modules/node-static/bin/cli.js', PATH], {
                 stdio: ['ignore', 'inherit', 'inherit'],
                 shell: true
             });

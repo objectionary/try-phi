@@ -2,6 +2,9 @@
  * (c) Qbane Pan, 2020
  * Repository: https://github.com/andy0130tw/lezer-grammar
  * License: Unlicense
+ *
+ * Targeted for Lezer v0.12.
+ * Built with lezer-generator v0.13.1.
  */
 
 @top LezerGrammar { definition* }

@@ -1,35 +1,40 @@
 import {parser} from '../src/parser'
-import {foldNodeProp, LezerSyntax} from '@codemirror/next/syntax'
-import {styleTags} from '@codemirror/next/highlight'
-
+import {foldNodeProp, LezerLanguage} from '@codemirror/next/language'
+import {styleTags, tags as t} from '@codemirror/next/highlight'
 
 const foldInner = tree => ({ from: tree.start + 1, to: tree.end - 1 })
 
+export const lezerLanguage = LezerLanguage.define({
+  parser: parser.configure({
+    props: [
+      foldNodeProp.add({
+        // Tokens(tree) { return {from: tree.firstChild.start, to: tree.lastChild.end} },
+        // RuleDefinitionBody: foldInner,
+        // TokensDefinitionBody: foldInner,
+      }),
+
+      styleTags({
+        LineComment: t.lineComment,
+        BlockComment: t.blockComment,
+        Keyword: t.keyword,
+        StringLiteral: t.string,
+        Identifier: t.variableName,
+        'PropName TemplateArgument': t.propertyName,
+        'PseudoPropName': t.special(t.variableName),
+        'StdRangeLiteral TokenAny': t.standard(t.keyword),
+        'RangeExpression': t.regexp,
+        InvalidDefinition: t.invalid,
+        'TokenNameDefinition RuleNameDefinition': [t.definition(t.className), t.strong],
+        '"*" ? + PrecedenceMarker AmbiguityMarker': [t.modifier, t.strong],
+      }),
+    ],
+  }),
+  languageData: {
+    closeBrackets: {brackets: ["(", "[", "{", "'", '"', "`"]},
+    commentTokens: {line: "//", block: {open: "/*", close: "*/"}},
+  },
+})
+
 export function lezer() {
-  return [
-    LezerSyntax.define(parser.withProps(foldNodeProp.add({
-      Tokens(tree) { return {from: tree.firstChild.start, to: tree.lastChild.end} },
-      RuleDefinitionBody: foldInner,
-      TokensDefinitionBody: foldInner,
-    }),
-    styleTags({
-      LineComment: 'lineComment',
-      BlockComment: 'blockComment',
-      'Keyword': 'keyword',
-      StringLiteral: 'string',
-      Identifier: 'variableName',
-      'PropName TemplateArgument': 'propertyName',
-      'PseudoPropName': 'name#2',
-      'StdRangeLiteral TokenAny': 'keyword',
-      'RangeExpression': 'regexp',
-      InvalidDefinition: 'invalid',
-      'TokenNameDefinition RuleNameDefinition': 'className definition strong',
-      '* ? + PrecedenceMarker AmbiguityMarker': 'modifier strong',
-    })), {
-      languageData: {
-        closeBrackets: {brackets: ["(", "[", "{", "'", '"', "`"]},
-        commentTokens: {line: "//", block: {open: "/*", close: "*/"}},
-      }
-    })
-  ]
+  return [lezerLanguage]
 }

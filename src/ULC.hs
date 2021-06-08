@@ -1,4 +1,4 @@
-module PhiCalculus where
+module ULC where
 
 type Ident = String
 

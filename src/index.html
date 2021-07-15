@@ -1,0 +1,47 @@
+<html>
+  <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.js"></script>
+    <script src="Main.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/theme/monokai.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/theme/material.css">
+    <style>
+.column {
+  float: left;
+  width: 50%;
+}
+
+/* Clear floats after the columns */
+.row:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+    </style>
+  </head>
+  <body>
+    <div class="row">
+      <div class="column">
+        <div id="__textarea__"></div>
+      </div>
+      <div class="column">
+        <div id="__app__"></div>
+      </div>
+    </div>
+
+    <script>
+      var app = Elm.Main.init({
+        node: document.getElementById('__app__')
+      });
+
+      var frame = document.getElementById("__textarea__");
+      var myCodeMirror = CodeMirror(frame, {
+        lineNumbers: true,
+      });
+
+      myCodeMirror.on("changes", function(cm, changedObjects){
+        app.ports.codeUpdateReceiver.send(myCodeMirror.getValue());
+      });
+    </script>
+  </body>
+</html>

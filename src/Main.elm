@@ -7,7 +7,7 @@ port module Main exposing (..)
 --
 
 import Browser
-import Html exposing (Html, Attribute, div, input, text, textarea)
+import Html exposing (Html, Attribute, div, input, text, textarea, pre)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput)
 
@@ -52,7 +52,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
     Change newContent ->
-      ( { model | content = Phi.compile newContent }
+      ( { model | content = Phi.interpret newContent }
       , Cmd.none
       )
 
@@ -81,5 +81,5 @@ view model =
       , onInput Change
       , hidden True
       ] []
-    , div [] [ text model.content ]
+    , div [] [ pre [] [ text model.content ] ]
     ]

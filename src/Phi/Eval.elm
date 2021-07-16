@@ -45,8 +45,8 @@ whnfWith parents t =
         Object u2 ->
           case Dict.get a u2 of
             Just FreeAttr -> Object (Dict.insert a v u2)
-            Nothing       -> t -- error ("attribute " ++ a ++ " is missing!")
-            Just _        -> t -- error ("attribute " ++ a ++ " is not free!")
+            Nothing       -> App (Object u2) (a, v) -- error ("attribute " ++ a ++ " is missing!")
+            Just _        -> App (Object u2) (a, v) -- error ("attribute " ++ a ++ " is not free!")
         u2 -> App u2 (a, v)
 
     Object o -> Object o
@@ -59,7 +59,7 @@ whnfWith parents t =
             Nothing ->
               case Dict.get "𝜑" o of
                 Just v -> whnfWith (o::parents) (Dot (substitute (objectToSubstitution o) (addParentToAtoms o v)) a)
-                Nothing -> t -- error ("attribute " ++ a ++ " not found in an object")
+                Nothing -> Dot (Object o) a -- error ("attribute " ++ a ++ " not found in an object")
         u2 -> Dot u2 a
 
     FreeAttr -> t

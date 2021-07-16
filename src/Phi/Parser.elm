@@ -4,7 +4,7 @@ import Dict
 import Parser exposing (..)
 import Set
 import Phi.Syntax exposing (..)
-import Phi.Int exposing (mkInt)
+import Phi.Int exposing (mkInt, mkBool)
 
 parse : String -> Result (List DeadEnd) DefaultTerm
 parse = Parser.run (term |. spaces |. end)
@@ -42,7 +42,10 @@ termNoDotApp = oneOf
       |. symbol ")"
   , succeed FreeAttr
       |. oneOf [keyword "?", keyword "ø", keyword "∅"]
-  , succeed Var |= locator
+  , succeed (mkBool False)
+      |. keyword "false"
+  , succeed (mkBool True)
+      |. keyword "true"
 
   , succeed (Object << Dict.fromList)
       |= sequence 
@@ -56,6 +59,13 @@ termNoDotApp = oneOf
 
   , succeed mkInt
       |= int
+
+  , succeed (mkInt << negate)
+      |. symbol "-"
+      |= int
+
+  , succeed Var |= locator
+
   ]
 
 attrAssignment : Parser (Attr, DefaultTerm)

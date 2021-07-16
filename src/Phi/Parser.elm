@@ -15,18 +15,21 @@ term =
     |> andThen (\t -> loop t termHelper)
 
 termHelper : DefaultTerm -> Parser (Step DefaultTerm DefaultTerm)
-termHelper t = oneOf
-  [ succeed (Loop << Dot t)
-    |. symbol "."
-    |= attr
-  , succeed (Loop << App t)
-    |. symbol "("
+termHelper t =
+  succeed identity
     |. spaces
-    |= attrAssignment
-    |. spaces
-    |. symbol ")"
-  , succeed (Done t)
-  ]
+    |= oneOf
+      [ succeed (Loop << Dot t)
+        |. symbol "."
+        |= attr
+      , succeed (Loop << App t)
+        |. symbol "("
+        |. spaces
+        |= attrAssignment
+        |. spaces
+        |. symbol ")"
+      , succeed (Done t)
+      ]
 
 mkDot : DefaultTerm -> List Attr -> DefaultTerm
 mkDot = List.foldl (\a t -> Dot t a)

@@ -16,6 +16,7 @@ mkAtom0 f parents =
     _ :: rho :: _ ->
       case dataizeWith parents (Object rho) of
         Ok (Ok n) -> Dict.insert "δ" (Data (Ok (f n))) rho
+        Ok (Err err) -> mkErrObject err
         _ -> mkErrObject "atom used outside of a proper parent object"
     _ -> mkErrObject "atom used outside of a proper parent object"
 

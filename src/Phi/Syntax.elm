@@ -30,4 +30,7 @@ type Term d
   | Dot (Term d) Attr
   | FreeAttr
   | Data d
-  | Atom Ident Int (List (Object d)) (List (Object d) -> Object d)
+  | Atom Ident (Maybe Int) (List (Object d)) (List (Object d) -> Object d)
+
+type alias DefaultObject = Object (Result String Int)
+type alias DefaultTerm = Term (Result String Int)

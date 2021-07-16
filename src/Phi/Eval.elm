@@ -65,10 +65,12 @@ whnfWith parents t =
     FreeAttr -> t
     Data _ -> t
     Var _ -> t
-    Atom _ lvl outers atom ->
+    Atom _ mlvl outers atom ->
       -- FIXME: make atoms less hacky
       -- Here we take only lvl parents since later parents have been fixed for this atom as outers.
-      Object (atom (List.take lvl parents ++ outers))
+      case mlvl of
+        Nothing  -> Object (atom parents)
+        Just lvl -> Object (atom (List.take lvl parents ++ outers))
 
 -- | Instantiate one of the ancestors of each atom in the given term.
 addParentToAtoms : Object d -> Term d -> Term d
@@ -81,12 +83,15 @@ addParentToAtoms o =
           FreeAttr -> tt
           Data _ -> tt
           Var _ -> tt
-          Atom name lvl outers atom ->
-            if (i == lvl - 1 || lvl == 999)
-              then Atom name i (o::outers) atom
-              else if (i >= lvl)
-                then Atom name lvl outers atom
-                else tt -- error ("impossible: i=" ++ String.fromInt i ++ " lvl=" ++ String.fromInt lvl)
+          Atom name mlvl outers atom ->
+            case mlvl of
+              Nothing -> Atom name (Just i) (o::outers) atom
+              Just lvl ->
+                if (i == lvl - 1)
+                  then Atom name (Just i) (o::outers) atom
+                  else if (i >= lvl)
+                    then Atom name mlvl outers atom
+                    else tt -- error ("impossible: i=" ++ String.fromInt i ++ " lvl=" ++ String.fromInt lvl)
   in go 0
 
 

@@ -4,16 +4,17 @@ import Dict
 import Parser exposing (..)
 import Set
 import Phi.Syntax exposing (..)
+import Phi.Int exposing (mkInt)
 
-parse : String -> Result (List DeadEnd) (Term Int)
+parse : String -> Result (List DeadEnd) DefaultTerm
 parse = Parser.run (term |. spaces |. end)
 
-term : Parser (Term Int)
+term : Parser DefaultTerm
 term =
   lazy (\_ -> termNoDotApp)
     |> andThen (\t -> loop t termHelper)
 
-termHelper : Term Int -> Parser (Step (Term Int) (Term Int))
+termHelper : DefaultTerm -> Parser (Step DefaultTerm DefaultTerm)
 termHelper t = oneOf
   [ succeed (Loop << Dot t)
     |. symbol "."
@@ -27,10 +28,10 @@ termHelper t = oneOf
   , succeed (Done t)
   ]
 
-mkDot : Term Int -> List Attr -> Term Int
+mkDot : DefaultTerm -> List Attr -> DefaultTerm
 mkDot = List.foldl (\a t -> Dot t a)
 
-termNoDotApp : Parser (Term Int)
+termNoDotApp : Parser DefaultTerm
 termNoDotApp = oneOf
   [ succeed identity
       |. symbol "("
@@ -49,9 +50,12 @@ termNoDotApp = oneOf
         , trailing  = Forbidden
         , item      = attrAssignment
         }
+
+  , succeed mkInt
+      |= int
   ]
 
-attrAssignment : Parser (Attr, Term Int)
+attrAssignment : Parser (Attr, DefaultTerm)
 attrAssignment
   = succeed (\x y -> (x, y))
   |= attr

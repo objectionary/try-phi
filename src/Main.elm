@@ -9,11 +9,15 @@ port module Main exposing (..)
 import Browser
 import Html exposing (Html, Attribute, div, input, text, textarea, pre)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onInput)
+import Html.Events exposing (onInput, onClick)
 
 import Phi
+import Phi.Examples exposing (Example)
+import Phi.PrettyASCII
 
 port codeUpdateReceiver : (String -> msg) -> Sub msg
+
+port replaceCodeWith : String -> Cmd msg
 
 -- MAIN
 
@@ -47,6 +51,7 @@ init flags =
 
 type Msg
   = Change String
+  | Example String
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -55,6 +60,8 @@ update msg model =
       ( { model | content = Phi.interpret newContent }
       , Cmd.none
       )
+    Example raw ->
+      ( model, replaceCodeWith raw )
 
 
 -- SUBSCRIPTIONS
@@ -82,4 +89,15 @@ view model =
       , hidden True
       ] []
     , div [] [ pre [] [ text model.content ] ]
+    , Html.hr [] []
+    , div [] [ text "Examples (click on example to try it out):" ]
+    , Html.ol [] (List.map viewExample Phi.Examples.examples)
+    ]
+
+viewExample : Example -> Html Msg
+viewExample example =
+  Html.li []
+    [ Html.pre [ title example.description, onClick (Example example.raw) ] [
+        text (Phi.PrettyASCII.ppTerm String.fromInt example.term)
+        ]
     ]

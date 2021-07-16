@@ -49,6 +49,11 @@
       myCodeMirror.on("changes", function(cm, changedObjects){
         app.ports.codeUpdateReceiver.send(myCodeMirror.getValue());
       });
+
+      app.ports.replaceCodeWith.subscribe(function(message) {
+        myCodeMirror.setValue(message);
+      });
+
       app.ports.codeUpdateReceiver.send(myCodeMirror.getValue());
     </script>
   </body>

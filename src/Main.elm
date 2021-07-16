@@ -10,6 +10,7 @@ import Browser
 import Html exposing (Html, Attribute, div, input, text, textarea, pre)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onClick)
+import Url.Builder
 
 import Phi
 import Phi.Examples exposing (Example)
@@ -34,13 +35,14 @@ main =
 
 
 type alias Model =
-  { content : String
+  { snippet : String
+  , feedback : String
   }
 
 
 init : () -> ( Model, Cmd Msg )
 init flags =
-  ( { content = "" }
+  ( { snippet = "", feedback = "" }
   , Cmd.none
   )
 
@@ -56,8 +58,8 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
-    Change newContent ->
-      ( { model | content = Phi.interpretStepsN 20 newContent }
+    Change newSnippet ->
+      ( { model | snippet = newSnippet, feedback = Phi.interpretStepsN 20 newSnippet }
       , Cmd.none
       )
     Example raw ->
@@ -78,17 +80,21 @@ subscriptions _ =
 
 -- VIEW
 
+-- TODO: extract location automatically
+permalinkToSnippet : String -> String
+permalinkToSnippet snippet =
+  -- "http://localhost:8000/src/index.html" ++
+  "https://fizruk.github.io/try-phi" ++
+  Url.Builder.toQuery [ Url.Builder.string "snippet" snippet ]
 
 view : Model -> Html Msg
 view model =
   div []
-    [ input
-      [ placeholder "Text to reverse"
-      , value model.content
-      , onInput Change
-      , hidden True
-      ] []
-    , div [] [ pre [] [ text model.content ] ]
+    [ div [ ] [
+        Html.a [href (permalinkToSnippet model.snippet)] [ text "Shareable link to this example" ]
+      ]
+    , Html.hr [] []
+    , div [] [ pre [] [ text model.feedback ] ]
     , Html.hr [] []
     , div [] [ text "Examples (click on example to try it out):" ]
     , Html.ol [] (List.map viewExample Phi.Examples.examples)

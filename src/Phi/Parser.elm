@@ -14,7 +14,7 @@ term =
   lazy (\_ -> termNoDotApp)
     |> andThen (\t -> loop t termHelper)
 
-termHelper : DefaultTerm -> Parser (Step DefaultTerm DefaultTerm)
+termHelper : DefaultTerm -> Parser (Parser.Step DefaultTerm DefaultTerm)
 termHelper t =
   succeed identity
     |. spaces

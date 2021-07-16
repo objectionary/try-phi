@@ -34,3 +34,9 @@ type Term d
 
 type alias DefaultObject = Object (Result String Int)
 type alias DefaultTerm = Term (Result String Int)
+
+type Step d
+  = StepErr String
+  | StepTerm (Term d)
+  | StepData d
+  | StepSkipMany

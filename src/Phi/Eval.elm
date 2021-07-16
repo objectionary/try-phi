@@ -161,8 +161,34 @@ whnfStepsWith parents t = Ok t ::
 whnfSteps : Term d -> List (Result String (Term d))
 whnfSteps = whnfStepsWith []
 
+whnfStepsWithN : List (Object d) -> Int -> Term d -> List (Step d)
+whnfStepsWithN parents n t = StepTerm t ::
+  case whnfStepWith parents t of
+    Err err -> [StepErr err]
+    Ok Nothing ->
+      case t of
+        Data d -> [StepData d]
+        _ -> [StepErr "cannot reduce to data"]
+    Ok (Just (parents2, t2)) ->
+      if n <= 0
+        then StepSkipMany ::
+          case whnfWith parents2 t2 of
+            Data d -> [StepData d]
+            t3 -> [StepTerm t3]
+        else whnfStepsWithN parents2 (n - 1) t2
+
+whnfStepsN : Int -> Term d -> List (Step d)
+whnfStepsN = whnfStepsWithN []
+
 dataizeStepsWith : List (Object d) -> Term d -> List (Result String (Term d))
 dataizeStepsWith parents t = whnfStepsWith parents (Dot t "δ")
 
 dataizeSteps : Term d -> List (Result String (Term d))
 dataizeSteps t = whnfSteps (Dot t "δ")
+
+dataizeStepsWithN : List (Object d) -> Int -> Term d -> List (Step d)
+dataizeStepsWithN parents n t = whnfStepsWithN parents n (Dot t "δ")
+
+dataizeStepsN : Int -> Term d -> List (Step d)
+dataizeStepsN n t = whnfStepsN n (Dot t "δ")
+

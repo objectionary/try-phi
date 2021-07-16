@@ -4,6 +4,20 @@ import Phi.Syntax exposing (..)
 import Dict
 import Tuple
 
+ppStepsN : (d -> String) -> List (Step d) -> String
+ppStepsN ppData
+  = String.concat
+  << List.intersperse "\n⇝ "
+  << List.map (ppStep ppData)
+
+ppStep : (d -> String) -> Step d -> String
+ppStep ppData step =
+  case step of
+    StepErr err  -> "[ERROR]: " ++ err
+    StepTerm t   -> ppTerm ppData t
+    StepData d   -> "<data " ++ ppData d ++ ">"
+    StepSkipMany -> "..."
+
 ppSteps : (d -> String) -> List (Result String (Term d)) -> String
 ppSteps ppData results = String.concat (List.intersperse "\n⇝ " (List.map (ppResult ppData) results))
 

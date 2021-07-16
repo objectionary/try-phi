@@ -7,6 +7,12 @@ import Phi.Parser
 import Phi.Eval
 import Phi.Examples
 
+interpretSteps : String -> String
+interpretSteps input =
+  case Phi.Parser.parse input of
+    Err err -> "ERROR: failed to parse input:\n" ++ Parser.deadEndsToString err
+    Ok t -> "Dataization (via term reduction) steps:\n  " ++ Phi.Pretty.ppSteps pp (Phi.Eval.dataizeSteps t)
+
 interpret : String -> String
 interpret input =
   case Phi.Parser.parse input of

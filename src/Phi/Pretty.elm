@@ -4,6 +4,15 @@ import Phi.Syntax exposing (..)
 import Dict
 import Tuple
 
+ppSteps : (d -> String) -> List (Result String (Term d)) -> String
+ppSteps ppData results = String.concat (List.intersperse "\n⇝ " (List.map (ppResult ppData) results))
+
+ppResult : (d -> String) -> Result String (Term d) -> String
+ppResult ppData res =
+  case res of
+    Err err -> "[ERROR]: " ++ err
+    Ok term -> ppTerm ppData term
+
 ppTerm : (d -> String) -> Term d -> String
 ppTerm ppData term =
   case term of

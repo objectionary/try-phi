@@ -37,6 +37,50 @@ objectToSubstitution t = Dict.fromList (("ξ", Object t) ::
   List.map (\a -> (a, Dot (Object t) a)) (Dict.keys t))
 
 -- | Reduce a term to WHNF (weak head normal form) given current stack of ancestor objects.
+whnfStepWith : List (Object d) -> Term d -> Result String (Maybe (List (Object d), Term d))
+whnfStepWith parents t =
+  case t of
+    App u (a, v) ->
+      case u of
+        Object u2 ->
+          case Dict.get a u2 of
+            Just FreeAttr -> Ok (Just (parents, Object (Dict.insert a v u2)))
+            Nothing       -> Err ("attribute " ++ a ++ " is missing!")
+            Just _        -> Err ("attribute " ++ a ++ " is not free!")
+        _ ->
+          case whnfStepWith parents u of
+            Ok (Just (_, u2))  -> Ok (Just (parents, App u2 (a, v)))
+            Ok Nothing    -> Ok Nothing
+            Err err       -> Err err
+
+    Object o -> Ok Nothing
+
+    Dot u a ->
+      case u of
+        Object o ->
+          case Dict.get a o of
+            Just v -> Ok (Just ( o::parents, substitute (objectToSubstitution o) (addParentToAtoms o v)))
+            Nothing ->
+              case Dict.get "𝜑" o of
+                Just v -> Ok (Just ( o::parents, Dot (substitute (objectToSubstitution o) (addParentToAtoms o v)) a))
+                Nothing -> Err ("attribute " ++ a ++ " not found in an object")
+        _ ->
+          case whnfStepWith parents u of
+            Ok (Just (_, u2)) -> Ok (Just (parents, Dot u2 a))
+            Ok Nothing   -> Ok Nothing
+            Err err      -> Err err
+
+    FreeAttr -> Ok Nothing
+    Data _ -> Ok Nothing
+    Var _ -> Ok Nothing
+    Atom _ mlvl outers atom ->
+      -- FIXME: make atoms less hacky
+      -- Here we take only lvl parents since later parents have been fixed for this atom as outers.
+      case mlvl of
+        Nothing  -> Ok (Just (parents, Object (atom parents)))
+        Just lvl -> Ok (Just (parents, Object (atom (List.take lvl parents ++ outers))))
+
+-- | Reduce a term to WHNF (weak head normal form) given current stack of ancestor objects.
 whnfWith : List (Object d) -> Term d -> Term d
 whnfWith parents t =
   case t of
@@ -103,3 +147,22 @@ dataizeWith parents t =
   case whnfWith parents (Dot t "δ") of
     Data d -> Ok d
     s      -> Err s
+
+whnfStepsWith : List (Object d) -> Term d -> List (Result String (Term d))
+whnfStepsWith parents t = Ok t ::
+  case whnfStepWith parents t of
+    Err err -> [Err err]
+    Ok Nothing ->
+      case t of
+        Data _ -> []
+        _ -> [Err "cannot reduce to data"]
+    Ok (Just (parents2, t2)) -> whnfStepsWith parents2 t2
+
+whnfSteps : Term d -> List (Result String (Term d))
+whnfSteps = whnfStepsWith []
+
+dataizeStepsWith : List (Object d) -> Term d -> List (Result String (Term d))
+dataizeStepsWith parents t = whnfStepsWith parents (Dot t "δ")
+
+dataizeSteps : Term d -> List (Result String (Term d))
+dataizeSteps t = whnfSteps (Dot t "δ")

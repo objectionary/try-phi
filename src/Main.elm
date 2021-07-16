@@ -57,7 +57,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
     Change newContent ->
-      ( { model | content = Phi.interpret newContent }
+      ( { model | content = Phi.interpretSteps newContent }
       , Cmd.none
       )
     Example raw ->

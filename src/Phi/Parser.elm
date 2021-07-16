@@ -72,7 +72,7 @@ attr = oneOf
   [ succeed "𝜑" |. symbol "@"
   , succeed "δ" |. keyword "__data__"
   , variable
-      { start = Char.isAlpha
+      { start = \c -> Char.isAlpha c    || c == '_'
       , inner = \c -> Char.isAlphaNum c || c == '_'
       , reserved = Set.fromList [ "ρ", "ξ" ]
       }

@@ -98,6 +98,6 @@ viewExample : Example -> Html Msg
 viewExample example =
   Html.li []
     [ Html.pre [ title example.description, onClick (Example example.raw) ] [
-        text (Phi.PrettyASCII.ppTerm String.fromInt example.term)
+        text (Phi.PrettyASCII.ppTerm Phi.pp example.term)
         ]
     ]

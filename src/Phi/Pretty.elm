@@ -34,7 +34,7 @@ ppAttrWithValue ppData (a, t) = ppAttr a ++ " ↦ " ++ ppTerm ppData t
 ppAsLocator : (d -> String) -> Term d -> String
 ppAsLocator ppData t =
   case t of
-    App _ _ -> parens (ppTerm ppData t)
+    App _ _ -> ppTerm ppData t
     _     -> ppTerm ppData t
 
 ppAttr : Attr -> String

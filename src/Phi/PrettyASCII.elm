@@ -11,7 +11,7 @@ ppTerm ppData term =
     App t (a, s) -> ppTerm ppData t ++ parens (ppAttr a ++ " -> " ++ ppTerm ppData s)
     Dot t a -> ppAsLocator ppData t ++ "." ++ ppAttr a
     Object o ->
-      case Dict.get "__data__" o of
+      case Dict.get "δ" o of
         Just (Data d) -> ppData d
         _ -> if Dict.isEmpty o
                 then "[]"
@@ -34,7 +34,7 @@ ppAttrWithValue ppData (a, t) = ppAttr a ++ " ↦ " ++ ppTerm ppData t
 ppAsLocator : (d -> String) -> Term d -> String
 ppAsLocator ppData t =
   case t of
-    App _ _ -> parens (ppTerm ppData t)
+    App _ _ -> ppTerm ppData t
     _     -> ppTerm ppData t
 
 ppAttr : Attr -> String

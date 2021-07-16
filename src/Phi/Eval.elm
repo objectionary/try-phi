@@ -2,8 +2,23 @@ module Phi.Eval exposing (..)
 
 import Phi.Syntax exposing (..)
 import Dict exposing (Dict)
+import Set exposing (Set)
 
 type alias Substitution d = Dict Locator (Term d)
+
+freeVars : Term d -> Set Attr
+freeVars t =
+  case t of
+    Var x -> Set.singleton x
+    App t1 (a, t2) -> Set.union (freeVars t1) (freeVars t2)
+    Dot t1 a -> freeVars t1
+    Object o -> Set.diff (unions (List.map freeVars (Dict.values o))) (Set.fromList (Dict.keys o))
+    FreeAttr -> Set.empty
+    Data _ -> Set.empty
+    Atom _ _ _ _ -> Set.empty
+
+unions : List (Set comparable) -> Set comparable
+unions = List.foldl Set.union Set.empty
 
 substitute : Substitution d -> Term d -> Term d
 substitute substs t =
@@ -41,12 +56,26 @@ whnfStepWith : List (Object d) -> Term d -> Result String (Maybe (List (Object d
 whnfStepWith parents t =
   case t of
     App u (a, v) ->
+
       case u of
         Object u2 ->
-          case Dict.get a u2 of
-            Just FreeAttr -> Ok (Just (parents, Object (Dict.insert a v u2)))
-            Nothing       -> Err ("attribute " ++ a ++ " is missing!")
-            Just _        -> Err ("attribute " ++ a ++ " is not free!")
+          let conflictAttrs = Set.intersect (freeVars v) (Set.fromList (Dict.keys u2))
+          in if not (Set.isEmpty conflictAttrs)
+                then Err ("argument has unresolved conflicting attributes: " ++ String.concat (List.intersperse ", " (Set.toList conflictAttrs)))
+                else
+                  case Dict.get a u2 of
+                    Just FreeAttr ->
+                      Ok (Just (parents, Object (Dict.insert a v u2)))
+                    Nothing       ->
+                      if Dict.member "𝜑" u2
+                        then Ok (Just (parents, Object (Dict.update "𝜑" (\m ->
+                                case m of
+                                  Nothing -> Nothing
+                                  Just s  -> Just (App s (a, v))
+                              ) u2)))
+                        else Err ("both attribute " ++ a ++ " and 𝜑 are missing to perform application!")
+                    Just _ -> Err ("attribute " ++ a ++ " is not free!")
+
         _ ->
           case whnfStepWith parents u of
             Ok (Just (_, u2))  -> Ok (Just (parents, App u2 (a, v)))
@@ -89,7 +118,14 @@ whnfWith parents t =
         Object u2 ->
           case Dict.get a u2 of
             Just FreeAttr -> Object (Dict.insert a v u2)
-            Nothing       -> App (Object u2) (a, v) -- error ("attribute " ++ a ++ " is missing!")
+            Nothing       ->
+              if Dict.member "𝜑" u2 && Set.isEmpty (Set.intersect (freeVars v) (Set.fromList (Dict.keys u2)))
+                then Object (Dict.update "𝜑" (\m ->
+                        case m of
+                          Nothing -> Nothing
+                          Just s  -> Just (App s (a, v))
+                      ) u2)
+                else App (Object u2) (a, v) -- error
             Just _        -> App (Object u2) (a, v) -- error ("attribute " ++ a ++ " is not free!")
         u2 -> App u2 (a, v)
 

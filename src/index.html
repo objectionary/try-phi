@@ -47,7 +47,7 @@
 
       var frame = document.getElementById("__textarea__");
       var myCodeMirror = CodeMirror(frame, {
-        value: "[u -> [x -> [y -> ONE, z -> ?](z -> x.y)].x.z, @ -> $.u]",
+        value: "[ u ->\n  [ x ->\n    [ y -> 1\n    , z -> ?\n    ](z -> x.y)\n  ].x.z\n, @ -> $.u\n].inc",
         lineNumbers: true,
         mode: {name: "javascript", json: true},
         theme: "solarized light",

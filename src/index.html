@@ -15,6 +15,7 @@
       section { width: 100%; }
       .column { float: left; width: 50%; padding: 1em; }
       .example { cursor: pointer; }
+      .CodeMirror { font: 0.9rem Menlo,Monaco,Consolas,"Courier New",monospace; }
     </style>
   </head>
   <body>
@@ -28,7 +29,7 @@
         <div class="column">
           <p>
             <a href="https://www.eolang.org">𝜑-calculus</a> expression
-            (<a href="#">permalink</a>):</p>
+            (<a id="__permalink__" href="#">permalink</a>):</p>
           <div id="__textarea__"></div>
         </div>
         <div class="column">
@@ -50,34 +51,45 @@
       </footer>
     </section>
     <script>
+      /* extract query parameters from the URL */
       const params = new URLSearchParams(window.location.search);
 
-      snippet = "[ u ->\n  [ x ->\n    [ y -> 1\n    , z -> ?\n    ](z -> x.y)\n  ].x.z\n, @ -> $.u\n].inc";
-      if (params.has("snippet")) {
-        snippet = decodeURIComponent(params.get("snippet"));
-      }
-
+      /* set up Elm application */
       var app = Elm.Main.init({
         node: document.getElementById('__app__')
       });
 
+      /* set up CodeMirror in the __textarea__ div */
       var frame = document.getElementById("__textarea__");
       var myCodeMirror = CodeMirror(frame, {
-        value: snippet,
+        value: "",
         lineNumbers: true,
-        mode: {name: "javascript", json: true},
-        theme: "solarized light",
+        mode: {name: "javascript", json: true},   /* TODO: custom mode? */
+        theme: "solarized light",                 /* TODO: add a selection box? */
       });
 
+      /* upon every update of the code */
       myCodeMirror.on("changes", function(cm, changedObjects){
+        /* update the permalink */
+        document.getElementById('__permalink__').href =
+          window.location.protocol + '//' + window.location.host + window.location.pathname
+          + "?snippet=" + encodeURIComponent(myCodeMirror.getValue());
+        /* process the code in the Elm application */
         app.ports.codeUpdateReceiver.send(myCodeMirror.getValue());
       });
 
-      app.ports.replaceCodeWith.subscribe(function(message) {
-        myCodeMirror.setValue(message);
+      /* upon Elm application requesting a change of code */
+      app.ports.replaceCodeWith.subscribe(function(snippet) {
+        /* replace the code in CodeMirror */
+        myCodeMirror.setValue(snippet);
       });
 
-      app.ports.codeUpdateReceiver.send(myCodeMirror.getValue());
+      /* use default snippet if one is not set in the query parameters */
+      snippet = "[ u ->\n  [ x ->\n    [ y -> 1\n    , z -> ?\n    ](z -> x.y)\n  ].x.z\n, @ -> $.u\n].inc";
+      if (params.has("snippet")) {
+        snippet = decodeURIComponent(params.get("snippet"));
+      }
+      myCodeMirror.setValue(snippet);
     </script>
   </body>
 </html>

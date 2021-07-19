@@ -7,7 +7,7 @@ port module Main exposing (..)
 --
 
 import Browser
-import Html exposing (Html, Attribute, div, input, text, textarea, pre)
+import Html exposing (Html, Attribute, p, code, div, input, text, textarea, pre)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onClick)
 import Url.Builder
@@ -59,6 +59,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
     Change newSnippet ->
+      -- TODO: make max number of steps configurable
       ( { model | snippet = newSnippet, feedback = Phi.interpretStepsN 20 newSnippet }
       , Cmd.none
       )
@@ -80,30 +81,21 @@ subscriptions _ =
 
 -- VIEW
 
--- TODO: extract location automatically
-permalinkToSnippet : String -> String
-permalinkToSnippet snippet =
-  -- "http://localhost:8000/src/index.html" ++
-  "https://fizruk.github.io/try-phi" ++
-  Url.Builder.toQuery [ Url.Builder.string "snippet" snippet ]
-
 view : Model -> Html Msg
 view model =
   div []
-    [ div [ ] [
-        Html.a [href (permalinkToSnippet model.snippet)] [ text "Shareable link to this example" ]
-      ]
-    , Html.hr [] []
-    , div [] [ pre [] [ text model.feedback ] ]
-    , Html.hr [] []
-    , div [] [ text "Examples (click on example to try it out):" ]
+    [ p [] [ text "Dataization (via term reduction) steps:" ]
+    , pre [] [ text model.feedback ]
+    , p [] [ text "Examples (click on example to try it out):" ]
     , Html.ol [] (List.map viewExample Phi.Examples.examples)
     ]
 
 viewExample : Example -> Html Msg
 viewExample example =
   Html.li []
-    [ Html.pre [ title example.description, onClick (Example example.raw) ] [
-        text (Phi.PrettyASCII.ppTerm Phi.pp example.term)
-        ]
+    [ Html.code [
+        class "example",
+        title example.description,
+        onClick (Example example.raw)
+        ] [ text (Phi.PrettyASCII.ppTerm Phi.pp example.term) ]
     ]

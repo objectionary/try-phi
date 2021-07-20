@@ -29,7 +29,9 @@ jobs:
         with:
           elm-version: 0.19.1
           
-      - run: elm make src/Main.elm --output src/Main.js
+      - run: |
+          ./scripts/optimize.sh src/Main.elm
+          mv elm.min.js src/Main.js
       
       - run: |
           mkdir dist

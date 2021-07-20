@@ -15,14 +15,16 @@
       section { width: 100%; }
       .column { float: left; width: 50%; padding: 1em; }
       .example { cursor: pointer; }
-      .CodeMirror { font: 0.9rem Menlo,Monaco,Consolas,"Courier New",monospace; }
+      #__textarea__ { border: 1px solid lightgray; }
     </style>
   </head>
   <body>
     <section>
       <header>
         <center>
-          <img src="https://www.yegor256.com/images/books/elegant-objects/cactus.png" style="width: 64px; height: 64px"/>
+          <a href="https://www.eolang.org">
+            <img src="https://www.yegor256.com/images/books/elegant-objects/cactus.png" style="width: 64px; height: 64px"/>
+          </a>
         </center>
       </header>
       <div class="row">
@@ -65,7 +67,7 @@
         value: "",
         lineNumbers: true,
         mode: {name: "javascript", json: true},   /* TODO: custom mode? */
-        theme: "solarized light",                 /* TODO: add a selection box? */
+        theme: "elegant",                         /* TODO: add a selection box? */
       });
 
       /* upon every update of the code */

@@ -41,12 +41,13 @@ main =
 type alias Model =
   { snippet : String
   , feedback : String
+  , mode : Phi.Mode
   }
 
 
 init : () -> ( Model, Cmd Msg )
 init flags =
-  ( { snippet = "", feedback = "" }
+  ( { snippet = "", feedback = "", mode = Phi.FullPhi }
   , Cmd.none
   )
 
@@ -64,7 +65,7 @@ update msg model =
   case msg of
     Change newSnippet ->
       -- TODO: make max number of steps configurable
-      ( { model | snippet = newSnippet, feedback = Phi.interpretStepsN 20 newSnippet }
+      ( { model | snippet = newSnippet, feedback = Phi.interpretStepsN model.mode 20 newSnippet }
       , Cmd.none
       )
     Example raw ->

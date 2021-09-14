@@ -1,10 +1,11 @@
-port module Main exposing (..)
+port module Main exposing (main)
 
--- A text input for reversing text. Very useful!
---
--- Read how it works:
---   https://guide.elm-lang.org/architecture/text_fields.html
---
+{-| Here be module documentation!
+
+# Main
+@docs main
+
+-}
 
 import Browser
 import Html exposing (Html, Attribute, p, code, div, input, text, textarea, pre)
@@ -23,6 +24,9 @@ port replaceCodeWith : String -> Cmd msg
 -- MAIN
 
 
+{-| TODO: write documentation
+-}
+main : Program () Model Msg
 main =
   Browser.element
     { init = init

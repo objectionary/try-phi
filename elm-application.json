@@ -1,0 +1,9 @@
+{
+    "name": "fizruk/try-phi",
+    "summary": "Try 𝜑-calculus online",
+    "version": "0.1.0",
+    "exposed-modules": [
+        "Main",
+        "Phi.Minimal.Syntax"
+    ]
+}

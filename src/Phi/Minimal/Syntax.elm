@@ -1,15 +1,9 @@
-module Phi.Minimal.Syntax exposing (..)
+module Phi.Minimal.Syntax exposing (Term(..))
 
 {-| This module defines the syntax for the minimal phi calculus.
 
 # Definition
-@docs Attr
-
-# Common Helpers
-@docs map, withDefault, oneOf
-
-# Chaining Maybes
-@docs andThen
+@docs Term
 
 -}
 
@@ -25,6 +19,12 @@ type alias Object = Dict Attr AttrValue
 
 type alias Substitution = Dict Int Term
 
+
+{-| Term 
+
+# Hey
+
+-}
 type Term
   = Object Object
   | Dot Term Attr

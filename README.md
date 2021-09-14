@@ -63,3 +63,7 @@ $ elm make src/Main.elm --output=src/Main.js
 ```
 
 And reload the page :)
+
+If you want to see documentation, install [elm-doc-preview](https://github.com/dmy/elm-doc-preview)
+
+In terminal, type `edp`

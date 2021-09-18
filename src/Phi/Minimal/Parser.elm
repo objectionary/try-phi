@@ -5,10 +5,11 @@ one of the following forms:
 
 1.  Object term: [ a₁ -> ?, …, aₖ -> ?, b₁ -> t₁, …, bₙ -> tₙ ]
 2.  Attribute access: t.a
-3.  Application: t(a -> u)
+3.  Application: t₁(a -> t₂)
 4.  Parent object locator: (^.)ⁿ, $ for n = 0
 
 -}
+
 
 import Dict
 import Parser exposing (..)
@@ -16,21 +17,21 @@ import Phi.Minimal.Syntax exposing (..)
 import Set
 
 
-{-| Parse String to get a Term
--}
+{-| Parse String to get an error or a Term-}
 parse : String -> Result (List DeadEnd) Term
 parse =
     Parser.run (term |. spaces |. end)
 
-
+{-| -}
 term : Parser Term
 term =
     lazy (\_ -> termNoDotApp)
-        |> andThen (\t -> loop t termHelper)
+        |> andThen (\t -> loop t repeatedDotOrApp)
 
 
-termHelper : Term -> Parser (Parser.Step Term Term)
-termHelper t =
+{-| Parser for repeated dot (.) accesses and applications and for attaching them to a given term -}
+repeatedDotOrApp : Term -> Parser (Parser.Step Term Term)
+repeatedDotOrApp t =
     succeed identity
         |. spaces
         |= oneOf
@@ -45,13 +46,6 @@ termHelper t =
                 |. symbol ")"
             , succeed (Done t)
             ]
-
-
-{-| TODO
--}
-mkDot : Term -> List Attr -> Term
-mkDot =
-    List.foldl (\a t -> Dot t a)
 
 
 
@@ -77,17 +71,18 @@ termNoDotApp =
         ]
 
 
-attrAssignment : Parser ( Attr, AttrValue )
+{-| Parser for assignments inside object-}
+attrAssignment : Parser ( AttrName, AttrValue )
 attrAssignment =
     succeed (\x y -> ( x, y ))
         |= attr
         |. spaces
         |. symbol "->"
         |. spaces
-        |= lazy (\_ -> Attached term)
+        |= lazy (\_ -> term)
 
 
-attr : Parser Attr
+attr : Parser AttrName
 attr =
     oneOf
         [ succeed "𝜑" |. symbol "@"
@@ -95,12 +90,12 @@ attr =
         , variable
             { start = \c -> Char.isAlpha c
             , inner = \c -> Char.isAlphaNum c || c == '_'
-            , reserved = Set.fromList [ "ρ", "ξ" ]
+            , reserved = Set.fromList [ "^", "^" ]
             }
         ]
 
 
-locator : Parser Term
+locator : Parser AttrName
 locator =
     oneOf
         [ succeed "ρ" |. symbol "^"
@@ -110,6 +105,6 @@ locator =
         , variable
             { start = Char.isAlpha
             , inner = \c -> Char.isAlphaNum c || c == '_'
-            , reserved = Set.fromList []
+            , reserved = Set.fromList ["^", "$", "@"]
             }
         ]

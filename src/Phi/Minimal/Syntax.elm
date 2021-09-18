@@ -1,5 +1,5 @@
 module Phi.Minimal.Syntax exposing
-    ( Term(..), Object, Attr, AttrValue(..)
+    ( Term(..), Object, AttrName, AttrValue(..)
     , Substitution, substituteXi, substituteLocator
     , whnf
     , incLocators, incLocatorsFrom
@@ -32,27 +32,23 @@ module Phi.Minimal.Syntax exposing
 import Dict exposing (Dict)
 
 
-{-| TODO
--}
-type alias Attr =
+{-| Attribute name-}
+type alias AttrName =
     String
 
 
-{-| TODO
--}
+{-| Value of attribute inside an object -}
 type AttrValue
     = Void
     | Attached Term
 
 
-{-| TODO
--}
+{-| Object is a dictionary of attribute names and their values -}
 type alias Object =
-    Dict Attr AttrValue
+    Dict AttrName AttrValue
 
 
-{-| TODO
--}
+{-| TODO -}
 type alias Substitution =
     Dict Int Term
 
@@ -60,26 +56,15 @@ type alias Substitution =
 {-| A term of 𝜑-calculus is in one of the following forms:
 
 1.  Object term: ⟦ a₁ ↦ ∅, …, aₖ ↦ ∅, b₁ ↦ t₁, …, bₙ ↦ tₙ ⟧
-
-    `Object Object`
-
-2.  Attribute access via dot: t.a
-
-    `Dot Term Attr`
-
-3.  Application: t(a ↦ u)
-
-    `App Term (Attr, Term)`
-
-4.  Parent object locator: ρⁿ
-
-    `Locator Int`
+1.  Attribute access via dot: t.a
+1.  Application: t₁(a ↦ t₂)
+1.  Parent object locator: ρⁿ
 
 -}
 type Term
     = Object Object
-    | Dot Term Attr
-    | App Term ( Attr, Term )
+    | Dot Term AttrName
+    | App Term ( AttrName, Term )
     | Locator Int
 
 

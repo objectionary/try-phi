@@ -35,7 +35,7 @@ ppObject
  << List.sortBy Tuple.first
  << Dict.toList
 
-ppAttrWithValue : (Attr, AttrValue) -> String
+ppAttrWithValue : (AttrName, AttrValue) -> String
 ppAttrWithValue (a, t) = ppAttr a ++ " ↦ " ++ ppAttrValue t
 
 ppAttrValue : AttrValue -> String
@@ -44,7 +44,7 @@ ppAttrValue v =
     Void -> "∅"
     Attached t -> ppTerm t
 
-ppAttr : Attr -> String
+ppAttr : AttrName -> String
 ppAttr a = a
 --  case a of
 --    AttrIdent x -> x

@@ -46,7 +46,7 @@ termNoDotApp = oneOf
       |. keyword "false"
   , succeed (mkBool True)
       |. keyword "true"
-
+      
   , succeed (Object << Dict.fromList)
       |= sequence 
         { start     = "["

@@ -10,91 +10,71 @@ one of the following forms:
 
 -}
 
+import List exposing ((::))
 import Parser exposing (..)
 import Phi.Minimal.Syntax exposing (..)
 import Set
 import Debug exposing(..)
 
-{-| TODO: parse locator of form (^.)ⁿ.a. …
+{-| Parse a locator.
 
-        run locatorParser "^.^.a.a" == Ok ((Dot (Locator 2) "a") "a")
-        run locatorParser "^.a.^.a" == Err ...
+    > run locator "$.^"
+    Ok (Locator 1)
+        : Result (List DeadEnd) Phi.Minimal.Syntax.Term
 
+    > run locator "^.^.^.^"
+    Ok (Locator 4)
+        : Result (List DeadEnd) Phi.Minimal.Syntax.Term
 -}
+locator : Parser Term 
+locator = succeed (Locator << List.sum)
+  |= sep
+    { separator = "."
+    , spaces = succeed ()
+    , item = singleLocator
+    , trailing = Forbidden
+    }
 
-locatorParser : Parser Term 
-locatorParser = loop (Locator 0) locator 
+{-| Parse a sequence of items separated by a separator.
 
-locator : Term -> Parser (Parser.Step Term Term)
-locator t =
-    succeed identity
-        |. spaces
-        |= oneOf
-            [ succeed (Loop << dot t)
-                |. symbol "."
-                |= attr 
-            , succeed (Done t)
-            ]
-
-
-
-{- Construct a Locator Term. Handle (^.)ⁿ cases
-
-   dot (Locator 0) "$" == Locator 0
-   dot (Locator n) "^" == (Locator n+1) "^" -- n >= 0
-   dot (Locator n) a == Dot (Locator n) a -- for valid a
-   dot _ "^" == /Err .../
-   dot _ "$" == /Err .../
-   dot t a == Dot t a -- for valid a
+    > opts = {separator = ";", spaces = succeed (), item = int, trailing = Forbidden}
+    > run (sep opts) "1;2;3"
+    Ok [1,2,3]
 -}
+sep :
+  { separator : String
+  , spaces : Parser ()
+  , item : Parser a
+  , trailing : Trailing
+  }
+  -> Parser (List a)
+sep options =
+  succeed (::)
+  |= options.item
+  |= oneOf
+    [ succeed identity
+      |. symbol options.separator
+      |= sequence
+        { start = ""
+        , separator = options.separator
+        , end = ""
+        , spaces = options.spaces
+        , item = options.item
+        , trailing = options.trailing
+        }
+    , succeed []
+    ]
 
+{-| Parse a single locator symbol
 
-dot : Term -> AttrName -> Term
-dot t a =
-    let
-        aValidated =
-            validatedAttrName a
-    in
-    case ( t, a ) of
-        ( Locator 0, "$" ) ->
-            t
+    > run singleLocator "$"
+    Ok 0 : Result (List Parser.DeadEnd) Int
 
-        ( Locator n, "^" ) ->
-            if n > 0 then
-                Locator (n + 1)
-
-            else
-                Debug.todo "Error: n < 0"
-
-        ( Locator _, _ ) ->
-            
-            Dot t aValidated
-        
-        (_, "$") -> Debug.todo "Error: $ not in prefix"
-
-        (_, "^") -> Debug.todo "Error: ^ not in prefix"
-
-        _ -> Dot t aValidated
-
-
-
-attr : Parser AttrName
-attr =
-    oneOf
-        [ succeed "𝜑" |. symbol "@"
-        -- actually, variable names
-        , variable
-            { start = \c -> Char.isAlpha c
-            , inner = \c -> Char.isAlphaNum c || c == '_'
-            , reserved = Set.fromList []
-            }
-        ]
-
-validatedAttrName : AttrName -> AttrName
-validatedAttrName a =
-    case run attr a of
-        Ok b ->
-            b
-
-        _ ->
-            "Error: invalid attribute name"
+    > run singleLocator "^"
+    Ok 1 : Result (List Parser.DeadEnd) Int
+-}
+singleLocator : Parser Int
+singleLocator = oneOf
+  [ succeed 1 |. symbol "^"
+  , succeed 0 |. symbol "$"
+  ]

@@ -16,7 +16,6 @@ import Parser exposing (..)
 import Phi.Minimal.Syntax exposing (..)
 import Set
 
-
 {-| Parse String to get an error or a Term-}
 parse : String -> Result (List DeadEnd) Term
 parse =
@@ -41,39 +40,31 @@ repeatedDotOrApp t =
             , succeed (Loop << App t)
                 |. symbol "("
                 |. spaces
-                |= attrAssignment
+                |= attrAttachedAssignment
                 |. spaces
                 |. symbol ")"
             , succeed (Done t)
             ]
 
-
-
--- TODO parse ^.^.^ and count
-
-
+{-| Parse a term that is not a DOT or APP. -}
 termNoDotApp : Parser Term
-termNoDotApp =
-    oneOf
-        [ succeed identity
-            |. symbol "("
-            |= lazy (\_ -> term)
-            |. symbol ")"
-        , succeed (Object << Dict.fromList)
-            |= sequence
-                { start = "["
-                , separator = ","
-                , end = "]"
-                , spaces = spaces
-                , trailing = Forbidden
-                , item = attrAssignment
-                }
-        ]
+termNoDotApp = oneOf [ termObject , locator ]
 
+{-| Object term parser. -}
+termObject : Parser Term
+termObject = succeed (Object << Dict.fromList)
+  |= sequence
+      { start = "["
+      , separator = ","
+      , end = "]"
+      , spaces = spaces
+      , trailing = Forbidden
+      , item = attrAssignment
+      }
 
-{-| Parser for assignments inside object-}
-attrAssignment : Parser ( AttrName, AttrValue )
-attrAssignment =
+{-| Parser for assignments inside application. -}
+attrAttachedAssignment : Parser ( AttrName, Term )
+attrAttachedAssignment =
     succeed (\x y -> ( x, y ))
         |= attr
         |. spaces
@@ -81,7 +72,20 @@ attrAssignment =
         |. spaces
         |= lazy (\_ -> term)
 
+{-| Parser for assignments inside object. -}
+attrAssignment : Parser ( AttrName, AttrValue )
+attrAssignment =
+    succeed (\x y -> ( x, y ))
+        |= attr
+        |. spaces
+        |. symbol "->"
+        |. spaces
+        |= oneOf
+          [ succeed Attached |= lazy (\_ -> term)
+          , succeed Void |. symbol "?"
+          ]
 
+{-| Parse an attribute name. -}
 attr : Parser AttrName
 attr =
     oneOf
@@ -90,21 +94,72 @@ attr =
         , variable
             { start = \c -> Char.isAlpha c
             , inner = \c -> Char.isAlphaNum c || c == '_'
-            , reserved = Set.fromList [ "^", "^" ]
+            , reserved = Set.fromList [ "^", "$" ]
             }
         ]
 
+{-| Parse a locator.
 
-locator : Parser AttrName
-locator =
-    oneOf
-        [ succeed "ρ" |. symbol "^"
-        , succeed "ξ" |. symbol "$"
-        , succeed "𝜑" |. symbol "@"
-        , succeed "δ" |. keyword "__data__"
-        , variable
-            { start = Char.isAlpha
-            , inner = \c -> Char.isAlphaNum c || c == '_'
-            , reserved = Set.fromList ["^", "$", "@"]
-            }
-        ]
+    > run locator "$.^"
+    Ok (Locator 1)
+        : Result (List DeadEnd) Phi.Minimal.Syntax.Term
+
+    > run locator "^.^.^.^"
+    Ok (Locator 4)
+        : Result (List DeadEnd) Phi.Minimal.Syntax.Term
+-}
+locator : Parser Term 
+locator = succeed (Locator << List.sum)
+  |= sep1
+    { separator = "."
+    , spaces = succeed ()
+    , item = singleLocator
+    , trailing = Forbidden
+    }
+
+{-| Parse a sequence of one or more items separated by a separator.
+
+    > opts = {separator = ";", spaces = succeed (), item = int, trailing = Forbidden}
+    > run (sep1 opts) "1;2;3"
+    Ok [1,2,3]
+-}
+sep1 :
+  { separator : String
+  , spaces : Parser ()
+  , item : Parser a
+  , trailing : Trailing
+  }
+  -> Parser (List a)
+sep1 options =
+  succeed (::)
+  |= options.item
+  |= loop [] (sepStep options)
+
+sepStep :
+  { separator : String
+  , spaces : Parser ()
+  , item : Parser a
+  , trailing : Trailing
+  }
+  -> List a
+  -> Parser (Parser.Step (List a) (List a) )
+sepStep options l = oneOf
+  [ succeed (Loop << (\x -> x :: l))
+    |. backtrackable (symbol options.separator)
+    |= options.item
+  , succeed (Done l)
+  ]
+
+{-| Parse a single locator symbol
+
+    > run singleLocator "$"
+    Ok 0 : Result (List Parser.DeadEnd) Int
+
+    > run singleLocator "^"
+    Ok 1 : Result (List Parser.DeadEnd) Int
+-}
+singleLocator : Parser Int
+singleLocator = oneOf
+  [ succeed 1 |. symbol "^"
+  , succeed 0 |. symbol "$"
+  ]

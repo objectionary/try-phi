@@ -46,7 +46,7 @@ termNoDotApp = oneOf
       |. keyword "false"
   , succeed (mkBool True)
       |. keyword "true"
-
+      
   , succeed (Object << Dict.fromList)
       |= sequence 
         { start     = "["
@@ -84,7 +84,7 @@ attr = oneOf
   , variable
       { start = \c -> Char.isAlpha c    || c == '_'
       , inner = \c -> Char.isAlphaNum c || c == '_'
-      , reserved = Set.fromList [ "ρ", "ξ" ]
+      , reserved = Set.fromList [ "ρ", "ξ", "^", "$" ]
       }
   ]
 

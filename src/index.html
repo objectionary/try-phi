@@ -100,6 +100,18 @@
         app.ports.codeUpdateReceiver.send(myCodeMirror.getValue());
       });
 
+      /*upon toggle*/
+      function switch_mode(){
+        var toggler;
+        toggler = document.getElementById('toggler');
+        if(toggler.checked){
+          app.ports.switchMode.send(1);
+        }
+        else{
+          app.ports.switchMode.send(0);
+        }
+      }
+
       /* upon Elm application requesting a change of code */
       app.ports.replaceCodeWith.subscribe(function(snippet) {
         /* replace the code in CodeMirror */

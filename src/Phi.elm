@@ -7,6 +7,10 @@ import Phi.Parser
 import Phi.Eval
 import Phi.Examples
 
+import Phi.Minimal.Parser
+import Phi.Minimal.Pretty
+import Phi.Minimal.Syntax
+
 type Mode
   = FullPhi
   | MinimalPhi
@@ -19,12 +23,10 @@ interpretStepsN mode n input =
         Err err -> "ERROR: failed to parse input:\n" ++ Parser.deadEndsToString err
         Ok t -> Phi.Pretty.ppStepsN pp (Phi.Eval.dataizeStepsN n t)
 
-    MinimalPhi -> "ERROR: minimal phi calculus is not implemented yet"
-      {-
+    MinimalPhi ->
       case Phi.Minimal.Parser.parse input of
         Err err -> "ERROR: failed to parse input:\n" ++ Parser.deadEndsToString err
         Ok t -> Phi.Minimal.Pretty.ppTerm (Phi.Minimal.Syntax.whnf t)
-      -}
 
 interpretSteps : String -> String
 interpretSteps input =

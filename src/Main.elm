@@ -16,10 +16,13 @@ import Url.Builder
 import Phi
 import Phi.Examples exposing (Example)
 import Phi.PrettyASCII
+import Platform.Cmd exposing (batch)
 
 port codeUpdateReceiver : (String -> msg) -> Sub msg
 
 port replaceCodeWith : String -> Cmd msg
+
+port switchMode : (Int -> msg) -> Sub msg
 
 -- MAIN
 
@@ -59,6 +62,7 @@ init flags =
 type Msg
   = Change String
   | Example String
+  | Toggle Int
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -70,6 +74,16 @@ update msg model =
       )
     Example raw ->
       ( model, replaceCodeWith raw )
+    -- decode string and pattern match
+    -- create new subscription
+    Toggle i ->
+      let
+          mode = if i == 1 then Phi.FullPhi else Phi.MinimalPhi
+      in
+        ({model | mode = mode, feedback = Phi.interpretStepsN mode 20 model.snippet}, 
+        Cmd.none)
+    
+
 
 
 -- SUBSCRIPTIONS
@@ -81,7 +95,8 @@ update msg model =
 --
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-  codeUpdateReceiver Change
+  Sub.batch [codeUpdateReceiver Change, switchMode Toggle]
+
 
 
 -- VIEW

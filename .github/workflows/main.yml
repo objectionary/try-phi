@@ -34,10 +34,10 @@ jobs:
       - run: nix-build
       
       - run: |
-          mkdir dist
-          cp -r ./result/bin dist
-          cp index.html dist/bin/app.jsexe/.
-          cp styles.css dist/bin/app.jsexe/.
+          cp -r ./result/bin/app.jsexe/ dist/
+          chmod -R +w dist/
+          cp index.html dist/.
+          cp styles.css dist/.
 
       - name: 📘 Publish Documentation
         uses: peaceiris/actions-gh-pages@v3

@@ -36,6 +36,8 @@ jobs:
       - run: |
           mkdir dist
           cp -r ./result/bin dist
+          cp index.html dist/.
+          cp styles.css dist/.
 
       - name: 📘 Publish Documentation
         uses: peaceiris/actions-gh-pages@v3

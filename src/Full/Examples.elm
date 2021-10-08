@@ -1,7 +1,7 @@
-module Phi.Examples exposing (..)
+module Full.Examples exposing (..)
 
-import Phi.Syntax exposing (..)
-import Phi.Int exposing (mkInt)
+import Full.Syntax exposing (..)
+import Full.Int exposing (mkInt)
 import Dict exposing (Dict)
 
 type alias Example =

@@ -1,6 +1,6 @@
-module Phi.Eval exposing (..)
+module Full.Eval exposing (..)
 
-import Phi.Syntax exposing (..)
+import Full.Syntax exposing (..)
 import Dict exposing (Dict)
 import Set exposing (Set)
 

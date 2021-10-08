@@ -1,51 +1,28 @@
-module Phi.Pretty exposing (..)
+module Full.PrettyASCII exposing (..)
 
-import Phi.Syntax exposing (..)
+import Full.Syntax exposing (..)
 import Dict
 import Tuple
-
-ppStepsN : (d -> String) -> List (Step d) -> String
-ppStepsN ppData
-  = String.concat
-  << List.intersperse "\n⇝ "
-  << List.map (ppStep ppData)
-
-ppStep : (d -> String) -> Step d -> String
-ppStep ppData step =
-  case step of
-    StepErr err  -> "[ERROR]: " ++ err
-    StepTerm t   -> ppTerm ppData t
-    StepData d   -> "<data " ++ ppData d ++ ">"
-    StepSkipMany -> "..."
-
-ppSteps : (d -> String) -> List (Result String (Term d)) -> String
-ppSteps ppData results = String.concat (List.intersperse "\n⇝ " (List.map (ppResult ppData) results))
-
-ppResult : (d -> String) -> Result String (Term d) -> String
-ppResult ppData res =
-  case res of
-    Err err -> "[ERROR]: " ++ err
-    Ok term -> ppTerm ppData term
 
 ppTerm : (d -> String) -> Term d -> String
 ppTerm ppData term =
   case term of
     Var a -> ppLocator a
-    App t (a, s) -> ppTerm ppData t ++ parens (ppAttr a ++ " ↦ " ++ ppTerm ppData s)
+    App t (a, s) -> ppTerm ppData t ++ parens (ppAttr a ++ " -> " ++ ppTerm ppData s)
     Dot t a -> ppAsLocator ppData t ++ "." ++ ppAttr a
     Object o ->
       case Dict.get "δ" o of
         Just (Data d) -> ppData d
         _ -> if Dict.isEmpty o
-                then "⟦⟧"
+                then "[]"
                 else ppObject ppData o
-    FreeAttr -> "∅"
+    FreeAttr -> "?"
     Data d -> ppData d
     Atom name _ _ _ -> "<ATOM " ++ name ++ ">"
 
 ppObject : (d -> String) -> Object d -> String
 ppObject ppData
-  = enclose "⟦ " " ⟧"
+  = enclose "[ " " ]"
  << punctuate ", "
  << List.map (ppAttrWithValue ppData)
  << List.sortBy Tuple.first
@@ -61,14 +38,22 @@ ppAsLocator ppData t =
     _     -> ppTerm ppData t
 
 ppAttr : Attr -> String
-ppAttr a = a
+ppAttr a =
+  case a of
+    "𝜑" -> "@"
+    "δ" -> "__data__"
+    _   -> a
 --  case a of
 --    AttrIdent x -> x
 --    AttrPhi     -> "𝜑"
 --    AttrDelta   -> "δ"
 
 ppLocator : Locator -> String
-ppLocator l = l
+ppLocator l =
+  case l of
+    "ρ" -> "^"
+    "ξ" -> "$"
+    _   -> ppAttr l
 --  case l of
 --    AttrLocator a -> ppAttr a
 --    Rho     -> "ρ"

@@ -1,10 +1,10 @@
-module Phi.Parser exposing (..)
+module Full.Parser exposing (..)
 
 import Dict
 import Parser exposing (..)
 import Set
-import Phi.Syntax exposing (..)
-import Phi.Int exposing (mkInt, mkBool)
+import Full.Syntax exposing (..)
+import Full.Int exposing (mkInt, mkBool)
 
 parse : String -> Result (List DeadEnd) DefaultTerm
 parse = Parser.run (term |. spaces |. end)

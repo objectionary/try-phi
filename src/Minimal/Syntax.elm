@@ -1,4 +1,4 @@
-module Phi.Minimal.Syntax exposing
+module Minimal.Syntax exposing
     ( Term(..), Object, AttrName, AttrValue(..)
     , Substitution, substituteXi, substituteLocator
     , whnf

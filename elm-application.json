@@ -4,6 +4,7 @@
     "version": "0.1.0",
     "exposed-modules": [
         "Main",
-        "Phi.Minimal.Syntax"
+        "Minimal.Syntax",
+        "Full.Syntax"
     ]
 }

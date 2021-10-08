@@ -14,8 +14,8 @@ import Html.Events exposing (onInput, onClick)
 import Url.Builder
 
 import Phi
-import Phi.Examples exposing (Example)
-import Phi.PrettyASCII
+import Full.Examples exposing (Example)
+import Full.PrettyASCII
 import Platform.Cmd exposing (batch)
 
 port codeUpdateReceiver : (String -> msg) -> Sub msg
@@ -107,7 +107,7 @@ view model =
     [ p [] [ text "Dataization (via term reduction) steps:" ]
     , pre [] [ text model.feedback ]
     , p [] [ text "Examples (click on example to try it out):" ]
-    , Html.ol [] (List.map viewExample Phi.Examples.examples)
+    , Html.ol [] (List.map viewExample Full.Examples.examples)
     ]
 
 viewExample : Example -> Html Msg
@@ -117,5 +117,5 @@ viewExample example =
         class "example",
         title example.description,
         onClick (Example example.raw)
-        ] [ text (Phi.PrettyASCII.ppTerm Phi.pp example.term) ]
+        ] [ text (Full.PrettyASCII.ppTerm Phi.pp example.term) ]
     ]

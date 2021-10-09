@@ -3,3 +3,4 @@ src/Main.js
 .DS_Store
 node_modules/
 .vscode
+index.html

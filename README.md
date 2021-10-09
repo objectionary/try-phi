@@ -64,6 +64,12 @@ $ elm make src/Main.elm --output=src/Main.js
 
 And reload the page :)
 
+Alternatively, [install](https://github.com/wking-io/elm-live) and run elm-live
+
+```sh
+
+```
+
 If you want to see documentation, install [elm-doc-preview](https://github.com/dmy/elm-doc-preview)
 
 In terminal, type `edp`

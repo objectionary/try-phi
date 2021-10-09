@@ -53,8 +53,15 @@ You should see a message like this one:
 Go to http://localhost:8000 to see your project dashboard.
 ```
 
+Alternatively, [install](https://github.com/wking-io/elm-live) and run elm-live
+
+```sh
+elm-live src/Main.elm --start-page=src/index.html --open -- --o=src/Main.js
+```
+
 You can then go there to `src > index.html`.
 Or just go to http://localhost:8000/src/index.html
+
 
 Whenever you modify the code, rebuild the JS file:
 
@@ -63,12 +70,6 @@ $ elm make src/Main.elm --output=src/Main.js
 ```
 
 And reload the page :)
-
-Alternatively, [install](https://github.com/wking-io/elm-live) and run elm-live
-
-```sh
-
-```
 
 If you want to see documentation, install [elm-doc-preview](https://github.com/dmy/elm-doc-preview)
 

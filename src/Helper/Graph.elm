@@ -152,7 +152,8 @@ getDOT graph =
                     )
                     (Dict.toList graph.edgeData)
                 )
-
+                
+        -- note: directed graph
         fullGraph =
             List.foldr (++)
                 ""

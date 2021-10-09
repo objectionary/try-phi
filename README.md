@@ -68,7 +68,7 @@ And reload the page :)
 Alternatively, [install](https://github.com/wking-io/elm-live) and run elm-live
 
 ```sh
-elm-live src/Main.elm --start-page=src/index.html -- --o=src/Main.js
+elm-live src/Main.elm -- --o=src/Main.js
 ```
 
 Go to http://localhost:8000/src/index.html

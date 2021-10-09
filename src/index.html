@@ -1,0 +1,129 @@
+<html>
+  <head>
+    <title>Try 𝜑-calculus!</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.js"></script>
+    <script src="Main.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/theme/monokai.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/theme/material.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/theme/solarized.min.css">
+    <link rel="shortcut icon" href="https://www.yegor256.com/images/books/elegant-objects/cactus.png"/>
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/yegor256/tacit@gh-pages/tacit-css.min.css"/>
+    <link rel="stylesheet" href="styles.css" type="text/css">
+    <style>
+      section { width: 100%; }
+      .column { float: left; width: 50%; padding: 1em; }
+      .example { cursor: pointer; }
+      #__textarea__ { border: 1px solid lightgray; }
+    </style>
+  </head>
+  <body>
+    <section>
+      <header>
+        <center>
+          <a href="https://www.eolang.org">
+            <img src="https://www.yegor256.com/images/books/elegant-objects/cactus.png" style="width: 64px; height: 64px"/>
+          </a>
+        </center>
+      </header>
+      <div class="row">
+        <div class="column">
+          <p>
+            <label class="selected_mode">
+              Minimal
+            </label>
+            <label class="switch">
+              <input type="checkbox" id="toggler" onchange="switch_mode()" checked>
+              <span class="slider round"></span>
+            </label>
+            <label class="selected_mode">
+              Full
+            </label>
+            <label class="reference_line">
+              <a href="https://www.eolang.org">𝜑-calculus</a> expression
+              (<a id="__permalink__" href="#">permalink</a>):
+            </label>
+          </p>
+          <div id="__textarea__"></div>
+        </div>
+        <div class="column">
+          <div>
+            <div id="__app__"></div>
+          </div>
+        </div>
+      </div>
+      <footer>
+        <nav>
+          <ul>
+            <li>
+              To discuss how 𝜑-calculus works, join our
+              <a href="https://t.me/polystat_org">Telegram group</a>
+            </li>
+          </ul>
+          <ul>
+            <li>
+              <a href="https://github.com/polystat/try-phi/stargazers">
+                <img src="https://img.shields.io/github/stars/polystat/try-phi.svg?style=flat-square" alt="github stars"/>
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </footer>
+    </section>
+    <script>
+      /* extract query parameters from the URL */
+      const params = new URLSearchParams(window.location.search);
+
+      /* set up Elm application */
+      var app = Elm.Main.init({
+        node: document.getElementById('__app__')
+      });
+
+      /* set up CodeMirror in the __textarea__ div */
+      var frame = document.getElementById("__textarea__");
+      var myCodeMirror = CodeMirror(frame, {
+        value: "",
+        lineNumbers: true,
+        mode: {name: "javascript", json: true},   /* TODO: custom mode? */
+        theme: "elegant",                         /* TODO: add a selection box? */
+      });
+
+      /* upon every update of the code */
+      myCodeMirror.on("changes", function(cm, changedObjects){
+        /* update the permalink */
+        document.getElementById('__permalink__').href =
+          window.location.protocol + '//' + window.location.host + window.location.pathname
+          + "?snippet=" + encodeURIComponent(myCodeMirror.getValue());
+        /* process the code in the Elm application */
+        app.ports.codeUpdateReceiver.send(myCodeMirror.getValue());
+      });
+
+      /*upon toggle*/
+      function switch_mode(){
+        var toggler;
+        toggler = document.getElementById('toggler');
+        if(toggler.checked){
+          app.ports.switchMode.send(1);
+        }
+        else{
+          app.ports.switchMode.send(0);
+        }
+      }
+
+      /* upon Elm application requesting a change of code */
+      app.ports.replaceCodeWith.subscribe(function(snippet) {
+        /* replace the code in CodeMirror */
+        myCodeMirror.setValue(snippet);
+      });
+
+      /* use default snippet if one is not set in the query parameters */
+      snippet = "[ u ->\n  [ x ->\n    [ y -> 1\n    , z -> ?\n    ](z -> x.y)\n  ].x.z\n, @ -> $.u\n].inc";
+      if (params.has("snippet")) {
+        snippet = decodeURIComponent(params.get("snippet"));
+      }
+      myCodeMirror.setValue(snippet);
+    </script>
+  </body>
+</html>

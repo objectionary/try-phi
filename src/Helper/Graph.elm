@@ -1,4 +1,4 @@
-module Helper.Graph exposing (..)
+module Helper.Graph exposing(..)
 
 import Dict exposing (..)
 import Html exposing (node)

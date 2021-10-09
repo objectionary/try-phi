@@ -13,7 +13,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onClick)
 import Url.Builder
 
-import Phi
+import Helper.Phi
 import Full.Examples exposing (Example)
 import Full.PrettyASCII
 import Platform.Cmd exposing (batch)
@@ -69,7 +69,7 @@ update msg model =
   case msg of
     Change newSnippet ->
       -- TODO: make max number of steps configurable
-      ( { model | snippet = newSnippet, feedback = Phi.interpretStepsN model.mode 20 newSnippet }
+      ( { model | snippet = newSnippet, feedback = Helper.Phi.interpretStepsN model.mode 20 newSnippet }
       , Cmd.none
       )
     Example raw ->
@@ -80,7 +80,7 @@ update msg model =
       let
           mode = if i == 1 then Phi.FullPhi else Phi.MinimalPhi
       in
-        ({model | mode = mode, feedback = Phi.interpretStepsN mode 20 model.snippet}, 
+        ({model | mode = mode, feedback = Helper.Phi.interpretStepsN mode 20 model.snippet}, 
         Cmd.none)
     
 
@@ -117,5 +117,5 @@ viewExample example =
         class "example",
         title example.description,
         onClick (Example example.raw)
-        ] [ text (Full.PrettyASCII.ppTerm Phi.pp example.term) ]
+        ] [ text (Full.PrettyASCII.ppTerm Helper.Phi.pp example.term) ]
     ]

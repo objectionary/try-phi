@@ -1,4 +1,4 @@
-module LEGraph.Graph exposing (..)
+module Helper.Graph exposing (..)
 
 import Browser
 import Dict exposing (..)
@@ -7,10 +7,24 @@ import Json.Encode as E
 import Minimal.Syntax exposing (Term(..))
 
 
--- Take Term, return DOT-string
+-- support add edges, labels, convert to DOT-string
 
-type alias Model =
-    { labelId : Dict String Int
+type alias VertexLabel = String
+
+type alias EdgeLabel = String
+
+
+type EdgeType 
+    = Dashed
+    | Solid 
+
+type alias EdgeData =
+    { label : EdgeLabel
+    , edgeType : EdgeType
+    }
+
+type alias Graph =
+    { idLabel : Dict Int VertexLabel
     , edges : Dict ( Int, Int ) ( String, String )
     , nodeCounter : Int
     }

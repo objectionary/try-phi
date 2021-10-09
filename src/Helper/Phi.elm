@@ -1,4 +1,4 @@
-module Phi exposing (..)
+module Helper.Phi exposing (..)
 
 import Parser
 import Full.Syntax exposing (DefaultTerm)

@@ -1,4 +1,4 @@
-module Helper.Graph exposing(..)
+module Helper.Graph exposing (..)
 
 import Dict exposing (..)
 import Html exposing (node)
@@ -13,19 +13,18 @@ type NodeFrame
     | Rectangle
 
 
-type NodeContent
-    = Empty
-    | Locator String
+type alias NodeLabel =
+    Maybe String
 
 
 type alias NodeData =
-    { content : NodeContent
+    { label : NodeLabel
     , frame : NodeFrame
     }
 
 
 type alias EdgeLabel =
-    String
+    Maybe String
 
 
 type EdgeType
@@ -57,8 +56,8 @@ type alias Graph =
 graphSample1 : Graph
 graphSample1 =
     Graph
-        (Dict.fromList [ ( 1, NodeData Empty Circle ), ( 2, NodeData (Locator "rho") Rectangle ), ( 3, NodeData Empty Rectangle ) ])
-        (Dict.fromList [ ( ( 1, 2 ), { label = "a", edgeType = Dashed } ), ( ( 2, 3 ), { label = "b", edgeType = Solid } ) ])
+        (Dict.fromList [ ( 1, NodeData Nothing Circle ), ( 2, NodeData (Just "rho") Rectangle ), ( 3, NodeData Nothing Rectangle ) ])
+        (Dict.fromList [ ( ( 1, 2 ), { label = Just "a", edgeType = Dashed } ), ( ( 2, 3 ), { label = Just "b", edgeType = Solid } ) ])
         3
 
 
@@ -84,14 +83,14 @@ setEdge edge graph =
 
 type alias Node =
     { id : NodeId
-    , content : NodeContent
+    , label : NodeLabel
     , frame : NodeFrame
     }
 
 
 setNode : Node -> Graph -> Graph
 setNode node graph =
-    { graph | nodeData = Dict.insert node.id (NodeData node.content node.frame) graph.nodeData }
+    { graph | nodeData = Dict.insert node.id (NodeData node.label node.frame) graph.nodeData }
 
 
 
@@ -114,11 +113,11 @@ getDOT graph =
                             [ "  "
                             , String.fromInt id
                             , "[ "
-                            , case node.content of
-                                Empty ->
+                            , case node.label of
+                                Nothing ->
                                     "shape = circle"
 
-                                Locator l ->
+                                Just l ->
                                     "label = " ++ l ++ ", shape = square"
                             , " ];\n"
                             ]
@@ -139,7 +138,14 @@ getDOT graph =
                             , " -> "
                             , String.fromInt to
                             , "[ "
-                            , "label = \"  " ++ edge.label ++ "\", "
+                            , "label = \"  "
+                            , case edge.label of
+                                Just label ->
+                                    label
+
+                                Nothing ->
+                                    ""
+                            , "\", "
                             , "style = "
                             , case edge.edgeType of
                                 Dashed ->
@@ -152,7 +158,7 @@ getDOT graph =
                     )
                     (Dict.toList graph.edgeData)
                 )
-                
+
         -- note: directed graph
         fullGraph =
             List.foldr (++)

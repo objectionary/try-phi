@@ -9,7 +9,7 @@ import Html exposing (node)
 
 
 type NodeFrame
-    = Circle
+    = Point
     | Rectangle
 
 
@@ -56,9 +56,13 @@ type alias Graph =
 graphSample1 : Graph
 graphSample1 =
     Graph
-        (Dict.fromList [ ( 1, NodeData Nothing Circle ), ( 2, NodeData (Just "rho") Rectangle ), ( 3, NodeData Nothing Rectangle ) ])
+        (Dict.fromList [ ( 1, NodeData Nothing Point ), ( 2, NodeData (Just "rho") Rectangle ), ( 3, NodeData Nothing Rectangle ) ])
         (Dict.fromList [ ( ( 1, 2 ), { label = Just "a", edgeType = Dashed } ), ( ( 2, 3 ), { label = Just "b", edgeType = Solid } ) ])
         3
+
+emptyGraph : Graph
+emptyGraph = 
+    Graph Dict.empty Dict.empty 0
 
 
 type alias Edge =
@@ -115,7 +119,7 @@ getDOT graph =
                             , "[ "
                             , case node.label of
                                 Nothing ->
-                                    "shape = circle"
+                                    "shape = point"
 
                                 Just l ->
                                     "label = " ++ l ++ ", shape = square"

@@ -1,26 +1,28 @@
 module Minimal.GraphBuilder exposing (..)
 
-import Dict
-import Helper.Graph as G
-import Html.Attributes exposing (name)
-import Minimal.Syntax exposing (AttrName, AttrValue(..), Object, Term(..))
 import Dict exposing (Dict)
+import Helper.Graph as G exposing (EdgeType(..))
+import Html.Attributes exposing (name)
 import Minimal.Parser exposing (term)
 import Minimal.Pretty exposing (ppTerm)
-import Helper.Graph exposing (EdgeType(..))
+import Minimal.Syntax exposing (AttrName, AttrValue(..), Object, Term(..))
+import Helper.Graph exposing (setEdge)
+import Helper.Graph exposing (EdgeLabel)
+import Helper.Graph exposing (Graph)
 
 
 type alias State =
     { graph : G.Graph
 
-    -- id of parent node
-    , parentId : Int
+    -- id of subgraph's parent node
+    , currentId : Int
 
-    -- maximal id of a node + 1
-    , lastId : Int
+    -- last used (maximal) id of a node
+    , maxId : Int
     }
 
 
+{-| select subgraph building rule based on term's structure-}
 toGraph : Term -> State -> State
 toGraph term state =
     case term of
@@ -36,20 +38,15 @@ toGraph term state =
         Locator n ->
             rule4 n state
 
-
-hasApplication : Term -> Bool
-hasApplication term =
-    case getAppDotSuffix term of
-        (Locator _, t) -> False
-        _ -> True
-
-combine : ( AttrName, AttrValue ) -> State  -> State
+{-| add a subgraph for value of an object's another attribute
+-}
+combine : ( AttrName, AttrValue ) -> State -> State
 combine ( name, value ) state =
     let
-        -- take the last available id for a new vertex
-        -- for attribute's value
+        -- take the first available id for a new node
+        -- created for attribute's value
         id =
-            state.lastId + 1
+            state.maxId + 1
 
         -- attribute name becomes edge label
         label =
@@ -59,31 +56,44 @@ combine ( name, value ) state =
         g =
             state.graph
 
-        -- if value contains application, it's a copy
-        edgeType = 
+        -- select edge style
+        edgeType =
             case value of
-                Object _ -> G.Solid
-                _ ->
-                    if hasApplication value
-                        then G.Dashed
-                        else G.Solid
+                Attached v ->
+                    case v of
+                        Object _ ->
+                            G.Solid
+
+                        Locator _ ->
+                            G.Solid
+
+                        Dot _ _ ->
+                            G.Solid
+
+                        App _ _ ->
+                            G.Dashed
+
+                Void ->
+                    G.Solid
+        edge = G.Edge state.currentId id label edgeType
+
         -- add new edge to it
         g1 =
-            G.setEdge (G.Edge state.parentId id label edgeType) g
+            G.setEdge edge g
 
         -- updated state for recursion into value's branch
         s1 =
-            { state | graph = g1, parentId = id, lastId = id }
+            { state | graph = g1, currentId = id, maxId = id }
     in
     case value of
         Attached term ->
-            let 
-                g2 = toGraph term s1
+            let
+                g2 =
+                    toGraph term s1
             in
-            -- need to recursively build its tree
-            -- since we combine branches of children
+            -- since we combine branches of same-level _children_
             -- set back parent id
-            {g2 | parentId = state.parentId}
+            { g2 | currentId = state.currentId }
 
         Void ->
             -- can return graph with just an added edge
@@ -91,65 +101,68 @@ combine ( name, value ) state =
 
 
 {-| rule for: [a1->t1, a2->t2, ..., an->tn]
+add subgraphs for all values of an object's attributes
 -}
 rule1 : Object -> State -> State
-rule1 object state = List.foldl combine state (Dict.toList object)
-
-{-| split a term into 
-        prefix that is a locator or ends with an application
-        suffix that is just Dot accesses
--}
-
--- ^.a().b ->  
-
-getAppDotSuffix : Term -> (Term, Term)
-getAppDotSuffix term = 
-    case term of
-    -- TODO: Nothing or Just Term
-        -- dirty hack
-        Locator n -> 
-            (Locator n, Locator -1)
-        Dot (Locator n) a ->
-            (Locator n, a)
-        Dot (App a b) c ->
-            (App a b, c)
-        -- try to enlarge suffix
-        Dot p a ->
-            let
-                (t, suff) = getAppDotSuffix p
-            in
-                (t, Dot suff a)
-
-            
+rule1 object state =
+    List.foldl combine state (Dict.toList object)
 
 {-| rule for: t.a
 -}
 rule2 : Term -> AttrName -> State -> State
 rule2 term name state =
     let
-        g = state.graph
+        -- have a solid edge to t.a
+
+        -- set square node for .a
         s1 = 
-            case term of 
-                -- if locator, put it into a square node
-                Locator _ -> 
-                    let
-                        node = G.Node state.parentId (ppTerm term) G.Square
-                    in
-                    {state | graph = G.setNode node g}
-                -- else if it's a Dot, 
-                Dot t a -> 
-                    let 
-                        -- we find largest Dot-suffix and put it into
-                        (p, s) = getAppDotSuffix (Dot t a)
+            let
+                node = G.Node state.currentId (G.Label ("."  ++ name)) G.Rectangle
+            in
+            {state | graph = G.setNode node state.graph}
+        
+        -- add solid edge with label _a_ to a new node for term _t_
+        s2 = 
+            let
+                id = state.maxId + 1
+                edge = G.Edge state.currentId id name G.Solid
+                g = G.setEdge edge s1.graph
+            in
+            {s1 | graph = g}
+    in
+    toGraph term s2
 
-                    in
+addEdge : EdgeLabel -> EdgeType -> State ->  State
+addEdge label edgeType state =
+    let
+        from = state.currentId
+        to = from + 1
+        edge = G.Edge from to label edgeType
+        g = G.setEdge edge state.graph
+    in
+        {state | graph = g, maxId = to}
 
+    
+{-| rule for t1(a->t2)-}
+rule3 : Term -> AttrName -> Term -> State -> State
+rule3 t1 name t2 state =
+    let
+        -- have edge to t1(a->t2)
+
+        -- add solid edge with label _a_ to a new node for term _t2_ 
+        s1 = addEdge name G.Solid state
+        s2 = addEdge
+        id1 = state.maxId + 1
+        e1 = G.Edge state.currentId id1 name G.Solid
+        g1 = G.setEdge e1 state.graph
+
+        -- since it's an application
+        -- add dashed edge without a label to a new node for term _t1_ 
+        id2 = id1 + 1
+        e2 = G.Edge state.currentId id2 name G.Solid
+        g2 = G.setEdge e1 state.graph
     in
     
-
-
-rule3 : Term -> AttrName -> Term -> State -> State
-rule3 _ _ _ s =
     s
 
 

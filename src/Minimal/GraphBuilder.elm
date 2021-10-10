@@ -1,7 +1,7 @@
 module Minimal.GraphBuilder exposing (..)
 
 import Dict exposing (Dict)
-import Helper.Graph as G exposing (EdgeType(..), NodeFrame(..))
+import Helper.Graph as G exposing (EdgeLabel, EdgeType(..), NodeFrame(..))
 import Html.Attributes exposing (name)
 import Minimal.Parser exposing (term)
 import Minimal.Pretty exposing (ppTerm)
@@ -58,7 +58,7 @@ combine ( name, value ) state =
 
         -- update state for recursion into value's branch
         s1 =
-            addEdge name edgeType state
+            addEdge (Just name) edgeType state
     in
     case value of
         Attached term ->
@@ -89,14 +89,11 @@ type alias NodeLabel =
     String
 
 
+{-| update current node with given _.attribute_ and _frame style_
 
-{-
-   update current node with given _.attribute_ and _frame style_
+circle nodes drop label
 
-   circle nodes drop label
 -}
-
-
 setNode : NodeLabel -> NodeFrame -> State -> State
 setNode name frame state =
     let
@@ -114,6 +111,29 @@ setNode name frame state =
     { state | graph = G.setNode node state.graph }
 
 
+{-| create a new edge with given label and type from current node
+
+preserve current id and update max id
+
+-}
+addEdge : EdgeLabel -> EdgeType -> State -> State
+addEdge name edgeType state =
+    let
+        from =
+            state.currentId
+
+        to =
+            from + 1
+
+        edge =
+            G.Edge from to name edgeType
+
+        g =
+            G.setEdge edge state.graph
+    in
+    { state | graph = g, maxId = to }
+
+
 {-| rule for: t.a
 -}
 rule2 : Term -> AttrName -> State -> State
@@ -126,40 +146,9 @@ rule2 term name state =
 
         -- add solid edge with label _a_ to a new node for term _t_
         s2 =
-            addEdge name Solid s1
+            addEdge (Just name) Solid s1
     in
     toGraph term s2
-
-
-{-| create a new edge with given label and type from current node
-
-preserve current id and update max id
-
--}
-addEdge : AttrName -> EdgeType -> State -> State
-addEdge name edgeType state =
-    let
-        from =
-            state.currentId
-
-        to =
-            from + 1
-
-        label =
-            case name of
-                "" ->
-                    Nothing
-
-                _ ->
-                    Just name
-
-        edge =
-            G.Edge from to label edgeType
-
-        g =
-            G.setEdge edge state.graph
-    in
-    { state | graph = g, maxId = to }
 
 
 {-| rule for: t₁(a ↦ t₂)
@@ -170,7 +159,7 @@ rule3 t1 name t2 state =
         -- have edge to t₁(a ↦ t₂)
         -- add solid edge with label _a_ to a new node for term _t2_
         s1 =
-            addEdge name Solid state
+            addEdge (Just name) Solid state
 
         -- build subgraph for _t2_ with new node's id
         s2 =
@@ -179,7 +168,7 @@ rule3 t1 name t2 state =
         -- since it's an application to _t1_
         -- add dashed edge without a label to a new node for term _t1_
         s3 =
-            addEdge "" Dashed s2
+            addEdge Nothing Dashed s2
 
         -- build subgraph for _t1_ with new node's id
         s4 =

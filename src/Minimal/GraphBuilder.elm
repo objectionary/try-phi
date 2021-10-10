@@ -157,6 +157,7 @@ rule3 : Term -> AttrName -> Term -> State -> State
 rule3 t1 name t2 state =
     let
         -- have edge to t₁(a ↦ t₂)
+
         -- add solid edge with label _a_ to a new node for term _t2_
         s1 =
             addEdge (Just name) Solid state
@@ -176,9 +177,20 @@ rule3 t1 name t2 state =
     in
     s4
 
-
 {-| rule for: ρⁿ
 -}
 rule4 : Int -> State -> State
-rule4 _ s =
-    s
+rule4 n state =
+    let
+        -- have edge to ρⁿ
+        
+        -- pretty locator depends on _n_
+        label = 
+            if n == 0
+                then "ξ"
+                else "\"n&sup" ++ String.fromInt n ++ ";\""
+        
+        -- set node with given label and pretty locator 
+        s1 = setNode label Rectangle state
+    in
+    s1

@@ -258,6 +258,6 @@ test = parseToDotString
 -- test "[ a->[b->$.c](a->$.b), d->$.a ]"
 -- test "[t->^.a(a1->$.t1)(a2->$.t2).b]"
 
--- Doesn't render with svg
+-- Didm't render with svg
 -- test "[p->[a->?](a->^.d)]"
 -- test "[x->[y->^.^.a(a1->$.t1)(a2->$.t2).b.c.d]]"

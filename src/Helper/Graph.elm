@@ -96,13 +96,6 @@ setNode : Node -> Graph -> Graph
 setNode node graph =
     { graph | nodeData = Dict.insert node.id (NodeData node.label node.frame) graph.nodeData }
 
-
-
--- node[label=""]
--- 2[shape=square, label="hey"]
--- 1 -> 2[label="hey"];
-
-
 getDOT : Graph -> String
 getDOT graph =
     let
@@ -168,7 +161,7 @@ getDOT graph =
             List.foldr (++)
                 ""
                 [ "digraph g {\n"
-                , "  node [ label = \"\" ];\n"
+                , "  node [ label = \"\", shape=circle, width=0.3];\n"
                 , nodeRows
                 , edgeRows
                 , "}"

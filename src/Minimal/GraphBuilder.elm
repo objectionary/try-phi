@@ -121,6 +121,7 @@ addEdge name edgeType state =
     in
     { state | graph = g, maxId = to }
 
+-- TODO: if dot and parent Squre, setNode
 
 {-| rule for: t.a
 -}
@@ -133,7 +134,7 @@ rule2 term name state =
             setNode ("." ++ name) Rectangle state
 
         -- add solid edge without label to a new node for term _t_
-        s2 =
+        s2 = 
             addEdge Nothing Solid s1
     in
     toGraph term {s2 | currentId = s2.maxId}

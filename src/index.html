@@ -66,7 +66,7 @@
 
         <div class="container" style="margin-top: 50px;">
           <div style="margin-top: 50px;">
-            <h5>Resulting graph</h5>
+            <h5>Corresponding graph</h5>
             <img id="result_graph_image"
               src="https://quickchart.io/graphviz?graph=digraph%20G%20%7Bsome-%3E%22graph%22%5Blabel=%22%20%20default%22,%20style=%22dashed%22%5D;%7D"
               class="img-fluid" alt="Graph image">
@@ -82,6 +82,7 @@
             </div>
           </div>
         </div>
+
       </div>
       <div class="column">
         <div>
@@ -155,10 +156,11 @@
     });
 
     app.ports.updateGraph.subscribe(function (dot_string) {
+      url = "https://quickchart.io/graphviz?graph=" + encodeURI(dot_string)
       console.log(dot_string);
+      console.log(url);
       // set link to graph with dot string
-      document.getElementById("result_graph_image").src =
-        "https://quickchart.io/graphviz?graph=" + encodeURI(dot_string);
+      document.getElementById("result_graph_image").src = url;
 
       // set text in field with dot string
       document.getElementById("result_dot_string").value = dot_string;

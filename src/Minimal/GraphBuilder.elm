@@ -218,6 +218,7 @@ parseToDotString s =
     s1
     
 -- TESTS
+
 {-| 
 take string with phi term
 
@@ -227,9 +228,11 @@ return dot string
 test : String -> String
 test = parseToDotString
 
--- Incorrect
 -- test "[ a->$.t(a->$.b), d->$.a ]"
 -- test "[ a->$.t(a->$.b) ]"
 -- test "[ a->[b->$.c](a->$.b), d->$.a ]"
 -- test "[t->^.a(a1->$.t1)(a2->$.t2).b]"
+
+-- Doesn't render
+-- test "[p->[a->?](a->^.d)]"
 -- test "[x->[y->^.^.a(a1->$.t1)(a2->$.t2).b.c.d]]"

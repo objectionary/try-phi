@@ -121,7 +121,7 @@ addEdge name edgeType state =
     in
     { state | graph = g, maxId = to }
 
--- TODO: if dot and parent Squre, setNode
+-- TODO: if Dot and parent Squre, setNode
 
 {-| rule for: t.a
 -}
@@ -130,14 +130,25 @@ rule2 term name state =
     let
         -- have a solid edge to t.a
         -- set square node for .a
-        s1 =
-            setNode ("." ++ name) Rectangle state
+        -- s1 =
+        --     setNode ("." ++ name) Rectangle state
 
         -- add solid edge without label to a new node for term _t_
-        s2 = 
-            addEdge Nothing Solid s1
+        (s2, t2) = 
+            case term of
+                --  if term is a dot, we can append current access to previous one
+                Dot t1 name1 -> 
+                    (rule2 t1 (name1 ++ "." ++ name) state, Locator 0)
+                Locator n -> 
+                    (setNode (getLocatorLabel n ++ "." ++ name) Rectangle state, Locator 0)
+                t1 -> (setNode ("." ++ name) Rectangle
+                    (addEdge Nothing Solid state), t1)
+        s3 =
+            case t2 of
+                Locator _ -> s2
+                _ -> toGraph t2 {s2 | currentId = s2.maxId}
     in
-    toGraph term {s2 | currentId = s2.maxId}
+        s3    
 
 
 {-| rule for: t₁(a ↦ t₂)
@@ -166,21 +177,21 @@ rule3 t1 name t2 state =
     in
     s4
 
+getLocatorLabel : Int -> String
+getLocatorLabel locator =
+    case locator of
+        0 -> "ξ"
+        n -> "ρ&sup" ++ String.fromInt n ++ ";"
+
 {-| rule for: ρⁿ
 -}
 rule4 : Int -> State -> State
 rule4 n state =
     let
         -- have edge to ρⁿ
-        
-        -- pretty locator depends on _n_
-        label = 
-            if n == 0
-                then "ξ"
-                else "ρ&sup" ++ String.fromInt n ++ ";"
-        
-        -- set node with given label and pretty locator 
-        s1 = setNode label Rectangle state
+                
+        -- set square node with pretty locator
+        s1 = setNode (getLocatorLabel n) Rectangle state
     in
     s1
 
@@ -206,4 +217,4 @@ test s =
 -- test "[ a->$.t(a->$.b) ]"
 -- test "[ a->[b->$.c](a->$.b), d->$.a ]"
 -- test "[t->^.a(a1->$.t1)(a2->$.t2).b]"
--- test "[x->[y->^.a(a1->$.t1)(a2->$.t2).b]]"
+-- test "[x->[y->^.^.a(a1->$.t1)(a2->$.t2).b.c.d]]"

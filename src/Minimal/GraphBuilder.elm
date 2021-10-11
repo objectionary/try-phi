@@ -185,6 +185,7 @@ getLocatorLabel locator =
 
 {-| rule for: ρⁿ
 -}
+
 rule4 : Int -> State -> State
 rule4 n state =
     let
@@ -196,10 +197,16 @@ rule4 n state =
     s1
 
 
--- TESTS
+termToDotString : Term -> String
+termToDotString term =
+    let
+        state = toGraph term emptyState
+        s = G.getDOT state.graph
+    in
+    s
 
-test : String -> String
-test s = 
+parseToDotString : String -> String
+parseToDotString s = 
     let
         term = 
             case parse s of
@@ -208,9 +215,18 @@ test s =
 
         state = toGraph term emptyState
         s1 = G.getDOT state.graph
-        url = "https://quickchart.io/graphviz?graph=" ++ percentEncode s1
     in
     s1
+    
+-- TESTS
+{-| 
+take string with phi term
+
+return dot string
+-}
+
+test : String -> String
+test = parseToDotString
 
 -- Incorrect
 -- test "[ a->$.t(a->$.b), d->$.a ]"

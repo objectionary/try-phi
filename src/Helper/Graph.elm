@@ -115,7 +115,7 @@ getDOT graph =
                                     "shape = point"
 
                                 Just l ->
-                                    "label = " ++ l ++ ", shape = square"
+                                    "label = <" ++ l ++ ">, shape = square"
                             , " ];\n"
                             ]
                     )

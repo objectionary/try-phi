@@ -156,7 +156,7 @@
     });
 
     app.ports.updateGraph.subscribe(function (dot_string) {
-      url = "https://quickchart.io/graphviz?graph=" + encodeURI(dot_string)
+      url = "https://quickchart.io/graphviz?format=png&graph=" + encodeURI(dot_string)
       console.log(dot_string);
       console.log(url);
       // set link to graph with dot string

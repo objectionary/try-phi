@@ -6,7 +6,7 @@ import Html.Attributes exposing (name)
 import Minimal.Parser exposing (term)
 import Minimal.Syntax exposing (AttrName, AttrValue(..), Object, Term(..))
 import Minimal.Parser exposing (parse)
-
+import Url exposing (percentEncode)
 type alias State =
     { graph : G.Graph
 
@@ -90,7 +90,7 @@ setNode name frame state =
                     Nothing
 
                 Rectangle ->
-                    Just ("\"" ++ name ++ "\"")
+                    Just name
 
         node =
             G.Node state.currentId label frame
@@ -176,11 +176,13 @@ rule3 t1 name t2 state =
     in
     s4
 
+
+
 getLocatorLabel : Int -> String
 getLocatorLabel locator =
     case locator of
         0 -> "ξ"
-        n -> "ρ&sup" ++ String.fromInt n ++ ";"
+        n -> "ρ<SUP>" ++ (String.fromInt n) ++ "</SUP>"
 
 {-| rule for: ρⁿ
 -}

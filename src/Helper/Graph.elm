@@ -135,7 +135,7 @@ getDOT graph =
                             , " -> "
                             , String.fromInt to
                             , "[ "
-                            , "label = \"  "
+                            , "label = \" "
                             , case edge.label of
                                 Just label ->
                                     label

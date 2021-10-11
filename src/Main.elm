@@ -26,10 +26,7 @@ port switchMode : (Int -> msg) -> Sub msg
 port replaceCodeWith : String -> Cmd msg
 port updateGraph : String -> Cmd msg
 
-
-
-
-
+port giveChocolate : String -> Cmd msg
 -- MAIN
 
 
@@ -72,6 +69,14 @@ type Msg
     | Example String
     | Toggle Int
 
+getDot : Phi.Mode -> String -> String
+getDot mode s = 
+    case mode of
+        Phi.FullPhi ->
+            "digraph g {\"Phi.Full\n is not yet\n supported\"}"
+
+        Phi.MinimalPhi ->
+            parseToDotString s
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -79,14 +84,13 @@ update msg model =
         Change newSnippet ->
             -- TODO: make max number of steps configurable
             ( { model | snippet = newSnippet, feedback = Phi.interpretStepsN model.mode 20 newSnippet }
-            , Cmd.none
+            , updateGraph (getDot model.mode newSnippet)
             )
-
+        
+        -- change code in the mirror
         Example raw ->
             ( model, replaceCodeWith raw )
 
-        -- decode string and pattern match
-        -- create new subscription
         Toggle i ->
             let
                 mode =
@@ -96,21 +100,13 @@ update msg model =
                     else
                         Phi.MinimalPhi
 
-                dotString =
-                    case mode of
-                        Phi.FullPhi ->
-                            ""
-
-                        Phi.MinimalPhi ->
-                            parseToDotString model.snippet
-
                 m1 =
                     { model
                         | mode = mode
                         , feedback = Phi.interpretStepsN mode 20 model.snippet
                     }
             in
-            ( m1, Cmd.none)
+            ( m1, Cmd.batch [updateGraph (getDot mode model.snippet)])
 
 
 

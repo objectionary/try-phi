@@ -12,8 +12,8 @@ module Minimal.Syntax exposing
 
 @docs Term, Object, Attr, AttrValue
 
-
 # Locator substitution
+
 
 @docs Substitution, substituteXi, substituteLocator
 

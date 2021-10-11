@@ -1,12 +1,9 @@
 module Helper.Phi exposing (..)
 
 import Parser
-import Full.Syntax exposing (DefaultTerm)
 import Full.Pretty
 import Full.Parser
 import Full.Eval
-import Full.Examples
-
 import Minimal.Parser
 import Minimal.Pretty
 import Minimal.Syntax

@@ -6,7 +6,6 @@ import Html.Attributes exposing (name)
 import Minimal.Parser exposing (term)
 import Minimal.Syntax exposing (AttrName, AttrValue(..), Object, Term(..))
 import Minimal.Parser exposing (parse)
-import Url exposing (percentEncode)
 
 type alias State =
     { graph : G.Graph

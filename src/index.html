@@ -157,7 +157,7 @@
     });
 
     app.ports.updateGraph.subscribe(function (dot_string) {
-      url = "https://quickchart.io/graphviz?layout=neato&format=png&graph=" + encodeURI(dot_string)
+      url = "https://quickchart.io/graphviz?layout=dot&format=svg&graph=" + encodeURI(dot_string)
       console.log(dot_string);
       console.log(url);
       // set link to graph with dot string

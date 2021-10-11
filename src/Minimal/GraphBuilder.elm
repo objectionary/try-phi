@@ -6,7 +6,7 @@ import Html.Attributes exposing (name)
 import Minimal.Parser exposing (term)
 import Minimal.Syntax exposing (AttrName, AttrValue(..), Object, Term(..))
 import Minimal.Parser exposing (parse)
-import Url exposing (percentEncode)
+import Dict exposing (Dict)
 type alias State =
     { graph : G.Graph
 
@@ -176,13 +176,36 @@ rule3 t1 name t2 state =
     in
     s4
 
+sup = 
+    Dict.fromList 
+        [
+            ('0', '⁰'),
+            ('1', '¹'),
+            ('2', '²'),
+            ('3', '³'),
+            ('4', '⁴'),
+            ('5', '⁵'),
+            ('6', '⁶'),
+            ('7', '⁷'),
+            ('8', '⁸'),
+            ('9', '⁹')
+        ]
 
+getWithDefault : Dict Char Char -> Char -> Char
+getWithDefault dict c = 
+    case Dict.get c dict of
+        Just c1 -> c1
+        Nothing -> ' '
+
+numberSup : String -> String
+numberSup s =
+    List.foldr (\a b -> b ++ (String.fromChar (getWithDefault sup a))) "" (String.toList s)
 
 getLocatorLabel : Int -> String
 getLocatorLabel locator =
     case locator of
         0 -> "ξ"
-        n -> "ρ<SUP>" ++ (String.fromInt n) ++ "</SUP>"
+        n -> "ρ" ++ numberSup (String.fromInt n)
 
 {-| rule for: ρⁿ
 -}
@@ -235,6 +258,6 @@ test = parseToDotString
 -- test "[ a->[b->$.c](a->$.b), d->$.a ]"
 -- test "[t->^.a(a1->$.t1)(a2->$.t2).b]"
 
--- Doesn't render
+-- Doesn't render with svg
 -- test "[p->[a->?](a->^.d)]"
 -- test "[x->[y->^.^.a(a1->$.t1)(a2->$.t2).b.c.d]]"

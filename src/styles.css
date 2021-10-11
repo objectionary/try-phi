@@ -61,7 +61,6 @@ input:checked+.slider:before {
 
 .selected_mode{
     vertical-align: middle;
-    font-weight: bold;
 }
 
 .reference_line {

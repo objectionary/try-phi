@@ -13,7 +13,7 @@ import Browser
 import Full.Examples exposing (Example)
 import Full.PrettyASCII
 import Helper.Phi as Phi
-import Html exposing (Html, div, p, pre, text)
+import Html exposing (Html, div, p, pre, text, h5, b)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
 import Minimal.GraphBuilder exposing (parseToDotString)
@@ -129,9 +129,9 @@ subscriptions _ =
 view : Model -> Html Msg
 view model =
     div []
-        [ p [] [ text "Dataization (via term reduction) steps:" ]
+        [ p [] [ b [] [text "Dataization "], text "(via term reduction) steps:" ]
         , pre [] [ text model.feedback ]
-        , p [] [ text "Examples (click on example to try it out):" ]
+        , p [] [ b [] [text "Examples "], text"(click on example to try it out):" ]
         , Html.ol [] (List.map viewExample Full.Examples.examples)
         ]
 

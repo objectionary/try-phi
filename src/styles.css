@@ -19,7 +19,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: #42b340;
+    background-color: #eab42b;
     -webkit-transition: .4s;
     transition: .4s;
 }
@@ -37,11 +37,11 @@
 }
 
 input:checked+.slider {
-    background-color: #2196F3;
+    background-color: #54c234;
 }
 
 input:focus+.slider {
-    box-shadow: 0 0 1px #2196F3;
+    box-shadow: 0 0 1px #54c234;
 }
 
 input:checked+.slider:before {
@@ -61,6 +61,7 @@ input:checked+.slider:before {
 
 .selected_mode{
     vertical-align: middle;
+    font: bold;
 }
 
 .reference_line {

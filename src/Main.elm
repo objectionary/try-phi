@@ -20,12 +20,13 @@ import Minimal.GraphBuilder exposing (parseToDotString)
 
 
 port codeUpdateReceiver : (String -> msg) -> Sub msg
+port switchMode : (Int -> msg) -> Sub msg
 
 
 port replaceCodeWith : String -> Cmd msg
+port updateGraph : String -> Cmd msg
 
 
-port switchMode : (Int -> msg) -> Sub msg
 
 
 
@@ -52,13 +53,12 @@ type alias Model =
     { snippet : String
     , feedback : String
     , mode : Phi.Mode
-    , dotString : String
     }
 
 
 init : () -> ( Model, Cmd Msg )
 init flags =
-    ( { snippet = "", feedback = "", mode = Phi.FullPhi, dotString = "" }
+    ( { snippet = "", feedback = "", mode = Phi.FullPhi }
     , Cmd.none
     )
 
@@ -108,10 +108,9 @@ update msg model =
                     { model
                         | mode = mode
                         , feedback = Phi.interpretStepsN mode 20 model.snippet
-                        , dotString = dotString
                     }
             in
-            ( m1, Cmd.none )
+            ( m1, Cmd.none)
 
 
 

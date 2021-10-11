@@ -71,7 +71,7 @@ Alternatively, [install](https://github.com/wking-io/elm-live) and run elm-live
 elm-live src/Main.elm -- --o=src/Main.js
 ```
 
-Go to http://localhost:8000/src/index.html
+Go to http://localhost: 8000/src/index.html
 
 If you want to see documentation, install [elm-doc-preview](https://github.com/dmy/elm-doc-preview)
 

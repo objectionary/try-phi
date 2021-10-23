@@ -48,7 +48,7 @@ combine ( name, value ) state =
     let
         -- update state for recursion into value's branch
         s1 =
-            addEdge (Just name) G.Solid state
+            addEdge name G.Solid state
     in
     case value of
         Attached term ->
@@ -164,7 +164,7 @@ rule3 t1 name t2 state =
 
         -- add solid edge with label _a_ to a new node for term _t2_
         s2 =
-            addEdge (Just name) Solid s1
+            addEdge name Solid s1
 
         -- build subgraph for _t2_ with new node's id
         s3 =
@@ -173,7 +173,7 @@ rule3 t1 name t2 state =
         -- since it's an application to _t1_
         -- add dashed edge without a label to a new node for term _t1_
         s4 =
-            addEdge Nothing Dashed {s3 | currentId = state.currentId}
+            addEdge "" Dashed {s3 | currentId = state.currentId}
 
         -- build subgraph for _t1_ with new node's id
         s5 =

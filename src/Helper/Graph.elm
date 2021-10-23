@@ -26,8 +26,7 @@ type alias NodeData =
     }
 
 
-type alias EdgeLabel =
-    Maybe String
+type alias EdgeLabel = String
 
 
 type EdgeType
@@ -60,7 +59,7 @@ graphSample1 : Graph
 graphSample1 =
     Graph
         (Dict.fromList [ ( 1, NodeData "" Circle ), ( 2, NodeData "rho" Square ), ( 3, NodeData "" Square ) ])
-        (Dict.fromList [ ( ( 1, 2 ), { label = Just "a", edgeType = Dashed } ), ( ( 2, 3 ), { label = Just "b", edgeType = Solid } ) ])
+        (Dict.fromList [ ( ( 1, 2 ), { label =  "a", edgeType = Dashed } ), ( ( 2, 3 ), { label =  "b", edgeType = Solid } ) ])
         3
 
 emptyGraph : Graph
@@ -138,14 +137,7 @@ getDOT graph =
                             , " -> "
                             , String.fromInt to
                             , "[ "
-                            , "label = \" "
-                            , case edge.label of
-                                Just label ->
-                                    label
-
-                                Nothing ->
-                                    ""
-                            , "\", "
+                            , "label = \" " ++ edge.label ++ "\", "
                             , "style = "
                             , case edge.edgeType of
                                 Dashed ->

@@ -54,7 +54,7 @@ type alias Model =
 
 init : () -> ( Model, Cmd Msg )
 init flags =
-    ( { snippet = "", feedback = "", mode = Phi.FullPhi }
+    ( { snippet = "", feedback = "", mode = Phi.MinimalPhi }
     , Cmd.none
     )
 

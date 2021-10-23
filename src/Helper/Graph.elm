@@ -9,12 +9,15 @@ import Html exposing (node)
 
 
 type NodeFrame
-    = Point
-    | Rectangle
+    -- ordinary node
+    = Circle
+    -- node with locator
+    | Square
+    -- node for void attributes
+    | Triangle
 
 
-type alias NodeLabel =
-    Maybe String
+type alias NodeLabel = String
 
 
 type alias NodeData =
@@ -56,7 +59,7 @@ type alias Graph =
 graphSample1 : Graph
 graphSample1 =
     Graph
-        (Dict.fromList [ ( 1, NodeData Nothing Point ), ( 2, NodeData (Just "rho") Rectangle ), ( 3, NodeData Nothing Rectangle ) ])
+        (Dict.fromList [ ( 1, NodeData "" Circle ), ( 2, NodeData "rho" Square ), ( 3, NodeData "" Square ) ])
         (Dict.fromList [ ( ( 1, 2 ), { label = Just "a", edgeType = Dashed } ), ( ( 2, 3 ), { label = Just "b", edgeType = Solid } ) ])
         3
 
@@ -110,12 +113,12 @@ getDOT graph =
                             [ "  "
                             , String.fromInt id
                             , "[ "
-                            , case node.label of
-                                Nothing ->
-                                    ""
-
-                                Just l ->
-                                    "label = <" ++ l ++ ">, shape = square"
+                            , "label = <" ++ node.label ++ ">"
+                            , "shape = "
+                            , case node.frame of
+                                Triangle -> "triangle"
+                                Square -> "square"
+                                Circle -> "circle"
                             , " ];\n"
                             ]
                     )

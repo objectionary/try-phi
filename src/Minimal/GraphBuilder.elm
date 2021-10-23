@@ -21,7 +21,7 @@ emptyState : State
 emptyState = State G.emptyGraph 0 0
 
 initialState : State
-initialState = setNode " " G.Point emptyState
+initialState = setNode 0 " " G.Circle emptyState
 
 {-| select a subgraph building rule based on term's structure
 -}
@@ -48,7 +48,7 @@ combine ( name, value ) state =
     let
         -- update state for recursion into value's branch
         s1 =
-            setEdge (Just name) G.Solid state
+            addEdge (Just name) G.Solid state
     in
     case value of
         Attached term ->
@@ -61,8 +61,7 @@ combine ( name, value ) state =
             { s2 | currentId = state.currentId }
 
         Void ->
-            -- can return graph with just an added edge
-            s1
+            setNode (s1.maxId) "" G.Triangle s1
 
 
 {-| rule for: ⟦ a₁ ↦ ∅, …, aₖ ↦ ∅, b₁ ↦ t₁, …, bₙ ↦ tₙ ⟧
@@ -71,31 +70,35 @@ add subgraphs for all values of an object's attributes
 
 -}
 rule1 : Object -> State -> State
-rule1 object state = List.foldl combine state (Dict.toList object)
+rule1 object state = 
+    let
+        s1 = setNode state.currentId "" Circle state
+        s2 = List.foldl combine s1 (Dict.toList object)
+    in
+    s2
+    
 
 
 type alias NodeLabel =
     String
 
+type alias NodeId = Int
 
 {-| update current node with given _.attribute_ and _frame style_
 
-circle nodes drop label
-
+put node id
 -}
-setNode : NodeLabel -> NodeFrame -> State -> State
-setNode name frame state =
+setNode : NodeId -> NodeLabel -> NodeFrame -> State -> State
+setNode id name frame state =
     let
         label =
             case frame of
-                Point ->
-                    Nothing
-
-                Rectangle ->
-                    Just name
-
+                Square ->
+                    name
+                _ ->
+                    String.fromInt id
         node =
-            G.Node state.currentId label frame
+            G.Node id label frame
     in
     { state | graph = G.setNode node state.graph }
 
@@ -105,8 +108,8 @@ setNode name frame state =
 preserve current id and update max id
 
 -}
-setEdge : EdgeLabel -> EdgeType -> State -> State
-setEdge name edgeType state =
+addEdge : EdgeLabel -> EdgeType -> State -> State
+addEdge name edgeType state =
     let
         from =
             state.currentId
@@ -129,9 +132,6 @@ rule2 : Term -> AttrName -> State -> State
 rule2 term name state =
     let
         -- have a solid edge to t.a
-        -- set square node for .a
-        -- s1 =
-        --     setNode ("." ++ name) Rectangle state
 
         -- add solid edge without label to a new node for term _t_
         (s2, t2) = 
@@ -140,15 +140,15 @@ rule2 term name state =
                 Dot t1 name1 -> 
                     (rule2 t1 (name1 ++ "." ++ name) state, Locator 0)
                 Locator n -> 
-                    (setNode (getLocatorLabel n ++ "." ++ name) Rectangle state, Locator 0)
-                t1 -> (setNode ("." ++ name) Rectangle
-                    (setEdge Nothing Solid state), t1)
+                    (setNode state.currentId (getLocatorLabel n ++ "." ++ name) Square state, Locator 0)
+                t1 -> (setNode state.currentId ("." ++ name) Square
+                    (addEdge Nothing Solid state), t1)
         s3 =
             case t2 of
                 Locator _ -> s2
                 _ -> toGraph t2 {s2 | currentId = s2.maxId}
     in
-        s3    
+        s3
 
 
 {-| rule for: t₁(a ↦ t₂)
@@ -157,25 +157,29 @@ rule3 : Term -> AttrName -> Term -> State -> State
 rule3 t1 name t2 state =
     let
         -- have edge to t₁(a ↦ t₂)
+        
+        -- set current node id
+        s1 = 
+            setNode state.currentId "" Circle state
 
         -- add solid edge with label _a_ to a new node for term _t2_
-        s1 =
-            setEdge (Just name) Solid state
+        s2 =
+            addEdge (Just name) Solid s1
 
         -- build subgraph for _t2_ with new node's id
-        s2 =
-            toGraph t2 { s1 | currentId = s1.maxId }
+        s3 =
+            toGraph t2 { s2 | currentId = s2.maxId }
 
         -- since it's an application to _t1_
         -- add dashed edge without a label to a new node for term _t1_
-        s3 =
-            setEdge Nothing Dashed {s2 | currentId = state.currentId}
+        s4 =
+            addEdge Nothing Dashed {s3 | currentId = state.currentId}
 
         -- build subgraph for _t1_ with new node's id
-        s4 =
-            toGraph t1 { s3 | currentId = s3.maxId }
+        s5 =
+            toGraph t1 { s4 | currentId = s4.maxId }
     in
-    s4
+    s5
 
 sup : Dict Char Char
 sup = 
@@ -218,18 +222,10 @@ rule4 n state =
         -- have edge to ρⁿ
                 
         -- set square node with pretty locator
-        s1 = setNode (getLocatorLabel n) Rectangle state
+        s1 = setNode state.currentId (getLocatorLabel n) Square state
     in
     s1
 
-
-termToDotString : Term -> String
-termToDotString term =
-    let
-        state = toGraph term initialState
-        s = G.getDOT state.graph
-    in
-    s
 
 parseToDotString : String -> String
 parseToDotString s = 

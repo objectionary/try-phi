@@ -12,7 +12,7 @@ getTerm s =
         Ok term -> term
         _ -> Locator 0
 
--- lines 6-10
+-- page 3, lines 6-10
 
 -- [
 --     book3 ->[
@@ -32,7 +32,7 @@ ex1 : Term
 ex1 = getTerm ex1Raw
 
 
--- lines 67-73
+-- page 5, lines 67-73
 
 -- [
 --     point -> [
@@ -53,7 +53,7 @@ ex2 : Term
 ex2 = getTerm ex2Raw
 
 
--- example 14
+-- page 9, example 14
 
 -- [
 --     c -> [

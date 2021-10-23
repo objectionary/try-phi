@@ -1,12 +1,12 @@
 module Minimal.GraphBuilder exposing (..)
 
-import Dict
+import Dict exposing (Dict)
 import Helper.Graph as G exposing (EdgeLabel, EdgeType(..), NodeFrame(..))
 import Html.Attributes exposing (name)
-import Minimal.Parser exposing (term)
+import Minimal.Parser exposing (parse, term)
 import Minimal.Syntax exposing (AttrName, AttrValue(..), Object, Term(..))
-import Minimal.Parser exposing (parse)
-import Dict exposing (Dict)
+
+
 type alias State =
     { graph : G.Graph
 
@@ -17,11 +17,16 @@ type alias State =
     , maxId : Int
     }
 
+
 emptyState : State
-emptyState = State G.emptyGraph 0 0
+emptyState =
+    State G.emptyGraph 0 0
+
 
 initialState : State
-initialState = setNode 0 " " G.Circle emptyState
+initialState =
+    setNode 0 G.Circle emptyState
+
 
 {-| select a subgraph building rule based on term's structure
 -}
@@ -54,14 +59,14 @@ combine ( name, value ) state =
         Attached term ->
             let
                 s2 =
-                    toGraph term {s1 | currentId = s1.maxId}
+                    toGraph term { s1 | currentId = s1.maxId }
             in
             -- since we combine branches of same-level _children_
             -- set back parent id
             { s2 | currentId = state.currentId }
 
         Void ->
-            setNode (s1.maxId) "" G.Triangle s1
+            s1
 
 
 {-| rule for: ⟦ a₁ ↦ ∅, …, aₖ ↦ ∅, b₁ ↦ t₁, …, bₙ ↦ tₙ ⟧
@@ -70,33 +75,28 @@ add subgraphs for all values of an object's attributes
 
 -}
 rule1 : Object -> State -> State
-rule1 object state = 
-    let
-        s1 = setNode state.currentId "" Circle state
-        s2 = List.foldl combine s1 (Dict.toList object)
-    in
-    s2
-    
+rule1 object state = List.foldl combine state (Dict.toList object)
 
 
 type alias NodeLabel =
     String
 
-type alias NodeId = Int
+
+type alias NodeId =
+    Int
+
 
 {-| update current node with given _.attribute_ and _frame style_
 
 put node id
+
 -}
-setNode : NodeId -> NodeLabel -> NodeFrame -> State -> State
-setNode id name frame state =
+setNode : NodeId -> NodeFrame -> State -> State
+setNode id frame state =
     let
         label =
-            case frame of
-                Square ->
-                    name
-                _ ->
-                    String.fromInt id
+            String.fromInt id
+
         node =
             G.Node id label frame
     in
@@ -122,8 +122,12 @@ addEdge name edgeType state =
 
         g =
             G.setEdge edge state.graph
+        
+        s1 = { state | graph = g, maxId = to }
+
+        s2 = setNode to Circle s1
     in
-    { state | graph = g, maxId = to }
+    s2
 
 
 {-| rule for: t.a
@@ -131,24 +135,15 @@ addEdge name edgeType state =
 rule2 : Term -> AttrName -> State -> State
 rule2 term name state =
     let
-        -- have a solid edge to t.a
+        -- have an edge to t.a
+        -- add solid edge with access label to a new node for .a
+        s1 =
+            addEdge ("." ++ name) G.Solid state
 
-        -- add solid edge without label to a new node for term _t_
-        (s2, t2) = 
-            case term of
-                --  if term is a dot, we can append current access to previous one
-                Dot t1 name1 -> 
-                    (rule2 t1 (name1 ++ "." ++ name) state, Locator 0)
-                Locator n -> 
-                    (setNode state.currentId (getLocatorLabel n ++ "." ++ name) Square state, Locator 0)
-                t1 -> (setNode state.currentId ("." ++ name) Square
-                    (addEdge Nothing Solid state), t1)
-        s3 =
-            case t2 of
-                Locator _ -> s2
-                _ -> toGraph t2 {s2 | currentId = s2.maxId}
+        s2 =
+            toGraph term { s1 | currentId = s1.maxId }
     in
-        s3
+    s2
 
 
 {-| rule for: t₁(a ↦ t₂)
@@ -156,100 +151,118 @@ rule2 term name state =
 rule3 : Term -> AttrName -> Term -> State -> State
 rule3 t1 name t2 state =
     let
-        -- have edge to t₁(a ↦ t₂)
-        
-        -- set current node id
-        s1 = 
-            setNode state.currentId "" Circle state
+        -- have an edge to t₁(a ↦ t₂)
 
         -- add solid edge with label _a_ to a new node for term _t2_
-        s2 =
-            addEdge name Solid s1
+        s1 =
+            addEdge name Solid state
 
         -- build subgraph for _t2_ with new node's id
-        s3 =
-            toGraph t2 { s2 | currentId = s2.maxId }
+        s2 =
+            toGraph t2 { s1 | currentId = s1.maxId }
 
         -- since it's an application to _t1_
         -- add dashed edge without a label to a new node for term _t1_
-        s4 =
-            addEdge "" Dashed {s3 | currentId = state.currentId}
+        s3 =
+            addEdge "" Dashed { s2 | currentId = state.currentId }
 
         -- build subgraph for _t1_ with new node's id
-        s5 =
-            toGraph t1 { s4 | currentId = s4.maxId }
+        s4 =
+            toGraph t1 { s3 | currentId = s3.maxId }
     in
-    s5
+    s4
+
 
 sup : Dict Char Char
-sup = 
-    Dict.fromList 
-        [
-            ('0', '⁰'),
-            ('1', '¹'),
-            ('2', '²'),
-            ('3', '³'),
-            ('4', '⁴'),
-            ('5', '⁵'),
-            ('6', '⁶'),
-            ('7', '⁷'),
-            ('8', '⁸'),
-            ('9', '⁹')
+sup =
+    Dict.fromList
+        [ ( '0', '⁰' )
+        , ( '1', '¹' )
+        , ( '2', '²' )
+        , ( '3', '³' )
+        , ( '4', '⁴' )
+        , ( '5', '⁵' )
+        , ( '6', '⁶' )
+        , ( '7', '⁷' )
+        , ( '8', '⁸' )
+        , ( '9', '⁹' )
         ]
 
+
 getWithDefault : Dict comparable b -> comparable -> b -> b
-getWithDefault dict c default = 
+getWithDefault dict c default =
     case Dict.get c dict of
-        Just c1 -> c1
-        Nothing -> default
+        Just c1 ->
+            c1
+
+        Nothing ->
+            default
+
 
 numberSup : String -> String
 numberSup s =
-    List.foldr (\a b -> b ++ (String.fromChar (getWithDefault sup a ' '))) "" (String.toList s)
+    List.foldr (\a b -> b ++ String.fromChar (getWithDefault sup a ' ')) "" (String.toList s)
+
 
 getLocatorLabel : Int -> String
 getLocatorLabel locator =
     case locator of
-        0 -> "ξ"
-        n -> "𝛒" ++ numberSup (String.fromInt n)
+        0 ->
+            "ξ"
+
+        n ->
+            "𝛒" ++ numberSup (String.fromInt n)
+
 
 {-| rule for: ρⁿ
 -}
-
 rule4 : Int -> State -> State
 rule4 n state =
     let
         -- have edge to ρⁿ
-                
+        -- add new edge with pretty locator label
+        s1 =
+            addEdge (getLocatorLabel n) Solid state
+
         -- set square node with pretty locator
-        s1 = setNode state.currentId (getLocatorLabel n) Square state
     in
     s1
 
 
 parseToDotString : String -> String
-parseToDotString s = 
+parseToDotString s =
     let
-        term = 
+        term =
             case parse s of
-                Ok t -> t
-                Err _ -> Locator 0 
+                Ok t ->
+                    t
 
-        state = toGraph term initialState
-        s1 = G.getDOT state.graph
+                Err _ ->
+                    Locator 0
+
+        state =
+            toGraph term initialState
+
+        s1 =
+            G.getDOT state.graph
     in
     s1
-    
+
+
+
 -- TESTS
 
-{-| 
-take string with phi term
+
+{-| take string with phi term
 
 return dot string
--}
 
+-}
 test : String -> String
-test = parseToDotString
+test =
+    parseToDotString
+
+
 
 -- test "[ a->$.t(a->$.b), d->$.a ]"
 -- test "[ a->$.t(a->$.b) ]"

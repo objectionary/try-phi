@@ -11,10 +11,8 @@ import Html exposing (node)
 type NodeFrame
     -- ordinary node
     = Circle
-    -- node with locator
-    | Square
     -- node for void attributes
-    | Triangle
+    | Square
 
 
 type alias NodeLabel = String
@@ -58,7 +56,7 @@ type alias Graph =
 graphSample1 : Graph
 graphSample1 =
     Graph
-        (Dict.fromList [ ( 1, NodeData "" Circle ), ( 2, NodeData "rho" Square ), ( 3, NodeData "" Square ) ])
+        (Dict.fromList [ ( 1, NodeData "" Circle ), ( 2, NodeData "rho" Circle ), ( 3, NodeData "" Circle ) ])
         (Dict.fromList [ ( ( 1, 2 ), { label =  "a", edgeType = Dashed } ), ( ( 2, 3 ), { label =  "b", edgeType = Solid } ) ])
         3
 
@@ -115,7 +113,6 @@ getDOT graph =
                             , "label = <" ++ node.label ++ ">"
                             , "shape = "
                             , case node.frame of
-                                Triangle -> "triangle"
                                 Square -> "square"
                                 Circle -> "circle"
                             , " ];\n"

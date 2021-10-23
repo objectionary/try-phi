@@ -20,6 +20,9 @@ type alias State =
 emptyState : State
 emptyState = State G.emptyGraph 0 0
 
+initialState : State
+initialState = setNode " " G.Point emptyState
+
 {-| select a subgraph building rule based on term's structure
 -}
 toGraph : Term -> State -> State
@@ -45,7 +48,7 @@ combine ( name, value ) state =
     let
         -- update state for recursion into value's branch
         s1 =
-            addEdge (Just name) G.Solid state
+            setEdge (Just name) G.Solid state
     in
     case value of
         Attached term ->
@@ -68,8 +71,7 @@ add subgraphs for all values of an object's attributes
 
 -}
 rule1 : Object -> State -> State
-rule1 object state =
-    List.foldl combine state (Dict.toList object)
+rule1 object state = List.foldl combine state (Dict.toList object)
 
 
 type alias NodeLabel =
@@ -98,13 +100,13 @@ setNode name frame state =
     { state | graph = G.setNode node state.graph }
 
 
-{-| create a new edge with given label and type from current node
+{-| set edge with given label and type from current node
 
 preserve current id and update max id
 
 -}
-addEdge : EdgeLabel -> EdgeType -> State -> State
-addEdge name edgeType state =
+setEdge : EdgeLabel -> EdgeType -> State -> State
+setEdge name edgeType state =
     let
         from =
             state.currentId
@@ -120,7 +122,6 @@ addEdge name edgeType state =
     in
     { state | graph = g, maxId = to }
 
--- TODO: if Dot and parent Squre, setNode
 
 {-| rule for: t.a
 -}
@@ -141,7 +142,7 @@ rule2 term name state =
                 Locator n -> 
                     (setNode (getLocatorLabel n ++ "." ++ name) Rectangle state, Locator 0)
                 t1 -> (setNode ("." ++ name) Rectangle
-                    (addEdge Nothing Solid state), t1)
+                    (setEdge Nothing Solid state), t1)
         s3 =
             case t2 of
                 Locator _ -> s2
@@ -159,7 +160,7 @@ rule3 t1 name t2 state =
 
         -- add solid edge with label _a_ to a new node for term _t2_
         s1 =
-            addEdge (Just name) Solid state
+            setEdge (Just name) Solid state
 
         -- build subgraph for _t2_ with new node's id
         s2 =
@@ -168,7 +169,7 @@ rule3 t1 name t2 state =
         -- since it's an application to _t1_
         -- add dashed edge without a label to a new node for term _t1_
         s3 =
-            addEdge Nothing Dashed {s2 | currentId = state.currentId}
+            setEdge Nothing Dashed {s2 | currentId = state.currentId}
 
         -- build subgraph for _t1_ with new node's id
         s4 =
@@ -225,7 +226,7 @@ rule4 n state =
 termToDotString : Term -> String
 termToDotString term =
     let
-        state = toGraph term emptyState
+        state = toGraph term initialState
         s = G.getDOT state.graph
     in
     s
@@ -238,7 +239,7 @@ parseToDotString s =
                 Ok t -> t
                 Err _ -> Locator 0 
 
-        state = toGraph term emptyState
+        state = toGraph term initialState
         s1 = G.getDOT state.graph
     in
     s1

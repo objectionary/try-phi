@@ -112,7 +112,7 @@ getDOT graph =
                             , "[ "
                             , case node.label of
                                 Nothing ->
-                                    "shape = point"
+                                    ""
 
                                 Just l ->
                                     "label = <" ++ l ++ ">, shape = square"

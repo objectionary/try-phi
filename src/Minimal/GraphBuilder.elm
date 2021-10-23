@@ -176,6 +176,7 @@ rule3 t1 name t2 state =
     in
     s4
 
+sup : Dict Char Char
 sup = 
     Dict.fromList 
         [
@@ -191,21 +192,21 @@ sup =
             ('9', '⁹')
         ]
 
-getWithDefault : Dict Char Char -> Char -> Char
-getWithDefault dict c = 
+getWithDefault : Dict comparable b -> comparable -> b -> b
+getWithDefault dict c default = 
     case Dict.get c dict of
         Just c1 -> c1
-        Nothing -> ' '
+        Nothing -> default
 
 numberSup : String -> String
 numberSup s =
-    List.foldr (\a b -> b ++ (String.fromChar (getWithDefault sup a))) "" (String.toList s)
+    List.foldr (\a b -> b ++ (String.fromChar (getWithDefault sup a ' '))) "" (String.toList s)
 
 getLocatorLabel : Int -> String
 getLocatorLabel locator =
     case locator of
         0 -> "ξ"
-        n -> "ρ" ++ numberSup (String.fromInt n)
+        n -> "𝛒" ++ numberSup (String.fromInt n)
 
 {-| rule for: ρⁿ
 -}
@@ -257,7 +258,5 @@ test = parseToDotString
 -- test "[ a->$.t(a->$.b) ]"
 -- test "[ a->[b->$.c](a->$.b), d->$.a ]"
 -- test "[t->^.a(a1->$.t1)(a2->$.t2).b]"
-
--- Didm't render with svg
 -- test "[p->[a->?](a->^.d)]"
 -- test "[x->[y->^.^.a(a1->$.t1)(a2->$.t2).b.c.d]]"

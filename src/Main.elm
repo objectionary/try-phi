@@ -26,7 +26,6 @@ port switchMode : (Int -> msg) -> Sub msg
 port replaceCodeWith : String -> Cmd msg
 port updateGraph : String -> Cmd msg
 
-port giveChocolate : String -> Cmd msg
 -- MAIN
 
 

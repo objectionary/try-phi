@@ -66,7 +66,7 @@ combine ( name, value ) state =
             { s2 | currentId = state.currentId }
 
         Void ->
-            s1
+            setNode s1.maxId G.Square s1
 
 
 {-| rule for: ⟦ a₁ ↦ ∅, …, aₖ ↦ ∅, b₁ ↦ t₁, …, bₙ ↦ tₙ ⟧

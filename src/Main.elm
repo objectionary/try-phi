@@ -13,11 +13,12 @@ import Browser
 import Full.Examples exposing (Example)
 import Full.PrettyASCII
 import Helper.Phi as Phi
-import Html exposing (Html, div, p, pre, text, h5, b)
+import Html exposing (Html, div, p, pre, text, b)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
 import Minimal.GraphBuilder exposing (parseToDotString)
-
+import Minimal.Examples
+import Minimal.Pretty
 
 port codeUpdateReceiver : (String -> msg) -> Sub msg
 port switchMode : (Int -> msg) -> Sub msg
@@ -131,12 +132,17 @@ view model =
         [ p [] [ b [] [text "Dataization "], text "(via term reduction) steps:" ]
         , pre [] [ text model.feedback ]
         , p [] [ b [] [text "Examples "], text"(click on example to try it out):" ]
-        , Html.ol [] (List.map viewExample Full.Examples.examples)
+        , Html.ol [] (viewExamples model)
         ]
 
+viewExamples : Model -> List (Html Msg)
+viewExamples model = 
+    case model.mode of
+        Phi.MinimalPhi -> List.map viewMinimalExample Minimal.Examples.examples
+        Phi.FullPhi -> List.map viewFullExample Full.Examples.examples
 
-viewExample : Example -> Html Msg
-viewExample example =
+viewFullExample : Full.Examples.Example -> Html Msg
+viewFullExample example =
     Html.li []
         [ Html.code
             [ class "example"
@@ -144,4 +150,15 @@ viewExample example =
             , onClick (Example example.raw)
             ]
             [ text (Full.PrettyASCII.ppTerm Phi.pp example.term) ]
+        ]
+
+viewMinimalExample : Minimal.Examples.Example -> Html Msg
+viewMinimalExample example =
+    Html.li []
+        [ Html.code
+            [ class "example"
+            , title example.description
+            , onClick (Example example.raw)
+            ]
+            [ text (Minimal.Pretty.ppTerm example.term) ]
         ]

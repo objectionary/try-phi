@@ -211,7 +211,7 @@ getLocatorLabel locator =
             "ξ"
 
         n ->
-            "𝛒" ++ numberSup (String.fromInt n)
+            "𝜌" ++ numberSup (String.fromInt n)
 
 
 {-| rule for: ρⁿ

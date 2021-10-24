@@ -141,16 +141,22 @@
       /* process the code in the Elm application */
       app.ports.codeUpdateReceiver.send(myCodeMirror.getValue());
     });
-
+    
+    var minimal_snippet = "[ u ->\n  [ x ->\n    [ y -> $.a\n    , z -> ?\n    ](z -> ^.^.x.y)\n  ].x.z\n, @ -> $.u\n].inc";
+    var full_snippet = "[ u ->\n  [ x ->\n    [ y -> 1\n    , z -> ?\n    ](z -> x.y)\n  ].x.z\n, @ -> $.u\n].inc";
+    
     /*upon toggle*/
     function switch_mode() {
       var toggler = document.getElementById('toggler');
       if (toggler.checked) {
         app.ports.switchMode.send(1);
+        snippet = full_snippet;
       }
       else {
         app.ports.switchMode.send(0);
+        snippet = minimal_snippet;
       }
+      myCodeMirror.setValue(snippet);
     }
 
     /* upon Elm application requesting a change of code */
@@ -172,14 +178,7 @@
 
     /* use default snippet if one is not set in the query parameters */
     var toggler = document.getElementById('toggler');
-    // Full Phi
-    if (toggler.checked) {
-      snippet = "[ u ->\n  [ x ->\n    [ y -> 1\n    , z -> ?\n    ](z -> x.y)\n  ].x.z\n, @ -> $.u\n].inc";
-    }
-    // Minimal Phi
-    else {
-      snippet = "[ u ->\n  [ x ->\n    [ y -> $.a\n    , z -> ?\n    ](z -> ^.^.x.y)\n  ].x.z\n, @ -> $.u\n].inc";
-    }
+    snippet = toggler.checked ? full_snippet : minimal_snippet;
     
     if (params.has("snippet")) {
       snippet = decodeURIComponent(params.get("snippet"));

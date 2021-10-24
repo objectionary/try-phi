@@ -48,7 +48,7 @@ To develop locally:
 
 ## Run
 
-### Option 2 with auto-reload on `.elm`-file changes:
+### Option 1 with auto-reload on `.elm`-file changes:
 * Install [elm-live](https://github.com/wking-io/elm-live)
 
 * Run (on Windows, use `cmd`)
@@ -58,7 +58,7 @@ To develop locally:
 
 * Go to http://localhost:8000/src/index.html
 
-### Option 1
+### Option 2
 1. Run Elm reactor:
     ```
     elm reactor

@@ -1,6 +1,6 @@
-module Phi.Minimal.Pretty exposing (..)
+module Minimal.Pretty exposing (..)
 
-import Phi.Minimal.Syntax exposing (..)
+import Minimal.Syntax exposing (..)
 import Dict
 import Tuple
 

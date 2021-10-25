@@ -1,4 +1,4 @@
-module Phi.Syntax exposing (..)
+module Full.Syntax exposing (..)
 
 import Dict exposing (Dict)
 

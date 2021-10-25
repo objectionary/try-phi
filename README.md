@@ -1,3 +1,5 @@
+# 𝜑-calculus playground
+
 <img src="https://www.yegor256.com/images/books/elegant-objects/cactus.svg" height="100px" />
 
 Try [𝜑-calculus](https://www.eolang.org) online: [click here](https://polystat.github.io/try-phi/).
@@ -28,42 +30,54 @@ Right now we implement it as a term rewriting system with the following features
 ## How to contribute
 
 This project is powered by [Elm language](https://elm-lang.org).
-To develop locally, install Elm, clone this repository:
+To develop locally: 
 
-```sh
-$ git clone git@github.com:polystat/try-phi.git
-```
+1. [Install](https://guide.elm-lang.org/install/elm.html) Elm 
 
-Then go into the cloned repository and build the project:
+1. Clone this repository:
+    ```sh
+    git clone git@github.com:polystat/try-phi.git
+    ```
 
-```sh
-$ cd try-phi
-$ elm make src/Main.elm --output=src/Main.js
-```
+1. Then `cd` into the cloned repository
+    ```sh
+    git clone git@github.com:polystat/try-phi.git
+    ```
+1. Run the project
 
-Now run Elm reactor:
 
-```
-$ elm reactor
-```
+## Run
 
-You should see a message like this one:
+### Option 1 with auto-reload on `.elm`-file changes:
+* Install [elm-live](https://github.com/wking-io/elm-live)
 
-```
-Go to http://localhost:8000 to see your project dashboard.
-```
+* Run (on Windows, use `cmd`)
+    ```sh
+    elm-live src/Main.elm -- --o=src/Main.js
+    ```
 
-You can then go there to `src > index.html`.
-Or just go to http://localhost:8000/src/index.html
+* Go to http://localhost:8000/src/index.html
 
-Whenever you modify the code, rebuild the JS file:
+### Option 2
+1. Run Elm reactor:
+    ```
+    elm reactor
+    ```
 
-```sh
-$ elm make src/Main.elm --output=src/Main.js
-```
+1. You should see a message like this one:
+    ```
+    Go to http://localhost:8000 to see your project dashboard.
+    ```
+1. Now, go to http://localhost:8000/src/index.html
 
-And reload the page :)
+1. Whenever you modify the code:
+    1. Rebuild the `Main.js` file
+        ```sh
+        elm make src/Main.elm --output=src/Main.js
+        ```
+    1. And reload the page :)
 
-If you want to see documentation, install [elm-doc-preview](https://github.com/dmy/elm-doc-preview)
+## Documentation
+* Install [elm-doc-preview](https://github.com/dmy/elm-doc-preview)
 
-In terminal, type `edp`
+* In terminal, type `edp`

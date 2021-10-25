@@ -1,15 +1,12 @@
-module Phi exposing (..)
+module Helper.Phi exposing (..)
 
 import Parser
-import Phi.Syntax exposing (DefaultTerm)
-import Phi.Pretty
-import Phi.Parser
-import Phi.Eval
-import Phi.Examples
-
-import Phi.Minimal.Parser
-import Phi.Minimal.Pretty
-import Phi.Minimal.Syntax
+import Full.Pretty
+import Full.Parser
+import Full.Eval
+import Minimal.Parser
+import Minimal.Pretty
+import Minimal.Syntax
 
 type Mode
   = FullPhi
@@ -19,39 +16,39 @@ interpretStepsN : Mode -> Int -> String -> String
 interpretStepsN mode n input =
   case mode of
     FullPhi ->
-      case Phi.Parser.parse input of
+      case Full.Parser.parse input of
         Err err -> "ERROR: failed to parse input:\n" ++ Parser.deadEndsToString err
-        Ok t -> Phi.Pretty.ppStepsN pp (Phi.Eval.dataizeStepsN n t)
+        Ok t -> Full.Pretty.ppStepsN pp (Full.Eval.dataizeStepsN n t)
 
     MinimalPhi ->
-      case Phi.Minimal.Parser.parse input of
+      case Minimal.Parser.parse input of
         Err err -> "ERROR: failed to parse input:\n" ++ Parser.deadEndsToString err
-        Ok t -> Phi.Minimal.Pretty.ppTerm (Phi.Minimal.Syntax.whnf t)
+        Ok t -> Minimal.Pretty.ppTerm (Minimal.Syntax.whnf t)
 
 interpretSteps : String -> String
 interpretSteps input =
-  case Phi.Parser.parse input of
+  case Full.Parser.parse input of
     Err err -> "ERROR: failed to parse input:\n" ++ Parser.deadEndsToString err
-    Ok t -> Phi.Pretty.ppSteps pp (Phi.Eval.dataizeSteps t)
+    Ok t -> Full.Pretty.ppSteps pp (Full.Eval.dataizeSteps t)
 
 interpret : String -> String
 interpret input =
-  case Phi.Parser.parse input of
+  case Full.Parser.parse input of
     Err err -> "ERROR: failed to parse input:\n" ++ Parser.deadEndsToString err
     Ok t ->
-      case Phi.Eval.dataize t of
+      case Full.Eval.dataize t of
         Err t2 ->
           "ERROR: failed to dataize term" ++
           "\n  " ++
-          "\n  " ++ Phi.Pretty.ppTerm pp t ++
+          "\n  " ++ Full.Pretty.ppTerm pp t ++
           "\n" ++
           "\ncould not reduce further than its weak head normal form:" ++
           "\n  " ++
-          "\n  " ++ Phi.Pretty.ppTerm pp t2
+          "\n  " ++ Full.Pretty.ppTerm pp t2
         Ok result ->
           "SUCCESS: dataization of the following term" ++
           "\n  " ++
-          "\n  " ++ Phi.Pretty.ppTerm pp t ++
+          "\n  " ++ Full.Pretty.ppTerm pp t ++
           "\n  " ++
           "\nhas been successfully dataized to value" ++
           "\n  " ++

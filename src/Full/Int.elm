@@ -1,8 +1,8 @@
-module Phi.Int exposing (..)
+module Full.Int exposing (..)
 
-import Phi.Syntax exposing (..)
+import Full.Syntax exposing (..)
 import Dict
-import Phi.Eval exposing (dataizeWith, whnfWith)
+import Full.Eval exposing (dataizeWith, whnfWith)
 
 mkInt : Int -> DefaultTerm
 mkInt = Object << mkIntObject

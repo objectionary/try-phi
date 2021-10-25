@@ -1,4 +1,4 @@
-module Phi.Minimal.Parser exposing (..)
+module Minimal.Parser exposing (..)
 
 {-| A term of Minimal 𝜑-calculus typed in online editor is in
 one of the following forms:
@@ -13,7 +13,7 @@ one of the following forms:
 
 import Dict
 import Parser exposing (..)
-import Phi.Minimal.Syntax exposing (..)
+import Minimal.Syntax exposing (..)
 import Set
 
 {-| Parse String to get an error or a Term-}

@@ -53,7 +53,7 @@ To develop locally:
 
 * Run (on Windows, use `cmd`)
     ```sh
-    elm-live src/Main.elm -- --o=src/Main.js
+    elm-live src/Main.elm -- --output=src/Main.js
     ```
 
 * Go to http://localhost:8000/src/index.html

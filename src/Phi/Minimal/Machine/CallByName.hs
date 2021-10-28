@@ -33,7 +33,9 @@ initConfiguration term = Configuration
   }
 
 steps :: Configuration -> [Configuration]
-steps = unfoldr (\conf -> (,) conf <$> step conf)
+steps c = c : unfoldr (\conf -> dup <$> step conf) c
+  where
+    dup x = (x, x)
 
 step :: Configuration -> Maybe Configuration
 step conf@Configuration{..} =

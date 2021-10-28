@@ -47,6 +47,9 @@ toGraphBuilder = \case
     edgeFromTo node (AttrEdge a) unode
     return node
 
-toGraph :: DynGraph gr => Term -> gr TermNode TermEdge
+toGraph :: DynGraph gr => Term -> (Graph.Node, gr TermNode TermEdge)
 toGraph = buildGraph VoidNode . toGraphBuilder
+
+toGraph_ :: DynGraph gr => Term -> gr TermNode TermEdge
+toGraph_ = snd . toGraph
 

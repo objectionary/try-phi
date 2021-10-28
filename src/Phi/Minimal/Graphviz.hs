@@ -14,10 +14,13 @@ import           Phi.Minimal.Graph
 import           Phi.Minimal.Model                 (Term)
 
 toGraphviz :: Term -> GraphViz.DotGraph Graph.Node
-toGraphviz = GraphViz.graphToDot params . (toGraph @Gr)
+toGraphviz = GraphViz.graphToDot params . (toGraph_ @Gr)
   where
     params = GraphViz.nonClusteredParams
-      { GraphViz.globalAttributes = [GraphViz.GraphAttrs [GraphViz.Size (GraphViz.GSize 100 Nothing False)]]
+      { GraphViz.globalAttributes = [ GraphViz.GraphAttrs
+          [ GraphViz.Size (GraphViz.GSize 100 Nothing False)
+          , GraphViz.Layout GraphViz.Dot
+          ] ]
       , GraphViz.fmtNode = fmtTermNode
       , GraphViz.fmtEdge = fmtTermEdge
       }

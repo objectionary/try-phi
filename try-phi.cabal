@@ -4,7 +4,7 @@ cabal-version: 1.24
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: bf19c01a1118fd62c09a38b2ef0f9316819efe4c35d69d7b18227e676f063135
+-- hash: c126a4c428a531973ac8831fda0ba077a49aea49e26163e236a4917b75060b7c
 
 name:           try-phi
 version:        0.1.0.0
@@ -37,6 +37,7 @@ library
       Phi.Minimal.Graph
       Phi.Minimal.Graphviz
       Phi.Minimal.Machine.CallByName
+      Phi.Minimal.Machine.CallByName.Graph
       Phi.Minimal.Model
       Phi.Minimal.Pretty
       Phi.Utils.GraphBuilder

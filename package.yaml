@@ -63,13 +63,21 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
-    dependencies:
-    - try-phi
-    - miso >= 1.8
-    - jsaddle
-    - jsaddle-warp
-    - warp
-    - websockets
+    when:
+      - condition: impl(ghcjs)
+        then:
+          dependencies:
+          - try-phi
+          - miso >= 1.8
+          - jsaddle
+        else:
+          dependencies:
+          - try-phi
+          - miso >= 1.8
+          - jsaddle
+          - jsaddle-warp
+          - warp
+          - websockets
 
 tests:
   try-phi-test:

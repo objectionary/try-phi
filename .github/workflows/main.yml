@@ -34,7 +34,7 @@ jobs:
       - run: nix-build
       
       - run: |
-          cp -r ./result/bin/app.jsexe/ dist/
+          cp -r ./result/bin/try-phi.jsexe/ dist/
           chmod -R +w dist/
           cp index.html dist/.
           cp styles.css dist/.

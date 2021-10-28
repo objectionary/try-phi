@@ -67,6 +67,12 @@ ppLoc n = pretty ("ρ" <> n')
         Just c' -> c'
         _       -> c
 
+ppWhnfSteps :: Term -> Doc ann
+ppWhnfSteps term = encloseSepAfter "" "" hardline $
+  zipWith ppStep [1 :: Int ..] (whnfSteps term)
+  where
+    ppStep i t = Doc.fill 5 (Doc.brackets (pretty i)) <+> align (ppTerm t)
+
 -- * Call-by-name term reduction machine
 
 ppStepsFor :: Term -> Doc ann

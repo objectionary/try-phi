@@ -8,4 +8,4 @@ import           Phi.Minimal.Graphviz (renderAsDot)
 import           Phi.Minimal.Model
 import           Phi.Minimal.Pretty   (ppConfiguration, ppGraphConfiguration,
                                        ppGraphConfiguration', ppGraphStepsFor,
-                                       ppStepsFor, ppTerm)
+                                       ppStepsFor, ppTerm, ppWhnfSteps)

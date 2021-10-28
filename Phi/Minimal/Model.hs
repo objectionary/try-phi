@@ -12,7 +12,7 @@ module Phi.Minimal.Model where
 
 import           Data.HashMap.Strict.InsOrd (InsOrdHashMap)
 import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
-import           Data.List                  (foldl')
+import           Data.List                  (foldl', unfoldr)
 import           GHC.Exts                   (IsList (..))
 
 type Attr = String
@@ -86,6 +86,39 @@ substituteLocator (k, v) = \case
     | n <  k    -> Loc n
     | n == k    -> v
     | otherwise -> Loc (n - 1)
+
+whnfSteps :: Term -> [Term]
+whnfSteps term = term : unfoldr (fmap dup . whnfStep) term
+  where
+    dup x = (x, x)
+
+whnfStep :: Term -> Maybe Term
+whnfStep = \case
+  Dot t a ->
+    case t of
+      Obj o ->
+        case o .? a of
+          Just VoidAttr     -> Nothing
+          Just (Attached u) -> Just (substituteLocator (0, t) u)
+          Nothing           ->
+            case o .? "𝜑" of
+              Just _  -> Just (Dot (Dot t "𝜑") a)
+              Nothing -> Nothing
+
+      _ -> (`Dot` a) <$> whnfStep t
+
+  App t (a, u) ->
+    case t of
+      Obj o ->
+        case o .? a of
+          Just VoidAttr     -> Just (Obj (o .= (a, incLocators u)))
+          Just (Attached _) -> Nothing
+          Nothing           -> Nothing
+
+      _ -> (`App` (a, u)) <$> whnfStep t
+
+  Obj{} -> Nothing
+  Loc{} -> Nothing
 
 -- | Compute a term to its weak head normal form (does not compute inside of objects).
 whnf :: Term -> Term

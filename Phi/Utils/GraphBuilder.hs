@@ -49,8 +49,11 @@ setRoot :: Graph.Node -> GraphBuilder gr a b ()
 setRoot node = do
   modify (\s -> s { graphBuilderRoot = Just node })
 
-buildGraph :: DynGraph gr => a -> GraphBuilder gr a b x -> gr a b
+buildGraph :: DynGraph gr => a -> GraphBuilder gr a b x -> (x, gr a b)
 buildGraph voidLabel
-  = graphBuilderGraph
-  . flip execState (voidNodeGraphBuilderState voidLabel)
+  = fmap graphBuilderGraph
+  . flip runState (voidNodeGraphBuilderState voidLabel)
   . runGraphBuilder
+
+buildGraph_ :: DynGraph gr => a -> GraphBuilder gr a b x -> gr a b
+buildGraph_ voidLabel = snd . buildGraph voidLabel

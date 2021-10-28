@@ -232,19 +232,16 @@ rule4 n state =
 parseToDotString : String -> String
 parseToDotString s =
     let
-        term =
-            case parse s of
-                Ok t ->
-                    t
+        s1 = 
+            case s of
+                "" -> "digraph g {\"The term is empty\"}"
+                _ -> 
+                    case parse s of
+                        Ok t ->
+                            G.getDOT (.graph (toGraph t initialState))
 
-                Err _ ->
-                    Locator 0
-
-        state =
-            toGraph term initialState
-
-        s1 =
-            G.getDOT state.graph
+                        Err _ ->
+                            "digraph g {\"There is a mistake\nin your term\"}"
     in
     s1
 

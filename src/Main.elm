@@ -76,9 +76,7 @@ getDot mode s =
             "digraph g {\"Phi.Full\n is not yet\n supported\"}"
 
         Phi.MinimalPhi ->
-            if String.isEmpty s
-                then "digraph g {\"Graph is empty\"}"
-                else parseToDotString s
+            parseToDotString s
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =

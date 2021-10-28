@@ -1,5 +1,5 @@
 with (import (builtins.fetchTarball {
-  url = "https://github.com/dmjio/miso/archive/ea25964565074e73d4052b56b60b6e101fa08bc5.tar.gz";
-  sha256 = "1yb9yvc0ln4yn1jk2k5kwwa1s32310abawz40yd8cqqkm1z7w6wg";
+  url = "https://github.com/dmjio/miso/archive/0da022336839ccbbb1024a9b3b71e8d9d06f1576.tar.gz";
+  sha256 = "05fqj935dashzld19wkgc2f8xvs4z47frqqjls2lqhiic767gls7";
 }) {});
-pkgs.haskell.packages.ghcjs.callCabal2nix "app" ./. {}
+pkgs.haskell.packages.ghcjs.callCabal2nix "try-phi" ./. {}

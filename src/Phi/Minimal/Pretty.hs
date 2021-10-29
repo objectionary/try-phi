@@ -6,8 +6,7 @@
 module Phi.Minimal.Pretty where
 
 import           Data.Graph.Inductive.PatriciaTree    (Gr)
-import           Data.HashMap.Strict                  (HashMap)
-import qualified Data.HashMap.Strict                  as HashMap
+import           Data.HashMap.Strict.InsOrd           (InsOrdHashMap)
 import qualified Data.HashMap.Strict.InsOrd           as InsOrdHashMap
 import           Data.Text.Prettyprint.Doc            as Doc
 
@@ -103,12 +102,12 @@ ppParent :: Parent -> Doc ann
 ppParent Parent{..} = tupled
   [ ppObj original, ppApplications applications ]
 
-ppApplications :: HashMap Attr (Term, Environment) -> Doc ann
+ppApplications :: InsOrdHashMap Attr (Term, Environment) -> Doc ann
 ppApplications o
   | null o = "⟦⟧"
   | otherwise
     = group . nest 2 . encloseSepAfter ("⟦" <> line) (nest (-2) (line <> "⟧")) (comma <> line)
-    . map (ppAction . AppAction) . HashMap.toList
+    . map (ppAction . AppAction) . InsOrdHashMap.toList
     $ o
 
 -- * Call-by-name graph-assisted evaluation machine

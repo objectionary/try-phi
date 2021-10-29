@@ -7,9 +7,6 @@ import           Data.Text.Prettyprint.Doc as Doc
 
 import           Phi.Minimal.Model
 
-instance Show Term where show = show . pretty
-instance Pretty Term where pretty = ppTerm
-
 ppTerm :: Term -> Doc ann
 ppTerm = \case
   Obj o -> let (_, attached) = splitAttrs o in ppAttachedAttrs attached

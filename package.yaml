@@ -30,6 +30,7 @@ ghc-options:
 
 dependencies:
 - base >= 4.7 && < 5
+- QuickCheck
 - ansi-terminal
 - bifunctors
 - bound
@@ -51,6 +52,7 @@ dependencies:
 - transformers
 - trifecta
 - unordered-containers
+- unification-fd
 
 library:
   source-dirs: src
@@ -76,11 +78,9 @@ executables:
           - miso >= 1.8
           - jsaddle
           - jsaddle-warp
-          - warp
-          - websockets
 
 tests:
-  try-phi-test:
+  spec:
     main:                Spec.hs
     source-dirs:         test
     ghc-options:
@@ -89,6 +89,8 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - try-phi
+    - hspec
+    - QuickCheck
 
   doctests:
     source-dirs: test

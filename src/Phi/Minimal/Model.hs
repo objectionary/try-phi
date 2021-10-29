@@ -224,6 +224,53 @@ ex6 = Dot (Dot (App t ("z", u)) "x") "y"
             , ("z", VoidAttr) ]
     u = Obj []
 
+ex7 :: Term
+ex7 = App t ("y", u)
+  where
+    t = Obj [ ("x", VoidAttr), ("y", VoidAttr), ("z", Attached (Loc 0)) ]
+    u = App (Dot (Dot (Loc 1) "x") "a") ("y", (Dot (Loc 1) "a"))
+
+ex8 :: Term
+ex8 = Dot (Obj [("x", Attached $ App (Dot (Loc 3) "y") ("y", Dot (Loc 3) "z"))]) "x"
+
+ex9 :: Term
+ex9 = App (Dot t "d") ("b", Loc 0)
+  where
+    t = Obj [ ("a", VoidAttr)
+            , ("b", VoidAttr)
+            , ("c", Attached (Loc 2))
+            , ("d", Attached (Obj []))
+            , ("e", Attached (Loc 3))
+            ]
+
+ex10 :: Term
+ex10 = Dot t "z"
+  where
+    t = Obj [("x", VoidAttr), ("y", VoidAttr), ("z", Attached (App (Loc 0) ("y", Loc 0)))]
+
+ex11 :: Term
+ex11 = Dot (Obj [("z", Attached (Obj [("z", Attached (Loc 2))]))]) "z"
+
+ex12 :: Term
+ex12 = App (Dot (Obj [("x", Attached (Obj [])), ("z", Attached (Loc 0))]) "x") ("y", Loc 1)
+
+ex13 :: Term
+ex13 = App (Dot (Obj [("x", Attached (Obj []))]) "x") ("y", Loc 0)
+
+ex14 :: Term
+ex14 = Dot (Obj [("x", Attached (App t ("y", Loc 0)))]) "x"
+  where
+    t = Obj [("y", VoidAttr), ("x", Attached (Loc 2))]
+
+ex15 :: Term
+ex15 = Dot (Obj [("a", Attached (Dot ex14 "x"))]) "a"
+
+ex16 :: Term
+ex16 = Dot (Dot t "a") "y"
+  where
+    t = Obj
+      [ ("a", Attached (Obj [("z", Attached (Loc 1)), ("y", Attached (Obj [("x", Attached (Loc 1))]))])) ]
+
 -- * Terms translated from \(\lambda\)-calculus to \(\varphi\)-calculus
 
 -- | Apply a term that represents \(\lambda\)-term to another term.

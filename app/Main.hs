@@ -14,8 +14,6 @@ import qualified Phi.Minimal                      as Phi
 -- | JSAddle import
 #ifndef __GHCJS__
 import           Language.Javascript.JSaddle.Warp as JSaddle
--- import qualified Network.Wai.Handler.Warp         as Warp
--- import           Network.WebSockets
 #endif
 
 #ifndef __GHCJS__

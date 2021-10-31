@@ -116,7 +116,7 @@ viewModel Model{..} =
 
 #ifndef __GHCJS__
 codemirrorGetValue :: JSM MisoString
-codemirrorGetValue = return "[]"
+codemirrorGetValue = return (ms (show Phi.ex6))
 #else
 foreign import javascript unsafe "$r = myCodeMirror.getValue();"
   codemirrorGetValue :: IO MisoString

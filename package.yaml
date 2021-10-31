@@ -51,7 +51,6 @@ dependencies:
 - transformers
 - trifecta
 - unordered-containers
-- unification-fd
 
 library:
   source-dirs: src

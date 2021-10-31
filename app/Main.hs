@@ -68,7 +68,9 @@ viewModel :: Model -> View Action
 viewModel Model{..} =
   case modelAST of
     Left err -> div_ []
-      [ pre_ [] [ text (ms err) ]
+      [ button_ [ onClick Reload ] [ text "Reload" ]
+      , br_ []
+      , pre_ [] [ text (ms err) ]
       ]
     Right term -> div_ []
       [ button_ [ onClick Reload ] [ text "Reload" ]

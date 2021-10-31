@@ -33,6 +33,7 @@ initConfiguration term = Configuration
   , environment = []
   }
 
+-- | Note: this does not work with open argument terms.
 fromParent :: Parent -> Term
 fromParent Parent{..} = Obj $ Object $ InsOrdHashMap.unionWith (flip const)
   (getObject original) (Attached . incLocators . from <$> applications)

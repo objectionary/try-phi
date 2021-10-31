@@ -271,6 +271,20 @@ ex16 = Dot (Dot t "a") "y"
     t = Obj
       [ ("a", Attached (Obj [("z", Attached (Loc 1)), ("y", Attached (Obj [("x", Attached (Loc 1))]))])) ]
 
+ex17 :: Term
+ex17 = Dot (Dot (Obj [ ("x", Attached $ App t ("a", Loc 1)) ]) "x") "y"
+  where
+    t = Obj
+      [ ("a", VoidAttr)
+      , ("y", Attached $ Obj [ ("z", Attached (Loc 1)) ])
+      ]
+
+-- ⟦ v3 ↦ ø, a3 ↦ ρ⁰(v3 ↦ ρ¹.v2)(v3 ↦ ρ¹) ⟧.a3
+ex18 :: Term
+ex18 = Dot (Obj [("x", VoidAttr), ("y", Attached t)]) "y"
+  where
+    t = App (Loc 0) ("x", Loc 1)
+
 -- * Terms translated from \(\lambda\)-calculus to \(\varphi\)-calculus
 
 -- | Apply a term that represents \(\lambda\)-term to another term.

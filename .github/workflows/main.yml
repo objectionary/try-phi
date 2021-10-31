@@ -24,6 +24,7 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
+
       - uses: cachix/install-nix-action@v13
         with:
           nix_path: nixpkgs=channel:nixos-unstable
@@ -31,8 +32,11 @@ jobs:
         with:
           name: miso-haskell
 
-      - run: nix-build
-      
+      - name: Cache install Nix packages
+        uses: rikhuijzer/cache-install@v1
+        with:
+          key: nix-${{ hashFiles('default.nix') }}
+
       - run: |
           cp -r ./result/bin/try-phi.jsexe/ dist/
           chmod -R +w dist/

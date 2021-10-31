@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -Wall -fno-warn-orphans        #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
@@ -16,6 +17,9 @@ import           Phi.Minimal.Model
 
 instance Show Term where show = show . pretty
 instance Pretty Term where pretty = ppTerm
+
+instance Show (AttrValue Term) where show = show . pretty
+instance Pretty (AttrValue Term) where pretty = ppAttrValue
 
 ppTerm :: Term -> Doc ann
 ppTerm = \case
@@ -42,7 +46,7 @@ encloseSepAfter bra ket separator = \case
 
 ppObj :: Object Term -> Doc ann
 ppObj o
-  | null o = "⟦⟧"
+  | null (getObject o) = "⟦⟧"
   | otherwise
     = group . nest 2 . encloseSepAfter ("⟦" <> line) (nest (-2) (line <> "⟧")) (comma <> line)
     . map ppAttrWithValue . InsOrdHashMap.toList . getObject

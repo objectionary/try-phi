@@ -26,7 +26,7 @@ runApp = id
 
 data Model = Model
   { modelSource :: MisoString
-  , modelAST    :: Phi.Term
+  , modelAST    :: Either String Phi.Term
   } deriving (Show, Eq)
 
 -- | Sum type for application events
@@ -39,7 +39,7 @@ data Action
 initModel :: Model
 initModel = Model
   { modelSource = ""
-  , modelAST = Phi.ex6
+  , modelAST = Left "initializing..."
   }
 
 -- | Entry point for a miso application
@@ -59,54 +59,60 @@ main = runApp $ startApp App {..}
 updateModel :: Action -> Model -> Effect Action Model
 updateModel Reload m = m <# do
   Recompile <$> codemirrorGetValue
-updateModel (Recompile _code) m = noEff m
+updateModel (Recompile code) m = noEff m
+  { modelAST = Phi.parseTerm (fromMisoString code) }
 updateModel NoOp m = noEff m
 
 -- | Constructs a virtual DOM from a model
 viewModel :: Model -> View Action
-viewModel Model{..} = div_ []
-  [ button_ [ onClick Reload ] [ text "Reload" ]
-  , br_ []
-  , br_ []
-  , table_ [] [ tr_ []
-    [ td_ []
-        [ div_ [] [text "Original term:"]
-        , pre_ [] [text (ms (show modelAST))] ]
-    , td_ [ width_ "50" ] [ ]
-    , td_ []
-        [ div_ [] [text "Weak head normal form (WHNF):"]
-        , pre_ [] [text (ms (show (Phi.whnf modelAST)))] ]
-    , td_ [ width_ "50" ] [ ]
-    , td_ []
-        [ div_ [] [text "Normal form (NF):"]
-        , pre_ [] [text (ms (show (Phi.nf modelAST)))] ]
-    ] ]
-  , br_ []
+viewModel Model{..} =
+  case modelAST of
+    Left err -> div_ []
+      [ pre_ [] [ text (ms err) ]
+      ]
+    Right term -> div_ []
+      [ button_ [ onClick Reload ] [ text "Reload" ]
+      , br_ []
+      , br_ []
+      , table_ [] [ tr_ []
+        [ td_ []
+            [ div_ [] [text "Original term:"]
+            , pre_ [] [text (ms (show term))] ]
+        , td_ [ width_ "50" ] [ ]
+        , td_ []
+            [ div_ [] [text "Weak head normal form (WHNF):"]
+            , pre_ [] [text (ms (show (Phi.whnf term)))] ]
+        , td_ [ width_ "50" ] [ ]
+        , td_ []
+            [ div_ [] [text "Normal form (NF):"]
+            , pre_ [] [text (ms (show (Phi.nf term)))] ]
+        ] ]
+      , br_ []
 
-  , table_ [] [ tr_ []
-    [ td_ []
-        [ div_ [] [text "Call-by-name term reduction:"]
-        , pre_ [] [text . ms . show $ Phi.ppWhnfSteps modelAST] ]
-    , td_ [ width_ "50" ] [ ]
-    , td_ []
-        [ div_ [] [text "Call-by-name term reduction (via abstract machine):"]
-        , pre_ [] [text . ms . show $ Phi.ppStepsFor modelAST] ]
-    ] ]
-  , br_ []
+      , table_ [] [ tr_ []
+        [ td_ []
+            [ div_ [] [text "Call-by-name term reduction:"]
+            , pre_ [] [text . ms . show $ Phi.ppWhnfSteps term] ]
+        , td_ [ width_ "50" ] [ ]
+        , td_ []
+            [ div_ [] [text "Call-by-name term reduction (via abstract machine):"]
+            , pre_ [] [text . ms . show $ Phi.ppStepsFor term] ]
+        ] ]
+      , br_ []
 
-  , table_ [] [ tr_ []
-    [ td_ []
-        [ div_ [] [text "Call-by-name evaluation on a graph:"]
-        , pre_ [] [text . ms . show $ Phi.ppGraphStepsFor modelAST]
-        ]
-    , td_ [ width_ "50" ] [ ]
-    , td_ []
-        [ img_ [ src_ (ms ("https://quickchart.io/graphviz?layout=dot&format=svg&graph=" <> Phi.renderAsDot modelAST))
-               , height_ "400" ] ]
-    ] ]
-  , br_ []
-  , pre_ [] [ text (ms (Phi.renderAsDot modelAST)) ]
-  ]
+      , table_ [] [ tr_ []
+        [ td_ []
+            [ div_ [] [text "Call-by-name evaluation on a graph:"]
+            , pre_ [] [text . ms . show $ Phi.ppGraphStepsFor term]
+            ]
+        , td_ [ width_ "50" ] [ ]
+        , td_ []
+            [ img_ [ src_ (ms ("https://quickchart.io/graphviz?layout=dot&format=svg&graph=" <> Phi.renderAsDot term))
+                   , height_ "400" ] ]
+        ] ]
+      , br_ []
+      , pre_ [] [ text (ms (Phi.renderAsDot term)) ]
+      ]
 
 #ifndef __GHCJS__
 codemirrorGetValue :: JSM MisoString

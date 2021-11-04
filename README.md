@@ -30,8 +30,8 @@ Right now we implement it as a term rewriting system with the following features
 * Install and open VS Code
 * IDE will ask if you want to clone a repository. Paste URL to this repo
 * Open terminal (`Ctrl+` `)
-* Install stack
-* Build project
+* Install [stack](https://docs.haskellstack.org/en/stable/install_and_upgrade/)
+* Build project and make stack rebuild it on changes
     ```sh
     stack build --watch-all
     ```

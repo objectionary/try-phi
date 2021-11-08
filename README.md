@@ -27,43 +27,23 @@ Right now we implement it as a term rewriting system with the following features
 
 ## How to contribute
 
-This project is powered by [Elm language](https://elm-lang.org).
-To develop locally, install Elm, clone this repository:
-
-```sh
-$ git clone git@github.com:polystat/try-phi.git
-```
-
-Then go into the cloned repository and build the project:
-
-```sh
-$ cd try-phi
-$ elm make src/Main.elm --output=src/Main.js
-```
-
-Now run Elm reactor:
-
-```
-$ elm reactor
-```
-
-You should see a message like this one:
-
-```
-Go to http://localhost:8000 to see your project dashboard.
-```
-
-You can then go there to `src > index.html`.
-Or just go to http://localhost:8000/src/index.html
-
-Whenever you modify the code, rebuild the JS file:
-
-```sh
-$ elm make src/Main.elm --output=src/Main.js
-```
-
-And reload the page :)
-
-If you want to see documentation, install [elm-doc-preview](https://github.com/dmy/elm-doc-preview)
-
-In terminal, type `edp`
+* Install and open VS Code
+* IDE will ask if you want to clone a repository. Paste URL to this repo
+* Open terminal (`Ctrl+` `)
+* Install [stack](https://docs.haskellstack.org/en/stable/install_and_upgrade/)
+* Build project and make stack rebuild it on changes
+    ```sh
+    stack build --watch-all
+    ```
+* Install `Haskell` extension. It will enable linter and documentation on hover
+* Open `app/Main.hs` and hover onto a function and check if docs appear
+* Run this project
+    * Windows
+        ```sh
+        stack exec try-phi-exe
+        ```
+    * Linux, MacOS
+        ```sh
+        stack exec try-phi
+        ```
+* Open in browser http://localhost:8080/

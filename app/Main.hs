@@ -111,9 +111,15 @@ viewModel Model{..} =
         , td_ []
             [ img_ [ src_ (ms ("https://quickchart.io/graphviz?layout=dot&format=svg&graph=" <> Phi.renderAsDot term))
                    , height_ "400" ] ]
+        , td_ [ width_ "50" ] [ ]
+        , td_ []
+            [ img_ [ src_ (ms ("https://quickchart.io/graphviz?layout=dot&format=svg&graph=" <> Phi.renderAsColorfulDot term))
+                   , height_ "400" ] ]
         ] ]
       , br_ []
       , pre_ [] [ text (ms (Phi.renderAsDot term)) ]
+      , br_ []
+      , pre_ [] [ text (ms (Phi.renderAsColorfulDot term)) ]
       ]
 
 #ifndef __GHCJS__

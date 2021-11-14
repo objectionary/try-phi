@@ -38,12 +38,7 @@ Right now we implement it as a term rewriting system with the following features
 * Install `Haskell` extension. It will enable linter and documentation on hover
 * Open `app/Main.hs` and hover onto a function and check if docs appear
 * Run this project
-    * Windows
-        ```sh
-        stack exec try-phi-exe
-        ```
-    * Linux, MacOS
-        ```sh
-        stack exec try-phi
-        ```
+    ```sh
+    stack exec try-phi
+    ```
 * Open in browser http://localhost:8080/

@@ -6,7 +6,7 @@ module Phi.Minimal.Graphviz where
 
 import qualified Data.Graph.Inductive.Graph        as Graph
 import           Data.Graph.Inductive.PatriciaTree (Gr)
-import qualified Data.GraphViz                     as GraphViz
+import qualified Data.GraphViz                     as GraphViz 
 import qualified Data.GraphViz.Attributes.Complete as GraphViz
 import qualified Data.GraphViz.Printing            as GraphViz
 import           Data.Text.Lazy                    (Text)

@@ -31,6 +31,7 @@ custom-setup
 library
   exposed-modules:
       Phi.Minimal
+      Phi.Minimal.ConfigurationDot
       Phi.Minimal.EO.Pretty
       Phi.Minimal.Graph
       Phi.Minimal.Graphviz

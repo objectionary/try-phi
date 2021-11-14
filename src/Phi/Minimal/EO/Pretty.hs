@@ -2,7 +2,7 @@
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Phi.Minimal.EO.Pretty where
-
+-- TODO use Prettyprinter since Doc is deprecated
 import           Data.Text.Prettyprint.Doc as Doc
 
 import           Phi.Minimal.Model

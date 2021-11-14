@@ -144,9 +144,9 @@ ppGraphActions as = foldMap ppGraphAction as
 
 ppGraphAction :: Graph.Action -> Doc ann
 ppGraphAction = \case
-  Graph.DotAction a -> "." <> pretty a
+  Graph.DotAction (_, a) -> "." <> pretty a
   Graph.AppAction (n, e) -> tupled [ pretty n, ppGraphEnvironment e ]
-  Graph.LocAction n -> ppLoc n
+  Graph.LocAction (_, n) -> ppLoc n
 
 ppGraphEnvironment :: Graph.Environment -> Doc ann
 ppGraphEnvironment parents

@@ -34,6 +34,7 @@ initConfiguration term = Configuration
   }
 
 -- | Note: this does not work with open argument terms.
+-- IDK what's 'open argument terms'
 fromParent :: Parent -> Term
 fromParent Parent{..} = Obj $ Object $ InsOrdHashMap.unionWith (flip const)
   (getObject original) (Attached . incLocators . from <$> applications)
@@ -72,7 +73,7 @@ stepThroughN :: Int -> Configuration -> Configuration
 stepThroughN maxSteps = last . take maxSteps . steps
 
 steps :: Configuration -> [Configuration]
-steps c = c : unfoldr (\conf -> dup <$> step conf) c
+steps c = c : unfoldr (\conf -> dup <$> step conf) c --IDK why use dup
   where
     dup x = (x, x)
 

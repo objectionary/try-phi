@@ -56,7 +56,7 @@ fmtTermEdge modeMap (from, to, edge) = edgeFormat
 
     color = flip (:) [] $ Complete.Color $ Colors.toColorList $
       case (Map.lookup from modeMap, Map.lookup to modeMap) of
-        (Just CurrentNode, _) -> currentColor
+        (Just CurrentNode, _) -> []
         (Just ActionNode, Just ActionNode) -> actionColor
         (Just ParentNode, Just ParentNode) -> parentColor
         _ -> []
@@ -107,27 +107,27 @@ getClassifiedNodes c = m3
     m3 = getClassifiedEnvironment env m2
 
 getClassifiedActions :: [CGraph.Action] -> ModeMap -> ModeMap
-getClassifiedActions actions m =
+getClassifiedActions actions modeMap =
   case actions of
-    [] -> Map.empty
+    [] -> modeMap
     (CGraph.DotAction (node, _attr)) : as ->
-      Map.insert node ActionNode (getClassifiedActions as m)
+      Map.insert node ActionNode $ getClassifiedActions as modeMap
     (CGraph.AppAction (node, env)) : as ->
-      Map.insert node ActionNode (getClassifiedActions as (getClassifiedEnvironment env m))
+      Map.insert node ActionNode $ getClassifiedEnvironment env $ getClassifiedActions as modeMap
     (CGraph.LocAction (node, _ord)) : as ->
-      Map.insert node ActionNode (getClassifiedActions as m)
+      Map.insert node ActionNode $ getClassifiedActions as modeMap
 
 getClassifiedEnvironment :: CGraph.Environment -> ModeMap -> ModeMap
-getClassifiedEnvironment environment m =
+getClassifiedEnvironment environment modeMap =
   case environment of
-    [] -> Map.empty
+    [] -> modeMap
     parents ->
-      foldl (\mp par -> Map.insert (CGraph.original par) ParentNode (getClassifiedCopies (CGraph.copies par) mp)) m parents
+      foldl (\m par -> Map.insert (CGraph.original par) ParentNode (getClassifiedCopies (CGraph.copies par) m)) modeMap parents
 
 getClassifiedCopies :: [(Graph.Node, CGraph.Environment)] -> ModeMap -> ModeMap
 getClassifiedCopies parentCopies modeMap =
   case parentCopies of
-    [] -> Map.empty
+    [] -> modeMap
     pcs -> foldl (\m (node, env) -> Map.insert node ParentNode (getClassifiedEnvironment env m)) modeMap pcs
 
 toDot :: Graph.Graph gr => CGraph.Configuration gr -> GraphViz.DotCode

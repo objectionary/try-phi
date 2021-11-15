@@ -1,16 +1,19 @@
+{-# LANGUAGE LambdaCase       #-}
 {-# LANGUAGE TypeApplications #-}
 module Phi.Minimal.Parser where
 
-import           Control.Applicative     ((<|>))
-import           Data.Char               (isPrint, isSpace)
-import           Data.Function           ((&))
-import qualified Data.HashSet            as HashSet
-import           GHC.Exts                (fromList)
-import           Text.Parser.Token       ()
-import           Text.Parser.Token.Style (emptyIdents)
-import           Text.Trifecta           (IdentifierStyle (..), Parser,
-                                          TokenParsing, symbol)
-import qualified Text.Trifecta           as Trifecta
+import           Control.Applicative       ((<|>))
+import           Data.Char                 (isPrint, isSpace)
+import           Data.Function             ((&))
+import qualified Data.HashSet              as HashSet
+import           Data.Text.Prettyprint.Doc as Doc
+import           GHC.Exts                  (fromList)
+import           Text.Parser.Token         ()
+import           Text.Parser.Token.Style   (emptyIdents)
+import           Text.Trifecta             (IdentifierStyle (..), Parser,
+                                            TokenParsing, symbol)
+import           Text.Trifecta             ((<?>))
+import qualified Text.Trifecta             as Trifecta
 
 import           Phi.Minimal.Model
 
@@ -35,7 +38,7 @@ pApp = flip App <$> Trifecta.parens
 
 pLoc :: (TokenParsing m, Monad m) => m Term
 pLoc = Loc . fromIntegral
-  <$  (symbol "^" <|> symbol "ρ")
+  <$  ((symbol "^" <|> symbol "ρ") <?> "locator")
   <*> (Trifecta.integer <|> superscriptInteger)
 
 superscriptInteger :: Trifecta.TokenParsing m => m Integer
@@ -63,7 +66,11 @@ pAttrValue = pVoidAttr <|> pAttachedAttr
     pAttachedAttr = Attached <$> pTerm
 
 pAttr :: (TokenParsing m, Monad m) => m Attr
-pAttr = pIdent
+pAttr = normalise <$> pIdent
+  where
+    normalise = \case
+      "@" -> "𝜑"
+      a -> a
 
 pIdent :: (TokenParsing m, Monad m) => m String
 pIdent = Trifecta.ident pIdentStyle
@@ -85,8 +92,11 @@ isDelim c = c `elem` ("()[]{},⟦⟧↦." :: String)
 
 -- ** Helpers
 
+(<??>) :: String -> Parser a -> Parser a
+(<??>) = flip (<?>)
+
 parseString :: Parser a -> String -> Either String a
 parseString parser input =
   case Trifecta.parseString parser mempty input of
     Trifecta.Success x       -> Right x
-    Trifecta.Failure errInfo -> Left (show errInfo)
+    Trifecta.Failure errInfo -> Left (show (Doc.unAnnotate (Trifecta._errDoc errInfo)))

@@ -55,13 +55,13 @@ fmtTermEdge modeMap (from, to, edge) = edgeFormat
         CopyEdge   -> [GraphViz.style GraphViz.dotted]
 
     color = flip (:) [] $ Complete.Color $ Colors.toColorList $
-      case (Map.lookup from modeMap, Map.lookup to modeMap) of
+      case (Map.lookup from modeMap, Map.lookup from modeMap) of
         (Just CurrentNode, _) -> []
-        (Just ActionNode, Just ActionNode) -> actionColor
+        (Just ActionNode, _) -> actionColor
         (Just ParentNode, Just ParentNode) -> parentColor
         _ -> []
 
-    edgeFormat = label ++ color
+    edgeFormat = label ++ []
 
 
 fmtTermNode :: ModeMap -> (Graph.Node, TermNode) -> [GraphViz.Attribute]

@@ -17,6 +17,9 @@ data Parent = Parent
   , original :: Graph.Node
   }
 
+-- .x uniquely determines an edge
+-- 
+
 data Action
 -- need to remember nodes for each action
   = DotAction (Graph.Node, Attr)

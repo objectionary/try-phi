@@ -8,10 +8,11 @@ import qualified Data.GraphViz                     as GraphViz
 import           Data.Graph.Inductive.PatriciaTree (Gr)
 import qualified Data.GraphViz.Attributes.Complete as Complete
 import qualified Data.GraphViz.Attributes.Colors as Colors
+import qualified Data.GraphViz.Attributes as Colors
 import qualified Data.GraphViz.Printing            as GraphViz
-import           Data.Text.Lazy                    (Text)
+import qualified          Data.Text.Lazy as Text
 import qualified Phi.Minimal.Model as Model
-import           Phi.Minimal.Graph
+import Phi.Minimal.Graph ( TermEdge(..), TermNode(..) )
 import qualified Phi.Minimal.Machine.CallByName.Graph as CGraph
 import qualified Data.Map as Map
 -- import Phi.Minimal.Graphviz (toGraphviz)
@@ -38,12 +39,15 @@ toGraphviz c = GraphViz.graphToDot params g
       , GraphViz.fmtEdge = fmtTermEdge modeMap
       }
 
+-- currentColor :: [Colors.Color]
 currentColor :: [Colors.Color]
-currentColor = [Colors.RGBA 135 211 124 255]
+currentColor = [Colors.X11Color Colors.Chartreuse]
+-- actionColor :: [Colors.Color]
 actionColor :: [Colors.Color]
-actionColor = [Colors.RGBA 246 71 71 255]
+actionColor = [Colors.X11Color Colors.Firebrick2]
+-- parentColor :: [Colors.Color]
 parentColor :: [Colors.Color]
-parentColor = [Colors.RGBA 72 113 247 255]
+parentColor = [Colors.X11Color Colors.Blue1]
 
 fmtTermEdge :: ModeMap -> (Graph.Node, Graph.Node, TermEdge) -> [GraphViz.Attribute]
 fmtTermEdge modeMap (from, to, edge) = edgeFormat
@@ -130,14 +134,11 @@ getClassifiedCopies parentCopies modeMap =
     [] -> modeMap
     pcs -> foldl (\m (node, env) -> Map.insert node ParentNode (getClassifiedEnvironment env m)) modeMap pcs
 
-toDot :: Graph.Graph gr => CGraph.Configuration gr -> GraphViz.DotCode
-toDot c = GraphViz.toDot (toGraphviz c)
+renderAsDot :: Graph.Graph gr => CGraph.Configuration gr -> Text.Text
+renderAsDot c = GraphViz.renderDot $ GraphViz.toDot $ toGraphviz c
 
-renderConfigurationAsDot :: Graph.Graph gr => CGraph.Configuration gr -> Text
-renderConfigurationAsDot c = GraphViz.renderDot (toDot c)
+renderAsColorfulDot :: Model.Term -> Text.Text
+renderAsColorfulDot term = renderAsDot @Gr $ last $ CGraph.steps (CGraph.initConfiguration term)
 
-renderAsColorfulDot :: Model.Term -> Text
-renderAsColorfulDot term = renderConfigurationAsDot @Gr $ last $ CGraph.steps (CGraph.initConfiguration term)
-
-exMultiple :: Model.Term -> [Text]
-exMultiple term = map (renderConfigurationAsDot @Gr) $ CGraph.steps $ CGraph.initConfiguration term
+renderList :: Model.Term -> [Text.Text]
+renderList term = map (renderAsDot @Gr) $ CGraph.steps $ CGraph.initConfiguration term

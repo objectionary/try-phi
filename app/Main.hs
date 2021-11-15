@@ -10,7 +10,6 @@ import           Miso
 import           Miso.String
 
 import qualified Phi.Minimal                      as Phi
-
 -- | JSAddle import
 #ifndef __GHCJS__
 import           Language.Javascript.JSaddle.Warp as JSaddle

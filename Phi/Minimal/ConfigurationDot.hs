@@ -8,7 +8,7 @@ import qualified Data.GraphViz                     as GraphViz
 import           Data.Graph.Inductive.PatriciaTree (Gr)
 import qualified Data.GraphViz.Attributes.Complete as Complete
 import qualified Data.GraphViz.Attributes.Colors as Colors
-import qualified Data.GraphViz.Attributes as Colors
+import qualified Data.GraphViz.Attributes as Attributes
 import qualified Data.GraphViz.Printing            as GraphViz
 import qualified          Data.Text.Lazy as Text
 import qualified Phi.Minimal.Model as Model
@@ -41,13 +41,22 @@ toGraphviz c = GraphViz.graphToDot params g
 
 -- currentColor :: [Colors.Color]
 currentColor :: [Colors.Color]
-currentColor = [Colors.X11Color Colors.Chartreuse]
+currentColor = [Colors.X11Color Attributes.Chartreuse]
 -- actionColor :: [Colors.Color]
 actionColor :: [Colors.Color]
-actionColor = [Colors.X11Color Colors.Firebrick2]
+actionColor = [Colors.X11Color Attributes.Firebrick2]
 -- parentColor :: [Colors.Color]
 parentColor :: [Colors.Color]
-parentColor = [Colors.X11Color Colors.Blue1]
+parentColor = [Colors.X11Color Attributes.Blue1]
+
+width :: [Attributes.Attribute]
+width = [Attributes.penWidth 2.6]
+
+makeHightlight :: [Colors.Color] -> [Attributes.Attribute]
+makeHightlight x =
+  case x of
+    [] -> []
+    _ -> Complete.Color (Colors.toColorList x) : width
 
 fmtTermEdge :: ModeMap -> (Graph.Node, Graph.Node, TermEdge) -> [GraphViz.Attribute]
 fmtTermEdge modeMap (from, to, edge) = edgeFormat
@@ -58,14 +67,14 @@ fmtTermEdge modeMap (from, to, edge) = edgeFormat
         AttrEdge a -> [GraphViz.toLabel a]
         CopyEdge   -> [GraphViz.style GraphViz.dotted]
 
-    color = flip (:) [] $ Complete.Color $ Colors.toColorList $
-      case (Map.lookup from modeMap, Map.lookup from modeMap) of
+    highlight = makeHightlight $
+      case (Map.lookup from modeMap, Map.lookup to modeMap) of
         (Just CurrentNode, _) -> []
         (Just ActionNode, _) -> actionColor
         (Just ParentNode, Just ParentNode) -> parentColor
         _ -> []
 
-    edgeFormat = label ++ []
+    edgeFormat = label ++ highlight
 
 
 fmtTermNode :: ModeMap -> (Graph.Node, TermNode) -> [GraphViz.Attribute]
@@ -80,14 +89,14 @@ fmtTermNode modeMap (node, nodeType) = nodeFormat
             , GraphViz.toLabel ("parent " <> show n)]
         ObjNode            -> []
 
-    color = flip (:) [] $ Complete.Color $ Colors.toColorList $
+    highlight = makeHightlight $
         case Map.lookup node modeMap of
           Just CurrentNode -> currentColor
           Just ActionNode  -> actionColor
           Just ParentNode  -> parentColor
           _ -> []
 
-    nodeFormat = label ++ color
+    nodeFormat = label ++ highlight
 
 data NodeMode
   = CurrentNode

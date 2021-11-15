@@ -3,6 +3,7 @@
 {-# LANGUAGE TupleSections #-}
 module Phi.Minimal.Model.Arbitrary where
 
+import           Data.Bifunctor             (first)
 import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
 import           GHC.Exts                   (fromList)
 import           Test.QuickCheck
@@ -20,12 +21,18 @@ instance Arbitrary a => Arbitrary (AttrValue a) where
     [ pure VoidAttr
     , Attached <$> arbitrary ]
 
+newtype Attr' = Attr' { getAttr' :: Attr }
+
+instance Arbitrary Attr' where
+  arbitrary = pure (Attr' "arbitrary")
+  shrink _ = []
+
 shrinkTerm :: Term -> [Term]
 shrinkTerm = \case
   Loc n
     | n > 0     -> [Loc (n - 1)]
     | otherwise -> []
-  Obj o -> Obj . fromList <$> shrink (InsOrdHashMap.toList (getObject o))
+  Obj o -> Obj . fromList <$> (map (first getAttr') <$> shrink (first Attr' <$> InsOrdHashMap.toList (getObject o)))
   App t (a, u) -> concat
     [ [t, u]
     , map (`App` (a, u)) (shrink t)

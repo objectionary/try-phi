@@ -13,11 +13,11 @@ Try out these live examples:
 This is an experimental interpreter for a variant of 𝜑-calculus.
 Right now we implement it as a term rewriting system with the following features (see [formal rules](images/untyped-calculus-rules.png)):
 
-1. We support the following syntax:
+1. We support [this syntax](https://bnfplayground.pauliankline.com/?bnf=%3Cterm%3E%20%3A%3A%3D%20%3Cterm%3E%20%22.%22%20%3Cattribute%3E%20%7C%20%3Cterm%3E%20%22(%22%20%3Csp%3E%20%3Carrow%3E%20%3Csp%3E%20%22)%22%20%7C%20%22%5E%22%20%3Clevel%3E%20%7C%20%22%5B%22%20%3Csp%3E%20%3Clist%3E%20%3Csp%3E%20%22%5D%22%0A%3Csp%3E%20%3A%3A%3D%20%22%20%22*%0A%3Cvoid%3E%20%3A%3A%3D%20%22%3F%22%20%7C%20%22%5B%22%20%3Csp%3E%20%22%5D%22%0A%3Carrow%3E%20%3A%3A%3D%20%3Cattribute%3E%20%3Csp%3E%20%22-%3E%22%20%3Csp%3E%20%3Cterm%3E%0A%3Clist%3E%20%3A%3A%3D%20%3Cattribute%3E%20%3Csp%3E%20%22-%3E%22%20%3Csp%3E%20%3Cvoid%3E%20%7C%20%3Carrow%3E%20%7C%20%3Clist%3E%20%3Csp%3E%20%22%2C%22%20%3Csp%3E%20%3Clist%3E%0A%3Cattribute%3E%20%3A%3A%3D%20%5Ba-z%5D%20(%5Ba-z%5D%20%7C%20%5B0-9%5D)*%0A%3Clevel%3E%20%3A%3A%3D%20%220%22%20%7C%20%5B1-9%5D%20%5B0-9%5D*&name=Target%20Minimal%20Phi)
 
-    1. Objects: `[x -> y, y -> [z -> ?]]` (here `?` stands for free attribute marker `ø`)
-    2. Attributes: `[y -> x].y.z`
-    3. Single named application: `[x -> ?, @ -> x](x -> y)` (`@` stand for 𝜑 attribute)
+    1. Objects: `[x -> ^0.y, y -> [z -> ?]]` (here `?` stands for free attribute marker `ø`)
+    2. Attributes: `[y -> ^0.x].y.z`
+    3. Single named application: `[x -> ?, @ -> ^0.x](x -> ^0.y)` (`@` stand for 𝜑 attribute)
 
 2. By default, the interpreter will try to immediately parse and dataize an expression written in the editor.
 
@@ -27,18 +27,31 @@ Right now we implement it as a term rewriting system with the following features
 
 ## How to contribute
 
+### VS Code
 * Install and open VS Code
+
 * IDE will ask if you want to clone a repository. Paste URL to this repo
+
 * Open terminal (`Ctrl+` `)
+
 * Install [stack](https://docs.haskellstack.org/en/stable/install_and_upgrade/)
-* Build project and make stack rebuild it on changes
+
+* Build project
     ```sh
-    stack build --watch-all
+    stack build
     ```
+
 * Install `Haskell` extension. It will enable linter and documentation on hover
+
+    * "Multi cradle ..." error [troubleshooting](https://stackoverflow.com/q/64650979)
+
 * Open `app/Main.hs` and hover onto a function and check if docs appear
-* Run this project
+
+* Build the project with Nix
     ```sh
-    stack exec try-phi
+    nix-build
     ```
-* Open in browser http://localhost:8080/
+
+* Open `index.html` in browser
+    * In case nothing changes, clear browser cache
+

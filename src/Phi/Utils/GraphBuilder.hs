@@ -12,7 +12,6 @@ data GraphBuilderState gr a b = GraphBuilderState
   , graphBuilderGraph    :: gr a b
   }
 
--- TODO why use x?
 newtype GraphBuilder gr a b x = GraphBuilder {
     runGraphBuilder :: State (GraphBuilderState gr a b) x
   } deriving (Functor, Applicative, Monad, MonadState (GraphBuilderState gr a b))

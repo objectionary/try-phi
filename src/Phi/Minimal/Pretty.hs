@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -Wall -fno-warn-orphans        #-}
+{-# OPTIONS_GHC -Wall -fno-warn-orphans#-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -9,11 +9,13 @@ module Phi.Minimal.Pretty where
 import           Data.Graph.Inductive.PatriciaTree    (Gr)
 import           Data.HashMap.Strict.InsOrd           (InsOrdHashMap)
 import qualified Data.HashMap.Strict.InsOrd           as InsOrdHashMap
+-- TODO use Prettyprinter instead
 import           Data.Text.Prettyprint.Doc            as Doc
 
 import           Phi.Minimal.Machine.CallByName
 import qualified Phi.Minimal.Machine.CallByName.Graph as Graph
 import           Phi.Minimal.Model
+
 
 instance Show Term where show = show . pretty
 instance Pretty Term where pretty = ppTerm

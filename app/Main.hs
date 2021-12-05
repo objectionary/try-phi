@@ -1,6 +1,7 @@
-{-# LANGUAGE CPP               #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards   #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TypeApplications #-}
 
 -- | Haskell module declaration
 module Main where
@@ -10,9 +11,16 @@ import           Miso
 import           Miso.String
 
 import qualified Phi.Minimal                      as Phi
+
+import qualified Phi.Minimal.Machine.CallByName.Graph as CGraph
+import qualified Phi.Minimal.ConfigurationDot as CDot
+
+import           Data.Graph.Inductive.PatriciaTree (Gr)
+
 -- | JSAddle import
 #ifndef __GHCJS__
 import           Language.Javascript.JSaddle.Warp as JSaddle
+
 #endif
 
 #ifndef __GHCJS__
@@ -26,6 +34,7 @@ runApp = id
 data Model = Model
   { modelSource :: MisoString
   , modelAST    :: Either String Phi.Term
+  , graphStepNumber :: Int
   } deriving (Show, Eq)
 
 -- | Sum type for application events
@@ -33,12 +42,15 @@ data Action
   = Recompile MisoString
   | Reload
   | NoOp
+  | NextStep
+  | PrevStep
   deriving (Show, Eq)
 
 initModel :: Model
 initModel = Model
   { modelSource = ""
   , modelAST = Left "initializing..."
+  , graphStepNumber = 0
   }
 
 -- | Entry point for a miso application
@@ -62,9 +74,24 @@ updateModel (Recompile code) m = noEff m
   { modelAST = Phi.parseTerm (fromMisoString code) }
 updateModel NoOp m = noEff m
 
+-- TODO optimize
+-- control step number
+updateModel PrevStep m@Model{..} = 
+  noEff m { graphStepNumber = max 0 (graphStepNumber - 1) }
+updateModel NextStep m@Model{..} = 
+  noEff m { graphStepNumber = min (graphStepNumber + 1) (Prelude.length (getGraphSteps m) - 1)}
+      
+getGraphSteps :: Model -> [CGraph.Configuration Gr]
+getGraphSteps Model{..} =
+  case modelAST of
+        Left _ -> []
+        Right term ->
+          CGraph.steps @Gr (CGraph.initConfiguration term)
+
+
 -- | Constructs a virtual DOM from a model
 viewModel :: Model -> View Action
-viewModel Model{..} =
+viewModel m@Model{..} =
   case modelAST of
     Left err -> div_ []
       [ button_ [ onClick Reload ] [ text "Reload" ]
@@ -100,26 +127,30 @@ viewModel Model{..} =
             , pre_ [] [text . ms . show $ Phi.ppStepsFor term] ]
         ] ]
       , br_ []
-
+      -- TODO add highlight steps
       , table_ [] [ tr_ []
         [ td_ []
             [ div_ [] [text "Call-by-name evaluation on a graph:"]
             , pre_ [] [text . ms . show $ Phi.ppGraphStepsFor term]
             ]
         , td_ [ width_ "50" ] [ ]
-        , td_ []
-            [ img_ [ src_ (ms ("https://quickchart.io/graphviz?layout=dot&format=svg&graph=" <> Phi.renderAsDot term))
-                   , height_ "400" ] ]
+        , button_ [ onClick PrevStep ] [ text "Previous step" ]
+        , button_ [ onClick NextStep ] [ text "Next step" ]
         , td_ [ width_ "50" ] [ ]
-        , td_ []
-            [ img_ [ src_ (ms ("https://quickchart.io/graphviz?layout=dot&format=svg&graph=" <> Phi.renderAsColorfulDot term))
-                   , height_ "400" ] ]
+
+        , td_ [] [ 
+            img_ [
+              let 
+                dotStringState = CDot.renderAsDot @Gr ((getGraphSteps m) !! graphStepNumber)
+              in
+                src_ (ms ("https://quickchart.io/graphviz?layout=dot&format=svg&graph=" <> dotStringState ))
+                , height_ "400" ] ]
         ] ]
-      , br_ []
-      , pre_ [] [ text (ms (Phi.renderAsDot term)) ]
       , br_ []
       , pre_ [] [ text (ms (Phi.renderAsColorfulDot term)) ]
       ]
+
+-- (Graph.steps (Graph.initConfiguration @Gr term))
 
 #ifndef __GHCJS__
 codemirrorGetValue :: JSM MisoString

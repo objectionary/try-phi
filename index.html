@@ -36,7 +36,7 @@
               Minimal
             </label>
             <label class="switch">
-              <input type="checkbox" id="toggler" onchange="switch_mode()" checked>
+              <input type="checkbox" id="toggler" onchange="switch_mode()">
               <span class="slider round"></span>
             </label>
             <label class="selected_mode">
@@ -115,7 +115,8 @@
       // });
 
       /* use default snippet if one is not set in the query parameters */
-      snippet = "[ u ->\n  [ x ->\n    [ y -> 1\n    , z -> ?\n    ](z -> x.y)\n  ].x.z\n, @ -> $.u\n].inc";
+      // snippet = "[ u ->\n  [ x ->\n    [ y -> 1\n    , z -> ?\n    ](z -> x.y)\n  ].x.z\n, @ -> $.u\n].inc";
+      snippet = "[ u -> ^1.x]"
       if (params.has("snippet")) {
         snippet = decodeURIComponent(params.get("snippet"));
       }

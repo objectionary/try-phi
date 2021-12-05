@@ -110,6 +110,8 @@ step conf@Configuration{..} =
                 , actions = as
                 , environment = newEnv
                 }
+    
+    -- FIXME after moving locator data into new vertex
     Just node -> case Graph.context graph node of
       (_, _, LocDotNode (Just n), _) -> Just conf
         { currentNode = Nothing

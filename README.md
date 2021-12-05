@@ -27,6 +27,10 @@ Right now we implement it as a term rewriting system with the following features
 
 ## How to contribute
 
+* Install [nix](https://nixos.org/download.html)
+
+* Install [stack](https://docs.haskellstack.org/en/stable/install_and_upgrade/)
+
 ### VS Code
 * Install and open VS Code
 
@@ -36,9 +40,9 @@ Right now we implement it as a term rewriting system with the following features
 
 * Install [stack](https://docs.haskellstack.org/en/stable/install_and_upgrade/)
 
-* Build project
+* Build project. Also, use this command to rebuild the project
     ```sh
-    stack build
+    sh build.sh
     ```
 
 * Install `Haskell` extension. It will enable linter and documentation on hover
@@ -46,14 +50,7 @@ Right now we implement it as a term rewriting system with the following features
     * "Multi cradle ..." error [troubleshooting](https://stackoverflow.com/q/64650979)
 
 * Open `app/Main.hs` and hover onto a function and check if docs appear
-
-* Remove `try-phi.cabal` file
-
-* Build the project with Nix
-    ```sh
-    nix-build
-    ```
     
 * Open `index.html` in browser
-    * In case nothing changes, clear browser cache
 
+    * In case nothing changes, clear browser cache

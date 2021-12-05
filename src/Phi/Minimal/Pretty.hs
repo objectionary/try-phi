@@ -15,7 +15,6 @@ import           Phi.Minimal.Machine.CallByName
 import qualified Phi.Minimal.Machine.CallByName.Graph as Graph
 import           Phi.Minimal.Model
 
-
 instance Show Term where show = show . pretty
 instance Pretty Term where pretty = ppTerm
 

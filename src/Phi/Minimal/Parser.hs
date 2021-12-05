@@ -3,7 +3,7 @@
 module Phi.Minimal.Parser where
 
 import           Control.Applicative       ((<|>))
-import           Data.Char                 (isPrint, isSpace)
+import           Data.Char                 (isPrint, isSpace, isAlpha, isAlphaNum)
 import           Data.Function             ((&))
 import qualified Data.HashSet              as HashSet
 import           Data.Text.Prettyprint.Doc as Doc
@@ -77,15 +77,12 @@ pIdent = Trifecta.ident pIdentStyle
 
 pIdentStyle :: (TokenParsing m, Monad m) => IdentifierStyle m
 pIdentStyle = (emptyIdents @Parser)
-  { _styleStart     = Trifecta.satisfy isIdentChar
-  , _styleLetter    = Trifecta.satisfy isIdentChar
+  { _styleStart     = Trifecta.satisfy isAlpha
+  , _styleLetter    = Trifecta.satisfy isAlphaNum
   , _styleReserved  = HashSet.fromList [ ]
   }
 
 -- ** Char predicates
-
-isIdentChar :: Char -> Bool
-isIdentChar c = isPrint c && not (isSpace c) && not (isDelim c)
 
 isDelim :: Char -> Bool
 isDelim c = c `elem` ("()[]{},⟦⟧↦." :: String)

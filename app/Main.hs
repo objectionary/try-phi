@@ -127,30 +127,35 @@ viewModel m@Model{..} =
             , pre_ [] [text . ms . show $ Phi.ppStepsFor term] ]
         ] ]
       , br_ []
-      -- TODO add highlight steps
-      , table_ [] [ tr_ []
-        [ td_ []
-            [ div_ [] [text "Call-by-name evaluation on a graph:"]
-            , pre_ [] [text . ms . show $ Phi.ppGraphStepsFor term]
+      , table_ [] [
+          tr_ [] [
+            td_ [] [
+              tr_ [] [
+                button_ [ onClick PrevStep ] [ text "Previous step" ]
+              , button_ [ onClick NextStep ] [ text "Next step" ]
+              ]
+            , tr_ [] [ 
+                div_ [] [text "Call-by-name evaluation on a graph:"]
+              , pre_ [] [text . ms . show $ Phi.ppGraphStepsFor term graphStepNumber]
+              ]
             ]
-        , td_ [ width_ "50" ] [ ]
-        , button_ [ onClick PrevStep ] [ text "Previous step" ]
-        , button_ [ onClick NextStep ] [ text "Next step" ]
-        , td_ [ width_ "50" ] [ ]
-
-        , td_ [] [ 
-            img_ [
-              let 
-                dotStringState = CDot.renderAsDot @Gr ((getGraphSteps m) !! graphStepNumber)
-              in
-                src_ (ms ("https://quickchart.io/graphviz?layout=dot&format=svg&graph=" <> dotStringState ))
-                , height_ "400" ] ]
-        ] ]
-      , br_ []
-      , pre_ [] [ text (ms (Phi.renderAsColorfulDot term)) ]
+          , td_ [ width_ "50" ] [ ]
+          , td_ [] [ 
+              img_ [
+                let 
+                  dotStringState = CDot.renderAsDot @Gr ((getGraphSteps m) !! graphStepNumber)
+                in
+                  src_ (ms ("https://quickchart.io/graphviz?layout=dot&format=svg&graph=" <> dotStringState ))
+                  , height_ "400" 
+              ]
+            ]
+          , td_ [] [
+              pre_ [] [ text (ms (Phi.renderAsColorfulDot term)) ]
+            ]
+          ]
+        ]
       ]
 
--- (Graph.steps (Graph.initConfiguration @Gr term))
 
 #ifndef __GHCJS__
 codemirrorGetValue :: JSM MisoString

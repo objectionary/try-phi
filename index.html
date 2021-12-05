@@ -116,7 +116,8 @@
 
       /* use default snippet if one is not set in the query parameters */
       // snippet = "[ u ->\n  [ x ->\n    [ y -> 1\n    , z -> ?\n    ](z -> x.y)\n  ].x.z\n, @ -> $.u\n].inc";
-      snippet = "[ u -> ^1.x]"
+      // snippet = "[ u -> ^1.x]"
+      snippet = "[x -> ^0.y, y -> ^0.z, z -> [b -> ^0.c, c -> ?](c -> ^0)].x.b"
       if (params.has("snippet")) {
         snippet = decodeURIComponent(params.get("snippet"));
       }

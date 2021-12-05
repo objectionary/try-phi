@@ -7,3 +7,4 @@ src/Main.js
 node_modules/
 .vscode
 .stack-work/
+*.cabal

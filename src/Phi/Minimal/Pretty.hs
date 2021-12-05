@@ -11,7 +11,6 @@ import           Data.HashMap.Strict.InsOrd           (InsOrdHashMap)
 import qualified Data.HashMap.Strict.InsOrd           as InsOrdHashMap
 -- TODO use Prettyprinter instead
 import           Data.Text.Prettyprint.Doc            as Doc
-
 import           Phi.Minimal.Machine.CallByName
 import qualified Phi.Minimal.Machine.CallByName.Graph as Graph
 import           Phi.Minimal.Model
@@ -118,11 +117,15 @@ ppApplications o
 
 -- * Call-by-name graph-assisted evaluation machine
 
-ppGraphStepsFor :: Term -> Doc ann
-ppGraphStepsFor term = encloseSepAfter "" "" hardline $
+ppGraphStepsFor :: Term -> Int -> Doc ann
+ppGraphStepsFor term stepNumber = encloseSepAfter "" "" hardline $
   zipWith ppStep [1 :: Int ..] (Graph.steps (Graph.initConfiguration @Gr term))
   where
-    ppStep i conf = Doc.fill 5 (Doc.brackets (pretty i)) <+> align (ppGraphConfiguration conf)
+    arrowPointer i = Doc.pretty $ if i-1 == stepNumber then "->" else "" :: String
+    ppStep i conf = 
+      Doc.fill 5 (Doc.brackets (pretty i)) 
+      <+> Doc.fill 5 (align (arrowPointer i)) 
+      <+> align (ppGraphConfiguration conf)
 
 ppGraphConfiguration' :: Graph.Configuration Gr -> Doc ann
 ppGraphConfiguration' Graph.Configuration{..} =

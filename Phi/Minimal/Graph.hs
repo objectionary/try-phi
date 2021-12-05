@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -Wall -fno-warn-orphans #-}
 {-# LANGUAGE LambdaCase #-}
 module Phi.Minimal.Graph where
 
@@ -33,7 +33,11 @@ toGraphBuilder = \case
       sub <- toGraphBuilder subterm
       edgeFromTo node (AttrEdge attr) sub
     return node
-  Loc n -> freshNode (LocDotNode (Just n))
+  Loc n -> do
+    node1 <- freshNode (LocDotNode (Just n))
+    node2 <- freshNode (LocDotNode Nothing)
+    edgeFromTo node1 (AttrEdge (prettyLocator n)) node2
+    return node1
   Dot t a -> do
     node <- freshNode (LocDotNode Nothing)
     sub <- toGraphBuilder t
@@ -46,6 +50,15 @@ toGraphBuilder = \case
     edgeFromTo node CopyEdge tnode
     edgeFromTo node (AttrEdge a) unode
     return node
+
+prettyLocator :: Int -> String
+prettyLocator n = "ρ" <> n'
+  where
+    n' = map toSuperscript (show n)
+    toSuperscript c =
+      case lookup c (zip "1234567890" "¹²³⁴⁵⁶⁷⁸⁹⁰") of
+        Just c' -> c'
+        _       -> c
 
 toGraph :: DynGraph gr => Term -> (Graph.Node, gr TermNode TermEdge)
 toGraph = buildGraph VoidNode . toGraphBuilder

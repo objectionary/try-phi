@@ -83,10 +83,7 @@ fmtTermNode modeMap (node, nodeType) = nodeFormat
     label =
       case nodeType of
         VoidNode           -> [GraphViz.toLabel "VOID"]
-        LocDotNode Nothing -> [GraphViz.shape GraphViz.BoxShape]
-        LocDotNode (Just n)
-          -> [ GraphViz.shape GraphViz.BoxShape
-            , GraphViz.toLabel ("parent " <> show n)]
+        LocDotNode _ -> [GraphViz.shape GraphViz.BoxShape]
         ObjNode            -> []
 
     highlight = makeHightlight $
@@ -151,3 +148,7 @@ renderAsColorfulDot term = renderAsDot @Gr $ last $ CGraph.steps (CGraph.initCon
 
 renderList :: Model.Term -> [Text.Text]
 renderList term = map (renderAsDot @Gr) $ CGraph.steps $ CGraph.initConfiguration term
+
+
+-- Example
+-- [x -> ^0.y, y -> ^0.z, z -> [b -> ^0.c, c -> ?](c -> ^0)].x.b

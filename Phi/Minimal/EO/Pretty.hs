@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -Wall -fno-warn-orphans        #-}
+{-# OPTIONS_GHC -Wall -fno-warn-orphans #-}
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Phi.Minimal.EO.Pretty where

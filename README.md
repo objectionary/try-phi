@@ -47,11 +47,13 @@ Right now we implement it as a term rewriting system with the following features
 
 * Open `app/Main.hs` and hover onto a function and check if docs appear
 
+* Remove `try-phi.cabal` file
+
 * Build the project with Nix
     ```sh
     nix-build
     ```
-
+    
 * Open `index.html` in browser
     * In case nothing changes, clear browser cache
 

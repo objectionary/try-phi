@@ -1,6 +1,6 @@
 import {EditorState, EditorView, basicSetup} from '@codemirror/next/basic-setup'
 import {lezer} from './lezer'
-let code = `[x -> [t -> ^0.p].t(p -> a)]`;
+let code = `[x -> [t -> ^0.p].t(p -> ^0.a)]`;
 
 const myTheme = EditorView.baseTheme({
   $:{

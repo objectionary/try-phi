@@ -1,3 +1,4 @@
 node_modules/
 /src/parser.js
 /src/parser.terms.js
+/docs/build/

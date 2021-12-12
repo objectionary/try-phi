@@ -14,24 +14,13 @@ export const lezerLanguage = LezerLanguage.define({
       }),
 
       styleTags({
-        LineComment: t.lineComment,
-        BlockComment: t.blockComment,
-        Keyword: t.keyword,
-        StringLiteral: t.string,
-        Identifier: t.variableName,
-        'PropName TemplateArgument': t.propertyName,
-        'PseudoPropName': t.special(t.variableName),
-        'StdRangeLiteral TokenAny': t.standard(t.keyword),
-        'RangeExpression': t.regexp,
-        InvalidDefinition: t.invalid,
-        'TokenNameDefinition RuleNameDefinition': [t.definition(t.className), t.strong],
-        '"*" ? + PrecedenceMarker AmbiguityMarker': [t.modifier, t.strong],
+        Locator: t.keyword,
+        Attr: t.integer,
       }),
     ],
   }),
   languageData: {
-    closeBrackets: {brackets: ["(", "[", "{", "'", '"', "`"]},
-    commentTokens: {line: "//", block: {open: "/*", close: "*/"}},
+    closeBrackets: {brackets: ["(", "[",]},
   },
 })
 

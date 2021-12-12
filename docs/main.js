@@ -1,10 +1,9 @@
 import {EditorState, EditorView, basicSetup} from '@codemirror/next/basic-setup'
 import {lezer} from './lezer'
-import grammarSourceCode from '../src/lezer.grammar'
-
+let code = `[x -> [t -> ^0.p].t(p -> a)]`;
 
 const myTheme = EditorView.baseTheme({
-  $: {
+  $:{
     maxHeight: '98vh',
     outline: '1px auto #ddd',
   },
@@ -15,7 +14,7 @@ const myTheme = EditorView.baseTheme({
 })
 
 const initialState = EditorState.create({
-  doc: grammarSourceCode,
+  doc: code,
   extensions: [
     basicSetup,
     myTheme,

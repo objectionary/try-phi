@@ -9892,7 +9892,7 @@
         /// Balance the direct children of this tree.
         balance(maxBufferLength = DefaultBufferLength) {
             return this.children.length <= BalanceBranchFactor ? this
-                : balanceRange(this.type, NodeType.none, this.children, this.positions, 0, this.children.length, 0, maxBufferLength, this.length);
+                : balanceRange(this.type, NodeType.none, this.children, this.positions, 0, this.children.length, 0, maxBufferLength, this.length, 0);
         }
         /// Build a tree from a postfix-ordered buffer of node information,
         /// or a cursor over such a buffer.
@@ -9900,6 +9900,14 @@
     }
     /// The empty tree
     Tree.empty = new Tree(NodeType.none, [], [], 0);
+    // For trees that need a context hash attached, we're using this
+    // kludge which assigns an extra property directly after
+    // initialization (creating a single new object shape).
+    function withHash(tree, hash) {
+        if (hash)
+            tree.contextHash = hash;
+        return tree;
+    }
     /// Tree buffers contain (type, start, end, endIndex) quads for each
     /// node. In such a buffer, nodes are stored in prefix order (parents
     /// before children, with the endIndex of the parent indicating which
@@ -10345,16 +10353,18 @@
         let { buffer, nodeSet, topID = 0, maxBufferLength = DefaultBufferLength, reused = [], minRepeatType = nodeSet.types.length } = data;
         let cursor = Array.isArray(buffer) ? new FlatBufferCursor(buffer, buffer.length) : buffer;
         let types = nodeSet.types;
+        let contextHash = 0;
         function takeNode(parentStart, minPos, children, positions, inRepeat) {
             let { id, start, end, size } = cursor;
-            while (id == inRepeat) {
-                cursor.next();
-                ({ id, start, end, size } = cursor);
-            }
             let startPos = start - parentStart;
-            if (size < 0) { // Reused node
-                children.push(reused[id]);
-                positions.push(startPos);
+            if (size < 0) {
+                if (size == -1) { // Reused node
+                    children.push(reused[id]);
+                    positions.push(startPos);
+                }
+                else { // Context change
+                    contextHash = id;
+                }
                 cursor.next();
                 return;
             }
@@ -10373,14 +10383,18 @@
                 cursor.next();
                 let localChildren = [], localPositions = [];
                 let localInRepeat = id >= minRepeatType ? id : -1;
-                while (cursor.pos > endPos)
-                    takeNode(start, endPos, localChildren, localPositions, localInRepeat);
+                while (cursor.pos > endPos) {
+                    if (cursor.id == localInRepeat)
+                        cursor.next();
+                    else
+                        takeNode(start, endPos, localChildren, localPositions, localInRepeat);
+                }
                 localChildren.reverse();
                 localPositions.reverse();
                 if (localInRepeat > -1 && localChildren.length > BalanceBranchFactor)
-                    node = balanceRange(type, type, localChildren, localPositions, 0, localChildren.length, 0, maxBufferLength, end - start);
+                    node = balanceRange(type, type, localChildren, localPositions, 0, localChildren.length, 0, maxBufferLength, end - start, contextHash);
                 else
-                    node = new Tree(type, localChildren, localPositions, end - start);
+                    node = withHash(new Tree(type, localChildren, localPositions, end - start), contextHash);
             }
             children.push(node);
             positions.push(startPos);
@@ -10457,7 +10471,7 @@
         let length = (_a = data.length) !== null && _a !== void 0 ? _a : (children.length ? positions[0] + children[0].length : 0);
         return new Tree(types[topID], children.reverse(), positions.reverse(), length);
     }
-    function balanceRange(outerType, innerType, children, positions, from, to, start, maxBufferLength, length) {
+    function balanceRange(outerType, innerType, children, positions, from, to, start, maxBufferLength, length, contextHash) {
         let localChildren = [], localPositions = [];
         if (length <= maxBufferLength) {
             for (let i = from; i < to; i++) {
@@ -10490,15 +10504,15 @@
                     localChildren.push(children[groupFrom]);
                 }
                 else {
-                    let inner = balanceRange(innerType, innerType, children, positions, groupFrom, i, groupStart, maxBufferLength, positions[i - 1] + children[i - 1].length - groupStart);
+                    let inner = balanceRange(innerType, innerType, children, positions, groupFrom, i, groupStart, maxBufferLength, positions[i - 1] + children[i - 1].length - groupStart, contextHash);
                     if (innerType != NodeType.none && !containsType(inner.children, innerType))
-                        inner = new Tree(NodeType.none, inner.children, inner.positions, inner.length);
+                        inner = withHash(new Tree(NodeType.none, inner.children, inner.positions, inner.length), contextHash);
                     localChildren.push(inner);
                 }
                 localPositions.push(groupStart - start);
             }
         }
-        return new Tree(outerType, localChildren, localPositions, length);
+        return withHash(new Tree(outerType, localChildren, localPositions, length), contextHash);
     }
     function containsType(nodes, type) {
         for (let elt of nodes)
@@ -16263,10 +16277,8 @@
     class Stack {
         /// @internal
         constructor(
-        /// A group of values that the stack will share with all
-        /// split instances
-        ///@internal
-        cx, 
+        /// A the parse that this stack is part of @internal
+        p, 
         /// Holds state, pos, value stack pos (15 bits array index, 15 bits
         /// buffer index) triplets for all but the top state
         /// @internal
@@ -16297,13 +16309,15 @@
         // starts writing.
         /// @internal
         bufferBase, 
+        /// @internal
+        curContext, 
         // A parent stack from which this was split off, if any. This is
         // set up so that it always points to a stack that has some
         // additional buffer content, never to a stack with an equal
         // `bufferBase`.
         /// @internal
         parent) {
-            this.cx = cx;
+            this.p = p;
             this.stack = stack;
             this.state = state;
             this.reducePos = reducePos;
@@ -16311,6 +16325,7 @@
             this.score = score;
             this.buffer = buffer;
             this.bufferBase = bufferBase;
+            this.curContext = curContext;
             this.parent = parent;
         }
         /// @internal
@@ -16319,9 +16334,15 @@
         }
         // Start an empty stack
         /// @internal
-        static start(cx, state, pos = 0) {
-            return new Stack(cx, [], state, pos, pos, 0, [], 0, null);
+        static start(p, state, pos = 0) {
+            let cx = p.parser.context;
+            return new Stack(p, [], state, pos, pos, 0, [], 0, cx ? new StackContext(cx, cx.start) : null, null);
         }
+        /// The stack's current [context](#lezer.ContextTracker) value, if
+        /// any. Its type will depend on the context tracker's type
+        /// parameter, or it will be `null` if there is no context
+        /// tracker.
+        get context() { return this.curContext ? this.curContext.context : null; }
         // Push a state onto the stack, tracking its start position as well
         // as the buffer base at that point.
         /// @internal
@@ -16333,7 +16354,7 @@
         /// @internal
         reduce(action) {
             let depth = action >> 19 /* ReduceDepthShift */, type = action & 65535 /* ValueMask */;
-            let { parser } = this.cx;
+            let { parser } = this.p;
             let dPrec = parser.dynamicPrecedence(type);
             if (dPrec)
                 this.score += dPrec;
@@ -16343,6 +16364,7 @@
                 if (type < parser.minRepeatTerm)
                     this.storeNode(type, this.reducePos, this.reducePos, 4, true);
                 this.pushState(parser.getGoto(this.state, type, true), this.reducePos);
+                this.reduceContext(type);
                 return;
             }
             // Find the base index into `this.stack`, content after which will
@@ -16367,6 +16389,7 @@
             }
             while (this.stack.length > base)
                 this.stack.pop();
+            this.reduceContext(type);
         }
         // Shift a value into the buffer
         /// @internal
@@ -16415,7 +16438,7 @@
                 this.pushState(action & 65535 /* ValueMask */, this.pos);
             }
             else if ((action & 262144 /* StayFlag */) == 0) { // Regular shift
-                let start = this.pos, nextState = action, { parser } = this.cx;
+                let start = this.pos, nextState = action, { parser } = this.p;
                 if (nextEnd > this.pos || next <= parser.maxNode) {
                     this.pos = nextEnd;
                     if (!parser.stateFlag(nextState, 1 /* Skipped */))
@@ -16424,9 +16447,10 @@
                 this.pushState(nextState, start);
                 if (next <= parser.maxNode)
                     this.buffer.push(next, start, nextEnd, 4);
+                this.shiftContext(next);
             }
             else { // Shift-and-stay, which means this is a skipped token
-                if (next <= this.cx.parser.maxNode)
+                if (next <= this.p.parser.maxNode)
                     this.buffer.push(next, this.pos, nextEnd, 4);
                 this.pos = nextEnd;
             }
@@ -16443,15 +16467,17 @@
         // the result of running a nested parser.
         /// @internal
         useNode(value, next) {
-            let index = this.cx.reused.length - 1;
-            if (index < 0 || this.cx.reused[index] != value) {
-                this.cx.reused.push(value);
+            let index = this.p.reused.length - 1;
+            if (index < 0 || this.p.reused[index] != value) {
+                this.p.reused.push(value);
                 index++;
             }
             let start = this.pos;
             this.reducePos = this.pos = start + value.length;
             this.pushState(next, start);
             this.buffer.push(index, start, this.reducePos, -1 /* size < 0 means this is a reused value */);
+            if (this.curContext)
+                this.updateContext(this.curContext.tracker.reuse(this.curContext.context, value, this.p.input, this));
         }
         // Split the stack. Due to the buffer sharing and the fact
         // that `this.stack` tends to stay quite shallow, this isn't very
@@ -16470,12 +16496,12 @@
             // Make sure parent points to an actual parent with content, if there is such a parent.
             while (parent && base == parent.bufferBase)
                 parent = parent.parent;
-            return new Stack(this.cx, this.stack.slice(), this.state, this.reducePos, this.pos, this.score, buffer, base, parent);
+            return new Stack(this.p, this.stack.slice(), this.state, this.reducePos, this.pos, this.score, buffer, base, this.curContext, parent);
         }
         // Try to recover from an error by 'deleting' (ignoring) one token.
         /// @internal
         recoverByDelete(next, nextEnd) {
-            let isNode = next <= this.cx.parser.maxNode;
+            let isNode = next <= this.p.parser.maxNode;
             if (isNode)
                 this.storeNode(next, this.pos, nextEnd);
             this.storeNode(0 /* Err */, this.pos, nextEnd, isNode ? 8 : 4);
@@ -16488,7 +16514,7 @@
         /// given token when it applies.
         canShift(term) {
             for (let sim = new SimulatedStack(this);;) {
-                let action = this.cx.parser.stateSlot(sim.top, 4 /* DefaultReduce */) || this.cx.parser.hasAction(sim.top, term);
+                let action = this.p.parser.stateSlot(sim.top, 4 /* DefaultReduce */) || this.p.parser.hasAction(sim.top, term);
                 if ((action & 65536 /* ReduceFlag */) == 0)
                     return true;
                 if (action == 0)
@@ -16499,11 +16525,11 @@
         /// Find the start position of the rule that is currently being parsed.
         get ruleStart() {
             for (let state = this.state, base = this.stack.length;;) {
-                let force = this.cx.parser.stateSlot(state, 5 /* ForcedReduce */);
+                let force = this.p.parser.stateSlot(state, 5 /* ForcedReduce */);
                 if (!(force & 65536 /* ReduceFlag */))
                     return 0;
                 base -= 3 * (force >> 19 /* ReduceDepthShift */);
-                if ((force & 65535 /* ValueMask */) < this.cx.parser.minRepeatTerm)
+                if ((force & 65535 /* ValueMask */) < this.p.parser.minRepeatTerm)
                     return this.stack[base + 1];
                 state = this.stack[base];
             }
@@ -16527,8 +16553,12 @@
         ///
         /// When `before` is given, this keeps scanning up the stack until
         /// it finds a match that starts before that position.
+        ///
+        /// Note that you have to be careful when using this in tokenizers,
+        /// since it's relatively easy to introduce data dependencies that
+        /// break incremental parsing by using this method.
         startOf(types, before) {
-            let state = this.state, frame = this.stack.length, { parser } = this.cx;
+            let state = this.state, frame = this.stack.length, { parser } = this.p;
             for (;;) {
                 let force = parser.stateSlot(state, 5 /* ForcedReduce */);
                 let depth = force >> 19 /* ReduceDepthShift */, term = force & 65535 /* ValueMask */;
@@ -16555,22 +16585,30 @@
         recoverByInsert(next) {
             if (this.stack.length >= 300 /* MaxInsertStackDepth */)
                 return [];
-            let nextStates = this.cx.parser.nextStates(this.state);
-            if (nextStates.length > 4 /* MaxNext */ || this.stack.length >= 120 /* DampenInsertStackDepth */) {
-                let best = nextStates.filter(s => s != this.state && this.cx.parser.hasAction(s, next));
+            let nextStates = this.p.parser.nextStates(this.state);
+            if (nextStates.length > 4 /* MaxNext */ << 1 || this.stack.length >= 120 /* DampenInsertStackDepth */) {
+                let best = [];
+                for (let i = 0, s; i < nextStates.length; i += 2) {
+                    if ((s = nextStates[i + 1]) != this.state && this.p.parser.hasAction(s, next))
+                        best.push(nextStates[i], s);
+                }
                 if (this.stack.length < 120 /* DampenInsertStackDepth */)
-                    for (let i = 0; best.length < 4 /* MaxNext */ && i < nextStates.length; i++)
-                        if (best.indexOf(nextStates[i]) < 0)
-                            best.push(nextStates[i]);
+                    for (let i = 0; best.length < 4 /* MaxNext */ << 1 && i < nextStates.length; i += 2) {
+                        let s = nextStates[i + 1];
+                        if (!best.some((v, i) => (i & 1) && v == s))
+                            best.push(nextStates[i], s);
+                    }
                 nextStates = best;
             }
             let result = [];
-            for (let i = 0; i < nextStates.length && result.length < 4 /* MaxNext */; i++) {
-                if (nextStates[i] == this.state)
+            for (let i = 0; i < nextStates.length && result.length < 4 /* MaxNext */; i += 2) {
+                let s = nextStates[i + 1];
+                if (s == this.state)
                     continue;
                 let stack = this.split();
                 stack.storeNode(0 /* Err */, stack.pos, stack.pos, 4, true);
-                stack.pushState(nextStates[i], this.pos);
+                stack.pushState(s, this.pos);
+                stack.shiftContext(nextStates[i]);
                 stack.score -= 200 /* Token */;
                 result.push(stack);
             }
@@ -16580,10 +16618,10 @@
         // be done.
         /// @internal
         forceReduce() {
-            let reduce = this.cx.parser.stateSlot(this.state, 5 /* ForcedReduce */);
+            let reduce = this.p.parser.stateSlot(this.state, 5 /* ForcedReduce */);
             if ((reduce & 65536 /* ReduceFlag */) == 0)
                 return false;
-            if (!this.cx.parser.validAction(this.state, reduce)) {
+            if (!this.p.parser.validAction(this.state, reduce)) {
                 this.storeNode(0 /* Err */, this.reducePos, this.reducePos, 4, true);
                 this.score -= 100 /* Reduce */;
             }
@@ -16592,7 +16630,7 @@
         }
         /// @internal
         forceAll() {
-            while (!this.cx.parser.stateFlag(this.state, 2 /* Accepting */) && this.forceReduce()) { }
+            while (!this.p.parser.stateFlag(this.state, 2 /* Accepting */) && this.forceReduce()) { }
             return this;
         }
         /// Check whether this state has no further actions (assumed to be a direct descendant of the
@@ -16601,7 +16639,7 @@
         get deadEnd() {
             if (this.stack.length != 3)
                 return false;
-            let { parser } = this.cx;
+            let { parser } = this.p;
             return parser.data[parser.stateSlot(this.state, 1 /* Actions */)] == 65535 /* End */ &&
                 !parser.stateSlot(this.state, 4 /* DefaultReduce */);
         }
@@ -16622,10 +16660,42 @@
             return true;
         }
         /// Get the parser used by this stack.
-        get parser() { return this.cx.parser; }
+        get parser() { return this.p.parser; }
         /// Test whether a given dialect (by numeric ID, as exported from
         /// the terms file) is enabled.
-        dialectEnabled(dialectID) { return this.cx.parser.dialect.flags[dialectID]; }
+        dialectEnabled(dialectID) { return this.p.parser.dialect.flags[dialectID]; }
+        shiftContext(term) {
+            if (this.curContext)
+                this.updateContext(this.curContext.tracker.shift(this.curContext.context, term, this.p.input, this));
+        }
+        reduceContext(term) {
+            if (this.curContext)
+                this.updateContext(this.curContext.tracker.reduce(this.curContext.context, term, this.p.input, this));
+        }
+        /// @internal
+        emitContext() {
+            let cx = this.curContext;
+            if (!cx.tracker.strict)
+                return;
+            let last = this.buffer.length - 1;
+            if (last < 0 || this.buffer[last] != -2)
+                this.buffer.push(cx.hash, this.reducePos, this.reducePos, -2);
+        }
+        updateContext(context) {
+            if (context != this.curContext.context) {
+                let newCx = new StackContext(this.curContext.tracker, context);
+                if (newCx.hash != this.curContext.hash)
+                    this.emitContext();
+                this.curContext = newCx;
+            }
+        }
+    }
+    class StackContext {
+        constructor(tracker, context) {
+            this.tracker = tracker;
+            this.context = context;
+            this.hash = tracker.hash(context);
+        }
     }
     var Recover;
     (function (Recover) {
@@ -16655,7 +16725,7 @@
             else {
                 this.offset -= (depth - 1) * 3;
             }
-            let goto = this.stack.cx.parser.getGoto(this.rest[this.offset - 3], term, true);
+            let goto = this.stack.p.parser.getGoto(this.rest[this.offset - 3], term, true);
             this.top = goto;
         }
     }
@@ -16746,7 +16816,7 @@
     // long as new states with the a matching group mask can be reached,
     // and updating `token` when it matches a token.
     function readToken(data, input, token, stack, group) {
-        let state = 0, groupMask = 1 << group, dialect = stack.cx.parser.dialect;
+        let state = 0, groupMask = 1 << group, dialect = stack.p.parser.dialect;
         scan: for (let pos = token.start;;) {
             if ((groupMask & data[state]) == 0)
                 break;
@@ -16758,7 +16828,7 @@
                 if ((data[i + 1] & groupMask) > 0) {
                     let term = data[i];
                     if (dialect.allows(term) &&
-                        (token.value == -1 || token.value == term || stack.cx.parser.overrides(term, token.value))) {
+                        (token.value == -1 || token.value == term || stack.p.parser.overrides(term, token.value))) {
                         token.accept(term, pos);
                         break;
                     }
@@ -16828,8 +16898,8 @@
         for (;;) {
             if (!(side < 0 ? cursor.childBefore(pos) : cursor.childAfter(pos)))
                 for (;;) {
-                    if ((side < 0 ? cursor.to <= pos : cursor.from >= pos) && !cursor.type.isError)
-                        return side < 0 ? cursor.to - 1 : cursor.from + 1;
+                    if ((side < 0 ? cursor.to < pos : cursor.from > pos) && !cursor.type.isError)
+                        return side < 0 ? Math.max(0, Math.min(cursor.to - 1, pos - 5)) : Math.min(tree.length, Math.max(cursor.from + 1, pos + 5));
                     if (side < 0 ? cursor.prevSibling() : cursor.nextSibling())
                         break;
                     if (!cursor.parent())
@@ -16918,6 +16988,7 @@
             super(...arguments);
             this.extended = -1;
             this.mask = 0;
+            this.context = 0;
         }
         clear(start) {
             this.start = start;
@@ -16935,17 +17006,19 @@
         getActions(stack, input) {
             let actionIndex = 0;
             let main = null;
-            let { parser } = stack.cx, { tokenizers } = parser;
+            let { parser } = stack.p, { tokenizers } = parser;
             let mask = parser.stateSlot(stack.state, 3 /* TokenizerMask */);
+            let context = stack.curContext ? stack.curContext.hash : 0;
             for (let i = 0; i < tokenizers.length; i++) {
                 if (((1 << i) & mask) == 0)
                     continue;
                 let tokenizer = tokenizers[i], token = this.tokens[i];
                 if (main && !tokenizer.fallback)
                     continue;
-                if (tokenizer.contextual || token.start != stack.pos || token.mask != mask) {
+                if (tokenizer.contextual || token.start != stack.pos || token.mask != mask || token.context != context) {
                     this.updateCachedToken(token, tokenizer, stack, input);
                     token.mask = mask;
+                    token.context = context;
                 }
                 if (token.value != 0 /* Err */) {
                     let startIndex = actionIndex;
@@ -16965,7 +17038,7 @@
                 main = dummyToken;
                 main.start = stack.pos;
                 if (stack.pos == input.length)
-                    main.accept(stack.cx.parser.eofTerm, stack.pos);
+                    main.accept(stack.p.parser.eofTerm, stack.pos);
                 else
                     main.accept(0 /* Err */, stack.pos + 1);
             }
@@ -16976,11 +17049,11 @@
             token.clear(stack.pos);
             tokenizer.token(input, token, stack);
             if (token.value > -1) {
-                let { parser } = stack.cx;
+                let { parser } = stack.p;
                 for (let i = 0; i < parser.specialized.length; i++)
                     if (parser.specialized[i] == token.value) {
                         let result = parser.specializers[i](input.read(token.start, token.end), stack);
-                        if (result >= 0 && stack.cx.parser.dialect.allows(result >> 1)) {
+                        if (result >= 0 && stack.p.parser.dialect.allows(result >> 1)) {
                             if ((result & 1) == 0 /* Specialize */)
                                 token.value = result >> 1;
                             else
@@ -16990,7 +17063,7 @@
                     }
             }
             else if (stack.pos == input.length) {
-                token.accept(stack.cx.parser.eofTerm, stack.pos);
+                token.accept(stack.p.parser.eofTerm, stack.pos);
             }
             else {
                 token.accept(0 /* Err */, stack.pos + 1);
@@ -17007,7 +17080,7 @@
             return index;
         }
         addActions(stack, token, end, index) {
-            let { state } = stack, { parser } = stack.cx, { data } = parser;
+            let { state } = stack, { parser } = stack.p, { data } = parser;
             for (let set = 0; set < 2; set++) {
                 for (let i = parser.stateSlot(state, set ? 2 /* Skip */ : 1 /* Actions */);; i += 3) {
                     if (data[i] == 65535 /* End */) {
@@ -17172,9 +17245,10 @@
             let start = stack.pos, { input, parser } = this;
             let base = verbose ? this.stackID(stack) + " -> " : "";
             if (this.fragments) {
+                let strictCx = stack.curContext && stack.curContext.tracker.strict, cxHash = strictCx ? stack.curContext.hash : 0;
                 for (let cached = this.fragments.nodeAt(start); cached;) {
                     let match = this.parser.nodeSet.types[cached.type.id] == cached.type ? parser.getGoto(stack.state, cached.type.id) : -1;
-                    if (match > -1 && cached.length) {
+                    if (match > -1 && cached.length && (!strictCx || (cached.contextHash || 0) == cxHash)) {
                         stack.useNode(cached, match);
                         if (verbose)
                             console.log(base + this.stackID(stack) + ` (via reuse of ${parser.getName(cached.type.id)})`);
@@ -17303,6 +17377,8 @@
         }
         // Convert the stack's buffer to a syntax tree.
         stackToTree(stack, pos = stack.pos) {
+            if (this.parser.context)
+                stack.emitContext();
             return Tree.build({ buffer: StackBufferCursor.create(stack),
                 nodeSet: this.parser.nodeSet,
                 topID: this.topTerm,
@@ -17388,13 +17464,13 @@
             this.bufferLength = DefaultBufferLength;
             /// @internal
             this.strict = false;
-            this.nextStateCache = [];
             this.cachedDialect = null;
             if (spec.version != 13 /* Version */)
                 throw new RangeError(`Parser version (${spec.version}) doesn't match runtime version (${13 /* Version */})`);
             let tokenArray = decodeArray(spec.tokenData);
             let nodeNames = spec.nodeNames.split(" ");
             this.minRepeatTerm = nodeNames.length;
+            this.context = spec.context;
             for (let i = 0; i < spec.repeatNodeCount; i++)
                 nodeNames.push("");
             let nodeProps = [];
@@ -17449,8 +17525,6 @@
             this.tokenPrecTable = spec.tokenPrec;
             this.termNames = spec.termNames || null;
             this.maxNode = this.nodeSet.types.length - 1;
-            for (let i = 0, l = this.states.length / 6 /* Size */; i < l; i++)
-                this.nextStateCache[i] = null;
             this.dialect = this.parseDialect();
             this.top = this.topRules[Object.keys(this.topRules)[0]];
         }
@@ -17538,9 +17612,6 @@
         /// Get the states that can follow this one through shift actions or
         /// goto jumps. @internal
         nextStates(state) {
-            let cached = this.nextStateCache[state];
-            if (cached)
-                return cached;
             let result = [];
             for (let i = this.stateSlot(state, 1 /* Actions */);; i += 3) {
                 if (this.data[i] == 65535 /* End */) {
@@ -17549,21 +17620,13 @@
                     else
                         break;
                 }
-                if ((this.data[i + 2] & (65536 /* ReduceFlag */ >> 16)) == 0 && result.indexOf(this.data[i + 1]) < 0)
-                    result.push(this.data[i + 1]);
-            }
-            let table = this.goto, max = table[0];
-            for (let term = 0; term < max; term++) {
-                for (let pos = table[term + 1];;) {
-                    let groupTag = table[pos++], target = table[pos++];
-                    for (let end = pos + (groupTag >> 1); pos < end; pos++)
-                        if (table[pos] == state && result.indexOf(target) < 0)
-                            result.push(target);
-                    if (groupTag & 1)
-                        break;
+                if ((this.data[i + 2] & (65536 /* ReduceFlag */ >> 16)) == 0) {
+                    let value = this.data[i + 1];
+                    if (!result.some((v, i) => (i & 1) && v == value))
+                        result.push(this.data[i], value);
                 }
             }
-            return this.nextStateCache[state] = result;
+            return result;
         }
         /// @internal
         overrides(token, prev) {
@@ -17616,6 +17679,8 @@
         get eofTerm() { return this.maxNode + 1; }
         /// Tells you whether this grammar has any nested grammars.
         get hasNested() { return this.nested.length > 0; }
+        /// The type of top node produced by the parser.
+        get topNode() { return this.nodeSet.types[this.top[1]]; }
         /// @internal
         dynamicPrecedence(term) {
             let prec = this.dynamicPrecedences;
@@ -17655,8 +17720,8 @@
     function findFinished(stacks) {
         let best = null;
         for (let stack of stacks) {
-            if (stack.pos == stack.cx.input.length &&
-                stack.cx.parser.stateFlag(stack.state, 2 /* Accepting */) &&
+            if (stack.pos == stack.p.input.length &&
+                stack.p.parser.stateFlag(stack.state, 2 /* Accepting */) &&
                 (!best || best.score < stack.score))
                 best = stack;
         }
@@ -17664,26 +17729,19 @@
     }
 
     // This file was generated by lezer-generator. You probably shouldn't edit it.
-    const spec_atToken = {__proto__:null,"@top":10, "@name":78, "@dialect":78, "@inline":78, "@dynamicPrec":78, "@export":78, "@isGroup":78, "@specialize":82, "@extend":98, "@dialects":112, "@tokens":122, "@precedence":144, "@left":156, "@right":158, "@cut":160, "@detectDelim":164, "@skip":168, "@external":182};
-    const spec_normalIdentifier = {__proto__:null,_:90};
     const parser = Parser.deserialize({
       version: 13,
-      states: "CQQ]QPOOOOQO'#FP'#FPOOQO'#EW'#EWO}QPO'#EVO!YQPO'#EUOOQO'#Fi'#FiOOQO'#Eh'#EhOOQO'#E}'#E}OOQO'#Ei'#EiQ]QPOOOuQPO'#C`O!_QPO'#DeO!dQPO'#DjO!iQPO'#DxOOQO'#EP'#EPO!YQPO'#ERO!nQQO'#EbO!yQPO'#DQOuQPO'#DqOOQO,5:q,5:qO#RQPO,5:qO#xQPO'#CeOOQO,5:p,5:pOOQO'#EX'#EXOOQO-E8g-E8gOOQO'#Cb'#CbO!YQPO,58zO$PQPO'#DgOOQO,5:P,5:PO$[QPO'#DmOOQO'#Dl'#DlOOQO,5:U,5:UO$mQPO'#DyOOQO,5:d,5:dO$xQPO,5:mO%pQPO,5:tO!yQPO,5:{O%uQPO,5:|OOQO'#DS'#DSO%}QPO'#DRO&SQPO'#F[O&[QPO,59lOOQO'#Dr'#DrO&aQPO'#FeO&iQPO,5:]OOQO1G0]1G0]O&nQPO'#CgO(UQPO'#FUOOQO'#FU'#FUO)fQPO'#D`O*jQPO'#DcOOQO'#Ej'#EjO+hQPO'#CfO+xQPO'#FSOOQO,59P,59PO,WQPO'#FZO,`QPO'#F_O,hQPO'#FbO#ZQPO'#D`O,pQPO'#FTO,uQPO'#FTO,zQPO'#FTO-PQPO,59POOQO1G.f1G.fOOQO'#Dh'#DhO-UQPO'#FcOOQO,5:R,5:RO-^QPO,5:ROOQO'#Dp'#DpO-cQPO'#DoO-tQPO'#DnOOQO'#Fd'#FdOOQO'#Et'#EtO.YQPO,5:XOOQO,5:X,5:XO.kQPO'#DnO.pQPO'#DuOOQO'#Dz'#DzO.uQPO'#FhO/WQPO'#FgOOQO,5:e,5:eO/`QPO,5:eO/eQPO'#ETOOQO1G0X1G0XOOQO'#E]'#E]O/pQQO1G0`O/uQQO1G0gOOQO'#Ed'#EdO/zQPO'#EgO0SQQO1G0hO0[QQO1G0lO0aQPO,59mO!yQPO'#EoO0rQPO,5;vOOQO1G/W1G/WOuQPO'#EuO0zQPO,5<POOQO1G/w1G/wO1SQPO'#CjOOQO,5;p,5;pO1tQPO,59}OOQO-E8h-E8hO#ZQPO'#ErO2]QPO,5;nOOQO,5;u,5;uO!YQPO,5;uO1tQPO,5;yO2kQPO,5;yO1tQPO,5;|O2pQPO,5;|O2uQPO,59zOOQO,5;o,5;oOOQO1G.k1G.kOuQPO'#EsO2zQPO,5;}OOQO1G/m1G/mOOQO,5:Z,5:ZO3SQPO,5:ZOOQO,5:Y,5:YOOQO-E8r-E8rOOQO1G/s1G/sO3bQPO'#DtO3iQPO'#DwOOQO,5:a,5:aOOQO,5<S,5<SOOQO'#D{'#D{OuQPO'#EwO3tQPO,5<ROOQO1G0P1G0POOQO,5:o,5:oO3|QPO,5:oO4RQPO7+%zO4RQPO7+&RO4WQPO'#FlOOQO,5;R,5;RO4`QPO,5;RO4RQPO7+&SOOQO7+&S7+&SO4RQPO7+&WOOQO'#En'#EnOuQPO'#EnO4eQPO'#DUOOQO1G/X1G/XOOQO,5;Z,5;ZOOQO-E8m-E8mOOQO'#Ds'#DsOOQO,5;a,5;aOOQO-E8s-E8sOOQO'#Cm'#CmO4oQPO'#CrOOQO'#Ek'#EkO5vQPO'#ClO6WQPO'#FWO6fQPO'#FVO6nQPO,59UO1SQPO'#CrO6sQPO'#FXO6xQPO'#FXO6}QPO'#FXOOQO'#Ck'#CkOOQO'#DY'#DYOOQO'#DX'#DXO7SQPO'#D[OOQO'#Ep'#EpO8TQPO'#DWO8hQPO'#F`O1tQPO'#D[O8yQPO'#FaO9OQPO'#FaO9TQPO'#FaO9YQPO1G/iOOQO,5;^,5;^OOQO-E8p-E8pOOQO1G1a1G1aO9bQPO1G1eO1tQPO1G1eO9gQPO1G1hO1tQPO1G1hO9lQPO1G/fOOQO'#Di'#DiOOQO,5;_,5;_OOQO-E8q-E8qOOQO1G/u1G/uOOQO,5:`,5:`O:pQPO,5:`O:uQPO'#FfOOQO,5:c,5:cO:}QPO,5:cOOQO,5;c,5;cOOQO-E8u-E8uOOQO1G0Z1G0ZOOQO'#E_'#E_O;SQPO<<IfOOQO<<Im<<ImO;XQPO'#EyO;^QPO,5<WOOQO1G0m1G0mOOQO<<In<<InO;SQPO<<IrO;fQPO,5;YOOQO-E8l-E8lOOQO-E8i-E8iO1SQPO'#ElO;kQPO,5;rO1SQPO'#EmO;yQPO,5;qOOQO1G.p1G.pO<RQPO,59^OOQO,5;s,5;sOOQO-E8n-E8nO1tQPO'#EqO<WQPO,5;zO<iQPO,59vOOQO,5;{,5;{OOQO7+%T7+%TO#ZQPO7+%TO1tQPO7+'PO<nQPO7+'PO1tQPO7+'SO<sQPO7+'SOOQO1G/z1G/zOuQPO'#EvO<xQPO,5<QOOQO1G/}1G/}O=QQPO'#E`OOQOAN?QAN?QOOQO,5;e,5;eOOQO-E8w-E8wOOQOAN?^AN?^OOQO1G0t1G0tOOQO,5;W,5;WOOQO-E8j-E8jOOQO,5;X,5;XOOQO'#C{'#C{OOQO-E8k-E8kO=]QPO1G.xOOQO,5;],5;]OOQO-E8o-E8oO>dQPO1G/bO?eQPO<<HoO?jQPO<<JkO1tQPO<<JkO?oQPO<<JnO1tQPO<<JnOOQO,5;b,5;bOOQO-E8t-E8tO?tQPO'#FjOOQO,5:z,5:zO?|QPO,5:zOOQOAN>ZAN>ZOOQOAN@VAN@VO@RQPOAN@VOOQOAN@YAN@YO@WQPOAN@YOuQPO'#ExO@]QPO,5<UOOQO1G0f1G0fOOQOG25qG25qOOQOG25tG25tOOQO,5;d,5;dOOQO-E8v-E8v",
-      stateData: "@h~O#pOSPOSQOS~OTYO!YZO!_[O!j]O!t^O!v_O!}`O#rUO#tPO#uPO~O]bOsaOW!yX~OWeO~OWkO~OWmO~OWpO~O#OsO#VuO$_tO~OwvO#uvO~OsaOW!ya~Od![Ol!TOm!TOp!QOy!YO!R!ZO!W!SO#tPO#uPO~OV!WO~P#ZOV!dO#tPO#uPO~OV!lOp!hO!j!nO#tPO#uPO~OV!rO#tPO#uPO~OW!tOT!ua!Y!ua!_!ua!j!ua!t!ua!v!ua!}!ua#n!ua#r!ua#t!ua#u!ua~O#u!vO~OW!zO#u!yO~O$P!}O~O#|#OOr$OX~Or#QO~O#|#RO[$XX~O[#TO~OVZXWqX]ZXdZXgZXiZXkZXlZXmZXnZXpZXsqXyZX!RZX!WZX#tZX#uZXeZX[ZXbZXcZX#|ZX~O]#UOV#xXd#xXg#xXi#xXk#xXl#xXm#xXn#xXp#xXy#xX!R#xX!W#xX#t#xX#u#xXe#xX[#xXb#xXc#xX#|#xX~OV#wXd#wXg!SXi!TXk!UXl#wXm#wXn#wXp#wXy#wX!R#wX!W#wX#t#wX#u#wXe#wX[#wX~O]#WOV!VXd!VXl!VXm!VXn!VXp!VXy!VX!R!VX!W!VX#t!VX#u!VXe!VX[!VX~OVYXnYXeYX[YX~P#ZOn#YOV#vXe#vX[#vX~OWeOsaO~O]#^OsaO~O]#`OsaO~Og#cO~Oi#cO~Ok#cO~OV#dO~O#|#eOV$VX~OV#gO~O]bOsaOW!cXV!cX#|!cX~OsaOV!bXp!bX!j!bX#t!bX#u!bX~OV#lOp!hO!j!nO#tPO#uPO~OW#mO~OW#nO~O!p#qO!q#qO!r#qOV$[X#|$[X~O#|#rOV$ZX~OV#tO~OV#uO#tPO#uPO~O#Q#wO~O#Q#xO~OV#zO#u#yO~O#Q#|O#X#}O~O#Q$OO~OW$QOp$PO#tPO#uPO$Q$PO~O#|#OOr$Oa~O#|#RO[$Xa~Ob$YOc$YOd$aOl$[Om$[Op!QOy!YO!R!ZO#tPO#uPO~Ob$YOc$YOd$lOp$gO}$gO#tPO#uPO~On#YOV#vae#va[#va~O]$uO~O]$wO~Oe$xO~O#|#eOV$Va~OsaOW!caV!ca#|!ca~OV$}O~P1tOV%QO#tPO#uPO~O#|#rOV$Za~OV%UO~Op%VO~O#|%YOV$`X~OV%[O~OrxX#|xX~P0aO[#{Xb#{Xc#{Xd#{XgfXihXkjXl#{Xm#{Xn#{Xp#{Xy#{X!R#{X#t#{X#u#{X#|#{Xe#{X~O[`Xn`X#|`Xe`X~P1SOn%bO[#zX#|#zXe#zX~O#|%dO[#yX~O[%fO~Og%hO~Oi%hO~Ok%hO~O[$TXb$TXc$TXd$TXg!OXi!PXk!QXn$TXp$TX}$TX#t$TX#u$TX#|$TXV$TXe$TX~O[zXnzX#|zXVzXezX~P1tOn%jO[$SX#|$SXV$SXe$SX~Og%mO~Oi%mO~Ok%mO~O[%nO#|%oO~O#|%pO~O#|%rO~OV#wid#wig!Sii!Tik!Uil#wim#win#wip#wiy#wi!R#wi!W#wi#t#wi#u#wie#wi[#wi~OV%tO~O#|%uOV$YX~OV%wO~OW%xO~O#u%zO~O#|%YOV$`a~OV%}O~On%bO[#za#|#zae#za~O#|%dO[#ya~Oe&TO~On%jO[$Sa#|$SaV$Sae$Sa~Oe&WO~O#|&ZO~O#|&]O~O#|%uOV$Ya~OV&aO#tPO#uPO~O[#{ib#{ic#{id#{igfiihikjil#{im#{in#{ip#{iy#{i!R#{i#t#{i#u#{i#|#{ie#{i~O[$Tib$Tic$Tid$Tig!Oii!Pik!Qin$Tip$Ti}$Ti#t$Ti#u$Ti#|$TiV$Tie$Ti~O[&cO~O[&dO~O[&fO~O#|&hOV$^X~OV&jO~O[&kO~O[&lO~O#|&hOV$^a~O#u#u~",
-      goto: "3o$aPPPP$bP$fPP$i$x%QPP%^%a%d%lPPPP&SP&ZP&bPPPP&iP&lPP&x'b'hP'oP'r%s(SP(i(x)XP)h)o)v)}P$bP*U*X*[$bP*_*b*e*i*s*y+P+S+V*eP+Y$b+]+`+dPPP$bP$bP+g+j+q+v+{,OPP,SP,V,c,O,OP,iP,O,l$b,o,u-O-X-_-e-k-q.S.Y.`.f.l.r.x/O/UPPP/[P/`PP0t)}0}1]1`1iP1p1|PP1p2P2r1p3R3U3Y3]3`3c$b3iP3lTVOXRjYQgSQr_Q!ajQ#[!XR$s#]U!Ve![%oR$q#Ye!Pe!U![#U#Y$]$a%b%d%oR#V!PR$_#UU$^#U$a%dR&O%bY$Z#U$]$a%b%dk$h#W#^#`#m$j$l$u$w%j%p%r&Z&]Z$b#U$]$a%b%dZ$c#U$]$a%b%dZ$d#U$]$a%b%dR&Q%de!Xe!U![#U#Y$]$a%b%d%oQcRQ}dQ#]!XQ#_!YQ#a!ZQ#h!gQ#j!hR$|#iQxaR$T#OSwa#OR!xtR$S!}f$k#W#^#`#m$l$u$w%p%r&Z&]R&U%jj$g#W#^#`#m$j$l$u$w%j%p%r&Z&]Q%P#nR&^%uk$m#W#^#`#m$j$l$u$w%j%p%r&Z&]k$n#W#^#`#m$j$l$u$w%j%p%r&Z&]k$o#W#^#`#m$j$l$u$w%j%p%r&Z&]Z!]e!U![#Y%oZ!^e!U![#Y%oZ!_e!U![#Y%oZ!Te!U![#Y%oRlZR!ckR$z#eRo[Rn[T!im!kS!mm!kQ&`%xR&m&hX!gm!k%x&hQdRR#i!gR{bR$W#RR#j!mR#o!nRq]T!pp#rR#p!pR!urSVOXR#v!tVSOX!tVROX!tRfSTTOXR!wsQ%W#wQ%X#xQ%]#|R%^$OQ%y%WR%|%^R!{uR!|uQXORhXW!Ue![#Y%oR#X!UW$]#U$a%b%dR%a$]Q%c$^R&P%cQ%e$_R&S%eQ$R!}R%`$RQ#PxR$U#Ph$j#W#^#`#m$l$u$w%j%p%r&Z&]R%i$jQ%k$kR&V%kQ#Z!VR$r#ZQ#f!cR${#fQ!kmR#k!kQ#S{R$X#SQ%v%PR&_%vQ#s!qR%T#sQ&i&`R&n&iQ%Z#yR%{%ZTWOXUQOX!tQiYQzbd!Oe!U![#U#Y$]$a%b%d%oQ!bkW!fm!k%x&hS!op#rS$P!}$RQ$V#Rn$f#W#^#`#m#n$j$l$u$w%j%p%r%u&Z&]Q$y#eR%_$QQ!`eQ#b![R&X%oY!Re!U![#Y%oZ$Z#U$]$a%b%dR$`#UQ$e#UQ%g$aR&R%dZ$[#U$]$a%b%de!Qe!U![#U#Y$]$a%b%d%oRyaQ$p#WQ$t#^Q$v#`Q%O#mQ%l$lQ%q$uQ%s$wQ&Y%pQ&[%rQ&e&ZR&g&]k$i#W#^#`#m$j$l$u$w%j%p%r&Z&]R!ekT!jm!kR|bR%R#nR!spQ!qpR%S#rR&b%xR#{!z",
-      nodeNames: "⚠ LineComment BlockComment LezerGrammar TopDefinition Keyword RuleNameDefinition } { BlockBody RuleSeq Identifier > < TemplateArguments TemplateArgument TokenOrRuleSeq RangeLiteral RangeExpression StdRangeLiteral ( ) Quantifier* * Quantifier? ? Quantifier+ + PrecedenceMarker AmbiguityMarker | TemplateArgument StringLiteral RuleNameDefinition ] [ NodePropsTag PropAssignment PropName PseudoPropName PropValue Keyword TokenSeq Token TokenName TokenAny Quantifier* Quantifier? Quantifier+ Keyword Quantifier* Quantifier? Quantifier+ NestedGrammarExpression NestedGrammarName DialectsDefinition Keyword BlockBody Dialect Dialect TokensDefinition Keyword TokensDefinitionBody BlockBody TokenDefinition TokenSignature TokenNameDefinition TemplateVariables TemplateVariable TemplateVariable BlockBody TokenPrecedenceDefinition Keyword BlockBody PrecedenceDefinition BlockBody PrecedenceMarkerName PrecedenceType Keyword Keyword Keyword DetectDelimDefinition Keyword SkipDefinition Keyword BlockBody RuleDefinition RuleSignature RuleNameDefinition RuleDefinitionBody ExternalTokenDefinition Keyword tokens ExternalTokenizerName from ExternalSource BlockBody ExternalPropNameDefinition ExternalGrammarDefinition grammar ExternalParserName empty ExternalSpecializationDefinition BlockBody InvalidDefinition",
-      maxTerm: 154,
-      nodeProps: [
-        [NodeProp.openedBy, 7,"{",12,"<",34,"["],
-        [NodeProp.closedBy, 8,"}",13,">",35,"]"]
-      ],
-      skippedNodes: [0,1,2],
-      repeatNodeCount: 17,
-      tokenData: "Hx~R!VX^$hpq$hqr%]rs-Otu-rwx-xxy.gyz.lz{.q{|.v|}.{!O!P/Q!P!Q/V!^!_0c!_!`0h!`!a0m!a!b0r!b!c0w!c!}1n!}#O2U#P#Q2Z#R#S2`#T#X2`#X#Y2t#Y#Z5h#Z#[7p#[#b2`#b#c;d#c#d2`#d#e>b#e#g2`#g#h@j#h#iB|#i#o2`#o#pF[#p#qFa#q#rFf#r#sFk#y#z$h$f$g$h$g#BY2`#BY#BZG`#BZ$IS2`$IS$I_G`$I_$I|2`$I|$JOG`$JO$JT2`$JT$JUG`$JU$KV2`$KV$KWG`$KW&FU2`&FU&FVG`&FV~2`~$mY#p~X^$hpq$h#y#z$h$f$g$h#BY#BZ$h$IS$I_$h$I|$JO$h$JT$JU$h$KV$KW$h&FU&FV$h~%`T!c!}%o!}#O&T#R#S%o#T#o%o$g~%o~%tTl~!Q![%o!c!}%o#R#S%o#T#o%o$g~%o~&WTp}&g!O#O&g#O#P)y#P#Q,g#Q~&g~&jUp}&g}!O&|!O#O&g#O#P)y#P#Q,g#Q~&g~'PSp}&T!O#O&T#O#P']#P~&T~'`TO#i&T#i#j'o#j#l&T#l#m)a#m~&T~'rS!Q![(O!c!i(O#T#Z(O#o#p(t~(RR!Q![([!c!i([#T#Z([~(_R!Q![(h!c!i(h#T#Z(h~(kR!Q![&T!c!i&T#T#Z&T~(wR!Q![)Q!c!i)Q#T#Z)Q~)TS!Q![)Q!c!i)Q#T#Z)Q#q#r&T~)dR!Q![)m!c!i)m#T#Z)m~)pR!Q![&T!c!i&T#T#Z&T~)|TO#i&g#i#j*]#j#l&g#l#m+}#m~&g~*`S!Q![*l!c!i*l#T#Z*l#o#p+b~*oR!Q![*x!c!i*x#T#Z*x~*{R!Q![+U!c!i+U#T#Z+U~+XR!Q![&g!c!i&g#T#Z&g~+eR!Q![+n!c!i+n#T#Z+n~+qS!Q![+n!c!i+n#T#Z+n#q#r&g~,QR!Q![,Z!c!i,Z#T#Z,Z~,^R!Q![&g!c!i&g#T#Z&g~,lUb~p}&g}!O&|!O#O&g#O#P)y#P#Q,g#Q~&g~-TUp~OY-OZr-Ors-gs#O-O#O#P-l#P~-O~-lOp~~-oPO~-O~-uP!}#O&T~-}Up~OY-xZw-xwx-gx#O-x#O#P.a#P~-x~.dPO~-x~.lOd~~.qOe~~.vOg~~.{Ok~~/QO#|~~/VO$Q~~/YQz{/`!P!Q0T~/cROz/`z{/l{~/`~/oTOz/`z{/l{!P/`!P!Q0O!Q~/`~0TOQ~~0YRP~OY0TZ]0T^~0T~0hO]~~0mO$P~~0rO[~~0wOi~~0|S#r~!c!}1Y#R#S1Y#T#o1Y$g~1Y~1_T#r~!Q![1Y!c!}1Y#R#S1Y#T#o1Y$g~1Y~1uT#t~#uP!Q![1n!c!}1n#R#S1n#T#o1n$g~1n~2ZOs~~2`Or~P2eT#uP!Q![2`!c!}2`#R#S2`#T#o2`$g~2`R2yV#uP!Q![2`!c!}2`#R#S2`#T#a2`#a#b3`#b#o2`$g~2`R3eV#uP!Q![2`!c!}2`#R#S2`#T#d2`#d#e3z#e#o2`$g~2`R4PV#uP!Q![2`!c!}2`#R#S2`#T#h2`#h#i4f#i#o2`$g~2`R4kV#uP!Q![2`!c!}2`#R#S2`#T#m2`#m#n5Q#n#o2`$g~2`R5XT#XQ#uP!Q![2`!c!}2`#R#S2`#T#o2`$g~2`R5mV#uP!Q![2`!c!}2`#R#S2`#T#f2`#f#g6S#g#o2`$g~2`R6XV#uP!Q![2`!c!}2`#R#S2`#T#c2`#c#d6n#d#o2`$g~2`R6sV#uP!Q![2`!c!}2`#R#S2`#T#a2`#a#b7Y#b#o2`$g~2`R7aT#QQ#uP!Q![2`!c!}2`#R#S2`#T#o2`$g~2`R7uV#uP!Q![2`!c!}2`#R#S2`#T#f2`#f#g8[#g#o2`$g~2`R8aU#uP!Q![2`!c!}2`#R#S2`#T#U8s#U#o2`$g~2`R8xV#uP!Q![2`!c!}2`#R#S2`#T#a2`#a#b9_#b#o2`$g~2`R9dV#uP!Q![2`!c!}2`#R#S2`#T#a2`#a#b9y#b#o2`$g~2`R:OU#uP!Q![2`!c!}2`#R#S2`#T#U:b#U#o2`$g~2`R:gV#uP!Q![2`!c!}2`#R#S2`#T#f2`#f#g:|#g#o2`$g~2`R;TT#VQ#uP!Q![2`!c!}2`#R#S2`#T#o2`$g~2`~;iV#uP!Q![2`!c!}2`#R#S2`#T#X2`#X#Y<O#Y#o2`$g~2`~<TV#uP!Q![2`!c!}2`#R#S2`#T#g2`#g#h<j#h#o2`$g~2`~<oV#uP!Q![2`!c!}2`#R#S2`#T#h2`#h#i=U#i#o2`$g~2`~=ZU#uP!O!P=m!Q![2`!c!}2`#R#S2`#T#o2`$g~2`~=pS!c!}=|#R#S=|#T#o=|$g~=|~>RT!W~!Q![=|!c!}=|#R#S=|#T#o=|$g~=|R>gV#uP!Q![2`!c!}2`#R#S2`#T#f2`#f#g>|#g#o2`$g~2`R?RV#uP!Q![2`!c!}2`#R#S2`#T#c2`#c#d?h#d#o2`$g~2`R?mV#uP!Q![2`!c!}2`#R#S2`#T#d2`#d#e@S#e#o2`$g~2`R@ZT$_Q#uP!Q![2`!c!}2`#R#S2`#T#o2`$g~2`~@oV#uP!Q![2`!c!}2`#R#S2`#T#h2`#h#iAU#i#o2`$g~2`~AZV#uP!Q![2`!c!}2`#R#S2`#T#W2`#W#XAp#X#o2`$g~2`~AuU#uP!O!PBX!Q![2`!c!}2`#R#S2`#T#o2`$g~2`~B[S!c!}Bh#R#SBh#T#oBh$g~Bh~BmTc~!Q![Bh!c!}Bh#R#SBh#T#oBh$g~BhRCRV#uP!Q![2`!c!}2`#R#S2`#T#c2`#c#dCh#d#o2`$g~2`RCmV#uP!Q![2`!c!}2`#R#S2`#T#_2`#_#`DS#`#o2`$g~2`RDXV#uP!Q![2`!c!}2`#R#S2`#T#X2`#X#YDn#Y#o2`$g~2`RDsV#uP!Q![2`!c!}2`#R#S2`#T#b2`#b#cEY#c#o2`$g~2`RE_V#uP!Q![2`!c!}2`#R#S2`#T#g2`#g#hEt#h#o2`$g~2`RE{T#OQ#uP!Q![2`!c!}2`#R#S2`#T#o2`$g~2`~FaOW~~FfOn~~FkOV~~FnS!c!}Fz#R#SFz#T#oFz$g~Fz~GPTm~!Q![Fz!c!}Fz#R#SFz#T#oFz$g~Fz~Gge#p~#uPX^$hpq$h!Q![2`!c!}2`#R#S2`#T#o2`#y#z$h$f$g$h$g#BY2`#BY#BZG`#BZ$IS2`$IS$I_G`$I_$I|2`$I|$JOG`$JO$JT2`$JT$JUG`$JU$KV2`$KV$KWG`$KW&FU2`&FU&FVG`&FV~2`",
-      tokenizers: [0, 1],
-      topRules: {"LezerGrammar":[0,3]},
-      specialized: [{term: 126, get: value => spec_atToken[value] || -1},{term: 129, get: value => spec_normalIdentifier[value] || -1}],
-      tokenPrec: 1447
+      states: "#lOVQPOOO_QPO'#CjQgQPOOOOQO'#Cd'#CdOoQPO'#CgOOQO,59U,59UOtQPO,59UO|QPO,59OO!RQPO,59OOVQPO,59RO!RQPO'#C`O!WQPO1G.pOOQO1G.p1G.pOOQO1G.j1G.jO!`QPO1G.jO!eQPO1G.mOOQO,58z,58zOOQO-E6^-E6^OOQO7+$[7+$[OOQO7+$U7+$U",
+      stateData: "!v~OVOS~ORRO_PO~OQSOaTO~OXVOYWO~O[XO~O`YOa[O~OQ]O~OQSO~O`YOabO~O]cO~OXVOYWO`ZiaZi]Zi~O",
+      goto: "y_PPPP`PPPfPPlPPuQZURaZQQOR_XQUPQ^WR`YTROX",
+      nodeNames: "⚠ PhiGrammar Attr Locator",
+      maxTerm: 17,
+      skippedNodes: [0],
+      repeatNodeCount: 1,
+      tokenData: "$u~RdX^!apq!axy#Uyz#Z|}#`}!O#e!O!P#p!c!}#u!}#O$T#P#Q$Y#Q#R$_#T#o#u#y#z!a$f$g!a#BY#BZ!a$IS$I_!a$I|$JO!a$JT$JU!a$KV$KW!a&FU&FV!a~!fYV~X^!apq!a#y#z!a$f$g!a#BY#BZ!a$IS$I_!a$I|$JO!a$JT$JU!a$KV$KW!a&FU&FV!a~#ZOY~~#`O]~~#eO`~~#hP!`!a#k~#pO[~~#uOX~~#zRQ~!Q![#u!c!}#u#T#o#u~$YO_~~$_Oa~~$bQ!Q!R$h!R![$m~$mOR~~$rPR~!Q![$m",
+      tokenizers: [0],
+      topRules: {"PhiGrammar":[0,1]},
+      tokenPrec: 0
     });
 
     const lezerLanguage = LezerLanguage.define({
@@ -17696,24 +17754,13 @@
           }),
 
           styleTags({
-            LineComment: tags.lineComment,
-            BlockComment: tags.blockComment,
-            Keyword: tags.keyword,
-            StringLiteral: tags.string,
-            Identifier: tags.variableName,
-            'PropName TemplateArgument': tags.propertyName,
-            'PseudoPropName': tags.special(tags.variableName),
-            'StdRangeLiteral TokenAny': tags.standard(tags.keyword),
-            'RangeExpression': tags.regexp,
-            InvalidDefinition: tags.invalid,
-            'TokenNameDefinition RuleNameDefinition': [tags.definition(tags.className), tags.strong],
-            '"*" ? + PrecedenceMarker AmbiguityMarker': [tags.modifier, tags.strong],
+            Locator: tags.keyword,
+            Attr: tags.integer,
           }),
         ],
       }),
       languageData: {
-        closeBrackets: {brackets: ["(", "[", "{", "'", '"', "`"]},
-        commentTokens: {line: "//", block: {open: "/*", close: "*/"}},
+        closeBrackets: {brackets: ["(", "[",]},
       },
     });
 
@@ -17721,10 +17768,10 @@
       return [lezerLanguage]
     }
 
-    var grammarSourceCode = "/*\n * (c) Qbane Pan, 2020\n * Repository: https://github.com/andy0130tw/lezer-grammar\n * License: Unlicense\n *\n * Targeted for Lezer v0.12.\n * Built with lezer-generator v0.13.1.\n */\n\n@top LezerGrammar { definition* }\n\n@skip { whitespace | LineComment | BlockComment }\n\nat<term> { @specialize[@name=Keyword]<atToken, term> }\nbraced<body> { BlockBody { \"{\" body? \"}\" } }\ncommaDelim<item> { item (\",\" item)* }\nbarDelim<item> { item (\"|\" item)* }\n\ndefinition {\n  TopDefinition |\n  DialectsDefinition |\n  TokensDefinition { at<\"@tokens\"> TokensDefinitionBody } |\n  PrecedenceDefinition { at<\"@precedence\"> braced<precedenceList> } |\n  DetectDelimDefinition { at<\"@detectDelim\"> } |\n  SkipDefinition |\n  externalDefinition |\n  RuleDefinition |\n  InvalidDefinition { atToken }\n}\n\nTopDefinition {\n  at<\"@top\">\n  RuleNameDefinition { identifier }\n  braced<ruleChoice>\n}\n\nDialectsDefinition {\n  at<\"@dialects\">\n  braced< commaDelim< Dialect { identifier } > >\n}\n\nSkipDefinition {\n  at<\"@skip\"> braced<ruleChoice> braced<RuleDefinition>?\n}\n\nidentifier {\n  capitalizedIdentifier |\n  normalIdentifier\n}\n\n/* a template application can be resolved to either a token template or a rule template */\nTemplateArguments {\n  \"<\" commaDelim< TemplateArgument { tokenOrRuleChoice } > \">\"\n}\n\nTemplateVariables {\n  \"<\" commaDelim< TemplateVariable { identifier } > \">\"\n}\n\nTokenName { identifier }\nTokenSignature {\n  TokenNameDefinition { identifier }\n  TemplateVariables?\n  NodePropsTag?\n}\n\nTokensDefinitionBody { braced<tokenDefinition+> }\n\ntokenDefinition {\n  (TokenDefinition {\n    StringLiteral NodePropsTag? |\n    TokenSignature braced<tokenChoice>\n  } |\n  TokenPrecedenceDefinition {\n    at<\"@precedence\"> braced<tokenPrecedenceList>\n  })\n}\n\nRuleDefinitionBody { braced<ruleChoice> }\n\nRuleDefinition {\n  RuleSignature RuleDefinitionBody\n}\n\ninlineRuleDefinition {\n  /* a rule definition but cannot be as a template. */\n  RuleNameDefinition { identifier }\n  NodePropsTag?\n  braced<ruleChoice>\n}\n\nNodePropsTag {\n  \"[\" commaDelim< PropAssignment > \"]\"\n}\n\nRuleSignature {\n  RuleNameDefinition { identifier }\n  TemplateVariables?\n  NodePropsTag?\n}\n\nPropName {\n  normalIdentifier |\n  @specialize[@name=PseudoPropName]<atToken,\n    \"@name\" |\n    \"@dialect\" |\n    \"@inline\" |\n    \"@dynamicPrec\" |\n    \"@export\" |\n    \"@isGroup\">\n}\n\nPropAssignment {\n  PropName \"=\"\n  PropValue {\n    (identifier | StringLiteral | \".\" | \"{\" identifier \"}\")+\n  }\n}\n\ntokenOrRuleChoice { barDelim<TokenOrRuleSeq> }\n\nTokenOrRuleSeq {\n  (maybeWithQuantifier<ruleExpression |\n                       RangeLiteral |\n                       \"(\" tokenOrRuleChoice \")\"> |\n   PrecedenceMarker |\n   AmbiguityMarker)+\n}\n\ntokenChoice { barDelim<TokenSeq> }\n\nTokenSeq {\n  (maybeWithQuantifier<Token |\n                       RangeLiteral |\n                       \"(\" tokenChoice \")\">)+\n}\n\nspecialization<type> {\n  type\n  NodePropsTag?\n  \"<\" tokenChoice \",\" tokenChoice \">\"\n}\n\nruleChoice { barDelim<RuleSeq> }\n\nruleExpression {\n  Identifier { identifier } TemplateArguments? |\n  StringLiteral |\n  /* a token is covered in above cases */\n  inlineRuleDefinition |\n  specialization<at<\"@specialize\">> |\n  specialization<at<\"@extend\">>\n}\n\nRuleSeq {\n  (maybeWithQuantifier<ruleExpression |\n                       \"(\" ruleChoice \")\"> |\n   NestedGrammarExpression |\n   PrecedenceMarker |\n   AmbiguityMarker)+\n}\n\nNestedGrammarExpression {\n  NestedGrammarName\n  (\"<\" tokenChoice (\",\" ruleChoice)? \">\")?\n}\n\nwithQuantifier<content, c> {\n  (_quantifier[@name=Quantifier{c}] { content } c)\n}\n\nmaybeWithQuantifier<content> {\n  content |\n  withQuantifier<content, \"*\"> |\n  withQuantifier<content, \"?\"> |\n  withQuantifier<content, \"+\">\n}\n\nToken {\n  TokenName |\n  StringLiteral |\n  @specialize[@name=TokenAny]<normalIdentifier, \"_\">\n}\n\nprecedenceList {\n  commaDelim<precedenceSpecifier>\n}\n\ntokenPrecedenceList {\n  commaDelim<TokenName>\n}\n\nprecedenceSpecifier {\n  PrecedenceMarkerName { identifier }\n  PrecedenceType { at<\"@left\"> | at<\"@right\"> | at<\"@cut\"> }?\n}\n\nRangeLiteral {\n  RangeExpression |\n  StdRangeLiteral\n}\n\nExternalSource { StringLiteral }\n\nexternalDefinition {\n  (ExternalTokenDefinition {\n    at<\"@external\"> \"tokens\"\n    ExternalTokenizerName { normalIdentifier }\n    \"from\" ExternalSource braced<commaDelim<TokenSignature>>\n  } |\n  ExternalPropNameDefinition {\n    at<\"@external\"> \"prop\"\n    PropName \"from\" ExternalSource\n  } |\n  ExternalGrammarDefinition {\n    at<\"@external\"> \"grammar\"\n    ExternalParserName { normalIdentifier } (\"from\" ExternalSource | \"empty\")\n  } |\n  ExternalSpecializationDefinition {\n    at<\"@external\"> \"grammar\"\n    braced<commaDelim<normalIdentifier>>\n    \"from\" ExternalSource braced<commaDelim<TokenSignature>>\n  })\n}\n\n@tokens {\n  whitespace { std.whitespace+ }\n\n  LineComment { \"//\" ![\\r\\n]* }\n  BlockComment { \"/*\" blockCommentRest }\n  blockCommentRest { ![*] blockCommentRest | \"*\" blockCommentAfterStar }\n  blockCommentAfterStar { \"/\" | \"*\" blockCommentAfterStar | ![/*] blockCommentRest }\n\n  identifierHead { std.asciiLetter | $[_\\u{a1}-\\u{10ffff}] }\n  identifierTail { (identifierHead | std.digit)* }\n  capitalizedIdentifier { std.asciiUppercase identifierTail }\n  normalIdentifier { identifierHead identifierTail }\n\n  @precedence { capitalizedIdentifier, normalIdentifier, whitespace }\n\n  PrecedenceMarker { \"!\" normalIdentifier }\n  AmbiguityMarker { \"~\" normalIdentifier }\n\n  StringLiteral {\n    '\"' (![\\\\\\n\"] | \"\\\\\" _)* '\"'? |\n    \"'\" (![\\\\\\n'] | \"\\\\\" _)* \"'\"?\n  }\n\n  // no \"-\" (0x2d) and \"\\\\\" (0x5c)\n  rangeChar { $[\\u{20}-\\u{2c}\\u{2e}-\\u{5b}\\u{5d}-\\u{10ffff}] }\n  hex  { $[0-9a-fA-F] }\n  rangeEscapeSequence {\n    \"\\\\u{\" hex+ \"}\" |\n    \"\\\\u\" hex hex hex hex |\n    \"\\\\x\" hex hex |\n    \"\\\\\" ![ux]\n  }\n\n  StdRangeLiteral {\n    \"std.\" normalIdentifier\n  }\n\n  RangeExpression {\n    ((\"$\" | \"!\") \"[\" rangeLiteralInner* \"]\")\n  }\n  rangeLiteralChar { rangeChar | rangeEscapeSequence }\n  rangeLiteralInner {\n    rangeLiteralChar (\"-\" rangeLiteralChar)?\n  }\n\n  @precedence { StdRangeLiteral, normalIdentifier }\n\n  NestedGrammarName {\n    \"nest.\" normalIdentifier\n  }\n\n  @precedence { NestedGrammarName, normalIdentifier }\n\n  atToken { \"@\" normalIdentifier? }\n\n  \"*\" \"?\" \"+\"\n  \"(\" \")\" \"[\" \"]\" \"<\" \">\" \"{\" \"}\" \"|\"\n\n  // external imports\n  \"tokens\"[@name=tokens]\n  \"props\"[@name=props]\n  \"grammar\"[@name=grammar]\n  \"from\"[@name=from]\n  \"empty\"[@name=empty]\n}\n\n@detectDelim\n";
+    let code$1 = `[x -> [t -> ^0.p].t(p -> a)]`;
 
     const myTheme = EditorView.baseTheme({
-      $: {
+      $:{
         maxHeight: '98vh',
         outline: '1px auto #ddd',
       },
@@ -17735,7 +17782,7 @@
     });
 
     const initialState = EditorState.create({
-      doc: grammarSourceCode,
+      doc: code$1,
       extensions: [
         basicSetup,
         myTheme,

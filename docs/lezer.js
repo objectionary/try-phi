@@ -18,7 +18,7 @@ export const lezerLanguage = LezerLanguage.define({
     ],
   }),
   languageData: {
-    closeBrackets: {brackets: ["(", "[", "{"]},
+    closeBrackets: {brackets: ["(", "["]},
   },
 })
 

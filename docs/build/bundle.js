@@ -17762,7 +17762,7 @@
         ],
       }),
       languageData: {
-        closeBrackets: {brackets: ["(", "[", "{"]},
+        closeBrackets: {brackets: ["(", "["]},
       },
     });
 

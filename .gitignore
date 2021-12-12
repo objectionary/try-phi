@@ -1,4 +1,5 @@
 node_modules/
 /src/parser.js
 /src/parser.terms.js
-/docs/build/*
+docs/build/bundle.j
+docs/build/bundle.js.map

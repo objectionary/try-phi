@@ -17770,7 +17770,12 @@
       return [lezerLanguage]
     }
 
-    let code$1 = `[x -> [t -> ^0.p].t(p -> ^0.a)]`;
+    let code$1 = `[
+  x -> ^0.y,
+  p -> [y -> ^0.x, z -> [
+    t -> ^3.p
+  ]]
+]`;
 
     const myTheme = EditorView.baseTheme({
       $:{

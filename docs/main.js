@@ -1,7 +1,12 @@
 import {EditorState, EditorView, basicSetup} from '@codemirror/next/basic-setup'
 import { indentOnInput } from '@codemirror/next/language';
 import {lezer} from './lezer'
-let code = `[x -> [t -> ^0.p].t(p -> ^0.a)]`;
+let code = `[
+  x -> ^0.y,
+  p -> [y -> ^0.x, z -> [
+    t -> ^3.p
+  ]]
+]`;
 
 const myTheme = EditorView.baseTheme({
   $:{

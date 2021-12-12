@@ -3,7 +3,7 @@
 Created using [Lezer Grammar](https://lezer.codemirror.net/)
 
 ## Try online
-* [Here](https://br4ch1st0chr0n3.github.io/lezer-grammar/)
+* [Here](https://br4ch1st0chr0n3.github.io/lezer-grammar/docs/index.html)
 
 ## Run
 * Install packages and build

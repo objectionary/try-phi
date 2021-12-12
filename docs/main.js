@@ -1,4 +1,5 @@
 import {EditorState, EditorView, basicSetup} from '@codemirror/next/basic-setup'
+import { indentOnInput } from '@codemirror/next/language';
 import {lezer} from './lezer'
 let code = `[x -> [t -> ^0.p].t(p -> ^0.a)]`;
 
@@ -9,7 +10,7 @@ const myTheme = EditorView.baseTheme({
   },
   $scroller: {
     fontFamily: '"Fira Mono", monospace',
-    fontSize: '14px',
+    fontSize: '30px',
   }
 })
 

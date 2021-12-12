@@ -14,8 +14,10 @@
 
 Mapsto {"->"}
 
-body { "[" ("" | mapping ("," mapping)*) "]" }
+body { BlockBody {"[" ("" | mapping ("," mapping)*) "]" } }
 
 mapping { Attr Mapsto term }
 
 term { term "." Attr | term "(" mapping ")" | body | Locator}
+
+@detectDelim

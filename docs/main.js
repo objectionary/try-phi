@@ -1,10 +1,11 @@
 import {EditorState, EditorView, basicSetup} from '@codemirror/next/basic-setup'
-import { indentOnInput } from '@codemirror/next/language';
 import {lezer} from './lezer'
 let code = `[
   x -> ^0.y,
   p -> [y -> ^0.x, z -> [
-    t -> ^3.p
+    t -> ^3.p(
+      d -> ^12
+    )
   ]]
 ]`;
 

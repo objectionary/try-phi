@@ -1,5 +1,5 @@
-import {EditorState, EditorView, basicSetup} from '@codemirror/next/basic-setup'
-import {lezer} from './lezer'
+import { EditorState, EditorView, basicSetup } from '@codemirror/next/basic-setup'
+import { lezer } from './lezer'
 let code = `[
   x -> ^0.y,
   p -> [y -> ^0.x, z -> [
@@ -10,8 +10,9 @@ let code = `[
 ]`;
 
 const myTheme = EditorView.baseTheme({
-  $:{
+  $: {
     maxHeight: '98vh',
+    maxWidth: '30vw',
     outline: '1px auto #ddd',
   },
   $scroller: {
@@ -20,7 +21,7 @@ const myTheme = EditorView.baseTheme({
   }
 })
 
-const initialState = EditorState.create({
+export const initialState = EditorState.create({
   doc: code,
   extensions: [
     basicSetup,
@@ -29,7 +30,8 @@ const initialState = EditorState.create({
   ]
 })
 
-const view = new EditorView({
+export const view = new EditorView({
   state: initialState,
-  parent: document.body
+  parent: document.querySelector("#editor")
 })
+

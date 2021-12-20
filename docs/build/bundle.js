@@ -1,4 +1,4 @@
-(function () {
+var app = (function (exports) {
     'use strict';
 
     // Compressed representation of the Grapheme_Cluster_Break=Extend
@@ -9892,7 +9892,7 @@
         /// Balance the direct children of this tree.
         balance(maxBufferLength = DefaultBufferLength) {
             return this.children.length <= BalanceBranchFactor ? this
-                : balanceRange(this.type, NodeType.none, this.children, this.positions, 0, this.children.length, 0, maxBufferLength, this.length, 0);
+                : balanceRange(this.type, NodeType.none, this.children, this.positions, 0, this.children.length, 0, maxBufferLength, this.length);
         }
         /// Build a tree from a postfix-ordered buffer of node information,
         /// or a cursor over such a buffer.
@@ -9900,14 +9900,6 @@
     }
     /// The empty tree
     Tree.empty = new Tree(NodeType.none, [], [], 0);
-    // For trees that need a context hash attached, we're using this
-    // kludge which assigns an extra property directly after
-    // initialization (creating a single new object shape).
-    function withHash(tree, hash) {
-        if (hash)
-            tree.contextHash = hash;
-        return tree;
-    }
     /// Tree buffers contain (type, start, end, endIndex) quads for each
     /// node. In such a buffer, nodes are stored in prefix order (parents
     /// before children, with the endIndex of the parent indicating which
@@ -10353,18 +10345,16 @@
         let { buffer, nodeSet, topID = 0, maxBufferLength = DefaultBufferLength, reused = [], minRepeatType = nodeSet.types.length } = data;
         let cursor = Array.isArray(buffer) ? new FlatBufferCursor(buffer, buffer.length) : buffer;
         let types = nodeSet.types;
-        let contextHash = 0;
         function takeNode(parentStart, minPos, children, positions, inRepeat) {
             let { id, start, end, size } = cursor;
+            while (id == inRepeat) {
+                cursor.next();
+                ({ id, start, end, size } = cursor);
+            }
             let startPos = start - parentStart;
-            if (size < 0) {
-                if (size == -1) { // Reused node
-                    children.push(reused[id]);
-                    positions.push(startPos);
-                }
-                else { // Context change
-                    contextHash = id;
-                }
+            if (size < 0) { // Reused node
+                children.push(reused[id]);
+                positions.push(startPos);
                 cursor.next();
                 return;
             }
@@ -10383,18 +10373,14 @@
                 cursor.next();
                 let localChildren = [], localPositions = [];
                 let localInRepeat = id >= minRepeatType ? id : -1;
-                while (cursor.pos > endPos) {
-                    if (cursor.id == localInRepeat)
-                        cursor.next();
-                    else
-                        takeNode(start, endPos, localChildren, localPositions, localInRepeat);
-                }
+                while (cursor.pos > endPos)
+                    takeNode(start, endPos, localChildren, localPositions, localInRepeat);
                 localChildren.reverse();
                 localPositions.reverse();
                 if (localInRepeat > -1 && localChildren.length > BalanceBranchFactor)
-                    node = balanceRange(type, type, localChildren, localPositions, 0, localChildren.length, 0, maxBufferLength, end - start, contextHash);
+                    node = balanceRange(type, type, localChildren, localPositions, 0, localChildren.length, 0, maxBufferLength, end - start);
                 else
-                    node = withHash(new Tree(type, localChildren, localPositions, end - start), contextHash);
+                    node = new Tree(type, localChildren, localPositions, end - start);
             }
             children.push(node);
             positions.push(startPos);
@@ -10471,7 +10457,7 @@
         let length = (_a = data.length) !== null && _a !== void 0 ? _a : (children.length ? positions[0] + children[0].length : 0);
         return new Tree(types[topID], children.reverse(), positions.reverse(), length);
     }
-    function balanceRange(outerType, innerType, children, positions, from, to, start, maxBufferLength, length, contextHash) {
+    function balanceRange(outerType, innerType, children, positions, from, to, start, maxBufferLength, length) {
         let localChildren = [], localPositions = [];
         if (length <= maxBufferLength) {
             for (let i = from; i < to; i++) {
@@ -10504,15 +10490,15 @@
                     localChildren.push(children[groupFrom]);
                 }
                 else {
-                    let inner = balanceRange(innerType, innerType, children, positions, groupFrom, i, groupStart, maxBufferLength, positions[i - 1] + children[i - 1].length - groupStart, contextHash);
+                    let inner = balanceRange(innerType, innerType, children, positions, groupFrom, i, groupStart, maxBufferLength, positions[i - 1] + children[i - 1].length - groupStart);
                     if (innerType != NodeType.none && !containsType(inner.children, innerType))
-                        inner = withHash(new Tree(NodeType.none, inner.children, inner.positions, inner.length), contextHash);
+                        inner = new Tree(NodeType.none, inner.children, inner.positions, inner.length);
                     localChildren.push(inner);
                 }
                 localPositions.push(groupStart - start);
             }
         }
-        return withHash(new Tree(outerType, localChildren, localPositions, length), contextHash);
+        return new Tree(outerType, localChildren, localPositions, length);
     }
     function containsType(nodes, type) {
         for (let elt of nodes)
@@ -16277,8 +16263,10 @@
     class Stack {
         /// @internal
         constructor(
-        /// A the parse that this stack is part of @internal
-        p, 
+        /// A group of values that the stack will share with all
+        /// split instances
+        ///@internal
+        cx, 
         /// Holds state, pos, value stack pos (15 bits array index, 15 bits
         /// buffer index) triplets for all but the top state
         /// @internal
@@ -16309,15 +16297,13 @@
         // starts writing.
         /// @internal
         bufferBase, 
-        /// @internal
-        curContext, 
         // A parent stack from which this was split off, if any. This is
         // set up so that it always points to a stack that has some
         // additional buffer content, never to a stack with an equal
         // `bufferBase`.
         /// @internal
         parent) {
-            this.p = p;
+            this.cx = cx;
             this.stack = stack;
             this.state = state;
             this.reducePos = reducePos;
@@ -16325,7 +16311,6 @@
             this.score = score;
             this.buffer = buffer;
             this.bufferBase = bufferBase;
-            this.curContext = curContext;
             this.parent = parent;
         }
         /// @internal
@@ -16334,15 +16319,9 @@
         }
         // Start an empty stack
         /// @internal
-        static start(p, state, pos = 0) {
-            let cx = p.parser.context;
-            return new Stack(p, [], state, pos, pos, 0, [], 0, cx ? new StackContext(cx, cx.start) : null, null);
+        static start(cx, state, pos = 0) {
+            return new Stack(cx, [], state, pos, pos, 0, [], 0, null);
         }
-        /// The stack's current [context](#lezer.ContextTracker) value, if
-        /// any. Its type will depend on the context tracker's type
-        /// parameter, or it will be `null` if there is no context
-        /// tracker.
-        get context() { return this.curContext ? this.curContext.context : null; }
         // Push a state onto the stack, tracking its start position as well
         // as the buffer base at that point.
         /// @internal
@@ -16354,7 +16333,7 @@
         /// @internal
         reduce(action) {
             let depth = action >> 19 /* ReduceDepthShift */, type = action & 65535 /* ValueMask */;
-            let { parser } = this.p;
+            let { parser } = this.cx;
             let dPrec = parser.dynamicPrecedence(type);
             if (dPrec)
                 this.score += dPrec;
@@ -16364,7 +16343,6 @@
                 if (type < parser.minRepeatTerm)
                     this.storeNode(type, this.reducePos, this.reducePos, 4, true);
                 this.pushState(parser.getGoto(this.state, type, true), this.reducePos);
-                this.reduceContext(type);
                 return;
             }
             // Find the base index into `this.stack`, content after which will
@@ -16389,7 +16367,6 @@
             }
             while (this.stack.length > base)
                 this.stack.pop();
-            this.reduceContext(type);
         }
         // Shift a value into the buffer
         /// @internal
@@ -16438,7 +16415,7 @@
                 this.pushState(action & 65535 /* ValueMask */, this.pos);
             }
             else if ((action & 262144 /* StayFlag */) == 0) { // Regular shift
-                let start = this.pos, nextState = action, { parser } = this.p;
+                let start = this.pos, nextState = action, { parser } = this.cx;
                 if (nextEnd > this.pos || next <= parser.maxNode) {
                     this.pos = nextEnd;
                     if (!parser.stateFlag(nextState, 1 /* Skipped */))
@@ -16447,10 +16424,9 @@
                 this.pushState(nextState, start);
                 if (next <= parser.maxNode)
                     this.buffer.push(next, start, nextEnd, 4);
-                this.shiftContext(next);
             }
             else { // Shift-and-stay, which means this is a skipped token
-                if (next <= this.p.parser.maxNode)
+                if (next <= this.cx.parser.maxNode)
                     this.buffer.push(next, this.pos, nextEnd, 4);
                 this.pos = nextEnd;
             }
@@ -16467,17 +16443,15 @@
         // the result of running a nested parser.
         /// @internal
         useNode(value, next) {
-            let index = this.p.reused.length - 1;
-            if (index < 0 || this.p.reused[index] != value) {
-                this.p.reused.push(value);
+            let index = this.cx.reused.length - 1;
+            if (index < 0 || this.cx.reused[index] != value) {
+                this.cx.reused.push(value);
                 index++;
             }
             let start = this.pos;
             this.reducePos = this.pos = start + value.length;
             this.pushState(next, start);
             this.buffer.push(index, start, this.reducePos, -1 /* size < 0 means this is a reused value */);
-            if (this.curContext)
-                this.updateContext(this.curContext.tracker.reuse(this.curContext.context, value, this.p.input, this));
         }
         // Split the stack. Due to the buffer sharing and the fact
         // that `this.stack` tends to stay quite shallow, this isn't very
@@ -16496,12 +16470,12 @@
             // Make sure parent points to an actual parent with content, if there is such a parent.
             while (parent && base == parent.bufferBase)
                 parent = parent.parent;
-            return new Stack(this.p, this.stack.slice(), this.state, this.reducePos, this.pos, this.score, buffer, base, this.curContext, parent);
+            return new Stack(this.cx, this.stack.slice(), this.state, this.reducePos, this.pos, this.score, buffer, base, parent);
         }
         // Try to recover from an error by 'deleting' (ignoring) one token.
         /// @internal
         recoverByDelete(next, nextEnd) {
-            let isNode = next <= this.p.parser.maxNode;
+            let isNode = next <= this.cx.parser.maxNode;
             if (isNode)
                 this.storeNode(next, this.pos, nextEnd);
             this.storeNode(0 /* Err */, this.pos, nextEnd, isNode ? 8 : 4);
@@ -16514,7 +16488,7 @@
         /// given token when it applies.
         canShift(term) {
             for (let sim = new SimulatedStack(this);;) {
-                let action = this.p.parser.stateSlot(sim.top, 4 /* DefaultReduce */) || this.p.parser.hasAction(sim.top, term);
+                let action = this.cx.parser.stateSlot(sim.top, 4 /* DefaultReduce */) || this.cx.parser.hasAction(sim.top, term);
                 if ((action & 65536 /* ReduceFlag */) == 0)
                     return true;
                 if (action == 0)
@@ -16525,11 +16499,11 @@
         /// Find the start position of the rule that is currently being parsed.
         get ruleStart() {
             for (let state = this.state, base = this.stack.length;;) {
-                let force = this.p.parser.stateSlot(state, 5 /* ForcedReduce */);
+                let force = this.cx.parser.stateSlot(state, 5 /* ForcedReduce */);
                 if (!(force & 65536 /* ReduceFlag */))
                     return 0;
                 base -= 3 * (force >> 19 /* ReduceDepthShift */);
-                if ((force & 65535 /* ValueMask */) < this.p.parser.minRepeatTerm)
+                if ((force & 65535 /* ValueMask */) < this.cx.parser.minRepeatTerm)
                     return this.stack[base + 1];
                 state = this.stack[base];
             }
@@ -16553,12 +16527,8 @@
         ///
         /// When `before` is given, this keeps scanning up the stack until
         /// it finds a match that starts before that position.
-        ///
-        /// Note that you have to be careful when using this in tokenizers,
-        /// since it's relatively easy to introduce data dependencies that
-        /// break incremental parsing by using this method.
         startOf(types, before) {
-            let state = this.state, frame = this.stack.length, { parser } = this.p;
+            let state = this.state, frame = this.stack.length, { parser } = this.cx;
             for (;;) {
                 let force = parser.stateSlot(state, 5 /* ForcedReduce */);
                 let depth = force >> 19 /* ReduceDepthShift */, term = force & 65535 /* ValueMask */;
@@ -16585,30 +16555,22 @@
         recoverByInsert(next) {
             if (this.stack.length >= 300 /* MaxInsertStackDepth */)
                 return [];
-            let nextStates = this.p.parser.nextStates(this.state);
-            if (nextStates.length > 4 /* MaxNext */ << 1 || this.stack.length >= 120 /* DampenInsertStackDepth */) {
-                let best = [];
-                for (let i = 0, s; i < nextStates.length; i += 2) {
-                    if ((s = nextStates[i + 1]) != this.state && this.p.parser.hasAction(s, next))
-                        best.push(nextStates[i], s);
-                }
+            let nextStates = this.cx.parser.nextStates(this.state);
+            if (nextStates.length > 4 /* MaxNext */ || this.stack.length >= 120 /* DampenInsertStackDepth */) {
+                let best = nextStates.filter(s => s != this.state && this.cx.parser.hasAction(s, next));
                 if (this.stack.length < 120 /* DampenInsertStackDepth */)
-                    for (let i = 0; best.length < 4 /* MaxNext */ << 1 && i < nextStates.length; i += 2) {
-                        let s = nextStates[i + 1];
-                        if (!best.some((v, i) => (i & 1) && v == s))
-                            best.push(nextStates[i], s);
-                    }
+                    for (let i = 0; best.length < 4 /* MaxNext */ && i < nextStates.length; i++)
+                        if (best.indexOf(nextStates[i]) < 0)
+                            best.push(nextStates[i]);
                 nextStates = best;
             }
             let result = [];
-            for (let i = 0; i < nextStates.length && result.length < 4 /* MaxNext */; i += 2) {
-                let s = nextStates[i + 1];
-                if (s == this.state)
+            for (let i = 0; i < nextStates.length && result.length < 4 /* MaxNext */; i++) {
+                if (nextStates[i] == this.state)
                     continue;
                 let stack = this.split();
                 stack.storeNode(0 /* Err */, stack.pos, stack.pos, 4, true);
-                stack.pushState(s, this.pos);
-                stack.shiftContext(nextStates[i]);
+                stack.pushState(nextStates[i], this.pos);
                 stack.score -= 200 /* Token */;
                 result.push(stack);
             }
@@ -16618,10 +16580,10 @@
         // be done.
         /// @internal
         forceReduce() {
-            let reduce = this.p.parser.stateSlot(this.state, 5 /* ForcedReduce */);
+            let reduce = this.cx.parser.stateSlot(this.state, 5 /* ForcedReduce */);
             if ((reduce & 65536 /* ReduceFlag */) == 0)
                 return false;
-            if (!this.p.parser.validAction(this.state, reduce)) {
+            if (!this.cx.parser.validAction(this.state, reduce)) {
                 this.storeNode(0 /* Err */, this.reducePos, this.reducePos, 4, true);
                 this.score -= 100 /* Reduce */;
             }
@@ -16630,7 +16592,7 @@
         }
         /// @internal
         forceAll() {
-            while (!this.p.parser.stateFlag(this.state, 2 /* Accepting */) && this.forceReduce()) { }
+            while (!this.cx.parser.stateFlag(this.state, 2 /* Accepting */) && this.forceReduce()) { }
             return this;
         }
         /// Check whether this state has no further actions (assumed to be a direct descendant of the
@@ -16639,7 +16601,7 @@
         get deadEnd() {
             if (this.stack.length != 3)
                 return false;
-            let { parser } = this.p;
+            let { parser } = this.cx;
             return parser.data[parser.stateSlot(this.state, 1 /* Actions */)] == 65535 /* End */ &&
                 !parser.stateSlot(this.state, 4 /* DefaultReduce */);
         }
@@ -16660,42 +16622,10 @@
             return true;
         }
         /// Get the parser used by this stack.
-        get parser() { return this.p.parser; }
+        get parser() { return this.cx.parser; }
         /// Test whether a given dialect (by numeric ID, as exported from
         /// the terms file) is enabled.
-        dialectEnabled(dialectID) { return this.p.parser.dialect.flags[dialectID]; }
-        shiftContext(term) {
-            if (this.curContext)
-                this.updateContext(this.curContext.tracker.shift(this.curContext.context, term, this.p.input, this));
-        }
-        reduceContext(term) {
-            if (this.curContext)
-                this.updateContext(this.curContext.tracker.reduce(this.curContext.context, term, this.p.input, this));
-        }
-        /// @internal
-        emitContext() {
-            let cx = this.curContext;
-            if (!cx.tracker.strict)
-                return;
-            let last = this.buffer.length - 1;
-            if (last < 0 || this.buffer[last] != -2)
-                this.buffer.push(cx.hash, this.reducePos, this.reducePos, -2);
-        }
-        updateContext(context) {
-            if (context != this.curContext.context) {
-                let newCx = new StackContext(this.curContext.tracker, context);
-                if (newCx.hash != this.curContext.hash)
-                    this.emitContext();
-                this.curContext = newCx;
-            }
-        }
-    }
-    class StackContext {
-        constructor(tracker, context) {
-            this.tracker = tracker;
-            this.context = context;
-            this.hash = tracker.hash(context);
-        }
+        dialectEnabled(dialectID) { return this.cx.parser.dialect.flags[dialectID]; }
     }
     var Recover;
     (function (Recover) {
@@ -16725,7 +16655,7 @@
             else {
                 this.offset -= (depth - 1) * 3;
             }
-            let goto = this.stack.p.parser.getGoto(this.rest[this.offset - 3], term, true);
+            let goto = this.stack.cx.parser.getGoto(this.rest[this.offset - 3], term, true);
             this.top = goto;
         }
     }
@@ -16816,7 +16746,7 @@
     // long as new states with the a matching group mask can be reached,
     // and updating `token` when it matches a token.
     function readToken(data, input, token, stack, group) {
-        let state = 0, groupMask = 1 << group, dialect = stack.p.parser.dialect;
+        let state = 0, groupMask = 1 << group, dialect = stack.cx.parser.dialect;
         scan: for (let pos = token.start;;) {
             if ((groupMask & data[state]) == 0)
                 break;
@@ -16828,7 +16758,7 @@
                 if ((data[i + 1] & groupMask) > 0) {
                     let term = data[i];
                     if (dialect.allows(term) &&
-                        (token.value == -1 || token.value == term || stack.p.parser.overrides(term, token.value))) {
+                        (token.value == -1 || token.value == term || stack.cx.parser.overrides(term, token.value))) {
                         token.accept(term, pos);
                         break;
                     }
@@ -16898,8 +16828,8 @@
         for (;;) {
             if (!(side < 0 ? cursor.childBefore(pos) : cursor.childAfter(pos)))
                 for (;;) {
-                    if ((side < 0 ? cursor.to < pos : cursor.from > pos) && !cursor.type.isError)
-                        return side < 0 ? Math.max(0, Math.min(cursor.to - 1, pos - 5)) : Math.min(tree.length, Math.max(cursor.from + 1, pos + 5));
+                    if ((side < 0 ? cursor.to <= pos : cursor.from >= pos) && !cursor.type.isError)
+                        return side < 0 ? cursor.to - 1 : cursor.from + 1;
                     if (side < 0 ? cursor.prevSibling() : cursor.nextSibling())
                         break;
                     if (!cursor.parent())
@@ -16988,7 +16918,6 @@
             super(...arguments);
             this.extended = -1;
             this.mask = 0;
-            this.context = 0;
         }
         clear(start) {
             this.start = start;
@@ -17006,19 +16935,17 @@
         getActions(stack, input) {
             let actionIndex = 0;
             let main = null;
-            let { parser } = stack.p, { tokenizers } = parser;
+            let { parser } = stack.cx, { tokenizers } = parser;
             let mask = parser.stateSlot(stack.state, 3 /* TokenizerMask */);
-            let context = stack.curContext ? stack.curContext.hash : 0;
             for (let i = 0; i < tokenizers.length; i++) {
                 if (((1 << i) & mask) == 0)
                     continue;
                 let tokenizer = tokenizers[i], token = this.tokens[i];
                 if (main && !tokenizer.fallback)
                     continue;
-                if (tokenizer.contextual || token.start != stack.pos || token.mask != mask || token.context != context) {
+                if (tokenizer.contextual || token.start != stack.pos || token.mask != mask) {
                     this.updateCachedToken(token, tokenizer, stack, input);
                     token.mask = mask;
-                    token.context = context;
                 }
                 if (token.value != 0 /* Err */) {
                     let startIndex = actionIndex;
@@ -17038,7 +16965,7 @@
                 main = dummyToken;
                 main.start = stack.pos;
                 if (stack.pos == input.length)
-                    main.accept(stack.p.parser.eofTerm, stack.pos);
+                    main.accept(stack.cx.parser.eofTerm, stack.pos);
                 else
                     main.accept(0 /* Err */, stack.pos + 1);
             }
@@ -17049,11 +16976,11 @@
             token.clear(stack.pos);
             tokenizer.token(input, token, stack);
             if (token.value > -1) {
-                let { parser } = stack.p;
+                let { parser } = stack.cx;
                 for (let i = 0; i < parser.specialized.length; i++)
                     if (parser.specialized[i] == token.value) {
                         let result = parser.specializers[i](input.read(token.start, token.end), stack);
-                        if (result >= 0 && stack.p.parser.dialect.allows(result >> 1)) {
+                        if (result >= 0 && stack.cx.parser.dialect.allows(result >> 1)) {
                             if ((result & 1) == 0 /* Specialize */)
                                 token.value = result >> 1;
                             else
@@ -17063,7 +16990,7 @@
                     }
             }
             else if (stack.pos == input.length) {
-                token.accept(stack.p.parser.eofTerm, stack.pos);
+                token.accept(stack.cx.parser.eofTerm, stack.pos);
             }
             else {
                 token.accept(0 /* Err */, stack.pos + 1);
@@ -17080,7 +17007,7 @@
             return index;
         }
         addActions(stack, token, end, index) {
-            let { state } = stack, { parser } = stack.p, { data } = parser;
+            let { state } = stack, { parser } = stack.cx, { data } = parser;
             for (let set = 0; set < 2; set++) {
                 for (let i = parser.stateSlot(state, set ? 2 /* Skip */ : 1 /* Actions */);; i += 3) {
                     if (data[i] == 65535 /* End */) {
@@ -17245,10 +17172,9 @@
             let start = stack.pos, { input, parser } = this;
             let base = verbose ? this.stackID(stack) + " -> " : "";
             if (this.fragments) {
-                let strictCx = stack.curContext && stack.curContext.tracker.strict, cxHash = strictCx ? stack.curContext.hash : 0;
                 for (let cached = this.fragments.nodeAt(start); cached;) {
                     let match = this.parser.nodeSet.types[cached.type.id] == cached.type ? parser.getGoto(stack.state, cached.type.id) : -1;
-                    if (match > -1 && cached.length && (!strictCx || (cached.contextHash || 0) == cxHash)) {
+                    if (match > -1 && cached.length) {
                         stack.useNode(cached, match);
                         if (verbose)
                             console.log(base + this.stackID(stack) + ` (via reuse of ${parser.getName(cached.type.id)})`);
@@ -17377,8 +17303,6 @@
         }
         // Convert the stack's buffer to a syntax tree.
         stackToTree(stack, pos = stack.pos) {
-            if (this.parser.context)
-                stack.emitContext();
             return Tree.build({ buffer: StackBufferCursor.create(stack),
                 nodeSet: this.parser.nodeSet,
                 topID: this.topTerm,
@@ -17464,13 +17388,13 @@
             this.bufferLength = DefaultBufferLength;
             /// @internal
             this.strict = false;
+            this.nextStateCache = [];
             this.cachedDialect = null;
             if (spec.version != 13 /* Version */)
                 throw new RangeError(`Parser version (${spec.version}) doesn't match runtime version (${13 /* Version */})`);
             let tokenArray = decodeArray(spec.tokenData);
             let nodeNames = spec.nodeNames.split(" ");
             this.minRepeatTerm = nodeNames.length;
-            this.context = spec.context;
             for (let i = 0; i < spec.repeatNodeCount; i++)
                 nodeNames.push("");
             let nodeProps = [];
@@ -17525,6 +17449,8 @@
             this.tokenPrecTable = spec.tokenPrec;
             this.termNames = spec.termNames || null;
             this.maxNode = this.nodeSet.types.length - 1;
+            for (let i = 0, l = this.states.length / 6 /* Size */; i < l; i++)
+                this.nextStateCache[i] = null;
             this.dialect = this.parseDialect();
             this.top = this.topRules[Object.keys(this.topRules)[0]];
         }
@@ -17612,6 +17538,9 @@
         /// Get the states that can follow this one through shift actions or
         /// goto jumps. @internal
         nextStates(state) {
+            let cached = this.nextStateCache[state];
+            if (cached)
+                return cached;
             let result = [];
             for (let i = this.stateSlot(state, 1 /* Actions */);; i += 3) {
                 if (this.data[i] == 65535 /* End */) {
@@ -17620,13 +17549,21 @@
                     else
                         break;
                 }
-                if ((this.data[i + 2] & (65536 /* ReduceFlag */ >> 16)) == 0) {
-                    let value = this.data[i + 1];
-                    if (!result.some((v, i) => (i & 1) && v == value))
-                        result.push(this.data[i], value);
+                if ((this.data[i + 2] & (65536 /* ReduceFlag */ >> 16)) == 0 && result.indexOf(this.data[i + 1]) < 0)
+                    result.push(this.data[i + 1]);
+            }
+            let table = this.goto, max = table[0];
+            for (let term = 0; term < max; term++) {
+                for (let pos = table[term + 1];;) {
+                    let groupTag = table[pos++], target = table[pos++];
+                    for (let end = pos + (groupTag >> 1); pos < end; pos++)
+                        if (table[pos] == state && result.indexOf(target) < 0)
+                            result.push(target);
+                    if (groupTag & 1)
+                        break;
                 }
             }
-            return result;
+            return this.nextStateCache[state] = result;
         }
         /// @internal
         overrides(token, prev) {
@@ -17679,8 +17616,6 @@
         get eofTerm() { return this.maxNode + 1; }
         /// Tells you whether this grammar has any nested grammars.
         get hasNested() { return this.nested.length > 0; }
-        /// The type of top node produced by the parser.
-        get topNode() { return this.nodeSet.types[this.top[1]]; }
         /// @internal
         dynamicPrecedence(term) {
             let prec = this.dynamicPrecedences;
@@ -17720,8 +17655,8 @@
     function findFinished(stacks) {
         let best = null;
         for (let stack of stacks) {
-            if (stack.pos == stack.p.input.length &&
-                stack.p.parser.stateFlag(stack.state, 2 /* Accepting */) &&
+            if (stack.pos == stack.cx.input.length &&
+                stack.cx.parser.stateFlag(stack.state, 2 /* Accepting */) &&
                 (!best || best.score < stack.score))
                 best = stack;
         }
@@ -17742,7 +17677,7 @@
       ],
       skippedNodes: [0],
       repeatNodeCount: 1,
-      tokenData: "%R~RfXY!gYZ!gZ^!gpq!gxy#byz#g|}#l}!O#q!O!P#|!c!}$R!}#O$a#P#Q$f#Q#R$k#T#o$R#y#z!g$f$g!g#BY#BZ!g$IS$I_!g$I|$JO!g$JT$JU!g$KV$KW!g&FU&FV!g~!l[^~XY!gYZ!gZ^!gpq!g#y#z!g$f$g!g#BY#BZ!g$IS$I_!g$I|$JO!g$JT$JU!g$KV$KW!g&FU&FV!g~#gOS~~#lOR~~#qOc~~#tP!`!a#w~#|Ob~~$RO`~~$WRQ~!Q![$R!c!}$R#T#o$R~$fOW~~$kOV~~$nQ!Q!R$t!R![$y~$yOY~~%OPY~!Q![$y",
+      tokenData: "%Z~RfXY!gYZ!gZ^!gpq!gxy#byz#g|}#l}!O#q!O!P#|!c!}$R!}#O$a#P#Q$f#Q#R$k#T#o$R#y#z!g$f$g!g#BY#BZ!g$IS$I_!g$I|$JO!g$JT$JU!g$KV$KW!g&FU&FV!g~!l[^~XY!gYZ!gZ^!gpq!g#y#z!g$f$g!g#BY#BZ!g$IS$I_!g$I|$JO!g$JT$JU!g$KV$KW!g&FU&FV!g~#gOS~~#lOR~~#qOc~~#tP!`!a#w~#|Ob~~$RO`~~$WRQ~!Q![$R!c!}$R#T#o$R~$fOW~~$kOV~~$nQ!Q!R$t!R![$y~$yOY~~%OPY~!Q![%R~%WPY~!Q![%R",
       tokenizers: [0],
       topRules: {"PhiGrammar":[0,1]},
       tokenPrec: 0
@@ -17780,8 +17715,9 @@
 ]`;
 
     const myTheme = EditorView.baseTheme({
-      $:{
+      $: {
         maxHeight: '98vh',
+        maxWidth: '30vw',
         outline: '1px auto #ddd',
       },
       $scroller: {
@@ -17801,8 +17737,13 @@
 
     const view = new EditorView({
       state: initialState,
-      parent: document.body
+      parent: document.querySelector("#editor")
     });
 
-}());
+    exports.initialState = initialState;
+    exports.view = view;
+
+    return exports;
+
+}({}));
 //# sourceMappingURL=bundle.js.map

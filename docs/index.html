@@ -4,7 +4,40 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
-body { max-width: 992px; margin: auto; padding: 8px 16px; }
+    body {
+        max-width: 992px;
+        margin: auto;
+        padding: 8px 16px;
+    }
 </style>
-<body></body>
-<script src="build/bundle.js"></script>
+
+<body>
+    <div>
+        φ-Minimal code editor based on <a href="https://codemirror.net/6/">Codemirror 6</a>
+    </div>
+
+    <br>
+
+    <div id="editor"></div>
+
+    <br>
+
+    <div>
+        Syntax
+        <br>
+        <ul style="list-style-type:none;">
+            <li>t :=</li>
+            <li> &nbsp; t.a</li>
+            <li> | t₁(x -> t₂)</li>
+            <li> | [a₁ -> Ø, …, aₖ -> Ø, b₁ -> t₁, …, bₘ -> tₘ]</li>
+            <li> | ρⁿ</li>
+        </ul>
+    </div>
+    <script defer src="build/bundle.js"></script>
+    <script defer>
+        let view = app.view
+        view.dispatch({
+            changes: { from: 0, insert: "#!/usr/bin/env node\n" }
+        })
+    </script>
+</body>

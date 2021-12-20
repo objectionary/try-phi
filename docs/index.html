@@ -23,17 +23,57 @@
     <br>
 
     <div>
-        Syntax
-        <br>
-        <ul style="list-style-type:none;">
-            <li>t :=</li>
-            <li> &nbsp; t.a₁</li>
-            <li> | t₁(a₁ -> t₂)</li>
-            <li> | [a₁ -> ?, …, aₖ -> ?, aₖ₊₁ -> tₖ₊₁, …, aₘ -> tₘ]</li>
-            <li> | ^n</li>
-            <br>
-            <li>aᵢ := [a-z] [a-z0-9]*</li>
-        </ul>
+        <table >
+            <caption>φ-Minimal Syntax</caption>
+            <tr>
+                <td>
+                    t :=    
+                </td>
+                <td>
+                    (term)
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    &nbsp; t.a   
+                </td>
+                <td>
+                    (attribute)
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    | t₁(a -> t₂)
+                </td>
+                <td>
+                    (application)
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    | [a₁ -> ?, …, aₖ -> ?, aₖ₊₁ -> tₖ₊₁, …, aₘ -> tₘ]
+                </td>
+                <td>
+                    (object)
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    | ^n
+                </td>
+                <td>
+                    (locator)
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    a := [a-z][a-z0-9]*
+                </td>
+                <td>
+                    (attribute name)
+                </td>
+            </tr>
+        </table>
     </div>
     <script defer src="build/bundle.js"></script>
     <script defer>

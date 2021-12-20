@@ -93,24 +93,11 @@
   </section>
   <!-- load codemirror (cm) bundle and set it up in the editor div -->
   <script src="codemirror/docs/build/bundle.js"></script>
-  
-  <!-- edit cm content -->
   <script>
-    let view = app.view
-
+    let view = app.view;
     /* extract query parameters from the URL */
     const params = new URLSearchParams(window.location.search);
 
-
-    /* upon every update of the code */
-    // view.on("changes", function (cm, changedObjects) {
-    //   /* update the permalink */
-    //   document.getElementById('__permalink__').href =
-    //     window.location.protocol + '//' + window.location.host + window.location.pathname
-    //     + "?snippet=" + encodeURIComponent(myCodeMirror.getValue());
-    // });
-
-    
     /* use default snippet if one is not set in the query parameters */
     snippet = 
 `[
@@ -124,12 +111,11 @@
     // snippet = "[x -> ^0.y, y -> ^0.z, z -> [b -> ^0.c, c -> ?](c -> ^0)].x.b"
     if (params.has("snippet")) {
       snippet = decodeURIComponent(params.get("snippet"));
-    }
+    };
     // set default snippet
-    // console.log(view.state.doc.length)
     view.dispatch({
       changes: {from: 0, to: view.state.doc.length, insert: snippet}
-    })
+    });
 
   </script>
 </body>

@@ -17716,8 +17716,8 @@ var app = (function (exports) {
 
     const myTheme = EditorView.baseTheme({
       $: {
-        maxHeight: '100vh',
-        maxWidth: '100vw',
+        maxHeight: '80vh',
+        maxWidth: '40vw',
         outline: '1px auto #ddd',
       },
       $scroller: {

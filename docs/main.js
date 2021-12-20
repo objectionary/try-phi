@@ -1,4 +1,5 @@
 import { EditorState, EditorView, basicSetup } from '@codemirror/next/basic-setup'
+import { ViewUpdate } from '@codemirror/next/view';
 import { lezer } from './lezer'
 let code = `[
   x -> ^0.y,
@@ -20,17 +21,29 @@ const myTheme = EditorView.baseTheme({
   }
 })
 
-export const initialState = EditorState.create({
+function updatePermalink(cm){
+  document.getElementById('__permalink__').href =
+    window.location.protocol + '//' + window.location.host + window.location.pathname
+    + "?snippet=" + encodeURIComponent(cm.state.doc.toString());
+}
+
+const initialState = EditorState.create({
   doc: code,
   extensions: [
     basicSetup,
     myTheme,
     lezer(),
+    EditorView.updateListener.of((v) =>{
+      if (v.docChanged) {
+        updatePermalink(v);
+      }
+    })
   ]
 })
 
-export const view = new EditorView({
+const view = new EditorView({
   state: initialState,
   parent: document.querySelector("#editor")
 })
 
+export {view}

@@ -17717,7 +17717,6 @@ var app = (function (exports) {
     const myTheme = EditorView.baseTheme({
       $: {
         maxHeight: '80vh',
-        // maxWidth: '60vw',
         outline: '1px auto #ddd',
       },
       $scroller: {
@@ -17726,12 +17725,23 @@ var app = (function (exports) {
       }
     });
 
+    function updatePermalink(cm){
+      document.getElementById('__permalink__').href =
+        window.location.protocol + '//' + window.location.host + window.location.pathname
+        + "?snippet=" + encodeURIComponent(cm.state.doc.toString());
+    }
+
     const initialState = EditorState.create({
       doc: code$1,
       extensions: [
         basicSetup,
         myTheme,
         lezer(),
+        EditorView.updateListener.of((v) =>{
+          if (v.docChanged) {
+            updatePermalink(v);
+          }
+        })
       ]
     });
 
@@ -17740,7 +17750,6 @@ var app = (function (exports) {
       parent: document.querySelector("#editor")
     });
 
-    exports.initialState = initialState;
     exports.view = view;
 
     return exports;

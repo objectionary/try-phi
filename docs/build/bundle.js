@@ -17717,11 +17717,12 @@ var app = (function (exports) {
     const myTheme = EditorView.baseTheme({
       $: {
         maxHeight: '80vh',
+        // maxWidth: '60vw',
         outline: '1px auto #ddd',
       },
       $scroller: {
         fontFamily: '"Fira Mono", monospace',
-        fontSize: '30px',
+        fontSize: '20px',
       }
     });
 

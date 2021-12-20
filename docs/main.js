@@ -16,7 +16,7 @@ const myTheme = EditorView.baseTheme({
   },
   $scroller: {
     fontFamily: '"Fira Mono", monospace',
-    fontSize: '30px',
+    fontSize: '20px',
   }
 })
 

@@ -161,6 +161,6 @@ viewModel m@Model{..} =
 codemirrorGetValue :: JSM MisoString
 codemirrorGetValue = return (ms (show Phi.ex6))
 #else
-foreign import javascript unsafe "$r = myCodeMirror.getValue();"
+foreign import javascript unsafe "$r = view.state.doc;"
   codemirrorGetValue :: IO MisoString
 #endif

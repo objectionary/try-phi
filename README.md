@@ -54,3 +54,5 @@ Right now we implement it as a term rewriting system with the following features
 * Open `index.html` in browser
 
     * In case nothing changes, clear browser cache
+
+* Use extension `stylish-hindent` for formatting the code

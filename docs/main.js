@@ -12,7 +12,6 @@ let code = `[
 const myTheme = EditorView.baseTheme({
   $: {
     maxHeight: '80vh',
-    maxWidth: '40vw',
     outline: '1px auto #ddd',
   },
   $scroller: {

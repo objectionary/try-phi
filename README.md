@@ -29,18 +29,28 @@ Right now we implement it as a term rewriting system with the following features
 * Clone this repository
     ```sh
     git clone --recurse-submodules -j8 https://github.com/br4ch1st0chr0n3/try-phi
+    cd try-phi
+    ```
+    
+* Install [Node.js](https://nodejs.org/en/download/)
+
+* Install codemirror dependencies
+    ```sh
+    npm --prefix codemirror i
     ```
 
 * Install [nix](https://nixos.org/download.html)
 
-* Install [stack](https://docs.haskellstack.org/en/stable/install_and_upgrade/)
-
 ### VS Code
-* Install and open VS Code
 
-* IDE will ask if you want to clone a repository. Paste URL to this repo
+* Install VS Code
 
-* Open terminal (`Ctrl+` `)
+* Open it in `try-phi` folder
+    ```sh
+    code .
+    ```
+
+* Open terminal in VS Code (`Ctrl+` `)
 
 * Install [stack](https://docs.haskellstack.org/en/stable/install_and_upgrade/)
 
@@ -55,8 +65,11 @@ Right now we implement it as a term rewriting system with the following features
 
 * Open `app/Main.hs` and hover onto a function and check if docs appear
     
-* Open `index.html` in browser
+* Open `index.html` in browser, e.g.:
+    ```sh
+    firefox index.html
+    ```
 
     * In case nothing changes, clear browser cache
 
-* Use extension `stylish-hindent` for formatting the code
+* Optionally, the extension `stylish-hindent` for formatting the code

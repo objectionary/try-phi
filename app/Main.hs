@@ -119,12 +119,14 @@ viewModel m@Model{..} =
 
       , table_ [] [ tr_ []
         [ td_ []
-            [ div_ [] [text "Call-by-name term reduction:"]
-            , pre_ [] [text . ms . show $ Phi.ppWhnfSteps term] ]
+            [ details_ [] [
+              summary_ [] [text "Call-by-name term reduction:"]
+            , pre_ [] [text . ms . show $ Phi.ppWhnfSteps term]] ]
         , td_ [ width_ "50" ] [ ]
         , td_ []
-            [ div_ [] [text "Call-by-name term reduction (via abstract machine):"]
-            , pre_ [] [text . ms . show $ Phi.ppStepsFor term] ]
+            [ details_ [] [
+              summary_ [] [text "Call-by-name term reduction (via abstract machine):"]
+            , pre_ [] [text . ms . show $ Phi.ppStepsFor term]] ]
         ] ]
       , br_ []
       , table_ [] [
@@ -140,7 +142,7 @@ viewModel m@Model{..} =
               ]
             ]
           , td_ [ width_ "50" ] [ ]
-          , td_ [] [ 
+          , td_ [] [
               img_ [
                 let 
                   dotStringState = CDot.renderAsDot @Gr ((getGraphSteps m) !! graphStepNumber)
@@ -150,7 +152,9 @@ viewModel m@Model{..} =
               ]
             ]
           , td_ [] [
-              pre_ [] [ text (ms (Phi.renderAsColorfulDot term)) ]
+              details_ [] [
+                summary_ [] [text "Graph DOT string"]
+              , pre_ [] [ text (ms (Phi.renderAsColorfulDot term)) ]]
             ]
           ]
         ]

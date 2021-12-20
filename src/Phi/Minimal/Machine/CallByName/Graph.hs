@@ -104,7 +104,7 @@ step conf@Configuration {..} =
         DotAction (_node, a):as ->
           case environment of
             [] -> Nothing -- should never happen?
-            parent:_parents -- underscore before variaable to prevent warnings and convey some info https://stackoverflow.com/a/50705888
+            parent:_parents -- underscore before variable to prevent warnings and convey some info https://stackoverflow.com/a/50705888
              ->
               case findInCurrentParent a parent graph of
                 Nothing -> Nothing -- runtime error?
@@ -117,7 +117,6 @@ step conf@Configuration {..} =
                       , actions = as
                       , environment = newEnv
                       }
-    -- FIXME after moving locator data into new vertex
     Just node ->
       case Graph.context graph node of
         (_, _, LocDotNode (Just n), _) ->

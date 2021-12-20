@@ -4,7 +4,6 @@
   <title>Try 𝜑-calculus!</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.js"></script>
   <script src="all.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/theme/monokai.css">
@@ -101,9 +100,9 @@
     /* use default snippet if one is not set in the query parameters */
     snippet = 
 `[
-  point -> [x -> ?, y -?, z -> ?],
-  a -> point(x -> ^1.int2)(y -> ^1.int4)(z -> ^1.int1),
-  b -> point(x -> ^1.int7)(y -> ^1.int12)(z -> ^1.int2),
+  point -> [x -> ?, y ->?, z -> ?],
+  a -> ^0.point(x -> ^1.int2)(y -> ^1.int4)(z -> ^1.int1),
+  b -> ^0.point(x -> ^1.int7)(y -> ^1.int12)(z -> ^1.int2),
   dist -> ^1.dist(point1 -> ^0.a)(point2 -> ^0.b)
 ].dist.val`;
 

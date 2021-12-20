@@ -26,6 +26,10 @@ Right now we implement it as a term rewriting system with the following features
 4. At the moment, infinite recursion can hang the page and editor, — simply reload the page!
 
 ## How to contribute
+* Clone this repository
+    ```sh
+    git clone --recurse-submodules -j8 https://github.com/br4ch1st0chr0n3/try-phi
+    ```
 
 * Install [nix](https://nixos.org/download.html)
 

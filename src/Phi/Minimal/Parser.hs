@@ -83,10 +83,16 @@ pIdent = Trifecta.ident pIdentStyle
 pIdentStyle :: (TokenParsing m, Monad m) => IdentifierStyle m
 pIdentStyle =
   (emptyIdents @Parser)
-    { _styleStart = Trifecta.satisfy isAlpha
+    { _styleStart = Trifecta.satisfy isIdent
     , _styleLetter = Trifecta.satisfy isAlphaNum
     , _styleReserved = HashSet.fromList []
     }
+
+isIdent :: Char  -> Bool 
+isIdent c = 
+  case c of 
+    '@' -> True
+    _ -> isAlpha c
 
 -- ** Char predicates
 isDelim :: Char -> Bool

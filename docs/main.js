@@ -1,5 +1,4 @@
 import { EditorState, EditorView, basicSetup } from '@codemirror/next/basic-setup'
-import { ViewUpdate } from '@codemirror/next/view';
 import { lezer } from './lezer'
 let code = `[
   x -> ^0.y,

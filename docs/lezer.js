@@ -14,6 +14,7 @@ export const lezerLanguage = LezerLanguage.define({
         Locator: t.keyword,
         Attr: t.integer,
         Mapsto: t.string,
+        Decorator: t.integer
       }),
     ],
   }),

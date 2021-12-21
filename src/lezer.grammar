@@ -8,7 +8,7 @@
     num {std.digit}
     Locator {"^" (num | $[1-9] num+)}
     Attr {alpha (alpha | num)*}
-
+    Decorator {"@"}
     "[" "]" "(" ")"
 }
 
@@ -16,7 +16,7 @@ Mapsto {"->"}
 
 body { Block {"[" ("" | mapping ("," mapping)*) "]"} }
 
-mapping { Attr Mapsto term }
+mapping { (Attr | Decorator) Mapsto term }
 
 app { term Block {"(" ("" | mapping) ")" } }
 

@@ -6,8 +6,9 @@
     space{(std.whitespace | "\n")+}
     alpha {std.asciiLetter}
     num {std.digit}
+    underscore {"_"}
     Locator {"^" (num | $[1-9] num+)}
-    Attr {alpha (alpha | num)*}
+    Attr {alpha (alpha | num | underscore)*}
     Decorator {"@"}
     "[" "]" "(" ")"
 }

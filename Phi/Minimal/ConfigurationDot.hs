@@ -123,7 +123,7 @@ type Edges = Map.Map (Graph.Node, TermEdge) Graph.Node
 
 addModeByEdge :: Graph.Node -> CGraph.Action -> Edges -> ModeMap -> ModeMap
 addModeByEdge node action edges m = m1
-    -- proper label to search by
+    -- proper label to search by  
     -- locator edges are a subset of attribute edges
   where
     l =

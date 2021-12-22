@@ -98,15 +98,28 @@
     const params = new URLSearchParams(window.location.search);
 
     /* use default snippet if one is not set in the query parameters */
+//     snippet = 
+// `[
+//   point -> [x -> ?, y ->?, z -> ?],
+//   a -> ^0.point(x -> ^1.int2)(y -> ^1.int4)(z -> ^1.int1),
+//   b -> ^0.point(x -> ^1.int7)(y -> ^1.int12)(z -> ^1.int2),
+//   dist -> ^1.dist(point1 -> ^0.a)(point2 -> ^0.b)
+// ].dist.val`;
+
     snippet = 
 `[
-  point -> [x -> ?, y ->?, z -> ?],
-  a -> ^0.point(x -> ^1.int2)(y -> ^1.int4)(z -> ^1.int1),
-  b -> ^0.point(x -> ^1.int7)(y -> ^1.int12)(z -> ^1.int2),
-  dist -> ^1.dist(point1 -> ^0.a)(point2 -> ^0.b)
-].dist.val`;
+  price -> ^1.int_2,
+  book -> [
+    title -> ^2.title,
+    price -> ?
+  ],
+  manga -> [
+    manga_title -> ^2.str_publisher.add(str -> ^0.title),
+    @ -> ^1.book
+  ](price -> ^0.price),
+  title -> ^0.manga.manga_title
+].manga.price`
 
-    // snippet = "[ u -> ^1.x]"
     // snippet = "[x -> ^0.y, y -> ^0.z, z -> [b -> ^0.c, c -> ?](c -> ^0)].x.b"
     if (params.has("snippet")) {
       snippet = decodeURIComponent(params.get("snippet"));

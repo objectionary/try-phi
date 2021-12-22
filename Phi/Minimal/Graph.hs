@@ -20,7 +20,7 @@ data TermEdge
   = DotEdge Attr
   | AttrEdge Attr
   | CopyEdge
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 toGraphBuilder ::
      DynGraph gr => Term -> GraphBuilder gr TermNode TermEdge Graph.Node

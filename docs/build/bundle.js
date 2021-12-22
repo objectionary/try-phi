@@ -17677,7 +17677,7 @@ var app = (function (exports) {
       ],
       skippedNodes: [0],
       repeatNodeCount: 1,
-      tokenData: "%c~RgXY!jYZ!jZ^!jpq!jxy#eyz#j|}#o}!O#t!O!P$P!b!c$U!c!}$Z!}#O$i#P#Q$n#Q#R$s#T#o$Z#y#z!j$f$g!j#BY#BZ!j$IS$I_!j$I|$JO!j$JT$JU!j$KV$KW!j&FU&FV!j~!o[_~XY!jYZ!jZ^!jpq!j#y#z!j$f$g!j#BY#BZ!j$IS$I_!j$I|$JO!j$JT$JU!j$KV$KW!j&FU&FV!j~#jOS~~#oOR~~#tOd~~#wP!`!a#z~$POc~~$UOa~~$ZOU~~$`RQ~!Q![$Z!c!}$Z#T#o$Z~$nOX~~$sOW~~$vQ!Q!R$|!R![%R~%ROZ~~%WPZ~!Q![%Z~%`PZ~!Q![%Z",
+      tokenData: "%f~RgXY!jYZ!jZ^!jpq!jxy#eyz#j|}#o}!O#t!O!P$P!b!c$U!c!}$Z!}#O$l#P#Q$q#Q#R$v#T#o$Z#y#z!j$f$g!j#BY#BZ!j$IS$I_!j$I|$JO!j$JT$JU!j$KV$KW!j&FU&FV!j~!o[_~XY!jYZ!jZ^!jpq!j#y#z!j$f$g!j#BY#BZ!j$IS$I_!j$I|$JO!j$JT$JU!j$KV$KW!j&FU&FV!j~#jOS~~#oOR~~#tOd~~#wP!`!a#z~$POc~~$UOa~~$ZOU~~$`SQ~!Q![$Z!c!}$Z#R#S$Z#T#o$Z~$qOX~~$vOW~~$yQ!Q!R%P!R![%U~%UOZ~~%ZPZ~!Q![%^~%cPZ~!Q![%^",
       tokenizers: [0],
       topRules: {"PhiGrammar":[0,1]},
       tokenPrec: 0
@@ -17707,13 +17707,15 @@ var app = (function (exports) {
     }
 
     let code$1 = `[
-  x -> ^0.y,
-  p -> [y -> ^0.x, z -> [
-    t -> ^3.p(
-      d -> ^12
-    )
-  ]]
-]`;
+  book -> [
+    title -> ^2.title,
+    price -> ?
+  ],
+  manga -> [
+    manga_title -> ^2.str_publisher.add(str -> ^0.title),
+    @ -> ^1.book
+  ](price -> ^1.price)
+].manga.price`;
 
     const myTheme = EditorView.baseTheme({
       $: {

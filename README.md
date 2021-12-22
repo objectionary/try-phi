@@ -75,3 +75,5 @@ Right now we implement it as a term rewriting system with the following features
 * Optionally, the extension `stylish-hindent` for formatting the code
 
 * Use [Nix Environment Selector](https://marketplace.visualstudio.com/items?itemName=arrterian.nix-env-selector)
+
+* If typechecking doesn't work, reload VS Code

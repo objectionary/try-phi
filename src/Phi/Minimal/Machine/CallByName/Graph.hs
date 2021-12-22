@@ -121,7 +121,7 @@ step conf@Configuration {..} =
       case Graph.context graph node of
         (_, _, LocDotNode (Just n), _) ->
           Just
-            conf
+            conf  
               {currentNode = Nothing, actions = LocAction (node, n) : actions}
         (_, _, LocDotNode Nothing, [(DotEdge a, to)]) ->
           Just

@@ -41,8 +41,8 @@
         </a>
       </center>
     </header>
-    <div class="row">
-      <div class="column">
+    <div class="column">
+      <div class="object">
         <p>
           <label class="selected_mode">
             Minimal
@@ -56,15 +56,80 @@
           </label>
           <label class="reference_line">
             <a href="https://www.eolang.org">𝜑-calculus</a> expression
-            (<a id="__permalink__" href="#">permalink</a>):
+            (<a id="__permalink__" href="#">permalink</a>)
           </label>
         </p>
-        <div id="editor"></div>
       </div>
-      <div class="column">
-        <div>
-          <div id="__app__"></div>
-        </div>
+      <div class="row">
+        <table>
+          <tr>
+            <td class="object">
+              <div id="editor"></div>
+            </td>
+            <td>
+              <div>
+                <table class="rules">
+                  <caption>
+                    <b>Minimal φ Syntax</b>
+                    <br>
+                    Lezer grammar is available <a href="./codemirror/src/lezer.grammar">here</a>
+                  </caption>
+                  <tr>
+                    <td>
+                      t :=
+                    </td>
+                    <td>
+                      (term)
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      &nbsp; &nbsp; t.a
+                    </td>
+                    <td>
+                      (attribute)
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      &nbsp; | t₁(a -> t₂)
+                    </td>
+                    <td>
+                      (application)
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      &nbsp; | [a₁ -> ?, …, aₖ -> ?, aₖ₊₁ -> tₖ₊₁, …, aₘ -> tₘ]
+                    </td>
+                    <td>
+                      (object)
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      &nbsp; | ^n
+                    </td>
+                    <td>
+                      (locator)
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      a := ( [a-z]([a-z0-9] | '_' )* ) | '@'
+                    </td>
+                    <td>
+                      (attribute name)
+                    </td>
+                  </tr>
+                </table>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </div>
+      <div class="row">
+        <div id="__app__"></div>
       </div>
     </div>
     <footer>
@@ -94,16 +159,16 @@
     const params = new URLSearchParams(window.location.search);
 
     /* use default snippet if one is not set in the query parameters */
-//     snippet = 
-// `[
-//   point -> [x -> ?, y ->?, z -> ?],
-//   a -> ^0.point(x -> ^1.int2)(y -> ^1.int4)(z -> ^1.int1),
-//   b -> ^0.point(x -> ^1.int7)(y -> ^1.int12)(z -> ^1.int2),
-//   dist -> ^1.dist(point1 -> ^0.a)(point2 -> ^0.b)
-// ].dist.val`;
+    //     snippet = 
+    // `[
+    //   point -> [x -> ?, y ->?, z -> ?],
+    //   a -> ^0.point(x -> ^1.int2)(y -> ^1.int4)(z -> ^1.int1),
+    //   b -> ^0.point(x -> ^1.int7)(y -> ^1.int12)(z -> ^1.int2),
+    //   dist -> ^1.dist(point1 -> ^0.a)(point2 -> ^0.b)
+    // ].dist.val`;
 
-    snippet = 
-`[
+    snippet =
+      `[
   price -> ^1.int_2,
   book -> [
     title -> ^2.title,
@@ -122,7 +187,7 @@
     };
     // set default snippet
     view.dispatch({
-      changes: {from: 0, to: view.state.doc.length, insert: snippet}
+      changes: { from: 0, to: view.state.doc.length, insert: snippet }
     });
 
   </script>

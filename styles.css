@@ -67,3 +67,16 @@ input:checked+.slider:before {
 .reference_line {
     vertical-align: middle;
 }
+
+.hide {
+    display: none;
+}
+  
+.object:hover + .hide {
+    display: block;
+    color: red;
+}
+
+table {
+    max-width: 100%;
+}

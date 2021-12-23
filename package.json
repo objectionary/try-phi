@@ -1,0 +1,26 @@
+{
+  "name": "lezer-grammar",
+  "scripts": {
+    "build": "lezer-generator --output src/parser src/lezer.grammar",
+    "build:doc": "npm run build; rollup -c",
+    "start": "node -r esm dingus.js",
+    "dev": "nodemon --exec 'yarn build' -e grammar",
+    "dev:doc": "rollup -cw"
+  },
+  "license": "Unlicense",
+  "dependencies": {
+    "esm": "^3.2.25",
+    "lezer": "^0.13.1"
+  },
+  "devDependencies": {
+    "@codemirror/next": "^0.15.0",
+    "@rollup/plugin-commonjs": "^15.1.0",
+    "@rollup/plugin-node-resolve": "^9.0.0",
+    "lezer-generator": "^0.13.1",
+    "node-static": "^0.7.11",
+    "nodemon": "^2.0.5",
+    "rollup": "^2.30.0",
+    "rollup-plugin-livereload": "^2.0.0",
+    "rollup-plugin-string": "^3.0.0"
+  }
+}

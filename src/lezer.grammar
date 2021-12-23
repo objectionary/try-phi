@@ -1,0 +1,26 @@
+@top PhiGrammar { term }
+
+@skip {space}
+
+@tokens {
+    space{(std.whitespace | "\n")+}
+    alpha {std.asciiLetter}
+    num {std.digit}
+    underscore {"_"}
+    Locator {"^" (num | $[1-9] num+)}
+    Attr {alpha (alpha | num | underscore)*}
+    Decorator {"@"}
+    "[" "]" "(" ")"
+}
+
+Mapsto {"->"}
+
+body { Block {"[" ("" | mapping ("," mapping)*) "]"} }
+
+mapping { (Attr | Decorator) Mapsto term }
+
+app { term Block {"(" ("" | mapping) ")" } }
+
+term { term "." Attr | app | body | Locator}
+
+@detectDelim

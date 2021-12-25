@@ -74,12 +74,7 @@ input:checked+.slider:before {
     width: 1%;
 }
 
-.tooltip-inner {
-    /* max-width: 500px; */
-    /* If max-width does not work, try using width instead */
-    /* width: 500px;  */
-    /* height: 500px; */
-    /* max-height: 500px; */
-    text-align: left;
+.popover {
+    white-space: normal !important;
+    word-break: break-all!important;
 }
-

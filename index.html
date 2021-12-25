@@ -64,7 +64,7 @@
                 <a href="https://www.eolang.org">𝜑-calculus</a> expression
                 (<a id="__permalink__" href="#">permalink</a>)
               </label>
-              <label class="selected_mode editor_info" class="btn btn-secondary" data-bs- data-bs-toggle="tooltip" data-bs-html="true" id="editor_info"></label>
+              <label class="selected_mode" data-bs-container="body" data-bs-toggle="popover" data-bs-placement="top" data-bs-content="Vivamus sagittis lacus vel augue laoreet rutrum faucibus." id="editor_info"></label>
             </p>
           </div>
         </div>
@@ -136,6 +136,7 @@
       </div>
     </div>
 
+    
     <div class="column">
       <div class="row">
         <div id="__app__"></div>
@@ -161,26 +162,33 @@
     </footer>
   </section>
   
+  <button type="button" class="btn btn-secondary" data-bs-container="body" data-bs-toggle="popover" data-bs-placement="top" data-bs-content="Vivamus sagittis lacus vel augue laoreet rutrum faucibus.">
+    Popover on top
+  </button>
+
   <script>
     // enable info tooltips
-    var infoSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-info-square" viewBox="0 0 16 16">` +
+    var infoSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-info-square" viewBox="0 0 16 16">` +
               `<path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>` +
               `<path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>` +
             `</svg>`
     
-            var infos = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+    var infos = document.querySelectorAll('[data-bs-toggle="popover"]')
     for (var i = 0; i < infos.length; i++) {
       infos[i].innerHTML = infoSVG
     }
   </script>
 
   <script>
-    // tooltip for editor
-    document.getElementById("editor_info").title = 
-    `<ul>` + 
-      `<li>Original <a href='https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAATVEUf-E'>syntax</a></li>`+
-      `<li>Minimal 𝜑-calculus <a href='https://drive.google.com/file/d/1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH/edit?disco=AAAASlupb0I'>definition</a></li>`+
-      `</ul>`
+    // popover for editor
+    var editor_info =  
+      `<div>` +
+      `Original <a href='https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAATVEUf-E'>syntax</a>`+
+      `<br>` +
+      `Minimal 𝜑-calculus <a href='https://drive.google.com/file/d/1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH/edit?disco=AAAASlupb0I'>definition</a>`+
+      `<div>`
+
+    document.getElementById("editor_info").setAttribute("data-bs-content", editor_info)
 
   </script>
 
@@ -225,13 +233,10 @@
 
   </script>
   <script>
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-      return new bootstrap.Tooltip(tooltipTriggerEl)
+    var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+    var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+      return new bootstrap.Popover(popoverTriggerEl, {container: 'body', html: true})
     })
-    $('.editor_info').tooltip({
-      sanitize: false
-    }).tooltip('show')
   </script>
   
 </body>

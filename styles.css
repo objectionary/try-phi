@@ -68,15 +68,18 @@ input:checked+.slider:before {
     vertical-align: middle;
 }
 
-.hide {
-    display: none;
-}
-  
-.object:hover + .hide {
-    display: block;
-    color: red;
+.table td.fit, 
+.table th.fit {
+    white-space: nowrap;
+    width: 1%;
 }
 
-table {
-    max-width: 100%;
+.tooltip-inner {
+    /* max-width: 500px; */
+    /* If max-width does not work, try using width instead */
+    /* width: 500px;  */
+    /* height: 500px; */
+    /* max-height: 500px; */
+    text-align: left;
 }
+

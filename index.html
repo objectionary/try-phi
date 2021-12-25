@@ -64,7 +64,7 @@
                 <a href="https://www.eolang.org">𝜑-calculus</a> expression
                 (<a id="__permalink__" href="#">permalink</a>)
               </label>
-              <label class="selected_mode" data-bs-container="body" data-bs-toggle="popover" data-bs-placement="top" data-bs-content="Vivamus sagittis lacus vel augue laoreet rutrum faucibus." id="editor_info"></label>
+              <label class="selected_mode" data-bs-container="body" data-bs-toggle="popover" data-bs-placement="top" id="editor_info"></label>
             </p>
           </div>
         </div>
@@ -73,65 +73,6 @@
       <div class="row">
         <div class="col">
           <div id="editor"></div>
-        </div>
-        <div class="col" id="syntax_rules">
-          <table class="table table-sm caption-top table-borderless">
-            <caption>
-              <b>Minimal φ Syntax</b>
-              <!-- <br>
-              Lezer grammar is available <a href="./codemirror/src/lezer.grammar">here</a> -->
-            </caption>
-            <tbody>
-              <tr>
-                <td>
-                  t :=
-                </td>
-                <td>
-                  (term)
-                </td>
-              </tr>
-              <tr>
-                <td>
-                  &nbsp; &nbsp; t.a
-                </td>
-                <td>
-                  (attribute)
-                </td>
-              </tr>
-              <tr>
-                <td>
-                  &nbsp; | t₁(a -> t₂)
-                </td>
-                <td>
-                  (application)
-                </td>
-              </tr>
-              <tr>
-                <td>
-                  &nbsp; | [a₁ -> ?, …, aₖ -> ?, aₖ₊₁ -> tₖ₊₁, …, aₘ -> tₘ]
-                </td>
-                <td>
-                  (object)
-                </td>
-              </tr>
-              <tr>
-                <td>
-                  &nbsp; | ^n
-                </td>
-                <td>
-                  (locator)
-                </td>
-              </tr>
-              <tr>
-                <td>
-                  a := ( [a-z]([a-z0-9] | '_' )* ) | '@'
-                </td>
-                <td>
-                  (attribute name)
-                </td>
-              </tr>
-            </tbody>
-          </table>
         </div>
       </div>
     </div>
@@ -161,11 +102,6 @@
       </nav>
     </footer>
   </section>
-  
-  <button type="button" class="btn btn-secondary" data-bs-container="body" data-bs-toggle="popover" data-bs-placement="top" data-bs-content="Vivamus sagittis lacus vel augue laoreet rutrum faucibus.">
-    Popover on top
-  </button>
-
   <script>
     // enable info tooltips
     var infoSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-info-square" viewBox="0 0 16 16">` +
@@ -183,9 +119,11 @@
     // popover for editor
     var editor_info =  
       `<div>` +
-      `Original <a href='https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAATVEUf-E'>syntax</a>`+
+      `&bull; Original <a href='https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAATVEUf-E'>syntax</a>`+
       `<br>` +
-      `Minimal 𝜑-calculus <a href='https://drive.google.com/file/d/1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH/edit?disco=AAAASlupb0I'>definition</a>`+
+      `&bull; 𝜑-calculus <a href='https://drive.google.com/file/d/1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH/edit?disco=AAAASlupb0I'>definition</a>`+
+      `<br>` +
+      `&bull; <a href='https://bit.ly/32zuO4u'>BNF</a>` + 
       `<div>`
 
     document.getElementById("editor_info").setAttribute("data-bs-content", editor_info)
@@ -232,13 +170,18 @@
     });
 
   </script>
+
+  <script>
+    // extract elements from app and put them into nice layout
+    
+  </script>
+
   <script>
     var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
     var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
       return new bootstrap.Popover(popoverTriggerEl, {container: 'body', html: true})
     })
   </script>
-  
 </body>
 
 </html>

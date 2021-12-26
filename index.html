@@ -71,16 +71,31 @@
         </div>
         <div class="col"></div>
       </div>
-      <div>
-        <div class="row">
-          <div class="col">
-            <div id="editor"></div>
-          </div>
-        </div>
+      <div class="row">
+        <div id="editor"></div>
       </div>
-      <div id="__app__"></div>
+      <div class="row">
+          <div id="__app__"></div>
+      </div>
     </div>
     
+    <nav>
+      <div class="nav nav-tabs" id="nav-tab" role="tablist">
+        <button class="nav-link active" id="nav-home-tab" data-bs-toggle="tab" data-bs-target="#nav-home" type="button" role="tab" aria-controls="nav-home" aria-selected="true">
+          <i class="selected_mode bi bi-info-square" data-bs-container="body" data-bs-toggle="popover" data-bs-placement="top" id="editor_info"></i>
+          Home
+        </button>
+        <button class="nav-link" id="nav-profile-tab" data-bs-toggle="tab" data-bs-target="#nav-profile" type="button" role="tab" aria-controls="nav-profile" aria-selected="false">Profile</button>
+        <button class="nav-link" id="nav-contact-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false">Contact</button>
+      </div>
+    </nav>
+    <div class="tab-content" id="nav-tabContent">
+      <div class="tab-pane fade show active" id="nav-home" role="tabpanel" aria-labelledby="nav-home-tab">A</div>
+      <div class="tab-pane fade" id="nav-profile" role="tabpanel" aria-labelledby="nav-profile-tab">B</div>
+      <div class="tab-pane fade" id="nav-contact" role="tabpanel" aria-labelledby="nav-contact-tab">C</div>
+    </div>
+    
+
     <footer>
       <nav>
         <ul>
@@ -170,13 +185,43 @@
         `<br>` +
         `&bull; <a href='https://bit.ly/32zuO4u'>BNF</a>` + 
         `<div>`,
-      "original_term": 
+      "info_original_term": 
         `<div>` +
-        `&bull; Original <a href='https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAATVEUf-E'>syntax</a>`+
+        `&bull; Just prettyprint locators and brackets` +
+        `<div>`,
+      "info_whnf": 
+        `<div>` +
+        `&bull; <a href='https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/Model.hs#L129'>Code</a>`+
         `<br>` +
-        `&bull; 𝜑-calculus <a href='https://drive.google.com/file/d/1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH/edit?disco=AAAASlupb0I'>definition</a>`+
+        `&bull; Results from <a href='https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAASJgTzOg'>Head reduction</a>`+
         `<br>` +
-        `&bull; <a href='https://bit.ly/32zuO4u'>BNF</a>` + 
+        `&bull; <a href='https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAASJgTzOc'>Relation to TAP machine configuration</a>` + 
+        `<div>`,
+      "info_nf": 
+        `<div>` +
+        `&bull; <a href='https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/Model.hs#L155'>Code</a>`+
+        `<br>` +
+        `&bull; Results from <a href='https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAASJgTzO4'>Normal order reduction</a>`+
+        `<div>`,
+      "info_cbn_reduction": 
+        `<div>` +
+        `&bull; <a href='https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/Model.hs#L98'>Code</a>`+
+        `<br>` +
+        `&bull; Shows steps of <a href='https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAASJgTzO0'>Head reduction</a>`+ 
+        `<div>`,
+      "info_cbn_with_tap": 
+        `<div>` +
+        `&bull; <a href='https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/Machine/CallByName.hs#L85'>Code</a>`+
+        `<br>` +
+        `&bull; TAP machine <a href='https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAASJgTzOk'>definition</a>`+
+        `<br>` +
+        `&bull; TAP machine <a href='https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAASJgTzOo'>rules</a>` + 
+        `<div>`,
+      "info_cbn_with_graph": 
+        `<div>` +
+        `&bull; <a href='https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/Machine/CallByName/Graph.hs#L77'>Code</a>`+
+        `<br>` +
+        `&bull; It does apply <a href='https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAASJgTzOw'>Decorated Instantiation</a>`+
         `<div>`
     }
   </script>
@@ -196,6 +241,7 @@
       let t = document.getElementById("app_div");
       if (t) {
         let popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+        popoverTriggerList.map(e => {e.setAttribute("data-bs-content", popoverContents[e.getAttribute("id")])})
         popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
           return new bootstrap.Popover(popoverTriggerEl, {container: 'body', html: true})
         });

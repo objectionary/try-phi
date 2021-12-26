@@ -16,6 +16,8 @@ import qualified Phi.Minimal.Machine.CallByName.Graph as CGraph
 import qualified Phi.Minimal.ConfigurationDot as CDot
 
 import           Data.Graph.Inductive.PatriciaTree (Gr)
+import qualified Data.Map                             as Map
+
 
 -- | JSAddle import
 #ifndef __GHCJS__
@@ -91,9 +93,6 @@ getGraphSteps Model{..} =
         Right term ->
           CGraph.steps @Gr (CGraph.initConfiguration term)
 
-tagId :: String -> Attribute action
-tagId s = id_ $ ms @String s
-
 infoIcon :: MisoString -> MisoString -> View action
 infoIcon i content =  i_ [
   id_ i,
@@ -103,9 +102,45 @@ infoIcon i content =  i_ [
   data_ "bs-placement" "top",
   data_ "bs-content" content] []
 
--- infos :: Map.Map MisoString MisoString
--- infos = Map
+data TabMode = Active | Disabled
 
+tabButton :: MisoString -> String -> MisoString -> MisoString -> TabMode  -> View action
+tabButton buttonId contentId infoId txt isActive =
+  button_ [
+    class_ $ toMisoString $ "nav-link" ++ active,
+    id_ buttonId,
+    data_ "bs-toggle" "tab",
+    data_ "bs-target" $ toMisoString ("#" ++ contentId),
+    type_ "button",
+    textProp "role" "tab",
+    textProp "aria-controls" $ toMisoString contentId,
+    textProp "aria-selected" selected
+    ] [
+    infoIcon infoId " ",
+    text txt
+  ]
+  where 
+    (active, selected) = 
+      case isActive of 
+        Active -> (" active", "true") 
+        _ -> ("", "false")
+
+
+tabContent :: MisoString -> View action -> MisoString -> TabMode -> View action
+tabContent tabId content buttonId isActive =
+  div_ [
+    class_ $ toMisoString $ "tab-pane fade" ++ active, 
+    id_ tabId, 
+    textProp "role" "tabpanel", 
+    textProp "aria-labelledby" buttonId
+  ] [
+    content
+  ]
+  where 
+    active = 
+      case isActive of 
+        Active -> " show active"
+        _ -> ""
 
 -- | Constructs a virtual DOM from a model
 viewModel :: Model -> View Action
@@ -116,66 +151,92 @@ viewModel m@Model{..} =
       , br_ []
       , pre_ [] [ text (ms err) ]
       ]
-    Right term -> div_ [id_ "app_div", Miso.name_ $ toMisoString ("reloads_" ++ show reloads)]
-      [ button_ [ onClick Reload ] [ text "Reload" ]
-      , br_ []
-      , br_ []
-      , table_ [] [ tr_ []
-        [ td_ []
-            [ div_ [] []
-            , pre_ [] [text "Original term:", infoIcon "original_term" "<b>original_term<b>"]
-            , pre_ [] [text (ms (show term))] ]
-        , td_ [ width_ "50" ] [ ]
-        , td_ []
-            [ div_ [] [text "Weak head normal form (WHNF):"]
-            , pre_ [] [text (ms (show (Phi.whnf term)))] ]
-        , td_ [ width_ "50" ] [ ]
-        , td_ []
-            [ div_ [] [text "Normal form (NF):"]
-            , pre_ [] [text (ms (show (Phi.nf term)))] ]
-        ] ]
-      , table_ [] [ tr_ []
-        [ td_ []
-            [ details_ [] [
-              summary_ [] [text "Call-by-name term reduction:"]
-            , pre_ [] [text . ms . show $ Phi.ppWhnfSteps term]] ]
-        , td_ [ width_ "50" ] [ ]
-        , td_ []
-            [ details_ [] [
-              summary_ [] [text "Call-by-name term reduction (via abstract machine):"]
-            , pre_ [] [text . ms . show $ Phi.ppStepsFor term]] ]
-        ] ]
-      , table_ [] [
-          tr_ [] [
-            td_ [] [
-              tr_ [] [
-                button_ [ onClick PrevStep ] [ text "Previous step" ]
-              , button_ [ onClick NextStep ] [ text "Next step" ]
-              ]
-            , tr_ [] [
-                div_ [] [
-                  text "Call-by-name evaluation on a graph:"
-                  ]
-              , pre_ [] [text . ms . show $ Phi.ppGraphStepsFor term graphStepNumber]
-              ]
-            ]
-          , td_ [ width_ "50" ] [ ]
-          , td_ [] [
-              img_ [
-                let
-                  dotStringState = CDot.renderAsDot @Gr ((getGraphSteps m) !! graphStepNumber)
-                in
-                  src_ (ms ("https://quickchart.io/graphviz?layout=dot&format=svg&graph=" <> dotStringState ))
-                  , height_ "400"
-              ]
-            ]
-          , td_ [] [
-              details_ [] [
-                summary_ [tagId "dot_string"] [text "Graph DOT string"]
-              , pre_ [] [ text (ms (Phi.renderAsColorfulDot term)) ]]
-            ]
+    Right term -> 
+      div_ [id_ "app_div", Miso.name_ $ toMisoString ("reloads_" ++ show reloads)]
+      [ nav_ [] [
+          div_ [class_ "nav nav-tabs", id_ "nav-tab", textProp "role" "tablist"] [
+            tabButton "button_original_term" "content_original_term" "info_original_term" " Original term" Active
+          , tabButton "button_whnf" "content_whnf" "info_whnf" " Weak head normal form (WHNF)" Disabled
+          , tabButton "button_nf" "content_nf" "info_nf" " Normal form (NF)" Disabled
+          , tabButton "button_cbn_reduction" "content_cbn_reduction" "info_cbn" " Call-by-name term reduction" Disabled
+          , tabButton "button_cbn_with_tap" "content_cbn_with_tap" "info_cbn_with_tap" " Call-by-name term reduction (via abstract machine)" Disabled
+          , tabButton "button_cbn_with_graph" "content_cbn_with_graph" "info_cbn_with_graph" " Call-by-name evaluation on a graph" Disabled
           ]
         ]
+      , div_ [class_ "tab-content", id_"nav-tabContent"] [
+          tabContent "content_original_term" (pre_ [] [text (ms (show term))])  "button_original_term" Active
+        , tabContent "content_whnf" (pre_ [] [text (ms (show (Phi.whnf term)))]) "button_whnf" Disabled
+        , tabContent "content_nf" (pre_ [] [text (ms (show (Phi.nf term)))]) "button_nf" Disabled
+        , tabContent "content_cbn_reduction" (pre_ [] [text . ms . show $ Phi.ppWhnfSteps term]) "button_cbn_reduction" Disabled
+        , tabContent "content_cbn_with_tap" (pre_ [] [text . ms . show $ Phi.ppStepsFor term]) "button_cbn_with_tap" Disabled
+        , tabContent "content_cbn_with_graph" (pre_ [] [text (ms (show (Phi.nf term)))]) "button_cbn_with_graph" Disabled
+        ]
+      -- ,  button_ [ onClick Reload ] [ text "Reload" ]
+      -- , br_ []
+      -- , table_ [] [ tr_ []
+      --   [ td_ []
+      --       [ div_ [] [infoIcon "original_term" " ", text " Original term"]
+      --       , pre_ [] [text (ms (show term))] ]
+      --   , td_ [ width_ "50" ] [ ]
+      --   , td_ []
+      --       [ div_ [] [infoIcon "whnf" " ", text " Weak head normal form (WHNF) "]
+      --       , pre_ [] [text (ms (show (Phi.whnf term)))] ]
+      --   , td_ [ width_ "50" ] [ ]
+      --   , td_ []
+      --       [ div_ [] [infoIcon "nf" " ", text " Normal form (NF) "]
+      --       , pre_ [] [text (ms (show (Phi.nf term)))] 
+      --       ]
+      --   ] ]
+      -- , table_ [] [ tr_ []
+      --   [ td_ []
+      --       [ infoIcon "cbn_reduction" " "
+      --       , text " "
+      --       , details_ [] [ summary_ [] [text "Call-by-name term reduction "]
+      --       , pre_ [] [text . ms . show $ Phi.ppWhnfSteps term]] ]
+      --   , td_ [ width_ "50" ] [ ]
+      --   , td_ []
+      --       [ infoIcon "cbn_with_tap" " "
+      --       , text " "
+      --       , details_ [] [summary_ [] [text "Call-by-name term reduction (via abstract machine) "]
+      --       , pre_ [] [text . ms . show $ Phi.ppStepsFor term]] ]
+      --   ] ]
+      -- , table_ [] [
+      --     tr_ [] [
+      --       td_ [] [
+      --         tr_ [] [
+      --           button_ [ onClick PrevStep ] [ text "Previous step" ]
+      --         , button_ [ onClick NextStep ] [ text "Next step" ]
+      --         ]
+      --       , tr_ [] [
+      --           div_ [] [
+      --               infoIcon "cbn_with_graph" " "
+      --             , text " Call-by-name evaluation on a graph "
+      --             ]
+      --         , pre_ [] [text . ms . show $ Phi.ppGraphStepsFor term graphStepNumber]
+      --         ]
+      --       ]
+      --     , td_ [ width_ "50" ] [ ]
+      --     , td_ [] [
+      --         img_ [
+      --           let
+      --             dotStringState = CDot.renderAsDot @Gr ((getGraphSteps m) !! graphStepNumber)
+      --           in
+      --             src_ (ms ("https://quickchart.io/graphviz?layout=dot&format=svg&graph=" <> dotStringState ))
+      --             , height_ "400"
+      --         ]
+      --       ]
+      --     , td_ [] [ 
+      --         tr_ [] [
+      --           td_ [] [infoIcon "graph_dot" " "]
+      --           td_ [] [
+      --           text " " 
+      --         , details_ [] [
+      --           summary_ [] [text "Graph DOT string"]
+      --         , pre_ [] [ text (ms (Phi.renderAsColorfulDot term)) ]]
+      --         ]
+      --       ]
+      --     ]
+      --   ]
       ]
 
 

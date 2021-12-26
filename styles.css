@@ -68,13 +68,3 @@ input:checked+.slider:before {
     vertical-align: middle;
 }
 
-.table td.fit, 
-.table th.fit {
-    white-space: nowrap;
-    width: 1%;
-}
-
-.popover {
-    white-space: normal !important;
-    word-break: break-all!important;
-}

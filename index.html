@@ -47,54 +47,32 @@
       </center>
     </header>
     <div class="container-fluid" id="cont">
-      <div class="row">
-        <div class="col">
-          <div>
-            <p>
-              <label class="selected_mode">
-                Minimal
-              </label>
-              <!-- <label class="switch">
-                <input type="checkbox" id="toggler" onchange="switch_mode()">
-                <span class="slider round"></span>
-              </label>
-              <label class="selected_mode">
-                Full
-              </label> -->
-              <label class="reference_line">
-                <a href="https://www.eolang.org">𝜑-calculus</a> expression
-                (<a id="__permalink__" href="#">permalink</a>)
-              </label>
-              <label class="selected_mode bi bi-info-square" data-bs-container="body" data-bs-toggle="popover" data-bs-placement="top" id="editor_info"></label>
-            </p>
-          </div>
+      <div class="col">
+        <div class="row">
+          <p>
+            <label class="selected_mode">
+              Minimal
+            </label>
+            <!-- <label class="switch">
+              <input type="checkbox" id="toggler" onchange="switch_mode()">
+              <span class="slider round"></span>
+            </label>
+            <label class="selected_mode">
+              Full
+            </label> -->
+            <label class="reference_line">
+              <a href="https://www.eolang.org">𝜑-calculus</a> expression
+              (<a id="__permalink__" href="#">permalink</a>)
+            </label>
+            <label class="selected_mode bi bi-info-square" data-bs-container="body" data-bs-toggle="popover" data-bs-placement="top" id="editor_info"></label>
+          </p>
+          <div id="editor"></div>
         </div>
-        <div class="col"></div>
       </div>
-      <div class="row">
-        <div id="editor"></div>
-      </div>
-      <div class="row">
+      <div class="row pt-5">
           <div id="__app__"></div>
       </div>
     </div>
-    
-    <nav>
-      <div class="nav nav-tabs" id="nav-tab" role="tablist">
-        <button class="nav-link active" id="nav-home-tab" data-bs-toggle="tab" data-bs-target="#nav-home" type="button" role="tab" aria-controls="nav-home" aria-selected="true">
-          <i class="selected_mode bi bi-info-square" data-bs-container="body" data-bs-toggle="popover" data-bs-placement="top" id="editor_info"></i>
-          Home
-        </button>
-        <button class="nav-link" id="nav-profile-tab" data-bs-toggle="tab" data-bs-target="#nav-profile" type="button" role="tab" aria-controls="nav-profile" aria-selected="false">Profile</button>
-        <button class="nav-link" id="nav-contact-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false">Contact</button>
-      </div>
-    </nav>
-    <div class="tab-content" id="nav-tabContent">
-      <div class="tab-pane fade show active" id="nav-home" role="tabpanel" aria-labelledby="nav-home-tab">A</div>
-      <div class="tab-pane fade" id="nav-profile" role="tabpanel" aria-labelledby="nav-profile-tab">B</div>
-      <div class="tab-pane fade" id="nav-contact" role="tabpanel" aria-labelledby="nav-contact-tab">C</div>
-    </div>
-    
 
     <footer>
       <nav>

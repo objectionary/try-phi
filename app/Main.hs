@@ -20,6 +20,7 @@ import           Data.Graph.Inductive.PatriciaTree (Gr)
 -- | JSAddle import
 #ifndef __GHCJS__
 import           Language.Javascript.JSaddle.Warp as JSaddle
+import qualified Data.Map.Lazy as Map
 
 #endif
 
@@ -35,6 +36,7 @@ data Model = Model
   { modelSource :: MisoString
   , modelAST    :: Either String Phi.Term
   , graphStepNumber :: Int
+  , reloads :: Integer
   } deriving (Show, Eq)
 
 -- | Sum type for application events
@@ -51,6 +53,7 @@ initModel = Model
   { modelSource = ""
   , modelAST = Left "initializing..."
   , graphStepNumber = 0
+  , reloads = 0
   }
 
 -- | Entry point for a miso application
@@ -63,12 +66,12 @@ main = runApp $ startApp App {..}
     view   = viewModel            -- view function
     events = defaultEvents        -- default delegated events
     subs   = []                   -- empty subscription list
-    mountPoint = Nothing          -- mount point for application (Nothing defaults to 'body')
+    mountPoint = Just "__app__"   -- mount point for application (Nothing defaults to 'body')
     logLevel = Off                -- used during prerendering to see if the VDOM and DOM are in sync (only used with `miso` function)
 
 -- | Updates model, optionally introduces side effects
 updateModel :: Action -> Model -> Effect Action Model
-updateModel Reload m = m <# do
+updateModel Reload m = m {reloads = reloads m + 1} <# do
   Recompile <$> codemirrorGetValue
 updateModel (Recompile code) m = noEff m
   { modelAST = Phi.parseTerm (fromMisoString code) }
@@ -76,11 +79,11 @@ updateModel NoOp m = noEff m
 
 -- TODO optimize
 -- control step number
-updateModel PrevStep m@Model{..} = 
+updateModel PrevStep m@Model{..} =
   noEff m { graphStepNumber = max 0 (graphStepNumber - 1) }
-updateModel NextStep m@Model{..} = 
+updateModel NextStep m@Model{..} =
   noEff m { graphStepNumber = min (graphStepNumber + 1) (Prelude.length (getGraphSteps m) - 1)}
-      
+
 getGraphSteps :: Model -> [CGraph.Configuration Gr]
 getGraphSteps Model{..} =
   case modelAST of
@@ -88,23 +91,39 @@ getGraphSteps Model{..} =
         Right term ->
           CGraph.steps @Gr (CGraph.initConfiguration term)
 
+tagId :: String -> Attribute action
+tagId s = id_ $ ms @String s
+
+infoIcon :: MisoString -> MisoString -> View action
+infoIcon i content =  i_ [
+  id_ i,
+  class_ "bi bi-info-square",
+  data_ "bs-container" "body",
+  data_ "bs-toggle" "popover",
+  data_ "bs-placement" "top",
+  data_ "bs-content" content] []
+
+-- infos :: Map.Map MisoString MisoString
+-- infos = Map
+
 
 -- | Constructs a virtual DOM from a model
 viewModel :: Model -> View Action
 viewModel m@Model{..} =
   case modelAST of
     Left err -> div_ []
-      [ button_ [ onClick Reload ] [ text "Reload" ]
+      [ button_ [ onClick Reload] [ text "Reload" ]
       , br_ []
       , pre_ [] [ text (ms err) ]
       ]
-    Right term -> div_ []
+    Right term -> div_ [id_ "app_div", Miso.name_ $ toMisoString ("reloads_" ++ show reloads)]
       [ button_ [ onClick Reload ] [ text "Reload" ]
       , br_ []
       , br_ []
       , table_ [] [ tr_ []
         [ td_ []
-            [ div_ [] [text "Original term:"]
+            [ div_ [] []
+            , pre_ [] [text "Original term:", infoIcon "original_term" "<b>original_term<b>"]
             , pre_ [] [text (ms (show term))] ]
         , td_ [ width_ "50" ] [ ]
         , td_ []
@@ -115,8 +134,6 @@ viewModel m@Model{..} =
             [ div_ [] [text "Normal form (NF):"]
             , pre_ [] [text (ms (show (Phi.nf term)))] ]
         ] ]
-      , br_ []
-
       , table_ [] [ tr_ []
         [ td_ []
             [ details_ [] [
@@ -128,7 +145,6 @@ viewModel m@Model{..} =
               summary_ [] [text "Call-by-name term reduction (via abstract machine):"]
             , pre_ [] [text . ms . show $ Phi.ppStepsFor term]] ]
         ] ]
-      , br_ []
       , table_ [] [
           tr_ [] [
             td_ [] [
@@ -136,24 +152,26 @@ viewModel m@Model{..} =
                 button_ [ onClick PrevStep ] [ text "Previous step" ]
               , button_ [ onClick NextStep ] [ text "Next step" ]
               ]
-            , tr_ [] [ 
-                div_ [] [text "Call-by-name evaluation on a graph:"]
+            , tr_ [] [
+                div_ [] [
+                  text "Call-by-name evaluation on a graph:"
+                  ]
               , pre_ [] [text . ms . show $ Phi.ppGraphStepsFor term graphStepNumber]
               ]
             ]
           , td_ [ width_ "50" ] [ ]
           , td_ [] [
               img_ [
-                let 
+                let
                   dotStringState = CDot.renderAsDot @Gr ((getGraphSteps m) !! graphStepNumber)
                 in
                   src_ (ms ("https://quickchart.io/graphviz?layout=dot&format=svg&graph=" <> dotStringState ))
-                  , height_ "400" 
+                  , height_ "400"
               ]
             ]
           , td_ [] [
               details_ [] [
-                summary_ [] [text "Graph DOT string"]
+                summary_ [tagId "dot_string"] [text "Graph DOT string"]
               , pre_ [] [ text (ms (Phi.renderAsColorfulDot term)) ]]
             ]
           ]

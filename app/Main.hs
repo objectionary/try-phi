@@ -154,7 +154,8 @@ viewModel m@Model{..} =
       ]
     Right term -> 
       div_ [id_ "app_div", Miso.name_ $ toMisoString ("reloads_" ++ show reloads)]
-      [ nav_ [] [
+      [ button_ [ onClick Reload] [ text "Reload" ]
+      , nav_ [] [
           div_ [class_ "nav nav-tabs", id_ "nav-tab", textProp "role" "tablist"] [
             tabButton "button_original_term" "content_original_term" "info_original_term" " Original term" Active
           , tabButton "button_whnf" "content_whnf" "info_whnf" " Weak head normal form (WHNF)" Disabled

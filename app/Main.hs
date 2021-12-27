@@ -68,7 +68,11 @@ main = runApp $ startApp App {..}
     view   = viewModel            -- view function
     events = defaultEvents        -- default delegated events
     subs   = []                   -- empty subscription list
+#ifndef __GHCJS__
+    mountPoint = Nothing
+#else
     mountPoint = Just "__app__"   -- mount point for application (Nothing defaults to 'body')
+#endif
     logLevel = Off                -- used during prerendering to see if the VDOM and DOM are in sync (only used with `miso` function)
 
 -- | Updates model, optionally introduces side effects

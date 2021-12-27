@@ -77,3 +77,8 @@ Right now we implement it as a term rewriting system with the following features
 * Use [Nix Environment Selector](https://marketplace.visualstudio.com/items?itemName=arrterian.nix-env-selector)
 
 * If typechecking doesn't work, reload VS Code
+
+* You can see Haskell code's output at `localhost:8080/` after
+    ```sh
+    stack run
+    ```

@@ -163,8 +163,8 @@ viewModel m@Model{..} =
       , div_ [
           id_ "app_div", 
           Miso.name_ $ toMisoString ("reloads_" ++ show reloads)
-        ] [ 
-          button_ [ onClick Reload] [ text "Reload" ]
+        ] [
+          button_ [ onClick Reload, class_ "btn btn-secondary mb-5"] [ text "Reload" ]
         , nav_ [] [
             div_ [class_ "nav nav-tabs", id_ "nav-tab", textProp "role" "tablist"] [
               tabButton "button_original_term" "content_original_term" "info_original_term" " Original term" Active

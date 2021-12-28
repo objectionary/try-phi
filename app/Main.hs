@@ -155,9 +155,9 @@ viewModel m@Model{..} =
       , pre_ [] [ text (ms err) ]
       ]
     Right term -> 
-      body_ [] [
+      div_ [] [
         link_ [href_ "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css", rel_ "stylesheet", type_ "text/css"]
-      , script_ [href_ "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.js"] ""
+      , script_ [href_ "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js", type_ "text/javascript"] ""
       , link_ [href_ "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css", rel_ "stylesheet", type_ "text/css"]
       , link_ [href_ "styles.css", rel_ "stylesheet", type_ "text/css"]
       , div_ [

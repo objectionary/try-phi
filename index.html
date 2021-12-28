@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <script src="all.js"></script>
-  
+          
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.js"></script> 
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css">
@@ -70,7 +70,15 @@
         </div>
       </div>
       <div class="row pt-5">
-          <div id="__app__"></div>
+          <div id="ghcjs"></div>
+          <iframe 
+            id = "jsaddle" 
+            src="http://localhost:8080/" 
+            frameborder="0"
+            style="width: 100%; height: 100%;"
+            seamless="true"
+            scrolling="yes">
+          </iframe>
       </div>
     </div>
 
@@ -119,15 +127,7 @@
     let view = app.view;
     const params = new URLSearchParams(window.location.search);
 
-    /* use default snippet if one is not set in the query parameters */
-    //     snippet = 
-    // `[
-    //   point -> [x -> ?, y ->?, z -> ?],
-    //   a -> ^0.point(x -> ^1.int2)(y -> ^1.int4)(z -> ^1.int1),
-    //   b -> ^0.point(x -> ^1.int7)(y -> ^1.int12)(z -> ^1.int2),
-    //   dist -> ^1.dist(point1 -> ^0.a)(point2 -> ^0.b)
-    // ].dist.val`;
-
+    // use default snippet if one is not set in the query parameters 
     snippet =
       `[
   price -> ^1.int_2,
@@ -142,11 +142,11 @@
   title -> ^0.manga.manga_title
 ].manga.price`
 
-    // snippet = "[x -> ^0.y, y -> ^0.z, z -> [b -> ^0.c, c -> ?](c -> ^0)].x.b"
     if (params.has("snippet")) {
       snippet = decodeURIComponent(params.get("snippet"));
     };
-    // set default snippet
+
+    // change editor content
     view.dispatch({
       changes: { from: 0, to: view.state.doc.length, insert: snippet }
     });
@@ -154,61 +154,10 @@
   </script>
 
   <script>
-    var popoverContents = {
-      "editor_info": 
-        `<div>` +
-        `&bull; Original <a href='https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAATVEUf-E'>syntax</a>`+
-        `<br>` +
-        `&bull; 𝜑-calculus <a href='https://drive.google.com/file/d/1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH/edit?disco=AAAASlupb0I'>definition</a>`+
-        `<br>` +
-        `&bull; <a href='https://bit.ly/32zuO4u'>BNF</a>` + 
-        `<div>`,
-      "info_original_term": 
-        `<div>` +
-        `&bull; Just prettyprint locators and brackets` +
-        `<div>`,
-      "info_whnf": 
-        `<div>` +
-        `&bull; <a href='https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/Model.hs#L129'>Code</a>`+
-        `<br>` +
-        `&bull; Results from <a href='https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAASJgTzOg'>Head reduction</a>`+
-        `<br>` +
-        `&bull; <a href='https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAASJgTzOc'>Relation to TAP machine configuration</a>` + 
-        `<div>`,
-      "info_nf": 
-        `<div>` +
-        `&bull; <a href='https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/Model.hs#L155'>Code</a>`+
-        `<br>` +
-        `&bull; Results from <a href='https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAASJgTzO4'>Normal order reduction</a>`+
-        `<div>`,
-      "info_cbn_reduction": 
-        `<div>` +
-        `&bull; <a href='https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/Model.hs#L98'>Code</a>`+
-        `<br>` +
-        `&bull; Shows steps of <a href='https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAASJgTzO0'>Head reduction</a>`+ 
-        `<div>`,
-      "info_cbn_with_tap": 
-        `<div>` +
-        `&bull; <a href='https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/Machine/CallByName.hs#L85'>Code</a>`+
-        `<br>` +
-        `&bull; TAP machine <a href='https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAASJgTzOk'>definition</a>`+
-        `<br>` +
-        `&bull; TAP machine <a href='https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAASJgTzOo'>rules</a>` + 
-        `<div>`,
-      "info_cbn_with_graph": 
-        `<div>` +
-        `&bull; <a href='https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/Machine/CallByName/Graph.hs#L77'>Code</a>`+
-        `<br>` +
-        `&bull; It does apply <a href='https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAASJgTzOw'>Decorated Instantiation</a>`+
-        `<div>`
-    }
-  </script>
-
-  <script>
 
     var popoverList = []
     
-    let target = document.getElementById('__app__');
+    let target = document.getElementById('ghcjs');
 
     let config = {
         childList: true,
@@ -219,7 +168,6 @@
       let t = document.getElementById("app_div");
       if (t) {
         let popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
-        popoverTriggerList.map(e => {e.setAttribute("data-bs-content", popoverContents[e.getAttribute("id")])})
         popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
           return new bootstrap.Popover(popoverTriggerEl, {container: 'body', html: true})
         });

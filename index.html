@@ -7,7 +7,7 @@
   <script src="all.js"></script>
 
   <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"> -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script> -->
   <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css"> -->
 
   <link rel="shortcut icon" href="https://www.yegor256.com/images/books/elegant-objects/cactus.png" />
@@ -71,11 +71,13 @@
         </div>
       </div>
       <div class="row pt-5">
-        <div id="ghcjs">
+        <div class="row" id="ghcjs">
         </div>
-        <!-- <iframe id="jsaddle" src="http://localhost:8080/" frameborder="0" style="width: 100%; height: 100%;"
-          seamless="true" scrolling="no">
-        </iframe> -->
+        <div class="row">
+          <iframe id="jsaddle" src="http://localhost:8080/" frameborder="0" style="width: 100%; height: 100%;"
+            seamless="true" scrolling="yes">
+          </iframe>
+        </div>
       </div>
     </div>
 
@@ -150,7 +152,7 @@
 
   </script>
 
-  <script>
+  <script defer>
 
     var popoverList = []
 

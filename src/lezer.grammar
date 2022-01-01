@@ -1,154 +1,286 @@
-@top PhiGrammar {program}
+grammar PhiGrammar {program}
 
-@skip {SPACE | COMMENT}
-
-@tokens {
-    SPACE {std.whitespace+}
-    COMMENT { HASH ![\r\n]* }
-    
-    HASH { "#" }
-    NAME { $[a-z]($[a-z] | $[0-9] | $[_])* }
-    META { PLUS NAME (SPACE ![\r\n]+)? }
-    PLUS { "+" }
-    BYTE { ($[0-9] | $[A-F])($[0-9] | $[A-F]) }
-
-    REGEX { SLASH ![\r\n]+ SLASH $[a-z]* }
-
-    STAR { "*" }
-    DOTS { "..." }
-    CONST { "!" }
-    SLASH { "/" }
-    COLON { ":" }
-    COPY { "'" }
-    ARROW { ">" }
-    VERTEX { "<" }
-    SIGMA { "&" }
-    XI { "$" }
-    MINUS { "-" }
-    QUESTION { "?" }
-    DOT { "." }
-    LSQ { "[" }
-    RSQ { "]" }
-    LB { "(" }
-    RB { ")" }
-    AT { "@" }
-    RHO { "^" }
+@tokens {  
 
 
-    EMPTY_BYTES  { MINUS MINUS }
-    BYTES{
-        |  EMPTY_BYTES
-        |  BYTE MINUS
-        |  BYTE (MINUS BYTE)+
+  COMMENT{ HASH ![\r\n]*}
+  META{ PLUS NAME (SPACE ![\r\n]+)?}
+
+  REGEX{ SLASH ![\r\n]+ SLASH $[a-z]*}
+
+  ROOT{ "Q"}
+  STAR{ "*"}
+  DOTS{ "..."}
+  CONST{ "!"}
+  SLASH{ "/"}
+  COLON{ ":"}
+  COPY{ "\'"}
+  ARROW{ ">"}
+  VERTEX{ "<"}
+  SIGMA{ "&"}
+  XI{ "$"}
+  PLUS{ "+"}
+  MINUS{ "-"}
+  QUESTION{ "?"}
+  SPACE{ " "}
+  DOT{ "."}
+  LSQ{ "["}
+  RSQ{ "]"}
+  LB{ "("}
+  RB{ ")"}
+  AT{ "@"}
+  RHO{ "^"}
+  HASH{ "#"}
+  EOL
+    {
+    ("\n" | "\r\n")
+    ("\n" | "\r\n")?
+    SPACE* 
     }
 
-    BOOL { "TRUE" | "FALSE" }
-    CHAR {
-        "'" (!['\\\r\n] | ESCAPE_SEQUENCE) "'" 
-    }
+  BYTE{ $[0-9A-F][0-9A-F]}
+  EMPTY_BYTES { MINUS MINUS}
+  LINE_BYTES { BYTE (MINUS BYTE)+}
 
-    STRING { 
-        "\"" (!["\\\r\n] | ESCAPE_SEQUENCE)* "\"" }
+  BYTES{
+        EMPTY_BYTES
+      |  BYTE MINUS
+      |  LINE_BYTES (MINUS EOL LINE_BYTES)*}
 
-    ESCAPE_SEQUENCE {
-        "\\" ($[btnfr] | "\"" | "'" | "\\")
-        | "\\" ($[0-3]? $[0-7])? $[0-7]
-        | "\\" "u" + EMPTY_BYTES EMPTY_BYTES
-    }
+  BOOL{ "TRUE" | "FALSE"}
+  CHAR{  "\'" (!["\\\r\n] | ESCAPE_SEQUENCE) "\'"}
+  STRING{ "\"" (!["\\\r\n] | ESCAPE_SEQUENCE)* "\""}
+  ESCAPE_SEQUENCE
+      { "\\" $[btnfr"'\\]
+      | "\\" ([0-3]? $[0-7])? $[0-7]
+      | "\\" "u"+ BYTE BYTE
+      }
+  INT{ (PLUS | MINUS)? $[0-9]+}
+  FLOAT{ (PLUS | MINUS)? $[0-9]+ DOT $[0-9]+}
+  HEX{ "0x" ($[0-9]|$[a-f])+}
 
-    TEXT_MARK { "\"\"\"" }
-    TEXT{
-        TEXT_MARK ("\n" | "\r\n")
-        (![\\] | ESCAPE_SEQUENCE)*?
-        TEXT_MARK
-    }
+  NAME{ $[a-z][_-]*}
 
-    INT { (PLUS | MINUS)? $[0-9]+ }
-    FLOAT { (PLUS | MINUS)? $[0-9]+ DOT $[0-9]+ }
-    HEX { "0x" $[0-9a-f]+ }
+  TEXT_MARK{ "\"\"\""}
+  TEXT{
+      TEXT_MARK ("\n" | "\r\n")
+      (![\\] | ESCAPE_SEQUENCE)*?
+      TEXT_MARK
+      }
+
+
 }
 
-program {
-    license?
-    metas?
-    objects
-}
+program
+  {
+  license?
+  metas?
+  objects
+  EOF
+  }
 
-license { 
-    // (COMMENT)+ 
-}
+license
+  {
+  (COMMENT EOL)+
+  }
 
-metas {
-    (META)+
-}
+metas
+  {
+  (META EOL)+
+  }
 
-objects { 
-    (
-        // (COMMENT)*
-        object
-    )+
-}
+objects
+  {
+  (
+    (COMMENT EOL)*
+    object
+    EOL
+  )+
+  }
 
-object {
-    anonymous | ( abstraction | application ) tail? ( method htail? suffix? tail? )*
-}
+object
+  {
+  anonymous
+  |
+  (
+    abstraction
+    |
+    application
+  )
+  tail?
+  (
+    EOL
+    method
+    htail?
+    suffix?
+    tail?
+  )*
+  }
 
-anonymous {
+anonymous
+  {
   attributes
   htail
-}
+  }
 
-abstraction {
-  // (COMMENT)*
-  attributes (suffix (SLASH (NAME | QUESTION))?)?
-}
+abstraction
+  {
+  (COMMENT EOL)*
+  attributes
+  (suffix (SPACE SLASH (NAME | QUESTION))?)?
+  }
 
-attributes {
-    LSQ (attribute (attribute)*)? RSQ
-}
+attributes
+  {
+  LSQ
+  (attribute (SPACE attribute)*)?
+  RSQ
+  }
 
-attribute {
-    label
-}
+attribute
+  {
+  label
+  }
 
-label {
-  AT | NAME DOTS?
-}
+label
+  {
+  AT
+  |
+  NAME
+  DOTS?
+  }
 
-tail {
-    (object)+
-}
+tail
+  {
+  EOL
+  TAB
+  (object EOL)+
+  UNTAB
+  }
 
-suffix { 
-  ARROW label CONST?
-}
+suffix
+  {
+  SPACE
+  ARROW
+  SPACE
+  label
+  CONST?
+  }
 
-method {
-  DOT ( NAME COPY? | RHO | AT | VERTEX )
-}
+method
+  {
+  DOT
+  mtd=(
+    NAME
+    |
+    RHO
+    |
+    AT
+    |
+    VERTEX
+  )
+  }
 
+application
+  {
+  head
+  htail?
+  |
+  application
+  method
+  htail?
+  |
+  LB
+  application
+  RB
+  htail?
+  |
+  application
+  has
+  htail?
+  |
+  application
+  suffix
+  htail?
+  }
 
+htail
+  {
+  (
+    SPACE
+    head
+    |
+    SPACE
+    application
+    method
+    |
+    SPACE
+    LB
+    application
+    RB
+    |
+    SPACE
+    application
+    has
+    |
+    SPACE
+    application
+    suffix
+    |
+    SPACE
+    anonymous
+  )+
+  }
 
-application { 
-    head htail? 
-  | application (method | has | suffix) htail?
-  | LB application RB htail?
-}
+head
+  {
+  DOTS?
+  (
+    ROOT
+    |
+    AT
+    |
+    RHO
+    |
+    XI
+    |
+    SIGMA
+    |
+    STAR
+    |
+    NAME
+    COPY?
+    |
+    NAME
+    DOT
+    |
+    data
+  )
+  }
 
-htail {
-  ( head | application ( method | has | suffix) | LB application RB anonymous )+
-}
+has
+  {
+  COLON
+  NAME
+  }
 
-head {
-  DOTS? ( AT | RHO | XI | SIGMA | STAR | NAME (COPY? | DOT) | data)
-}
-
-has {
-  COLON NAME
-}
-
-data {
-  BYTES | BOOL | TEXT | STRING | INT | FLOAT | HEX | CHAR | REGEX
-}
-
-@detectDelim
+data
+  {
+  BYTES
+  |
+  BOOL
+  |
+  TEXT
+  |
+  STRING
+  |
+  INT
+  |
+  FLOAT
+  |
+  HEX
+  |
+  CHAR
+  |
+  REGEX
+  }

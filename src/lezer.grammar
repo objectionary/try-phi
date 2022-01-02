@@ -1,286 +1,359 @@
-grammar PhiGrammar {program}
+@top   PhiGrammar {program}
+
+@skip { SPACE } 
 
 @tokens {  
-
-
   COMMENT{ HASH ![\r\n]*}
   META{ PLUS NAME (SPACE ![\r\n]+)?}
 
-  REGEX{ SLASH ![\r\n]+ SLASH $[a-z]*}
+  // REGEX{ SLASH ![\r\n]+ SLASH $[a-z]*}
+  REGEX{ SLASH ![\r\n]+ SLASH}
 
-  ROOT{ "Q"}
-  STAR{ "*"}
+  // STAR{ "*"}
   DOTS{ "..."}
-  CONST{ "!"}
+  // CONST{ "!"}
   SLASH{ "/"}
-  COLON{ ":"}
-  COPY{ "\'"}
+  // COLON{ ":"}
+  // COPY{ "\'"}
   ARROW{ ">"}
-  VERTEX{ "<"}
-  SIGMA{ "&"}
-  XI{ "$"}
+  // VERTEX{ "<"}
+  // SIGMA{ "&"}
+  // XI{ "$"}
   PLUS{ "+"}
   MINUS{ "-"}
-  QUESTION{ "?"}
-  SPACE{ " "}
+  // QUESTION{ "?"}
+  SPACE{std.whitespace+}
   DOT{ "."}
-  LSQ{ "["}
-  RSQ{ "]"}
-  LB{ "("}
-  RB{ ")"}
+  LSQ[closedBy="RSQ"]{ "[" }
+  RSQ[openedBy="LSQ"]{ "]"}
+  LB[closedBy="RB"]{ "("}
+  RB[openedBy="LB"]{ ")"}
   AT{ "@"}
   RHO{ "^"}
   HASH{ "#"}
-  EOL
-    {
-    ("\n" | "\r\n")
-    ("\n" | "\r\n")?
-    SPACE* 
-    }
 
-  BYTE{ $[0-9A-F][0-9A-F]}
+  BYTE{ ($[0-9A-F])($[0-9A-F])}
   EMPTY_BYTES { MINUS MINUS}
-  LINE_BYTES { BYTE (MINUS BYTE)+}
+  LINE_BYTES { BYTE (MINUS BYTE)*}
 
-  BYTES{
-        EMPTY_BYTES
-      |  BYTE MINUS
-      |  LINE_BYTES (MINUS EOL LINE_BYTES)*}
+  // BYTES{
+  //       EMPTY_BYTES
+  //     | BYTE MINUS
+  //     | LINE_BYTES (MINUS LINE_BYTES)*
+  // }
+
+  BYTES {
+      EMPTY_BYTES
+    | LINE_BYTES
+  }
+
+  // INT{ (PLUS | MINUS)? $[0-9]+}
+  
+  INT { (PLUS | MINUS)? ($[0-9] | $[1-9] $[0-9]+)}
+
+  EXP { "e" (PLUS | MINUS)? $[0-9]+ }
+
+  FLOAT { INT DOT $[0-9]* EXP?}
 
   BOOL{ "TRUE" | "FALSE"}
   CHAR{  "\'" (!["\\\r\n] | ESCAPE_SEQUENCE) "\'"}
   STRING{ "\"" (!["\\\r\n] | ESCAPE_SEQUENCE)* "\""}
-  ESCAPE_SEQUENCE
-      { "\\" $[btnfr"'\\]
-      | "\\" ([0-3]? $[0-7])? $[0-7]
-      | "\\" "u"+ BYTE BYTE
-      }
-  INT{ (PLUS | MINUS)? $[0-9]+}
-  FLOAT{ (PLUS | MINUS)? $[0-9]+ DOT $[0-9]+}
-  HEX{ "0x" ($[0-9]|$[a-f])+}
+  ESCAPE_SEQUENCE {
+        "\\" $[btnfr"'\\]
+      | "\\" ($[01]$[0-9]$[0-9] | "2"$[0-4]$[0-9] | "25" $[0-5])
+      | "\\" "u" BYTE BYTE
+  }
+  
+  HEX{ "0x" ($[0-9a-f])+}
 
-  NAME{ $[a-z][_-]*}
+  NAME{ $[a-z] ($[a-z]| "_" | $[0-9])*}
 
   TEXT_MARK{ "\"\"\""}
   TEXT{
       TEXT_MARK ("\n" | "\r\n")
       (![\\] | ESCAPE_SEQUENCE)*?
       TEXT_MARK
-      }
+  }
 
 
+  @precedence {FLOAT, INT, HEX, BYTES}
+  @precedence {TEXT, STRING}
 }
 
-program
-  {
-  license?
-  metas?
-  objects
-  EOF
-  }
-
-license
-  {
-  (COMMENT EOL)+
-  }
-
-metas
-  {
-  (META EOL)+
-  }
-
-objects
-  {
+NUMBER {
   (
-    (COMMENT EOL)*
-    object
-    EOL
+      BYTES
+    | INT
+    | FLOAT
+    | HEX
+  )
+}
+
+attribute {
+  AT | NAME | DOTS
+}
+
+attributes {
+  LSQ attribute* RSQ
+}
+
+
+top {
+  COMMENT*
+  META*
+}
+
+
+program {
+  top
+  (
+      NUMBER
+    | BOOL
+    
+    | REGEX
+
+    | CHAR
+    | STRING
+    | TEXT
+    
+    | NAME
+    | AT
+    | RHO
+    
+    | ARROW
+
+    |attributes
   )+
-  }
+}
 
-object
-  {
-  anonymous
-  |
-  (
-    abstraction
-    |
-    application
-  )
-  tail?
-  (
-    EOL
-    method
-    htail?
-    suffix?
-    tail?
-  )*
-  }
+// program
+//   {
+//   license?
+//   metas?
+//   objects
+//   // EOF
+//   }
 
-anonymous
-  {
-  attributes
-  htail
-  }
+// license
+//   {
+//   (
+//     COMMENT 
+//     // EOL
+//   )+
+//   }
 
-abstraction
-  {
-  (COMMENT EOL)*
-  attributes
-  (suffix (SPACE SLASH (NAME | QUESTION))?)?
-  }
+// metas
+//   {
+//   (
+//     META 
+//     // EOL
+//   )+
+//   }
 
-attributes
-  {
-  LSQ
-  (attribute (SPACE attribute)*)?
-  RSQ
-  }
+// objects
+//   {
+//   (
+//     (
+//       COMMENT 
+//       // EOL
+//     )*
+//     object
+//     // EOL
+//   )+
+//   }
 
-attribute
-  {
-  label
-  }
+// object
+//   {
+//   anonymous
+//   |
+//   (
+//     abstraction
+//     |
+//     application
+//   )
+//   tail?
+//   (
+//     // EOL
+//     method
+//     htail?
+//     suffix?
+//     tail?
+//   )*
+//   }
 
-label
-  {
-  AT
-  |
-  NAME
-  DOTS?
-  }
+// anonymous
+//   {
+//   attributes
+//   htail
+//   }
 
-tail
-  {
-  EOL
-  TAB
-  (object EOL)+
-  UNTAB
-  }
+// abstraction
+//   {
+//   (
+//     COMMENT 
+//     // EOL
+//   )*
+//   attributes
+//   (suffix (SPACE SLASH (NAME | QUESTION))?)?
+//   }
 
-suffix
-  {
-  SPACE
-  ARROW
-  SPACE
-  label
-  CONST?
-  }
+// attributes
+//   {
+//   LSQ
+//   (attribute (
+//     // SPACE 
+//     attribute
+//   )*)?
+//   RSQ
+//   }
 
-method
-  {
-  DOT
-  mtd=(
-    NAME
-    |
-    RHO
-    |
-    AT
-    |
-    VERTEX
-  )
-  }
+// attribute
+//   {
+//   label
+//   }
 
-application
-  {
-  head
-  htail?
-  |
-  application
-  method
-  htail?
-  |
-  LB
-  application
-  RB
-  htail?
-  |
-  application
-  has
-  htail?
-  |
-  application
-  suffix
-  htail?
-  }
+// label
+//   {
+//   AT
+//   |
+//   NAME
+//   DOTS?
+//   }
 
-htail
-  {
-  (
-    SPACE
-    head
-    |
-    SPACE
-    application
-    method
-    |
-    SPACE
-    LB
-    application
-    RB
-    |
-    SPACE
-    application
-    has
-    |
-    SPACE
-    application
-    suffix
-    |
-    SPACE
-    anonymous
-  )+
-  }
+// tail
+//   {
+//   // EOL
+//   // TAB
+//   (
+//     object 
+//     // EOL
+//   )+
+//   // UNTAB
+//   }
 
-head
-  {
-  DOTS?
-  (
-    ROOT
-    |
-    AT
-    |
-    RHO
-    |
-    XI
-    |
-    SIGMA
-    |
-    STAR
-    |
-    NAME
-    COPY?
-    |
-    NAME
-    DOT
-    |
-    data
-  )
-  }
+// suffix
+//   {
+//   // SPACE
+//   ARROW
+//   // SPACE
+//   label
+//   CONST?
+//   }
 
-has
-  {
-  COLON
-  NAME
-  }
+// method
+//   {
+//   DOT
+//   (
+//     NAME
+//     |
+//     RHO
+//     |
+//     AT
+//     |
+//     VERTEX
+//   )
+//   }
 
-data
-  {
-  BYTES
-  |
-  BOOL
-  |
-  TEXT
-  |
-  STRING
-  |
-  INT
-  |
-  FLOAT
-  |
-  HEX
-  |
-  CHAR
-  |
-  REGEX
-  }
+// application
+//   {
+//   head
+//   htail?
+//   |
+//   application
+//   method
+//   htail?
+//   |
+//   LB
+//   application
+//   RB
+//   htail?
+//   |
+//   application
+//   has
+//   htail?
+//   |
+//   application
+//   suffix
+//   htail?
+//   }
+
+// htail
+//   {
+//   (
+//     // SPACE
+//     head
+//     |
+//     // SPACE
+//     application
+//     method
+//     |
+//     // SPACE
+//     LB
+//     application
+//     RB
+//     |
+//     // SPACE
+//     application
+//     has
+//     |
+//     // SPACE
+//     application
+//     suffix
+//     |
+//     // SPACE
+//     anonymous
+//   )+
+//   }
+
+// head
+//   {
+//   DOTS?
+//   (
+//     ROOT
+//     |
+//     AT
+//     |
+//     RHO
+//     |
+//     XI
+//     |
+//     SIGMA
+//     |
+//     STAR
+//     |
+//     NAME
+//     COPY?
+//     |
+//     NAME
+//     DOT
+//     |
+//     data
+//   )
+//   }
+
+// has
+//   {
+//   COLON
+//   NAME
+//   }
+
+// data
+//   {
+//   BYTES
+//   |
+//   BOOL
+//   |
+//   TEXT
+//   |
+//   STRING
+//   |
+//   INT
+//   |
+//   FLOAT
+//   |
+//   HEX
+//   |
+//   CHAR
+//   |
+//   REGEX
+//   }

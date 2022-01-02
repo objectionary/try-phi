@@ -1,15 +1,29 @@
 import { EditorState, EditorView, basicSetup } from '@codemirror/next/basic-setup'
 import { lezer } from './lezer'
-let code = `[
-  book -> [
-    title -> ^2.title,
-    price -> ?
-  ],
-  manga -> [
-    manga_title -> ^2.str_publisher.add(str -> ^0.title),
-    @ -> ^1.book
-  ](price -> ^1.price)
-].manga.price`;
+let code = `
++wuru oweirow
+# wio woiro wp
+TRUE
+3737
+894.5
+AF-DA
+0x9239
++0.234e10
+'\uAFB3'
+"akl3 92$"
+
+"""
+we29fj02 
+0293 -0w
+we
+"""
+
+(sko93 a_092 r_0) > [a_1 kao o39]
+
+/siue[309]/
+
+
+`;
 
 const myTheme = EditorView.baseTheme({
   $: {

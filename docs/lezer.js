@@ -11,15 +11,39 @@ export const lezerLanguage = LezerLanguage.define({
 
       }),
       styleTags({
-        Locator: t.keyword,
-        Attr: t.integer,
-        Mapsto: t.string,
-        Decorator: t.integer
+        COMMENT: t.comment,
+        META: t.documentMeta,
+
+        NAME: t.url,
+        AT: t.url,
+        RHO: t.url,
+
+        BOOL: t.bool,
+        
+        INT: t.url,
+        BYTES: t.url,
+        HEX: t.url,
+
+        FLOAT: t.float,
+        REGEX: t.regexp,
+        
+        STRING: t.string,
+        TEXT: t.string,
+
+        CHAR: t.character,
+        
+        
+        ARROW: t.float,
+
+        LB: t.paren,
+        RB: t.paren,
+        LSQ: t.paren,
+        RSQ: t.paren,
       }),
     ],
   }),
   languageData: {
-    closeBrackets: {brackets: ["(", "["]},
+    // closeBrackets: {brackets: ["(", "["]},
   },
 })
 

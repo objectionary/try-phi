@@ -2,6 +2,7 @@ import resolve from '@rollup/plugin-node-resolve'
 import commonjs from '@rollup/plugin-commonjs'
 import livereload from 'rollup-plugin-livereload'
 import { string } from 'rollup-plugin-string'
+import typescript from '@rollup/plugin-typescript';
 
 const production = !process.env.ROLLUP_WATCH;
 
@@ -29,7 +30,7 @@ function serve() {
 }
 
 export default {
-    input: 'docs/main.js',
+    input: 'docs/main.ts',
     output: {
         sourcemap: true,
         format: 'iife',
@@ -44,6 +45,7 @@ export default {
         commonjs(),
         !production && serve(),
         !production && livereload(PATH),
+        typescript(),
     ],
     watch: {
         clearScreen: false

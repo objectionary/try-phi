@@ -1,47 +1,50 @@
 <!DOCTYPE html>
-<meta charset="utf-8">
+<meta charset="utf-8" />
 <title>EO editor</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;700&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link
+  href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;700&display=swap"
+  rel="stylesheet"
+/>
+<link rel="shortcut icon" href="https://www.yegor256.com/images/books/elegant-objects/cactus.png" />
+
 <style>
-    body {
-        max-width: 992px;
-        margin: auto;
-        padding: 8px 16px;
-    }
+  body {
+    max-width: 992px;
+    margin: auto;
+    padding: 8px 16px;
+  }
 </style>
 
 <body>
-    <div>
-        <h2>EO editor</h2>
-         based on <a href="https://codemirror.net/6/">Codemirror 6</a>
-    </div>
-    <br>
-    <div>
-        <a href="" id="__permalink__">permalink to code</a>
-    </div>
-    <br>
-    <div id="editor">
+  <div>
+    <h2>EO editor</h2>
+    based on <a href="https://codemirror.net/6/">Codemirror 6</a>
+  </div>
+  <br />
+  <div>
+    <a href="" id="__permalink__">permalink to this snippet</a>
+    | <a href="https://github.com/br4ch1st0chr0n3/eo-editor">GitHub repo</a>
+  </div>
+  <br />
+  <div id="editor"></div>
 
-    </div>
+  <script src="build/bundle.js"></script>
+  <script>
+    // extract query parameters from URL to set editor
 
-    <script src="build/bundle.js"></script>
-    <script>
-        // extract query parameters from URL to set editor
+    let view = app.view;
+    const params = new URLSearchParams(window.location.search);
 
-        let view = app.view;
-        const params = new URLSearchParams(window.location.search);
+    let snippet = view.state.doc;
 
-        let snippet = view.state.doc;
-        
-        if (params.has("snippet")) {
-            snippet = decodeURIComponent(params.get("snippet"));
-        };
+    if (params.has("snippet")) {
+      snippet = decodeURIComponent(params.get("snippet"));
+    }
 
-        // change editor content
-        view.dispatch({
-            changes: { from: 0, to: view.state.doc.length, insert: snippet }
-        });
-
-    </script>
+    // change editor content
+    view.dispatch({
+      changes: { from: 0, to: view.state.doc.length, insert: snippet },
+    });
+  </script>
 </body>

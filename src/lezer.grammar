@@ -5,25 +5,24 @@
 @tokens {  
   COMMENT{ HASH ![\r\n]*}
   META{ PLUS NAME (SPACE ![\r\n]+)?}
+  
+  STAR{ "*"}
+  CONST{ "!"}
+  COLON{ ":"}
+    // COPY{ "\'"}
+    // VERTEX{ "<"}
+    // SIGMA{ "&"}
+    // XI{ "$"}
+    // QUESTION{ "?"}
 
-  // REGEX{ SLASH ![\r\n]+ SLASH $[a-z]*}
   REGEX{ SLASH ![\r\n]+ SLASH}
-
-  // STAR{ "*"}
   DOTS{ "..."}
-  // CONST{ "!"}
   SLASH{ "/"}
-  // COLON{ ":"}
-  // COPY{ "\'"}
   ARROW{ ">"}
-  // VERTEX{ "<"}
-  // SIGMA{ "&"}
-  // XI{ "$"}
   PLUS{ "+"}
   MINUS{ "-"}
-  // QUESTION{ "?"}
-  SPACE{std.whitespace+}
   DOT{ "."}
+  SPACE{std.whitespace+}
   LSQ[closedBy="RSQ"]{ "[" }
   RSQ[openedBy="LSQ"]{ "]"}
   LB[closedBy="RB"]{ "("}
@@ -36,18 +35,11 @@
   EMPTY_BYTES { MINUS MINUS}
   LINE_BYTES { BYTE (MINUS BYTE)*}
 
-  // BYTES{
-  //       EMPTY_BYTES
-  //     | BYTE MINUS
-  //     | LINE_BYTES (MINUS LINE_BYTES)*
-  // }
-
   BYTES {
       EMPTY_BYTES
     | LINE_BYTES
   }
 
-  // INT{ (PLUS | MINUS)? $[0-9]+}
   
   INT { (PLUS | MINUS)? ($[0-9] | $[1-9] $[0-9]+)}
 
@@ -66,7 +58,7 @@
   
   HEX{ "0x" ($[0-9a-f])+}
 
-  NAME{ $[a-z] ($[a-z]| "_" | $[0-9])*}
+  NAME{ $[a-z] ($[a-z]| $[_-] | $[0-9])*}
 
   TEXT_MARK{ "\"\"\""}
   TEXT{
@@ -76,8 +68,9 @@
   }
 
 
-  @precedence {FLOAT, INT, HEX, BYTES}
+  @precedence {FLOAT, INT, HEX, BYTES, META}
   @precedence {TEXT, STRING}
+  @precedence {REGEX, SLASH}
 }
 
 NUMBER {
@@ -103,6 +96,9 @@ top {
   META*
 }
 
+// application {
+//   LB  RB
+// }
 
 program {
   top
@@ -121,8 +117,14 @@ program {
     | RHO
     
     | ARROW
+    | STAR
+    | CONST
+    | COLON
+    | DOT
+    | DOTS
+    | SLASH
 
-    |attributes
+    | attributes
   )+
 }
 

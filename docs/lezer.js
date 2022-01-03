@@ -14,27 +14,34 @@ export const lezerLanguage = LezerLanguage.define({
         COMMENT: t.comment,
         META: t.documentMeta,
 
-        NAME: t.url,
         AT: t.url,
         RHO: t.url,
-
+        
         BOOL: t.bool,
         
-        INT: t.url,
-        BYTES: t.url,
-        HEX: t.url,
-
+        INT: t.float,
+        BYTES: t.float,
+        HEX: t.float,
+        
         FLOAT: t.float,
         REGEX: t.regexp,
         
         STRING: t.string,
         TEXT: t.string,
-
+        
         CHAR: t.character,
         
         
-        ARROW: t.float,
-
+        ARROW: t.operatorKeyword,
+        COLON: t.operatorKeyword,
+        STAR: t.operatorKeyword,
+        CONST: t.operatorKeyword,
+        DOT: t.operatorKeyword,
+        DOTS: t.operatorKeyword,
+        SLASH: t.operatorKeyword,
+        PLUS: t.operatorKeyword,
+        MINUS: t.operatorKeyword,
+        
         LB: t.paren,
         RB: t.paren,
         LSQ: t.paren,
@@ -43,7 +50,6 @@ export const lezerLanguage = LezerLanguage.define({
     ],
   }),
   languageData: {
-    // closeBrackets: {brackets: ["(", "["]},
   },
 })
 

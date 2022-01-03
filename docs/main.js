@@ -1,28 +1,21 @@
 import { EditorState, EditorView, basicSetup } from '@codemirror/next/basic-setup'
 import { lezer } from './lezer'
-let code = `
-+wuru oweirow
-# wio woiro wp
-TRUE
-3737
-894.5
-AF-DA
-0x9239
-+0.234e10
-'\uAFB3'
-"akl3 92$"
+let code = 
+`+alias org.eolang.io.stdout
++alias org.eolang.txt.sprintf
 
-"""
-we29fj02 
-0293 -0w
-we
-"""
-
-(sko93 a_092 r_0) > [a_1 kao o39]
-
-/siue[309]/
-
-
+[args...] > main
+  [y] > leap
+    or. > @
+      and.
+        eq. (mod. y 4) 0
+        not. (eq. (mod. y 100) 0)
+      eq. (mod. y 400) 0
+  stdout > @
+    sprintf
+      "%d is %sa leap year!"
+      (args.get 0).as-int > year!
+      if. (leap year:y) "" "not "
 `;
 
 const myTheme = EditorView.baseTheme({
@@ -49,11 +42,11 @@ const initialState = EditorState.create({
     basicSetup,
     myTheme,
     lezer(),
-    EditorView.updateListener.of((v) =>{
-      if (v.docChanged) {
-        updatePermalink(v);
-      }
-    })
+    // EditorView.updateListener.of((v) =>{
+    //   if (v.docChanged) {
+    //     updatePermalink(v);
+    //   }
+    // })
   ]
 })
 

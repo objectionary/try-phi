@@ -22298,7 +22298,7 @@ var app = (function (exports) {
         return [eoLanguage];
     }
 
-    var code$1 = "+alias org.eolang.io.stdout\n+alias org.eolang.txt.sprintf\n\n#sample object\n[args...] > main\n  [y] > leap\n    or. > @\n      and.\n        eq. (mod. y 4.0e-1) 0A-BB\n        not. (eq. (mod. y 0x13a) --)\n      eq. (mod. y 400.) TRUE\n  stdout > @\n    sprintf\n      \"%d is %sa leap year!\"\n      (args.get 0).as-int > year!\n      if. (leap year:y) \"\" \"\"\"\nnot \n\"\"\"\"\n";
+    var code$1 = "+alias org.eolang.io.stdout\n+alias org.eolang.txt.sprintf\n\n#sample object\n[args...] > main\n  [y] > leap\n    or. > @\n      and.\n        eq. (mod. y 4.0e-1) 0A-BB\n        not. (eq. (mod. y 0x13a) --)\n      eq. (mod. y 400.) TRUE\n  stdout > @\n    sprintf\n      \"%d is %sa leap year!\"\n      (args.get 0).as-int > year!\n      if. (leap year:y) \"\" \"\"\"not \"\"\"\n";
     var myTheme = EditorView.baseTheme({
         $: {
             maxHeight: '80vh',
@@ -22307,7 +22307,7 @@ var app = (function (exports) {
         },
         $scroller: {
             fontFamily: '"Fira Mono", monospace',
-            fontSize: '20px'
+            fontSize: '30px'
         }
     });
     function updatePermalink(cm) {

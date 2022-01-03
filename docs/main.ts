@@ -19,9 +19,7 @@ let code =
     sprintf
       "%d is %sa leap year!"
       (args.get 0).as-int > year!
-      if. (leap year:y) "" """
-not 
-""""
+      if. (leap year:y) "" """not """
 `;
 
 const myTheme = EditorView.baseTheme({
@@ -32,7 +30,7 @@ const myTheme = EditorView.baseTheme({
   },
   $scroller: {
     fontFamily: '"Fira Mono", monospace',
-    fontSize: '20px',
+    fontSize: '30px',
   }
 })
 
@@ -63,7 +61,6 @@ const initialState = EditorState.create({
     indentService.of(sameIndent)
   ]
 })
-
 
 
 const view = new EditorView({

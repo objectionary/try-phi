@@ -1,4 +1,4 @@
-@precedence {comment @left, foreign @right}
+@precedence {comment @left, foreign @right, action @right, definition @left}
 
 @top   PhiGrammar {PROGRAM}
 
@@ -61,7 +61,7 @@
   
   HEX{ "0x" ($[0-9a-f])+}
 
-  NAME{ "@" | $[a-z] ($[a-z0-9]| $[_-])*}
+  NAME{ $[a-z] ($[a-z0-9]| $[_-])*}
   FOREIGN_NAME {$[a-z] ($[a-z0-9]| $[_-])*}
 
   TEXT_MARK{ "\"\"\""}
@@ -115,10 +115,17 @@ DATA
   REGEX
 }
 
+NAME_AT
+{
+  NAME
+  |
+  AT
+}
+
 DECLARATION
 {
   // 
-  NAME
+  NAME_AT
   CONST?
   (
     !foreign
@@ -130,17 +137,19 @@ DECLARATION
   )?
   space
   ARROW
-  space
-  LSQ
   (
-    NAME
+    space
+    LSQ
     (
-      space
       NAME
-    )*
-    DOTS?
+      (
+        space
+        NAME
+      )*
+      DOTS?
+    )?
+    RSQ
   )?
-  RSQ
 }
 
 METHOD
@@ -181,7 +190,7 @@ PROGRAM
 {
   LICENSE?
   METAS?
-  EOL+
+  EOL?
   OBJECTS
 }
   
@@ -194,7 +203,6 @@ OBJECTS
       !comment COMMENT 
       EOL
     )*
-    SPACES
     OBJECT
     // EOL
   )+
@@ -204,119 +212,95 @@ OBJECTS
 // main non-terminals
 // --------------------------------
 
-OBJECT 
+OBJECT
 {
   DECLARATION
-  // DEFINITION?
+  EOL
+  (
+    !definition
+    (
+      DEFINITION
+      EOL
+    )
+  )*
 }
 
-// DEFINITION
-// {
-//   OBJECT*
-//   |
-  
-// }
-// _object
-//   {
-//   anonymous
-//   |
-//   (
-//     abstraction
-//     |
-//     application
-//   )
-//   tail?
-//   (
-//     // EOL
-//     method
-//     htail?
-//     suffix?
-//     tail?
-//   )*
-//   }
+// .name | name.name.
+// maybe need to add ^
+ACTION
+{
+  DOT
+  NAME_AT
+  |
+  (
+    !action
+    (
+      NAME_AT
+      DOT
+    )
+  )+
+  NAME_AT?
+}
 
-// _anonymous
-//   {
-//   attributes
-//   htail
-//   }
+DEFINITION
+{
+  SPACES
+  (
+    OBJECT
+    |
+    (
+      ACTION
+      (
+        space
+        INLINE
+      )?
+    )
+    |
+    DATA
+  )
+}
 
-// _tail
-//   {
-//   // EOL
-//   // TAB
-//   (
-//     object 
-//     // EOL
-//   )+
-//   // UNTAB
-//   }
 
-// _application
-//   {
-//   head
-//   htail?
-//   |
-//   application
-//   (
-//     method
-//     |
-//     has
-//     |
-//     suffix
-//   )
-//   htail?
-//   |
-//   LB
-//   application
-//   RB
-//   htail?
-//   }
+PARENTHESIZED
+{
+  LB
+  INLINE
+  RB
+  (
+    !definition
+    (
+      DOT
+      NAME_AT
+    )
+  )*
+}
 
-// _htail
-//   {
-//   (
-//     // SPACE
-//     head
-//     |
-//     // SPACE
-//     application
-//     (
-//       method 
-//       | 
-//       has
-//       |
-//       suffix
-//     )
-//     |
-//     // SPACE
-//     LB
-//     application
-//     RB
-//     |
-//     // SPACE
-//     anonymous
-//   )+
-//   }
+MAYBE_INVERSE
+{
+  (
+    !action
+    (
+      NAME_AT
+      DOT
+    )
+  )*
+  NAME_AT?
+}
 
-// # 1
-// vector > [dx dy]
-//   sqrt. > length
-//     add.
-//       dx.pow 2
-//       dy.pow 2
-//   add. > sum 
-//     dx
-//     dy
+INLINE_TOKEN
+{
+  PARENTHESIZED
+  |
+  DATA
+  |
+  MAYBE_INVERSE
+}
 
-// # 2
-// vector > [dx dy]
-//   length >
-//     sqrt.
-//       add.
-//         dx.pow 2
-//         dy.pow 2
-//   sum >
-//     add.
-//       dx
-//       dy
+INLINE
+{
+  INLINE_TOKEN
+  (
+    space
+    INLINE_TOKEN
+  )*
+}

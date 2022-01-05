@@ -1,26 +1,48 @@
 import { EditorState, EditorView, basicSetup } from '@codemirror/basic-setup'
-import { indentService, IndentContext} from '@codemirror/language'
+import { indentService, IndentContext, syntaxTree} from '@codemirror/language'
 import { keymap, ViewUpdate } from '@codemirror/view';
 import {indentWithTab} from '@codemirror/commands'
 import { eo } from './eo'
+import { logTree, printTree } from './print-lezer-tree';
+
+
 let code = 
 `+alias org.eolang.io.stdout
 +alias org.eolang.txt.sprintf
 
 #sample object
-[args...] > main
-  [y] > leap
-    or. > @
-      and.
-        eq. (mod. y 4.0e-1) 0A-BB
-        not. (eq. (mod. y 0x13a) --)
-      eq. (mod. y 400.) TRUE
-  stdout > @
-    sprintf
-      "%d is %sa leap year!"
-      (args.get 0).as-int > year!
-      if. (leap year:y) "" """not """
-`;
+main > [args...]
+  leap > [y]
+    @ >
+      or.
+        and.
+          eq. (mod. y 4.0e-1) 0A-BB
+          not. (eq. (mod. y 0x13a) --)
+        eq. (mod. y 400.) TRUE
+  @ >
+    stdout
+      sprintf
+        "%d is %sa leap year!"
+        year! >
+          (args.get 0).as-int
+        if. (leap year:y) "" """not """`
+// `+alias org.eolang.io.stdout
+// +alias org.eolang.txt.sprintf
+
+// #sample object
+// [args...] > main
+//   [y] > leap
+//     or. > @
+//       and.
+//         eq. (mod. y 4.0e-1) 0A-BB
+//         not. (eq. (mod. y 0x13a) --)
+//       eq. (mod. y 400.) TRUE
+//   stdout > @
+//     sprintf
+//       "%d is %sa leap year!"
+//       (args.get 0).as-int > year!
+//       if. (leap year:y) "" """not """
+// `;
 
 const myTheme = EditorView.baseTheme({
   $: {
@@ -46,6 +68,11 @@ function sameIndent(context: IndentContext, pos: number){
   return context.lineIndent(Math.max(pos-1, 0))
 }
 
+function logToFile(v: ViewUpdate){
+  console.clear();
+  logTree(syntaxTree(v.state), String(v.state.doc));
+}
+
 const initialState = EditorState.create({
   doc: code,
   extensions: [
@@ -55,6 +82,7 @@ const initialState = EditorState.create({
     EditorView.updateListener.of((v: ViewUpdate) =>{
       if (v.docChanged) {
         updatePermalink(v);
+        logToFile(v);
       }
     }),
     keymap.of([indentWithTab]),

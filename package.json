@@ -9,25 +9,19 @@
   },
   "license": "Unlicense",
   "dependencies": {
-    "esm": "^3.2.25",
-    "lezer": "^0.13.1"
+    "@lezer/lr": "^0.15.5",
+    "esm": "^3.2.25"
   },
   "devDependencies": {
-    "@codemirror/language": "^0.19.7",
-    "@codemirror/highlight": "^0.19.7",
-    "@codemirror/view": "^0.19.37",
     "@codemirror/basic-setup": "^0.19.1",
     "@codemirror/commands": "^0.19.6",
-    
+    "@codemirror/highlight": "^0.19.7",
+    "@codemirror/language": "^0.19.7",
+    "@codemirror/view": "^0.19.37",
     "@lezer/generator": "^0.15.2",
-    
-    "node-static": "^0.7.11",
-    "nodemon": "^2.0.5",
-
     "@rollup/plugin-commonjs": "^15.1.0",
     "@rollup/plugin-node-resolve": "^9.0.0",
     "@rollup/plugin-typescript": "^8.3.0",
-
     "rollup": "^2.30.0",
     "rollup-plugin-livereload": "^2.0.0",
     "rollup-plugin-string": "^3.0.0"

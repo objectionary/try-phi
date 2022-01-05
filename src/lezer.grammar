@@ -1,19 +1,22 @@
-@top   PhiGrammar {program}
+@precedence {comment @left, foreign @right}
 
-@skip { SPACE } 
+@top   PhiGrammar {PROGRAM}
+
+// @skip { SPACE } 
 
 @tokens {  
   COMMENT{ HASH ![\r\n]*}
-  META{ PLUS NAME (SPACE ![\r\n]+)?}
+  META{ PLUS NAME (space ![\r\n]+)?}
   
   STAR{ "*"}
   CONST{ "!"}
   COLON{ ":"}
-    // COPY{ "\'"}
-    // VERTEX{ "<"}
-    // SIGMA{ "&"}
-    // XI{ "$"}
-    // QUESTION{ "?"}
+  COPY{ "\'"}
+  VERTEX{ "<"}
+  ROOT{ 'Q'}
+  SIGMA{ "&"}
+  XI{ "$"}
+  // QUESTION{ "?"}
 
   REGEX{ SLASH ![\r\n]+ SLASH}
   DOTS{ "..."}
@@ -22,7 +25,7 @@
   PLUS{ "+"}
   MINUS{ "-"}
   DOT{ "."}
-  SPACE{std.whitespace+}
+  space{" "}
   LSQ[closedBy="RSQ"]{ "[" }
   RSQ[openedBy="LSQ"]{ "]"}
   LB[closedBy="RB"]{ "("}
@@ -58,7 +61,8 @@
   
   HEX{ "0x" ($[0-9a-f])+}
 
-  NAME{ $[a-z] ($[a-z]| $[_-] | $[0-9])*}
+  NAME{ "@" | $[a-z] ($[a-z0-9]| $[_-])*}
+  FOREIGN_NAME {$[a-z] ($[a-z0-9]| $[_-])*}
 
   TEXT_MARK{ "\"\"\""}
   TEXT{
@@ -67,59 +71,252 @@
       TEXT_MARK
   }
 
+  EOL {"\n"}
 
   @precedence {FLOAT, INT, HEX, BYTES, META}
   @precedence {TEXT, STRING}
   @precedence {REGEX, SLASH}
 }
 
-NUMBER {
+LICENSE
+{
   (
-      BYTES
-    | INT
-    | FLOAT
-    | HEX
-  )
-}
-
-attribute {
-  AT | NAME | DOTS
-}
-
-attributes {
-  LSQ attribute* RSQ
-}
-
-
-top {
-  COMMENT*
-  META*
-}
-
-program {
-  top
-  (
-      NUMBER
-    | BOOL
-    
-    | REGEX
-
-    | CHAR
-    | STRING
-    | TEXT
-    
-    | NAME
-    | AT
-    | RHO
-    
-    | ARROW
-    | STAR
-    | CONST
-    | COLON
-    | DOT
-    | DOTS
-    | SLASH
-
-    | attributes
+    (!comment COMMENT)
+    EOL
   )+
 }
+
+METAS
+{
+  (
+    META
+    EOL
+  )+
+}
+
+DATA
+{
+  BYTES
+  |
+  BOOL
+  |
+  TEXT
+  |
+  STRING
+  |
+  INT
+  |
+  FLOAT
+  |
+  HEX
+  |
+  CHAR
+  |
+  REGEX
+}
+
+DECLARATION
+{
+  // 
+  NAME
+  CONST?
+  (
+    !foreign
+    (
+      space
+      SLASH
+      FOREIGN_NAME
+    )
+  )?
+  space
+  ARROW
+  space
+  LSQ
+  (
+    NAME
+    (
+      space
+      NAME
+    )*
+    DOTS?
+  )?
+  RSQ
+}
+
+METHOD
+{
+  ID
+  (
+    DOT
+    ID
+  )+
+  DECLARATION?
+}
+
+
+HEAD
+{
+  ROOT
+  |
+  AT
+  |
+  RHO
+  |
+  XI
+  |
+  SIGMA
+  |
+  STAR
+  |
+  NAME
+}
+
+HAS
+{
+  COLON
+  NAME
+}
+
+PROGRAM
+{
+  LICENSE?
+  METAS?
+  EOL+
+  OBJECTS
+}
+  
+SPACES {space*}
+
+OBJECTS
+{
+  (
+    (
+      !comment COMMENT 
+      EOL
+    )*
+    SPACES
+    OBJECT
+    // EOL
+  )+
+}
+
+// --------------------------------
+// main non-terminals
+// --------------------------------
+
+OBJECT 
+{
+  DECLARATION
+  // DEFINITION?
+}
+
+// DEFINITION
+// {
+//   OBJECT*
+//   |
+  
+// }
+// _object
+//   {
+//   anonymous
+//   |
+//   (
+//     abstraction
+//     |
+//     application
+//   )
+//   tail?
+//   (
+//     // EOL
+//     method
+//     htail?
+//     suffix?
+//     tail?
+//   )*
+//   }
+
+// _anonymous
+//   {
+//   attributes
+//   htail
+//   }
+
+// _tail
+//   {
+//   // EOL
+//   // TAB
+//   (
+//     object 
+//     // EOL
+//   )+
+//   // UNTAB
+//   }
+
+// _application
+//   {
+//   head
+//   htail?
+//   |
+//   application
+//   (
+//     method
+//     |
+//     has
+//     |
+//     suffix
+//   )
+//   htail?
+//   |
+//   LB
+//   application
+//   RB
+//   htail?
+//   }
+
+// _htail
+//   {
+//   (
+//     // SPACE
+//     head
+//     |
+//     // SPACE
+//     application
+//     (
+//       method 
+//       | 
+//       has
+//       |
+//       suffix
+//     )
+//     |
+//     // SPACE
+//     LB
+//     application
+//     RB
+//     |
+//     // SPACE
+//     anonymous
+//   )+
+//   }
+
+// # 1
+// vector > [dx dy]
+//   sqrt. > length
+//     add.
+//       dx.pow 2
+//       dy.pow 2
+//   add. > sum 
+//     dx
+//     dy
+
+// # 2
+// vector > [dx dy]
+//   length >
+//     sqrt.
+//       add.
+//         dx.pow 2
+//         dy.pow 2
+//   sum >
+//     add.
+//       dx
+//       dy

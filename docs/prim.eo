@@ -1,0 +1,194 @@
++package ru.hse.eo_graphs.eo.prim
++alias sprintf org.eolang.txt.sprintf
+
+graphedge > [n1 n2 length]
+
+nodeInEdges > [node edges]
+  @ > reduce.
+    edges
+    false
+    []
+      reduce > [accum current]
+        @ > or.
+          accum
+          or.
+            eq.
+              ^.^.node
+              current.n1
+            eq.
+              ^.^.node
+              current.n2
+
+
+nodeInArray > [node nArray]
+  @ > reduce.
+    nArray
+    false
+    []
+      reduce > [accum current]
+        @ > or.
+          accum
+          eq.
+            ^.^.node
+            current
+
+
+nodes > [edges]
+  @ > reduce.
+    edges
+    *
+    []
+      reduce > [accum current]
+        addN1! > not.
+          nodeInArray
+            current.n1
+            accum
+        addN2! > not.
+          nodeInArray
+            current.n2
+            accum
+        @ > if.
+          accum.length.eq 0
+          *
+            current.n1
+            current.n2
+          appendAll.
+            accum
+            if.
+              and.
+                addN1
+                addN2
+              *
+                current.n1
+                current.n2
+              if.
+                and.
+                  addN1
+                  addN2.not
+                *
+                  current.n1
+                if.
+                  and.
+                    addN2
+                    addN1.not
+                  *
+                    current.n2
+                  *
+
+appPrim > [args...]
+  graph! > []
+    getEdges > [i]
+      @ > if.
+        (i.add 2).less
+          ^.^.args.length
+        append.
+          getEdges
+            i.add 3
+          graphedge
+            toInt.
+              ^.^.args.get i
+            toInt.
+              ^.^.args.get (i.add 1)
+            toInt.
+              ^.^.args.get (i.add 2)
+        *
+    @ > if.
+      ^.args.length.less 3
+      *
+      getEdges 0
+
+  graphNodes! > nodes
+    graph
+
+  extractEdges > [step]
+    newEdge! > []
+      @ > if.
+        eq.
+          ^.^.graphNodes.length
+          ^.step.length.add 1
+        *
+        reduce.
+          ^.^.graph
+          *
+          []
+            reduce > [accum current]
+              n1InStep! > nodeInEdges
+                current.n1
+                ^.^.^.step
+              n2InStep! > nodeInEdges
+                current.n2
+                ^.^.^.step
+              @ > if.
+                and.
+                  or.
+                    and.
+                      n1InStep
+                      n2InStep.not
+                    and.
+                      n1InStep.not
+                      n2InStep
+                  or.
+                    eq.
+                      accum.length
+                      0
+                    less.
+                      length.
+                        current
+                      length.
+                        accum.get 0
+                *
+                  current
+                accum
+
+    @ > if.
+      eq.
+        0
+        newEdge.length
+      step
+      extractEdges
+        appendAll.
+          step
+          newEdge
+
+
+  firstEdge > []
+    ^.graph.randomEdge! > get
+      random.int
+        0
+        ^.graph.length
+    @ > reduce.
+      ^.graph
+      randomEdge
+      []
+        reduce > [accum current]
+          @ > if.
+            and.
+              or.
+                accum.n1.eq
+                  current.n1
+                accum.n1.eq
+                  current.n2
+              less.
+                current.length
+                accum.length
+            current
+            accum
+
+  res > extractEdges
+    *
+      firstEdge
+
+  stringRes > reduce.
+    res
+    "MST: "
+    []
+      reduce > [accum current]
+        @ > append.
+          accum
+          sprintf
+            "(%d %d - %d) "
+            current.n1
+            current.n2
+            current.length
+
+  @ > stringRes

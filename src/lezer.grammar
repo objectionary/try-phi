@@ -167,26 +167,22 @@ OBJECT
 // first line in an object
 DECLARATION
 {
-  (
-    FREE_NAME
-    |
-    AT
-  )
+  // ~application_or_declaration
+  DOT_NAME
   CONST?
   (
-    !right
     (
       space
       SLASH
       FOREIGN_NAME
     )
   )?
-  !right
+  !left
   space
   ARROW
   (
     space
-    ATTRIBUTE_LIST
+    FREE_LIST
   )?
 }
 
@@ -210,39 +206,40 @@ DOT_ACCESS
 {
   (
     !left
-    (
-      DOT
-      DOT_NAME
-    )
+    DOT
+    DOT_NAME
   )+
 }
 
-MAYBE_INVERSE
+APPLICATION
 {
+  // ~application_or_declaration
   DOT_NAME
   (
-    (
-      !left
-      (
-        DOT
-        DOT_NAME
-      )
-    )*
-    |
+    !left
     DOT
-  )
+    DOT_NAME
+  )*
+}
+
+INVERSE_DOT
+{
+  DOT_NAME
+  DOT
 }
 
 ACTION
 {
   DOT_ACCESS
   |
-  MAYBE_INVERSE
+  INVERSE_DOT
+  |
+  APPLICATION
 }
 
 // list of free attributes
 // [name1 name2...]
-ATTRIBUTE_LIST
+FREE_LIST
 {
   LSQ
   (
@@ -256,11 +253,26 @@ ATTRIBUTE_LIST
   RSQ
 }
 
+INLINE_ATTRIBUTE
+{
+  LB
+  DECLARATION
+  space
+  INLINE
+  RB
+}
+
 ANONYMOUS
 {
-  ATTRIBUTE_LIST
+  FREE_LIST
+  (
+    !left
+    space
+    INLINE_ATTRIBUTE
+  )*
   |
   ARRAY_STAR
+  INLINE?
 }
 
 // part of an object after declaration
@@ -275,7 +287,11 @@ DEFINITION
 PARENTHESIZED
 {
   LB
-  INLINE
+  (
+    INLINE
+    |
+    ANONYMOUS
+  )
   RB
   (
     !left
@@ -305,8 +321,6 @@ INLINE_TOKEN
     DATA
     |
     ACTION
-    |
-    ANONYMOUS
   )
 }
 
@@ -320,6 +334,7 @@ INLINE
 {
   INLINE_TOKEN
   (
+    !left
     space
     INLINE_TOKEN
   )*

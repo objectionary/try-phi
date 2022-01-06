@@ -1,3 +1,25 @@
+# 1
+[dx dy] > vector
+  sqrt. > length
+    add.
+      dx.pow 2
+      dy.pow 2
+  add. > sum
+    dx
+    dy
+
+# 2
+vector > [dx dy]
+  length >
+    sqrt.
+      add.
+        dx.pow 2
+        dy.pow 2
+  sum > 
+    add.
+      dx
+      dy
+
 +alias org.eolang.io.stdout
 +alias org.eolang.txt.sprintf
 
@@ -30,3 +52,4 @@ main > [args...]
         year! >
           (args.get 0).as-int
         if. (leap year:y) "" """not """
+

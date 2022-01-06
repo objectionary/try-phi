@@ -7,18 +7,6 @@ import { logTree, printTree } from './print-lezer-tree';
 
 
 let code = 
-`+alias org.eolang.io.stdout
-+alias org.eolang.txt.sprintf
-
-#sample object
-main > [args...]
-  leap > [y]
-    @ >
-      or.
-        and.
-          eq. (mod. y 4.0e-1) 0A-BB
-          not. (eq. (mod. y 0x13a) --)
-        eq. (mod. y 400.) TRUE`
 // `+alias org.eolang.io.stdout
 // +alias org.eolang.txt.sprintf
 
@@ -30,14 +18,27 @@ main > [args...]
 //         and.
 //           eq. (mod. y 4.0e-1) 0A-BB
 //           not. (eq. (mod. y 0x13a) --)
-//         eq. (mod. y 400.) TRUE
-//   @ >
-//     stdout
-//       sprintf
-//         "%d is %sa leap year!"
-//         year! >
-//           (args.get 0).as-int
-//         if. (leap year:y) "" """not """`
+//         eq. (mod. y 400.) TRUE`
+
+`+alias org.eolang.io.stdout
++alias org.eolang.txt.sprintf
+
+#sample object
+main > [args...]
+  leap > [y]
+    @ >
+      or.
+        and.
+          eq. (mod. y 4.0e-1) 0A-BB
+          not. (eq. (mod. y 0x13a) --)
+        eq. (mod. y 400.) TRUE
+  @ >
+    stdout
+      sprintf
+        "%d is %sa leap year!"
+        year! >
+          (args.get 0).as-int
+        if. (leap year:y) "" "not "`
         
 // `+alias org.eolang.io.stdout
 // +alias org.eolang.txt.sprintf

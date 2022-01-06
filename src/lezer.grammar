@@ -1,14 +1,12 @@
-@precedence {comment @left, foreign @right, action @right, definition @left}
+@precedence {left @left, right @right}
 
 @top   PhiGrammar {PROGRAM}
 
-// @skip { SPACE } 
-
 @tokens {  
   COMMENT{ HASH ![\r\n]*}
-  META{ PLUS NAME (space ![\r\n]+)?}
+  META{ PLUS FREE_NAME (space ![\r\n]+)?}
   
-  STAR{ "*"}
+  ARRAY_STAR{ "*"}
   CONST{ "!"}
   COLON{ ":"}
   COPY{ "\'"}
@@ -61,13 +59,13 @@
   
   HEX{ "0x" ($[0-9a-f])+}
 
-  NAME{ $[a-z] ($[a-z0-9]| $[_-])*}
+  FREE_NAME{ $[a-z] ($[a-z0-9]| $[_-])*}
   FOREIGN_NAME {$[a-z] ($[a-z0-9]| $[_-])*}
 
   TEXT_MARK{ "\"\"\""}
   TEXT{
       TEXT_MARK ("\n" | "\r\n")
-      (![\\] | ESCAPE_SEQUENCE)*?
+      (![\\] | ESCAPE_SEQUENCE)*
       TEXT_MARK
   }
 
@@ -81,7 +79,7 @@
 LICENSE
 {
   (
-    (!comment COMMENT)
+    (!left COMMENT)
     EOL
   )+
 }
@@ -115,20 +113,70 @@ DATA
   REGEX
 }
 
-NAME_AT
+HAS
 {
-  NAME
-  |
-  AT
+  COLON
+  FREE_NAME
 }
 
+PROGRAM
+{
+  LICENSE?
+  METAS?
+  EOL?
+  OBJECTS
+}
+
+OBJECTS
+{
+  (
+    (
+      !left COMMENT 
+      EOL
+    )*
+    SPACES?
+    OBJECT
+    EOL
+  )+
+}
+
+// a sequence of spaces
+SPACES {(!left space)+}
+
+
+
+// --------------------------------
+// main non-terminals
+// --------------------------------
+
+
+
+// ordinary object or class attribute
+OBJECT
+{
+  DECLARATION
+  EOL
+  (
+    !left
+    (
+      SPACES
+      DEFINITION
+      EOL
+    )+
+  )
+}
+
+// first line in an object
 DECLARATION
 {
-  // 
-  NAME_AT
+  (
+    FREE_NAME
+    |
+    AT
+  )
   CONST?
   (
-    !foreign
+    !right
     (
       space
       SLASH
@@ -139,34 +187,13 @@ DECLARATION
   ARROW
   (
     space
-    LSQ
-    (
-      NAME
-      (
-        space
-        NAME
-      )*
-      DOTS?
-    )?
-    RSQ
+    ATTRIBUTE_LIST
   )?
 }
 
-METHOD
+// any name that can be accessed wiht a dot
+DOT_NAME
 {
-  ID
-  (
-    DOT
-    ID
-  )+
-  DECLARATION?
-}
-
-
-HEAD
-{
-  ROOT
-  |
   AT
   |
   RHO
@@ -175,89 +202,74 @@ HEAD
   |
   SIGMA
   |
-  STAR
-  |
-  NAME
-}
-
-HAS
-{
-  COLON
-  NAME
-}
-
-PROGRAM
-{
-  LICENSE?
-  METAS?
-  EOL?
-  OBJECTS
-}
-  
-SPACES {space*}
-
-OBJECTS
-{
-  (
-    (
-      !comment COMMENT 
-      EOL
-    )*
-    OBJECT
-    // EOL
-  )+
-}
-
-// --------------------------------
-// main non-terminals
-// --------------------------------
-
-OBJECT
-{
-  DECLARATION
-  EOL
-  (
-    !definition
-    (
-      DEFINITION
-      EOL
-    )
-  )*
+  FREE_NAME
 }
 
 // .name | name.name.
-// maybe need to add ^
-ACTION
+// name.name
+DOT_ACCESS
 {
-  DOT
-  NAME_AT
-  |
   (
-    !action
+    !left
     (
-      NAME_AT
       DOT
+      DOT_NAME
     )
   )+
-  NAME_AT?
 }
 
+MAYBE_INVERSE
+{
+  DOT_NAME
+  (
+    (
+      !left
+      (
+        DOT
+        DOT_NAME
+      )
+    )*
+    |
+    DOT
+  )
+}
+
+ACTION
+{
+  DOT_ACCESS
+  |
+  MAYBE_INVERSE
+}
+
+// list of free attributes
+// [name1 name2...]
+ATTRIBUTE_LIST
+{
+  LSQ
+  (
+    FREE_NAME
+    (
+      space
+      FREE_NAME
+    )*
+    DOTS?
+  )?
+  RSQ
+}
+
+ANONYMOUS
+{
+  ATTRIBUTE_LIST
+  |
+  ARRAY_STAR
+}
+
+// part of an object after declaration
 DEFINITION
 {
-  SPACES
-  (
-    OBJECT
-    |
-    (
-      ACTION
-      (
-        space
-        INLINE
-      )?
-    )
-    |
-    DATA
-  )
+  OBJECT
+  |
+  INLINE
 }
 
 
@@ -267,33 +279,36 @@ PARENTHESIZED
   INLINE
   RB
   (
-    !definition
+    !left
     (
       DOT
-      NAME_AT
+      DOT_NAME
     )
   )*
 }
 
-MAYBE_INVERSE
+ARGUMENT
 {
   (
-    !action
-    (
-      NAME_AT
-      DOT
-    )
-  )*
-  NAME_AT?
+    FREE_NAME
+    |
+    AT
+  )
+  COLON
 }
 
 INLINE_TOKEN
 {
-  PARENTHESIZED
-  |
-  DATA
-  |
-  MAYBE_INVERSE
+  ARGUMENT?
+  (
+    PARENTHESIZED
+    |
+    DATA
+    |
+    ACTION
+    |
+    ANONYMOUS
+  )
 }
 
 INLINE

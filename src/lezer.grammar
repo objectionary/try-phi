@@ -137,7 +137,10 @@ OBJECTS
     )*
     SPACES?
     OBJECT
-    // EOL
+    (
+      !left
+      EOL
+    )*
   )+
 }
 

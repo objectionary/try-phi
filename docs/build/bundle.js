@@ -22486,7 +22486,7 @@ var app = (function (exports) {
     //           eq. (mod. y 4.0e-1) 0A-BB
     //           not. (eq. (mod. y 0x13a) --)
     //         eq. (mod. y 400.) TRUE`
-    "+alias org.eolang.io.stdout\n+alias org.eolang.txt.sprintf\n\n#sample object\nmain > [args...]\n  leap > [y]\n    @ >\n      or.\n        and.\n          eq. (mod. y 4.0e-1) 0A-BB\n          not. (eq. (mod. y 0x13a) --)\n        eq. (mod. y 400.) TRUE\n  @ >\n    stdout\n      sprintf\n        \"%d is %sa leap year!\"\n        year! >\n          (args.get 0).as-int\n        if. (leap year:y) \"\" \"not \"";
+    "+alias org.eolang.io.stdout\n+alias org.eolang.txt.sprintf\n\n#sample object\nmain > [args...]\n  leap > [y]\n    @ >\n      or.\n        and.\n          eq. (mod. y 4.0e-1) 0A-BB\n          not. (eq. (mod. y 0x13a) --)\n        eq. (mod. y 400.) TRUE\n  @ >\n    stdout\n      sprintf\n        \"%d is %sa leap year!\"\n        year! >\n          (args.get 0).as-int\n        if. (leap y:year) \"\" \"not \"";
     // `+alias org.eolang.io.stdout
     // +alias org.eolang.txt.sprintf
     // #sample object

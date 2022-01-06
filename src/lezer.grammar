@@ -123,7 +123,7 @@ PROGRAM
 {
   LICENSE?
   METAS?
-  EOL?
+  EOL
   OBJECTS
 }
 
@@ -131,12 +131,13 @@ OBJECTS
 {
   (
     (
-      !left COMMENT 
+      !left
+      COMMENT 
       EOL
     )*
     SPACES?
     OBJECT
-    EOL
+    // EOL
   )+
 }
 
@@ -158,12 +159,9 @@ OBJECT
   EOL
   (
     !left
-    (
-      SPACES
-      DEFINITION
-      EOL
-    )+
-  )
+    SPACES
+    DEFINITION
+  )+
 }
 
 // first line in an object
@@ -183,6 +181,7 @@ DECLARATION
       FOREIGN_NAME
     )
   )?
+  !right
   space
   ARROW
   (
@@ -191,7 +190,7 @@ DECLARATION
   )?
 }
 
-// any name that can be accessed wiht a dot
+// any name that can be accessed with a dot
 DOT_NAME
 {
   AT
@@ -269,7 +268,7 @@ DEFINITION
 {
   OBJECT
   |
-  INLINE
+  INLINE_EXPRESSION
 }
 
 
@@ -309,6 +308,12 @@ INLINE_TOKEN
     |
     ANONYMOUS
   )
+}
+
+INLINE_EXPRESSION
+{
+  INLINE
+  EOL
 }
 
 INLINE

@@ -112,10 +112,10 @@ tabButton buttonId contentId infoId txt isActive =
     class_ $ "nav-link" <> active,
     id_ buttonId,
     data_ "bs-toggle" "tab",
-    data_ "bs-target" $ toMisoString ("#" <> contentId),
+    data_ "bs-target" ("#" <> contentId),
     type_ "button",
     textProp "role" "tab",
-    textProp "aria-controls" $ toMisoString contentId,
+    textProp "aria-controls" contentId,
     textProp "aria-selected" selected
     ] [
     infoIcon infoId,

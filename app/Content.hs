@@ -35,7 +35,7 @@ infoContent infoId = Map.findWithDefault "" infoId conts
           , "<div>" <>
             "&bull; <a href='https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/Model.hs#L129'>Code</a>" <>
             "<br>" <>
-            "&bull; Results from <a href='https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAASJgTzOg'>Head reduction</a>" <>
+            "&bull; Results from <a href='https://drive.google.com/file/d/1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH/edit?disco=AAAASJgTzO0'>Head reduction</a>" <>
             "<br>" <>
             "&bull; <a href='https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAASJgTzOc'>Relation to TAP machine configuration</a>" <>
             "<div>")

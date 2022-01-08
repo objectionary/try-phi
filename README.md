@@ -12,6 +12,10 @@ Created using [Lezer Grammar](https://lezer.codemirror.net/) and [Codemirror 6](
 * An attribute (or object) name should precede its value when reading left-to-right, top-to-bottom
 * Discussed [here](https://github.com/cqfn/eo/issues/568)
 
+## Use in your HTML
+* Create a tag with `id="editor"`
+* Put `bundle.js` from `docs/build/` into your project and include it as a `script`
+
 ## Run
 * Install packages and build
     ```sh

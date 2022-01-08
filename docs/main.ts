@@ -20,8 +20,8 @@ main > [args...]
     @ >
       or.
         and.
-          eq. ([x] (y > 4.0e-1)) 0A-BB
-          not. (eq. (mod. y 0x13a) --)
+          eq. ([x] (y > 4.0e-1)) t:0A-BB
+          not. (eq. (mod. y x:0x13a) --)
         eq. (mod. y 400.) TRUE
   @ >
     stdout

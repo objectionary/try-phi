@@ -22607,7 +22607,7 @@ var app = (function (exports) {
         return diagnostics;
     }
 
-    var code$1 = "+alias org.eolang.io.stdout\n+alias org.eolang.txt.sprintf\n\n#sample object\nmain > [args...]\n  leap > [y]\n    @ >\n      or.\n        and.\n          eq. ([x] (y > 4.0e-1)) 0A-BB\n          not. (eq. (mod. y 0x13a) --)\n        eq. (mod. y 400.) TRUE\n  @ >\n    stdout\n      sprintf\n        \"%d is %sa leap year!\"\n        year! >\n          (args.get 0).as-int\n        if. (leap y:year) \"\" \"not \"\n";
+    var code$1 = "+alias org.eolang.io.stdout\n+alias org.eolang.txt.sprintf\n\n#sample object\nmain > [args...]\n  leap > [y]\n    @ >\n      or.\n        and.\n          eq. ([x] (y > 4.0e-1)) t:0A-BB\n          not. (eq. (mod. y x:0x13a) --)\n        eq. (mod. y 400.) TRUE\n  @ >\n    stdout\n      sprintf\n        \"%d is %sa leap year!\"\n        year! >\n          (args.get 0).as-int\n        if. (leap y:year) \"\" \"not \"\n";
     var myTheme = EditorView.baseTheme({
         $: {
             maxHeight: '80vh',

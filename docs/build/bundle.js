@@ -22567,7 +22567,7 @@ var app = (function (exports) {
     });
     var underlineMark = Decoration.mark({ "class": "cm-underline" });
     var underlineTheme = EditorView.baseTheme({
-        ".cm-underline": { textDecoration: "underline 1px red wavy" }
+        ".cm-underline": { textDecoration: "underline 2px blue wavy" }
     });
     function underlineSelection(view) {
         var effects = view.state.selection.ranges
@@ -22611,7 +22611,7 @@ var app = (function (exports) {
     var myTheme = EditorView.baseTheme({
         $: {
             maxHeight: '80vh',
-            maxWidth: '50vw',
+            maxWidth: '60vw',
             outline: '1px auto #ddd'
         },
         $scroller: {

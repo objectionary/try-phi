@@ -35,7 +35,7 @@ main > [args...]
 const myTheme = EditorView.baseTheme({
   $: {
     maxHeight: '80vh',
-    maxWidth: '50vw',
+    maxWidth: '60vw',
     outline: '1px auto #ddd',
   },
   $scroller: {

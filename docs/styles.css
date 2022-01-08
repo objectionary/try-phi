@@ -1,0 +1,32 @@
+.kbd {
+	box-shadow: 0 2px 2px rgba(0,0,0,.1);
+	background: whitesmoke;
+	border: 1px solid rgba(0,0,0,.15);
+	border-radius: 3px;
+	/* font-size: 0.75em;
+	padding: 2px 5px;
+	position: relative;
+	top: -2px;
+	font-family: var(--code-font); */
+    font-size: 0.75em;
+	text-transform: uppercase;
+    color: black;
+}
+
+.wide-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table-header {
+    text-transform: uppercase;
+    text-align: left;
+    font-weight: bold;
+}
+
+.keys {
+	padding: 2px 5px;
+	position: relative;
+	top: -2px;
+	font-family: var(--code-font);
+}

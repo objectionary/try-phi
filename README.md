@@ -1,4 +1,4 @@
-# EO editor
+# EO dialect editor
 
 Created using [Lezer Grammar](https://lezer.codemirror.net/) and [Codemirror 6](https://codemirror.net/6/)
 

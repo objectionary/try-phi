@@ -14,23 +14,43 @@ let code =
 `+alias org.eolang.io.stdout
 +alias org.eolang.txt.sprintf
 
-#sample object
 main > [args...]
   leap > [y]
     @ >
       or.
         and.
-          eq. ([x] (y > 4.0e-1)) t:0A-BB
-          not. (eq. (mod. y x:0x13a) --)
-        eq. (mod. y 400.) TRUE
+          eq. (mod. y 4) 0
+          not. (eq. (mod. y 100) 0)
+        eq. (mod. y 400) 0
   @ >
     stdout
       sprintf
         "%d is %sa leap year!"
         year! >
           (args.get 0).as-int
-        if. (leap y:year) "" "not "
+        if. (leap year:y) "" "not "
+
 `
+// `+alias org.eolang.io.stdout
+// +alias org.eolang.txt.sprintf
+
+// #sample object
+// main > [args...]
+//   leap > [y]
+//     @ >
+//       or.
+//         and.
+//           eq. ([x] (y > 4.0e-1)) t:0A-BB
+//           not. (eq. (mod. y x:0x13a) --)
+//         eq. (mod. y 400.) TRUE
+//   @ >
+//     stdout
+//       sprintf
+//         "%d is %sa leap year!"
+//         year! >
+//           (args.get 0).as-int
+//         if. (leap y:year) "" "not "
+// `
 
 const myTheme = EditorView.baseTheme({
   $: {

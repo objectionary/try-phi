@@ -22607,7 +22607,26 @@ var app = (function (exports) {
         return diagnostics;
     }
 
-    var code$1 = "+alias org.eolang.io.stdout\n+alias org.eolang.txt.sprintf\n\n#sample object\nmain > [args...]\n  leap > [y]\n    @ >\n      or.\n        and.\n          eq. ([x] (y > 4.0e-1)) t:0A-BB\n          not. (eq. (mod. y x:0x13a) --)\n        eq. (mod. y 400.) TRUE\n  @ >\n    stdout\n      sprintf\n        \"%d is %sa leap year!\"\n        year! >\n          (args.get 0).as-int\n        if. (leap y:year) \"\" \"not \"\n";
+    var code$1 = "+alias org.eolang.io.stdout\n+alias org.eolang.txt.sprintf\n\nmain > [args...]\n  leap > [y]\n    @ >\n      or.\n        and.\n          eq. (mod. y 4) 0\n          not. (eq. (mod. y 100) 0)\n        eq. (mod. y 400) 0\n  @ >\n    stdout\n      sprintf\n        \"%d is %sa leap year!\"\n        year! >\n          (args.get 0).as-int\n        if. (leap year:y) \"\" \"not \"\n\n";
+    // `+alias org.eolang.io.stdout
+    // +alias org.eolang.txt.sprintf
+    // #sample object
+    // main > [args...]
+    //   leap > [y]
+    //     @ >
+    //       or.
+    //         and.
+    //           eq. ([x] (y > 4.0e-1)) t:0A-BB
+    //           not. (eq. (mod. y x:0x13a) --)
+    //         eq. (mod. y 400.) TRUE
+    //   @ >
+    //     stdout
+    //       sprintf
+    //         "%d is %sa leap year!"
+    //         year! >
+    //           (args.get 0).as-int
+    //         if. (leap y:year) "" "not "
+    // `
     var myTheme = EditorView.baseTheme({
         $: {
             maxHeight: '80vh',

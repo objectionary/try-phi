@@ -1,9 +1,13 @@
 import { EditorState, EditorView, basicSetup } from '@codemirror/basic-setup'
 import { indentService, IndentContext, syntaxTree} from '@codemirror/language'
 import { keymap, ViewUpdate } from '@codemirror/view';
-import {indentWithTab} from '@codemirror/commands'
+import { indentWithTab } from '@codemirror/commands'
+// import { lintKeymap } from '@codemirror/lint'
 import { eo } from './eo'
 import { logTree, printTree } from './print-lezer-tree';
+import { underlineKeymap } from './underlines';
+import { linter } from '@codemirror/lint';
+import { lintExample } from './diagnostics';
 
 
 let code = 
@@ -70,7 +74,9 @@ const initialState = EditorState.create({
       }
     }),
     keymap.of([indentWithTab]),
-    indentService.of(sameIndent)
+    underlineKeymap,
+    indentService.of(sameIndent),
+    linter(lintExample)
   ]
 })
 

@@ -20221,6 +20221,16 @@ var app = (function (exports) {
         ]));
     }
     /**
+    Returns a transaction spec which updates the current set of
+    diagnostics, and enables the lint extension if if wasn't already
+    active.
+    */
+    function setDiagnostics(state, diagnostics) {
+        return {
+            effects: maybeEnableLint(state, [setDiagnosticsEffect.of(diagnostics)])
+        };
+    }
+    /**
     The state effect that updates the set of active diagnostics. Can
     be useful when writing an extension that needs to track these.
     */
@@ -20330,6 +20340,68 @@ var app = (function (exports) {
         { key: "Mod-Shift-m", run: openLintPanel },
         { key: "F8", run: nextDiagnostic }
     ];
+    const lintPlugin = /*@__PURE__*/ViewPlugin.fromClass(class {
+        constructor(view) {
+            this.view = view;
+            this.timeout = -1;
+            this.set = true;
+            let { delay } = view.state.facet(lintSource);
+            this.lintTime = Date.now() + delay;
+            this.run = this.run.bind(this);
+            this.timeout = setTimeout(this.run, delay);
+        }
+        run() {
+            let now = Date.now();
+            if (now < this.lintTime - 10) {
+                setTimeout(this.run, this.lintTime - now);
+            }
+            else {
+                this.set = false;
+                let { state } = this.view, { sources } = state.facet(lintSource);
+                Promise.all(sources.map(source => Promise.resolve(source(this.view)))).then(annotations => {
+                    var _a, _b;
+                    let all = annotations.reduce((a, b) => a.concat(b));
+                    if (this.view.state.doc == state.doc &&
+                        (all.length || ((_b = (_a = this.view.state.field(lintState, false)) === null || _a === void 0 ? void 0 : _a.diagnostics) === null || _b === void 0 ? void 0 : _b.size)))
+                        this.view.dispatch(setDiagnostics(this.view.state, all));
+                }, error => { logException(this.view.state, error); });
+            }
+        }
+        update(update) {
+            let source = update.state.facet(lintSource);
+            if (update.docChanged || source != update.startState.facet(lintSource)) {
+                this.lintTime = Date.now() + source.delay;
+                if (!this.set) {
+                    this.set = true;
+                    this.timeout = setTimeout(this.run, source.delay);
+                }
+            }
+        }
+        force() {
+            if (this.set) {
+                this.lintTime = Date.now();
+                this.run();
+            }
+        }
+        destroy() {
+            clearTimeout(this.timeout);
+        }
+    });
+    const lintSource = /*@__PURE__*/Facet.define({
+        combine(input) {
+            return { sources: input.map(i => i.source), delay: input.length ? Math.max(...input.map(i => i.delay)) : 750 };
+        },
+        enables: lintPlugin
+    });
+    /**
+    Given a diagnostic source, this function returns an extension that
+    enables linting with that source. It will be called whenever the
+    editor is idle (after its content changed).
+    */
+    function linter(source, config = {}) {
+        var _a;
+        return lintSource.of({ source, delay: (_a = config.delay) !== null && _a !== void 0 ? _a : 750 });
+    }
     function assignKeys(actions) {
         let assigned = [];
         if (actions)
@@ -22474,6 +22546,67 @@ var app = (function (exports) {
         console.log(printTree(tree, input, options));
     }
 
+    var addUnderline = StateEffect.define();
+    var underlineField = StateField.define({
+        create: function () {
+            return Decoration.none;
+        },
+        update: function (underlines, tr) {
+            underlines = underlines.map(tr.changes);
+            for (var _i = 0, _a = tr.effects; _i < _a.length; _i++) {
+                var e = _a[_i];
+                if (e.is(addUnderline)) {
+                    underlines = underlines.update({
+                        add: [underlineMark.range(e.value.from, e.value.to)]
+                    });
+                }
+            }
+            return underlines;
+        },
+        provide: function (f) { return EditorView.decorations.from(f); }
+    });
+    var underlineMark = Decoration.mark({ "class": "cm-underline" });
+    var underlineTheme = EditorView.baseTheme({
+        ".cm-underline": { textDecoration: "underline 1px red wavy" }
+    });
+    function underlineSelection(view) {
+        var effects = view.state.selection.ranges
+            .filter(function (r) { return !r.empty; })
+            .map(function (_a) {
+            var from = _a.from, to = _a.to;
+            return addUnderline.of({ from: from, to: to });
+        });
+        if (!effects.length)
+            return false;
+        if (!view.state.field(underlineField, false))
+            effects.push(StateEffect.appendConfig.of([underlineField,
+                underlineTheme]));
+        view.dispatch({ effects: effects });
+        return true;
+    }
+    var underlineKeymap = keymap.of([{
+            key: "Mod-h",
+            preventDefault: true,
+            run: underlineSelection
+        }]);
+
+    function lintExample(view) {
+        var diagnostics = [];
+        syntaxTree(view.state).iterate({
+            enter: function (type, from, to) {
+                if (type.isError) {
+                    diagnostics.push({
+                        from: from,
+                        to: to,
+                        severity: "error",
+                        message: "Parsing error!"
+                    });
+                }
+            }
+        });
+        return diagnostics;
+    }
+
     var code$1 = "+alias org.eolang.io.stdout\n+alias org.eolang.txt.sprintf\n\n#sample object\nmain > [args...]\n  leap > [y]\n    @ >\n      or.\n        and.\n          eq. ([x] (y > 4.0e-1)) 0A-BB\n          not. (eq. (mod. y 0x13a) --)\n        eq. (mod. y 400.) TRUE\n  @ >\n    stdout\n      sprintf\n        \"%d is %sa leap year!\"\n        year! >\n          (args.get 0).as-int\n        if. (leap y:year) \"\" \"not \"\n";
     var myTheme = EditorView.baseTheme({
         $: {
@@ -22511,7 +22644,9 @@ var app = (function (exports) {
                 }
             }),
             keymap.of([indentWithTab]),
-            indentService.of(sameIndent)
+            underlineKeymap,
+            indentService.of(sameIndent),
+            linter(lintExample)
         ]
     });
     var view = new EditorView({

@@ -118,7 +118,7 @@
     "@lezer/common" "^0.15.5"
     "@lezer/lr" "^0.15.0"
 
-"@codemirror/lint@^0.19.0":
+"@codemirror/lint@^0.19.0", "@codemirror/lint@^0.19.3":
   "integrity" "sha512-+c39s05ybD2NjghxkPFsUbH/qBL0cdzKmtHbzUm0RVspeL2OiP7uHYJ6J5+Qr9RjMIPWzcqSauRqxfmCrctUfg=="
   "resolved" "https://registry.npmjs.org/@codemirror/lint/-/lint-0.19.3.tgz"
   "version" "0.19.3"

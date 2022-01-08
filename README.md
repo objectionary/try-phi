@@ -14,7 +14,7 @@ Created using [Lezer Grammar](https://lezer.codemirror.net/) and [Codemirror 6](
 
 ## Use in your HTML
 * Create a tag with `id="editor"`
-* Put `bundle.js` from `docs/build/` into your project and include it as a `script`
+* Put `bundle.js` from `docs/build/` into your project and include it as a `<script>`
 
 ## Run
 * Install packages and build

@@ -2,10 +2,7 @@
 <meta charset="utf-8" />
 <title>EO editor</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<link
-  href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;700&display=swap"
-  rel="stylesheet"
-/>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;700&display=swap" rel="stylesheet" />
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -24,7 +21,7 @@
 
 <body>
   <div style="text-align: center;">
-    <h2>EO editor</h2>
+    <h2>EO dialect* editor</h2>
     based on <a href="https://codemirror.net/6/">Codemirror 6</a>
     | <a href="" id="__permalink__">permalink to this snippet</a>
     | <a href="https://github.com/br4ch1st0chr0n3/eo-editor">GitHub repo</a>
@@ -33,32 +30,65 @@
   <div class="row">
     <div class="col-7" id="editor"></div>
     <div class="col-5">
-      <table class="table table-hover wide-table">
-        <thead>
-          <tr>
-            <th class="table-header" scope="col">Action</th>
-            <th class="table-header" scope="col">Keybinding</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Indent selection</td>
-            <td><span class="keys"><kbd class="kbd">Tab</kbd></span></td>
-          </tr>
-          <tr>
-            <td>Dedent (a selected block)</td>
-            <td><span class="keys"><kbd class="kbd">Shift</kbd>+<kbd class="kbd">Tab</kbd></span></td>
-          </tr>
-          <tr>
-            <td>Underline selection</td>
-            <td><span class="keys"><kbd class="kbd">Ctrl</kbd>+<kbd class="kbd">H</kbd></span></td>
-          </tr>
-          <tr>
-            <td>Insert EOL</td>
-            <td><span class="keys"><kbd class="kbd">Enter</kbd></span></td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="row">
+        <table class="table table-hover wide-table">
+          <thead>
+            <tr>
+              <th class="table-header" scope="col">Action</th>
+              <th class="table-header" scope="col">Keybinding</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Indent selection</td>
+              <td><span class="keys"><kbd class="kbd">Tab</kbd></span></td>
+            </tr>
+            <tr>
+              <td>Dedent (a selected block)</td>
+              <td><span class="keys"><kbd class="kbd">Shift</kbd>+<kbd class="kbd">Tab</kbd></span></td>
+            </tr>
+            <tr>
+              <td>Underline selection</td>
+              <td><span class="keys"><kbd class="kbd">Ctrl</kbd>+<kbd class="kbd">H</kbd></span></td>
+            </tr>
+            <tr>
+              <td>Insert EOL</td>
+              <td><span class="keys"><kbd class="kbd">Enter</kbd></span></td>
+            </tr>
+            <tr>
+              <td>Undo the last text action</td>
+              <td><span class="keys"><kbd class="kbd">Ctrl</kbd>+<kbd class="kbd">Z</kbd></span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="row">
+        <table class="table table-hover wide-table">
+          <thead>
+            <tr>
+              <th class="table-header" scope="col">Diagnostic</th>
+              <th class="table-header" scope="col">Meaning</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>A red triangle</td>
+              <td>A position of a parsing error</td>
+            </tr>
+            <tr>
+              <td>Red wavy underlines</td>
+              <td>(possibly) a part of an incorrect expression</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="row p-2">
+        <b>Full Lezer parse tree is in your browser's console</b>
+      </div>
+      <div class="row p-2">
+        <p><b>*</b> The only syntactic difference from EO is that for an attribute, its name should always precede its
+          value [<a href="https://github.com/cqfn/eo/issues/568">discussion</a>]</p>
+      </div>
     </div>
   </div>
 

@@ -45,8 +45,8 @@ export const eoLanguage = LRLanguage.define({
         
         LB: t.paren,
         RB: t.paren,
-        LSQ: t.paren,
-        RSQ: t.paren,
+        LSQ: t.squareBracket,
+        RSQ: t.squareBracket,
       }),
     ],
   }),

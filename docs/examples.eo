@@ -38,7 +38,7 @@
 
 
 
-# comment
+# dialect 2
 app > [args...]
   memory >
     x

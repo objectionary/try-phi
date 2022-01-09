@@ -3,8 +3,6 @@
 @top   PhiGrammar {PROGRAM}
 
 @tokens {  
-  COMMENT{ HASH ![\r\n]*}
-  META{ PLUS FREE_NAME (space ![\r\n]+)?}
   
   ARRAY_STAR{ "*"}
   CONST{ "!"}
@@ -14,36 +12,41 @@
   ROOT{ 'Q'}
   SIGMA{ "&"}
   XI{ "$"}
-  // QUESTION{ "?"}
-
-  REGEX{ SLASH ![\r\n]+ SLASH}
+  QUESTION{ "?"}
   DOTS{ "..."}
   SLASH{ "/"}
   ARROW{ ">"}
   PLUS{ "+"}
   MINUS{ "-"}
   DOT{ "."}
+  AT{ "@"}
+  RHO{ "^"}
+  HASH{ "#"}
+  
+  EOL {"\n"}
   space{" "}
+  
   LSQ[closedBy="RSQ"]{ "[" }
   RSQ[openedBy="LSQ"]{ "]"}
   LB[closedBy="RB"]{ "("}
   RB[openedBy="LB"]{ ")"}
-  AT{ "@"}
-  RHO{ "^"}
-  HASH{ "#"}
-
+  
+  COMMENT{ HASH ![\r\n]*}
+  META{ PLUS FREE_NAME (space ![\r\n]+)?}
+  
+  REGEX{ SLASH ![\r\n]+ SLASH}
   BYTE{ ($[0-9A-F])($[0-9A-F])}
   EMPTY_BYTES { MINUS MINUS}
   LINE_BYTES { BYTE (MINUS BYTE)*}
-
+  
   BYTES {
-      EMPTY_BYTES
+    EMPTY_BYTES
     | LINE_BYTES
   }
-
+  
   
   INT { (PLUS | MINUS)? ($[0-9] | $[1-9] $[0-9]+)}
-
+  
   EXP { "e" (PLUS | MINUS)? $[0-9]+ }
 
   FLOAT { INT DOT $[0-9]* EXP?}
@@ -69,7 +72,6 @@
       TEXT_MARK
   }
 
-  EOL {"\n"}
 
   @precedence {FLOAT, INT, HEX, BYTES, META}
   @precedence {TEXT, STRING}
@@ -184,6 +186,7 @@ DOT_NAME
 
 // attribute name
 ATTR_NAME {
+  
   (
     FREE_NAME
     |
@@ -296,13 +299,6 @@ PARENTHESIZED
     ANONYMOUS
   )
   RB
-  (
-    !left
-    (
-      DOT
-      DOT_NAME
-    )
-  )*
 }
 
 ARGUMENT
@@ -319,9 +315,18 @@ INLINE_TOKEN
 {
   ARGUMENT?
   (
-    PARENTHESIZED
-    |
-    DATA
+    (
+      PARENTHESIZED
+      |
+      DATA
+    )
+    (
+      !left
+      (
+        DOT
+        DOT_NAME
+      )
+    )*
     |
     ACTION
   )

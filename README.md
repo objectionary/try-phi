@@ -11,6 +11,11 @@ Created using [Lezer Grammar](https://lezer.codemirror.net/) and [Codemirror 6](
 ## Differences of this *dialect from EO
 * An attribute (or object) name should precede its value when reading left-to-right, top-to-bottom
 * Discussed [here](https://github.com/cqfn/eo/issues/568)
+* Comparison
+<p align="left">
+  <img src="./README/dialect.png" width="350" title="hover text">
+  <img src="./README/eo.png" width="350" alt="accessibility text">
+</p>
 
 ## Use in your HTML
 * Create a tag with `id="editor"`

@@ -21,6 +21,11 @@ description:         Please see the README on GitHub at <https://github.com/gith
 
 dependencies:
 - base >= 4.7 && < 5
+- text
+- filepath
+- containers
+- acme-missiles # added
+- megaparsec
 
 library:
   source-dirs: src

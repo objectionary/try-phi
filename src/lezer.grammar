@@ -74,6 +74,7 @@
   @precedence {FLOAT, INT, HEX, BYTES, META}
   @precedence {TEXT, STRING}
   @precedence {REGEX, SLASH}
+  // @precedence {FREE_NAME, DOT_NAME, AT, RHO, XI, SIGMA}
 }
 
 LICENSE
@@ -113,17 +114,11 @@ DATA
   REGEX
 }
 
-HAS
-{
-  COLON
-  FREE_NAME
-}
-
 PROGRAM
 {
   LICENSE?
   METAS?
-  EOL
+  EOL?
   OBJECTS
 }
 
@@ -148,20 +143,13 @@ OBJECTS
 SPACES {(!left space)+}
 
 
-
-// --------------------------------
-// main non-terminals
-// --------------------------------
-
-
-
 // ordinary object or class attribute
 OBJECT
 {
   DECLARATION
   EOL
   (
-    !left
+    // !right
     SPACES
     DEFINITION
   )+
@@ -170,8 +158,38 @@ OBJECT
 // first line in an object
 DECLARATION
 {
-  // ~application_or_declaration
-  DOT_NAME
+  ATTR_NAME
+  (
+    !right
+    space
+    FREE_LIST
+  )?
+  |
+  FREE_LIST
+}
+
+// any name
+DOT_NAME
+  {
+    AT
+    |
+    RHO
+    |
+    XI
+    |
+    SIGMA
+    |
+    FREE_NAME
+  }
+
+// attribute name
+ATTR_NAME {
+  (
+    FREE_NAME
+    |
+    AT
+  )
+  ~app_or_decl
   CONST?
   (
     (
@@ -180,29 +198,12 @@ DECLARATION
       FOREIGN_NAME
     )
   )?
-  !left
+  // !right
+  // !left
   space
+  // !right
   ARROW
-  (
-    space
-    FREE_LIST
-  )?
 }
-
-// any name that can be accessed with a dot
-DOT_NAME
-{
-  AT
-  |
-  RHO
-  |
-  XI
-  |
-  SIGMA
-  |
-  FREE_NAME
-}
-
 // .name | name.name.
 // name.name
 DOT_ACCESS
@@ -216,10 +217,9 @@ DOT_ACCESS
 
 APPLICATION
 {
-  // ~application_or_declaration
   DOT_NAME
+  ~app_or_decl
   (
-    !left
     DOT
     DOT_NAME
   )*

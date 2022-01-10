@@ -1,4 +1,4 @@
-import {parser} from '../src/parser'
+import {parser} from '../grammar/parser'
 import {foldNodeProp, LRLanguage} from '@codemirror/language'
 import {styleTags, tags as t} from '@codemirror/highlight'
 

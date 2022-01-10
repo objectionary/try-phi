@@ -1,7 +1,7 @@
 {
   "name": "lezer-grammar",
   "scripts": {
-    "build:parser": "lezer-generator --output src/parser src/lezer.grammar",
+    "build:parser": "lezer-generator --output src/grammar/parser src/grammar/lezer.grammar",
     "build": "npm run build:parser; rollup -c",
     "start": "node -r esm dingus.js",
     "dev": "nodemon --exec 'yarn build' -e grammar",

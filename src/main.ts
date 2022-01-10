@@ -3,7 +3,7 @@ import { indentService, IndentContext, syntaxTree} from '@codemirror/language'
 import { keymap, ViewUpdate } from '@codemirror/view';
 import { indentWithTab } from '@codemirror/commands'
 // import { lintKeymap } from '@codemirror/lint'
-import { eo } from './eo'
+import { eo } from './utils/eo'
 import { logTree, printTree } from './utils/print-lezer-tree';
 import { underlineKeymap } from './utils/underlines';
 import { linter } from '@codemirror/lint';

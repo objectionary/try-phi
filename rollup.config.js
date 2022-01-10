@@ -30,7 +30,7 @@ function serve() {
 }
 
 export default {
-    input: 'docs/main.ts',
+    input: 'src/main.ts',
     output: {
         sourcemap: true,
         format: 'iife',
@@ -41,7 +41,7 @@ export default {
         resolve({
             browser: true
         }),
-        string({include: './src/*.grammar'}),
+        string({include: './src/grammar/*.grammar'}),
         commonjs(),
         !production && serve(),
         !production && livereload(PATH),

@@ -14,7 +14,7 @@ Created using [Lezer Grammar](https://lezer.codemirror.net/) and [Codemirror 6](
 * Comparison
 <p align="left">
   <img src="./README/dialect 1.png" height="300" title="hover text">
-  <img src="./README/eo 1.png" height="300" alt="accessibility text">
+  <img src="./README/eo  1.png" height="300" alt="accessibility text">
 </p>
 <p align="left">
   <img src="./README/dialect 2.png" height="300" title="hover text">

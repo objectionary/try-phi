@@ -221,7 +221,8 @@ DOT_ACCESS
 APPLICATION
 {
   DOT_NAME
-  ~app_or_decl
+    |
+    ARRAY_STAR
   (
     DOT
     DOT_NAME

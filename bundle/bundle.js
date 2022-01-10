@@ -1589,7 +1589,7 @@ var app = (function (exports) {
         Define a new facet.
         */
         static define(config = {}) {
-            return new Facet(config.combine || ((a) => a), config.compareInput || ((a, b) => a === b), config.compare || (!config.combine ? sameArray : (a, b) => a === b), !!config.static, config.enables);
+            return new Facet(config.combine || ((a) => a), config.compareInput || ((a, b) => a === b), config.compare || (!config.combine ? sameArray$1 : (a, b) => a === b), !!config.static, config.enables);
         }
         /**
         Returns an extension that adds the given value for this facet.
@@ -1627,7 +1627,7 @@ var app = (function (exports) {
             return this.compute([field], state => get(state.field(field)));
         }
     }
-    function sameArray(a, b) {
+    function sameArray$1(a, b) {
         return a == b || a.length == b.length && a.every((e, i) => e === b[i]);
     }
     class FacetProvider {
@@ -2388,14 +2388,14 @@ var app = (function (exports) {
         };
     }
     function resolveTransactionInner(state, spec, docSize) {
-        let sel = spec.selection, annotations = asArray(spec.annotations);
+        let sel = spec.selection, annotations = asArray$1(spec.annotations);
         if (spec.userEvent)
             annotations = annotations.concat(Transaction.userEvent.of(spec.userEvent));
         return {
             changes: spec.changes instanceof ChangeSet ? spec.changes
                 : ChangeSet.of(spec.changes || [], docSize, state.facet(lineSeparator)),
             selection: sel && (sel instanceof EditorSelection ? sel : EditorSelection.single(sel.anchor, sel.head)),
-            effects: asArray(spec.effects),
+            effects: asArray$1(spec.effects),
             annotations,
             scrollIntoView: !!spec.scrollIntoView
         };
@@ -2449,7 +2449,7 @@ var app = (function (exports) {
             else if (Array.isArray(filtered) && filtered.length == 1 && filtered[0] instanceof Transaction)
                 tr = filtered[0];
             else
-                tr = resolveTransaction(state, asArray(filtered), false);
+                tr = resolveTransaction(state, asArray$1(filtered), false);
         }
         return tr;
     }
@@ -2462,9 +2462,9 @@ var app = (function (exports) {
         }
         return spec == tr ? tr : new Transaction(state, tr.changes, tr.selection, spec.effects, spec.annotations, spec.scrollIntoView);
     }
-    const none = [];
-    function asArray(value) {
-        return value == null ? none : Array.isArray(value) ? value : [value];
+    const none$3 = [];
+    function asArray$1(value) {
+        return value == null ? none$3 : Array.isArray(value) ? value : [value];
     }
 
     /**
@@ -2611,7 +2611,7 @@ var app = (function (exports) {
                 }
                 else if (effect.is(StateEffect.appendConfig)) {
                     conf = null;
-                    base = asArray(base).concat(effect.value);
+                    base = asArray$1(base).concat(effect.value);
                 }
             }
             let startValues;
@@ -2651,7 +2651,7 @@ var app = (function (exports) {
             let sel = this.selection;
             let result1 = f(sel.ranges[0]);
             let changes = this.changes(result1.changes), ranges = [result1.range];
-            let effects = asArray(result1.effects);
+            let effects = asArray$1(result1.effects);
             for (let i = 1; i < sel.ranges.length; i++) {
                 let result = f(sel.ranges[i]);
                 let newChanges = this.changes(result.changes), newMapped = newChanges.map(changes);
@@ -2660,7 +2660,7 @@ var app = (function (exports) {
                 let mapBy = changes.mapDesc(newChanges, true);
                 ranges.push(result.range.map(mapBy));
                 changes = changes.compose(newMapped);
-                effects = StateEffect.mapEffects(effects, newMapped).concat(StateEffect.mapEffects(asArray(result.effects), mapBy));
+                effects = StateEffect.mapEffects(effects, newMapped).concat(StateEffect.mapEffects(asArray$1(result.effects), mapBy));
             }
             return {
                 changes,
@@ -2968,10 +2968,10 @@ var app = (function (exports) {
         return result;
     }
 
-    const C = "\u037c";
-    const COUNT = typeof Symbol == "undefined" ? "__" + C : Symbol.for(C);
-    const SET = typeof Symbol == "undefined" ? "__styleSet" + Math.floor(Math.random() * 1e8) : Symbol("styleSet");
-    const top = typeof globalThis != "undefined" ? globalThis : typeof window != "undefined" ? window : {};
+    const C$1 = "\u037c";
+    const COUNT$1 = typeof Symbol == "undefined" ? "__" + C$1 : Symbol.for(C$1);
+    const SET$1 = typeof Symbol == "undefined" ? "__styleSet" + Math.floor(Math.random() * 1e8) : Symbol("styleSet");
+    const top$1 = typeof globalThis != "undefined" ? globalThis : typeof window != "undefined" ? window : {};
 
     // :: - Style modules encapsulate a set of CSS rules defined from
     // JavaScript. Their definitions are only available in a given DOM
@@ -2982,7 +2982,7 @@ var app = (function (exports) {
     // CSS rules generated for a given DOM root is bounded by the amount
     // of style modules that were used. So to avoid leaking rules, don't
     // create these dynamically, but treat them as one-time allocations.
-    class StyleModule {
+    class StyleModule$1 {
       // :: (Object<Style>, ?{finish: ?(string) → string})
       // Create a style module from the given spec.
       //
@@ -3027,9 +3027,9 @@ var app = (function (exports) {
       // :: () → string
       // Generate a new unique CSS class name.
       static newName() {
-        let id = top[COUNT] || 1;
-        top[COUNT] = id + 1;
-        return C + id.toString(36)
+        let id = top$1[COUNT$1] || 1;
+        top$1[COUNT$1] = id + 1;
+        return C$1 + id.toString(36)
       }
 
       // :: (union<Document, ShadowRoot>, union<[StyleModule], StyleModule>)
@@ -3046,29 +3046,29 @@ var app = (function (exports) {
       // in a way that changes the order of already mounted modules, the old
       // order will be changed.
       static mount(root, modules) {
-        (root[SET] || new StyleSet(root)).mount(Array.isArray(modules) ? modules : [modules]);
+        (root[SET$1] || new StyleSet$1(root)).mount(Array.isArray(modules) ? modules : [modules]);
       }
     }
 
-    let adoptedSet = null;
+    let adoptedSet$1 = null;
 
-    class StyleSet {
+    class StyleSet$1 {
       constructor(root) {
         if (!root.head && root.adoptedStyleSheets && typeof CSSStyleSheet != "undefined") {
-          if (adoptedSet) {
-            root.adoptedStyleSheets = [adoptedSet.sheet].concat(root.adoptedStyleSheets);
-            return root[SET] = adoptedSet
+          if (adoptedSet$1) {
+            root.adoptedStyleSheets = [adoptedSet$1.sheet].concat(root.adoptedStyleSheets);
+            return root[SET$1] = adoptedSet$1
           }
           this.sheet = new CSSStyleSheet;
           root.adoptedStyleSheets = [this.sheet].concat(root.adoptedStyleSheets);
-          adoptedSet = this;
+          adoptedSet$1 = this;
         } else {
           this.styleTag = (root.ownerDocument || root).createElement("style");
           let target = root.head || root;
           target.insertBefore(this.styleTag, target.firstChild);
         }
         this.modules = [];
-        root[SET] = this;
+        root[SET$1] = this;
       }
 
       mount(modules) {
@@ -3140,7 +3140,7 @@ var app = (function (exports) {
         /**
         Create a [range](https://codemirror.net/6/docs/ref/#rangeset.Range) with this value.
         */
-        range(from, to = from) { return new Range(from, to, this); }
+        range(from, to = from) { return new Range$1(from, to, this); }
     }
     RangeValue.prototype.startSide = RangeValue.prototype.endSide = 0;
     RangeValue.prototype.point = false;
@@ -3148,7 +3148,7 @@ var app = (function (exports) {
     /**
     A range associates a value with a range of positions.
     */
-    class Range {
+    class Range$1 {
         /**
         @internal
         */
@@ -3328,7 +3328,7 @@ var app = (function (exports) {
                 else {
                     if (!filter || filterFrom > cur.to || filterTo < cur.from || filter(cur.from, cur.to, cur.value)) {
                         if (!builder.addInner(cur.from, cur.to, cur.value))
-                            spill.push(new Range(cur.from, cur.to, cur.value));
+                            spill.push(new Range$1(cur.from, cur.to, cur.value));
                     }
                     cur.next();
                 }
@@ -3491,7 +3491,7 @@ var app = (function (exports) {
         */
         static of(ranges, sort = false) {
             let build = new RangeSetBuilder();
-            for (let range of ranges instanceof Range ? [ranges] : sort ? lazySort(ranges) : ranges)
+            for (let range of ranges instanceof Range$1 ? [ranges] : sort ? lazySort(ranges) : ranges)
                 build.add(range.from, range.to, range.value);
             return build.finish();
         }
@@ -4037,12 +4037,12 @@ var app = (function (exports) {
       229: "Q"
     };
 
-    var chrome = typeof navigator != "undefined" && /Chrome\/(\d+)/.exec(navigator.userAgent);
-    var safari = typeof navigator != "undefined" && /Apple Computer/.test(navigator.vendor);
-    var gecko = typeof navigator != "undefined" && /Gecko\/\d+/.test(navigator.userAgent);
+    var chrome$1 = typeof navigator != "undefined" && /Chrome\/(\d+)/.exec(navigator.userAgent);
+    var safari$1 = typeof navigator != "undefined" && /Apple Computer/.test(navigator.vendor);
+    var gecko$1 = typeof navigator != "undefined" && /Gecko\/\d+/.test(navigator.userAgent);
     var mac = typeof navigator != "undefined" && /Mac/.test(navigator.platform);
-    var ie = typeof navigator != "undefined" && /MSIE \d|Trident\/(?:[7-9]|\d{2,})\..*rv:(\d+)/.exec(navigator.userAgent);
-    var brokenModifierNames = chrome && (mac || +chrome[1] < 57) || gecko && mac;
+    var ie$1 = typeof navigator != "undefined" && /MSIE \d|Trident\/(?:[7-9]|\d{2,})\..*rv:(\d+)/.exec(navigator.userAgent);
+    var brokenModifierNames = chrome$1 && (mac || +chrome$1[1] < 57) || gecko$1 && mac;
 
     // Fill in the digit keys
     for (var i = 0; i < 10; i++) base[48 + i] = base[96 + i] = String(i);
@@ -4057,13 +4057,13 @@ var app = (function (exports) {
     }
 
     // For each code that doesn't have a shift-equivalent, copy the base name
-    for (var code in base) if (!shift.hasOwnProperty(code)) shift[code] = base[code];
+    for (var code$1 in base) if (!shift.hasOwnProperty(code$1)) shift[code$1] = base[code$1];
 
     function keyName(event) {
       // Don't trust event.key in Chrome when there are modifiers until
       // they fix https://bugs.chromium.org/p/chromium/issues/detail?id=633838
       var ignoreKey = brokenModifierNames && (event.ctrlKey || event.altKey || event.metaKey) ||
-        (safari || ie) && event.shiftKey && event.key && event.key.length == 1;
+        (safari$1 || ie$1) && event.shiftKey && event.key && event.key.length == 1;
       var name = (!ignoreKey && event.key) ||
         (event.shiftKey ? shift : base)[event.keyCode] ||
         event.key || "Unidentified";
@@ -4403,7 +4403,7 @@ var app = (function (exports) {
                         track.written = true;
                     if (child.dom.parentNode == parent) {
                         while (pos && pos != child.dom)
-                            pos = rm(pos);
+                            pos = rm$1(pos);
                         pos = child.dom.nextSibling;
                     }
                     else {
@@ -4413,7 +4413,7 @@ var app = (function (exports) {
                 if (pos && track && track.node == parent)
                     track.written = true;
                 while (pos)
-                    pos = rm(pos);
+                    pos = rm$1(pos);
             }
             else if (this.dirty & 1 /* Child */) {
                 for (let child of this.children)
@@ -4559,7 +4559,7 @@ var app = (function (exports) {
     }
     ContentView.prototype.breakAfter = 0;
     // Remove a DOM node and return its next sibling.
-    function rm(dom) {
+    function rm$1(dom) {
         let next = dom.nextSibling;
         dom.parentNode.removeChild(dom);
         return next;
@@ -4678,26 +4678,26 @@ var app = (function (exports) {
     const ie_edge = /*@__PURE__*//Edge\/(\d+)/.exec(nav.userAgent);
     const ie_upto10 = /*@__PURE__*//MSIE \d/.test(nav.userAgent);
     const ie_11up = /*@__PURE__*//Trident\/(?:[7-9]|\d{2,})\..*rv:(\d+)/.exec(nav.userAgent);
-    const ie$1 = !!(ie_upto10 || ie_11up || ie_edge);
-    const gecko$1 = !ie$1 && /*@__PURE__*//gecko\/(\d+)/i.test(nav.userAgent);
-    const chrome$1 = !ie$1 && /*@__PURE__*//Chrome\/(\d+)/.exec(nav.userAgent);
+    const ie = !!(ie_upto10 || ie_11up || ie_edge);
+    const gecko = !ie && /*@__PURE__*//gecko\/(\d+)/i.test(nav.userAgent);
+    const chrome = !ie && /*@__PURE__*//Chrome\/(\d+)/.exec(nav.userAgent);
     const webkit = "webkitFontSmoothing" in doc.documentElement.style;
-    const safari$1 = !ie$1 && /*@__PURE__*//Apple Computer/.test(nav.vendor);
-    const ios = safari$1 && (/*@__PURE__*//Mobile\/\w+/.test(nav.userAgent) || nav.maxTouchPoints > 2);
+    const safari = !ie && /*@__PURE__*//Apple Computer/.test(nav.vendor);
+    const ios$1 = safari && (/*@__PURE__*//Mobile\/\w+/.test(nav.userAgent) || nav.maxTouchPoints > 2);
     var browser = {
-        mac: ios || /*@__PURE__*//Mac/.test(nav.platform),
+        mac: ios$1 || /*@__PURE__*//Mac/.test(nav.platform),
         windows: /*@__PURE__*//Win/.test(nav.platform),
         linux: /*@__PURE__*//Linux|X11/.test(nav.platform),
-        ie: ie$1,
+        ie,
         ie_version: ie_upto10 ? doc.documentMode || 6 : ie_11up ? +ie_11up[1] : ie_edge ? +ie_edge[1] : 0,
-        gecko: gecko$1,
-        gecko_version: gecko$1 ? +(/*@__PURE__*//Firefox\/(\d+)/.exec(nav.userAgent) || [0, 0])[1] : 0,
-        chrome: !!chrome$1,
-        chrome_version: chrome$1 ? +chrome$1[1] : 0,
-        ios,
+        gecko,
+        gecko_version: gecko ? +(/*@__PURE__*//Firefox\/(\d+)/.exec(nav.userAgent) || [0, 0])[1] : 0,
+        chrome: !!chrome,
+        chrome_version: chrome ? +chrome[1] : 0,
+        ios: ios$1,
         android: /*@__PURE__*//Android\b/.test(nav.userAgent),
         webkit,
-        safari: safari$1,
+        safari,
         webkit_version: webkit ? +(/*@__PURE__*//\bAppleWebKit\/(\d+)/.exec(navigator.userAgent) || [0, 0])[1] : 0,
         tabSize: doc.documentElement.style.tabSize != null ? "tab-size" : "-moz-tab-size"
     };
@@ -5676,7 +5676,7 @@ var app = (function (exports) {
         updateDOM(elt) { return elt.nodeName.toLowerCase() == this.tag; }
     }
 
-    const none$1 = [];
+    const none$2 = [];
     const clickAddsSelectionRange = /*@__PURE__*/Facet.define();
     const dragMovesSelection$1 = /*@__PURE__*/Facet.define();
     const mouseSelectionStyle = /*@__PURE__*/Facet.define();
@@ -5703,7 +5703,7 @@ var app = (function (exports) {
             return changes.empty ? this : new ScrollTarget(this.range.map(changes), this.y, this.x, this.yMargin, this.xMargin);
         }
     }
-    const scrollIntoView = /*@__PURE__*/StateEffect.define({ map: (t, ch) => t.map(ch) });
+    const scrollIntoView$1 = /*@__PURE__*/StateEffect.define({ map: (t, ch) => t.map(ch) });
     /**
     Log or report an unhandled exception in client code. Should
     probably only be used by extension code that allows client code to
@@ -5995,7 +5995,7 @@ var app = (function (exports) {
         /**
         The transactions involved in the update. May be empty.
         */
-        transactions = none$1) {
+        transactions = none$2) {
             this.view = view;
             this.state = state;
             this.transactions = transactions;
@@ -8053,11 +8053,11 @@ var app = (function (exports) {
             return !offset ? this : new BlockInfo(this.from, this.length, this.top + offset, this.height, Array.isArray(this.type) ? this.type.map(b => b.moveY(offset)) : this.type);
         }
     }
-    var QueryType = /*@__PURE__*/(function (QueryType) {
+    var QueryType$1 = /*@__PURE__*/(function (QueryType) {
         QueryType[QueryType["ByPos"] = 0] = "ByPos";
         QueryType[QueryType["ByHeight"] = 1] = "ByHeight";
         QueryType[QueryType["ByPosNoHeight"] = 2] = "ByPosNoHeight";
-    return QueryType})(QueryType || (QueryType = {}));
+    return QueryType})(QueryType$1 || (QueryType$1 = {}));
     const Epsilon = 1e-3;
     class HeightMap {
         constructor(length, // The number of characters covered
@@ -8089,8 +8089,8 @@ var app = (function (exports) {
             let me = this;
             for (let i = changes.length - 1; i >= 0; i--) {
                 let { fromA, toA, fromB, toB } = changes[i];
-                let start = me.lineAt(fromA, QueryType.ByPosNoHeight, oldDoc, 0, 0);
-                let end = start.to >= toA ? start : me.lineAt(toA, QueryType.ByPosNoHeight, oldDoc, 0, 0);
+                let start = me.lineAt(fromA, QueryType$1.ByPosNoHeight, oldDoc, 0, 0);
+                let end = start.to >= toA ? start : me.lineAt(toA, QueryType$1.ByPosNoHeight, oldDoc, 0, 0);
                 toB += end.to - toA;
                 toA = end.to;
                 while (i > 0 && start.from <= changes[i - 1].toA) {
@@ -8098,7 +8098,7 @@ var app = (function (exports) {
                     fromB = changes[i - 1].fromB;
                     i--;
                     if (fromA < start.from)
-                        start = me.lineAt(fromA, QueryType.ByPosNoHeight, oldDoc, 0, 0);
+                        start = me.lineAt(fromA, QueryType$1.ByPosNoHeight, oldDoc, 0, 0);
                 }
                 fromB += start.from - fromA;
                 fromA = start.from;
@@ -8233,9 +8233,9 @@ var app = (function (exports) {
             return new BlockInfo(from, length, top + lineHeight * line, lineHeight, BlockType.Text);
         }
         lineAt(value, type, doc, top, offset) {
-            if (type == QueryType.ByHeight)
+            if (type == QueryType$1.ByHeight)
                 return this.blockAt(value, doc, top, offset);
-            if (type == QueryType.ByPosNoHeight) {
+            if (type == QueryType$1.ByPosNoHeight) {
                 let { from, to } = doc.lineAt(value);
                 return new BlockInfo(from, to - from, 0, 0, BlockType.Text);
             }
@@ -8333,12 +8333,12 @@ var app = (function (exports) {
         }
         lineAt(value, type, doc, top, offset) {
             let rightTop = top + this.left.height, rightOffset = offset + this.left.length + this.break;
-            let left = type == QueryType.ByHeight ? value < rightTop : value < rightOffset;
+            let left = type == QueryType$1.ByHeight ? value < rightTop : value < rightOffset;
             let base = left ? this.left.lineAt(value, type, doc, top, offset)
                 : this.right.lineAt(value, type, doc, rightTop, rightOffset);
             if (this.break || (left ? base.to < rightOffset : base.from > rightOffset))
                 return base;
-            let subQuery = type == QueryType.ByPosNoHeight ? QueryType.ByPosNoHeight : QueryType.ByPos;
+            let subQuery = type == QueryType$1.ByPosNoHeight ? QueryType$1.ByPosNoHeight : QueryType$1.ByPos;
             if (left)
                 return base.join(this.right.lineAt(rightOffset, subQuery, doc, rightTop, rightOffset));
             else
@@ -8353,7 +8353,7 @@ var app = (function (exports) {
                     this.right.forEachLine(from, to, doc, rightTop, rightOffset, f);
             }
             else {
-                let mid = this.lineAt(rightOffset, QueryType.ByPos, doc, top, offset);
+                let mid = this.lineAt(rightOffset, QueryType$1.ByPos, doc, top, offset);
                 if (from < mid.from)
                     this.left.forEachLine(from, mid.from - 1, doc, top, offset, f);
                 if (mid.to >= from && mid.from <= to)
@@ -8825,34 +8825,34 @@ var app = (function (exports) {
             // since the last update). It'll hold a number between 0 and 1
             let marginTop = 0.5 - Math.max(-0.5, Math.min(0.5, bias / 1000 /* Margin */ / 2));
             let map = this.heightMap, doc = this.state.doc, { visibleTop, visibleBottom } = this;
-            let viewport = new Viewport(map.lineAt(visibleTop - marginTop * 1000 /* Margin */, QueryType.ByHeight, doc, 0, 0).from, map.lineAt(visibleBottom + (1 - marginTop) * 1000 /* Margin */, QueryType.ByHeight, doc, 0, 0).to);
+            let viewport = new Viewport(map.lineAt(visibleTop - marginTop * 1000 /* Margin */, QueryType$1.ByHeight, doc, 0, 0).from, map.lineAt(visibleBottom + (1 - marginTop) * 1000 /* Margin */, QueryType$1.ByHeight, doc, 0, 0).to);
             // If scrollTarget is given, make sure the viewport includes that position
             if (scrollTarget) {
                 let { head } = scrollTarget.range, viewHeight = this.editorHeight;
                 if (head < viewport.from || head > viewport.to) {
-                    let block = map.lineAt(head, QueryType.ByPos, doc, 0, 0), topPos;
+                    let block = map.lineAt(head, QueryType$1.ByPos, doc, 0, 0), topPos;
                     if (scrollTarget.y == "center")
                         topPos = (block.top + block.bottom) / 2 - viewHeight / 2;
                     else if (scrollTarget.y == "start" || scrollTarget.y == "nearest" && head < viewport.from)
                         topPos = block.top;
                     else
                         topPos = block.bottom - viewHeight;
-                    viewport = new Viewport(map.lineAt(topPos - 1000 /* Margin */ / 2, QueryType.ByHeight, doc, 0, 0).from, map.lineAt(topPos + viewHeight + 1000 /* Margin */ / 2, QueryType.ByHeight, doc, 0, 0).to);
+                    viewport = new Viewport(map.lineAt(topPos - 1000 /* Margin */ / 2, QueryType$1.ByHeight, doc, 0, 0).from, map.lineAt(topPos + viewHeight + 1000 /* Margin */ / 2, QueryType$1.ByHeight, doc, 0, 0).to);
                 }
             }
             return viewport;
         }
         mapViewport(viewport, changes) {
             let from = changes.mapPos(viewport.from, -1), to = changes.mapPos(viewport.to, 1);
-            return new Viewport(this.heightMap.lineAt(from, QueryType.ByPos, this.state.doc, 0, 0).from, this.heightMap.lineAt(to, QueryType.ByPos, this.state.doc, 0, 0).to);
+            return new Viewport(this.heightMap.lineAt(from, QueryType$1.ByPos, this.state.doc, 0, 0).from, this.heightMap.lineAt(to, QueryType$1.ByPos, this.state.doc, 0, 0).to);
         }
         // Checks if a given viewport covers the visible part of the
         // document and not too much beyond that.
         viewportIsAppropriate({ from, to }, bias = 0) {
             if (!this.inView)
                 return true;
-            let { top } = this.heightMap.lineAt(from, QueryType.ByPos, this.state.doc, 0, 0);
-            let { bottom } = this.heightMap.lineAt(to, QueryType.ByPos, this.state.doc, 0, 0);
+            let { top } = this.heightMap.lineAt(from, QueryType$1.ByPos, this.state.doc, 0, 0);
+            let { bottom } = this.heightMap.lineAt(to, QueryType$1.ByPos, this.state.doc, 0, 0);
             let { visibleTop, visibleBottom } = this;
             return (from == 0 || top <= visibleTop - Math.max(10 /* MinCoverMargin */, Math.min(-bias, 250 /* MaxCoverMargin */))) &&
                 (to == this.state.doc.length ||
@@ -8949,10 +8949,10 @@ var app = (function (exports) {
         }
         lineBlockAt(pos) {
             return (pos >= this.viewport.from && pos <= this.viewport.to && this.viewportLines.find(b => b.from <= pos && b.to >= pos)) ||
-                scaleBlock(this.heightMap.lineAt(pos, QueryType.ByPos, this.state.doc, 0, 0), this.scaler);
+                scaleBlock(this.heightMap.lineAt(pos, QueryType$1.ByPos, this.state.doc, 0, 0), this.scaler);
         }
         lineBlockAtHeight(height) {
-            return scaleBlock(this.heightMap.lineAt(this.scaler.fromDOM(height), QueryType.ByHeight, this.state.doc, 0, 0), this.scaler);
+            return scaleBlock(this.heightMap.lineAt(this.scaler.fromDOM(height), QueryType$1.ByHeight, this.state.doc, 0, 0), this.scaler);
         }
         elementAtHeight(height) {
             return scaleBlock(this.heightMap.blockAt(this.scaler.fromDOM(height), this.state.doc, 0, 0), this.scaler);
@@ -9046,8 +9046,8 @@ var app = (function (exports) {
         constructor(doc, heightMap, viewports) {
             let vpHeight = 0, base = 0, domBase = 0;
             this.viewports = viewports.map(({ from, to }) => {
-                let top = heightMap.lineAt(from, QueryType.ByPos, doc, 0, 0).top;
-                let bottom = heightMap.lineAt(to, QueryType.ByPos, doc, 0, 0).bottom;
+                let top = heightMap.lineAt(from, QueryType$1.ByPos, doc, 0, 0).top;
+                let bottom = heightMap.lineAt(to, QueryType$1.ByPos, doc, 0, 0).bottom;
                 vpHeight += bottom - top;
                 return { from, to, top, bottom, domTop: 0, domBottom: 0 };
             });
@@ -9090,10 +9090,10 @@ var app = (function (exports) {
 
     const theme = /*@__PURE__*/Facet.define({ combine: strs => strs.join(" ") });
     const darkTheme = /*@__PURE__*/Facet.define({ combine: values => values.indexOf(true) > -1 });
-    const baseThemeID = /*@__PURE__*/StyleModule.newName(), baseLightID = /*@__PURE__*/StyleModule.newName(), baseDarkID = /*@__PURE__*/StyleModule.newName();
+    const baseThemeID = /*@__PURE__*/StyleModule$1.newName(), baseLightID = /*@__PURE__*/StyleModule$1.newName(), baseDarkID = /*@__PURE__*/StyleModule$1.newName();
     const lightDarkIDs = { "&light": "." + baseLightID, "&dark": "." + baseDarkID };
     function buildTheme(main, spec, scopes) {
-        return new StyleModule(spec, {
+        return new StyleModule$1(spec, {
             finish(sel) {
                 return /&/.test(sel) ? sel.replace(/&\w*/, m => {
                     if (m == "&")
@@ -9105,7 +9105,7 @@ var app = (function (exports) {
             }
         });
     }
-    const baseTheme = /*@__PURE__*/buildTheme("." + baseThemeID, {
+    const baseTheme$8 = /*@__PURE__*/buildTheme("." + baseThemeID, {
         "&.cm-editor": {
             position: "relative !important",
             boxSizing: "border-box",
@@ -9942,7 +9942,7 @@ var app = (function (exports) {
                             scrollTarget = new ScrollTarget(e.value);
                         else if (e.is(centerOn))
                             scrollTarget = new ScrollTarget(e.value, "center");
-                        else if (e.is(scrollIntoView))
+                        else if (e.is(scrollIntoView$1))
                             scrollTarget = e.value;
                     }
                 }
@@ -10159,7 +10159,7 @@ var app = (function (exports) {
         }
         mountStyles() {
             this.styleModules = this.state.facet(styleModule);
-            StyleModule.mount(this.root, this.styleModules.concat(baseTheme).reverse());
+            StyleModule$1.mount(this.root, this.styleModules.concat(baseTheme$8).reverse());
         }
         readMeasured() {
             if (this.updateState == 2 /* Updating */)
@@ -10516,7 +10516,7 @@ var app = (function (exports) {
         cause it to scroll the given position or range into view.
         */
         static scrollIntoView(pos, options = {}) {
-            return scrollIntoView.of(new ScrollTarget(typeof pos == "number" ? EditorSelection.cursor(pos) : pos, options.y, options.x, options.yMargin, options.xMargin));
+            return scrollIntoView$1.of(new ScrollTarget(typeof pos == "number" ? EditorSelection.cursor(pos) : pos, options.y, options.x, options.yMargin, options.xMargin));
         }
         /**
         Facet that can be used to add DOM event handlers. The value
@@ -10552,7 +10552,7 @@ var app = (function (exports) {
         `&light` when a light theme is active).
         */
         static theme(spec, options) {
-            let prefix = StyleModule.newName();
+            let prefix = StyleModule$1.newName();
             let result = [theme.of(prefix), styleModule.of(buildTheme(`.${prefix}`, spec))];
             if (options && options.dark)
                 result.push(darkTheme.of(true));
@@ -11675,7 +11675,7 @@ var app = (function (exports) {
         // transaction needs to be converted to an item. Returns null when
         // there are no changes or effects in the transaction.
         static fromTransaction(tr, selection) {
-            let effects = none$2;
+            let effects = none$1;
             for (let invert of tr.startState.facet(invertedEffects)) {
                 let result = invert(tr);
                 if (result.length)
@@ -11683,10 +11683,10 @@ var app = (function (exports) {
             }
             if (!effects.length && tr.changes.empty)
                 return null;
-            return new HistEvent(tr.changes.invert(tr.startState.doc), effects, undefined, selection || tr.startState.selection, none$2);
+            return new HistEvent(tr.changes.invert(tr.startState.doc), effects, undefined, selection || tr.startState.selection, none$1);
         }
         static selection(selections) {
-            return new HistEvent(undefined, none$2, undefined, undefined, selections);
+            return new HistEvent(undefined, none$1, undefined, undefined, selections);
         }
     }
     function updateBranch(branch, to, maxLen, newEvent) {
@@ -11714,7 +11714,7 @@ var app = (function (exports) {
     function conc(a, b) {
         return !a.length ? b : !b.length ? a : a.concat(b);
     }
-    const none$2 = [];
+    const none$1 = [];
     const MaxSelectionsPerEvent = 200;
     function addSelection(branch, selection) {
         if (!branch.length) {
@@ -11742,7 +11742,7 @@ var app = (function (exports) {
     function addMappingToBranch(branch, mapping) {
         if (!branch.length)
             return branch;
-        let length = branch.length, selections = none$2;
+        let length = branch.length, selections = none$1;
         while (length) {
             let event = mapEvent(branch[length - 1], mapping, selections);
             if (event.changes && !event.changes.empty || event.effects.length) { // Event survived mapping
@@ -11756,10 +11756,10 @@ var app = (function (exports) {
                 selections = event.selectionsAfter;
             }
         }
-        return selections.length ? [HistEvent.selection(selections)] : none$2;
+        return selections.length ? [HistEvent.selection(selections)] : none$1;
     }
     function mapEvent(event, mapping, extraSelections) {
-        let selections = conc(event.selectionsAfter.length ? event.selectionsAfter.map(s => s.map(mapping)) : none$2, extraSelections);
+        let selections = conc(event.selectionsAfter.length ? event.selectionsAfter.map(s => s.map(mapping)) : none$1, extraSelections);
         // Change-less events don't store mappings (they are always the last event in a branch)
         if (!event.changes)
             return HistEvent.selection(selections);
@@ -11787,15 +11787,15 @@ var app = (function (exports) {
                     isAdjacent(lastEvent.changes, event.changes)) ||
                     // For compose (but not compose.start) events, always join with previous event
                     userEvent == "input.type.compose")) {
-                done = updateBranch(done, done.length - 1, maxLen, new HistEvent(event.changes.compose(lastEvent.changes), conc(event.effects, lastEvent.effects), lastEvent.mapped, lastEvent.startSelection, none$2));
+                done = updateBranch(done, done.length - 1, maxLen, new HistEvent(event.changes.compose(lastEvent.changes), conc(event.effects, lastEvent.effects), lastEvent.mapped, lastEvent.startSelection, none$1));
             }
             else {
                 done = updateBranch(done, done.length, maxLen, event);
             }
-            return new HistoryState(done, none$2, time, userEvent);
+            return new HistoryState(done, none$1, time, userEvent);
         }
         addSelection(selection, time, userEvent, newGroupDelay) {
-            let last = this.done.length ? this.done[this.done.length - 1].selectionsAfter : none$2;
+            let last = this.done.length ? this.done[this.done.length - 1].selectionsAfter : none$1;
             if (last.length > 0 &&
                 time - this.prevTime < newGroupDelay &&
                 userEvent == this.prevUserEvent && userEvent && /^select($|\.)/.test(userEvent) &&
@@ -11823,7 +11823,7 @@ var app = (function (exports) {
                 return null;
             }
             else {
-                let rest = branch.length == 1 ? none$2 : branch.slice(0, branch.length - 1);
+                let rest = branch.length == 1 ? none$1 : branch.slice(0, branch.length - 1);
                 if (event.mapped)
                     rest = addMappingToBranch(rest, event.mapped);
                 return state.update({
@@ -11838,7 +11838,7 @@ var app = (function (exports) {
             }
         }
     }
-    HistoryState.empty = /*@__PURE__*/new HistoryState(none$2, none$2);
+    HistoryState.empty = /*@__PURE__*/new HistoryState(none$1, none$1);
     /**
     Default key bindings for the undo history.
 
@@ -11859,7 +11859,7 @@ var app = (function (exports) {
     /// The default maximum length of a `TreeBuffer` node (1024).
     const DefaultBufferLength = 1024;
     let nextPropID = 0;
-    class Range$1 {
+    class Range {
         constructor(from, to) {
             this.from = from;
             this.to = to;
@@ -13095,8 +13095,8 @@ var app = (function (exports) {
         /// case will start at `ranges[0].from`.
         startParse(input, fragments, ranges) {
             if (typeof input == "string")
-                input = new StringInput(input);
-            ranges = !ranges ? [new Range$1(0, input.length)] : ranges.length ? ranges.map(r => new Range$1(r.from, r.to)) : [new Range$1(0, 0)];
+                input = new StringInput$1(input);
+            ranges = !ranges ? [new Range(0, input.length)] : ranges.length ? ranges.map(r => new Range(r.from, r.to)) : [new Range(0, 0)];
             return this.createParse(input, fragments || [], ranges);
         }
         /// Run a full parse, returning the resulting tree.
@@ -13109,7 +13109,7 @@ var app = (function (exports) {
             }
         }
     }
-    class StringInput {
+    class StringInput$1 {
         constructor(string) {
             this.string = string;
         }
@@ -13118,7 +13118,7 @@ var app = (function (exports) {
         get lineChunks() { return false; }
         read(from, to) { return this.string.slice(from, to); }
     }
-    const stoppedInner = new NodeProp({ perNode: true });
+    new NodeProp({ perNode: true });
 
     /**
     Node prop stored in a grammar's top syntax node to provide the
@@ -14093,7 +14093,7 @@ var app = (function (exports) {
     in all gutters for the line).
     */
     const gutterLineClass = /*@__PURE__*/Facet.define();
-    const defaults = {
+    const defaults$1 = {
         class: "",
         renderEmptyElements: false,
         elementStyle: "",
@@ -14110,9 +14110,9 @@ var app = (function (exports) {
     determined by their extension priority.
     */
     function gutter(config) {
-        return [gutters(), activeGutters.of(Object.assign(Object.assign({}, defaults), config))];
+        return [gutters(), activeGutters.of(Object.assign(Object.assign({}, defaults$1), config))];
     }
-    const baseTheme$1 = /*@__PURE__*/EditorView.baseTheme({
+    const baseTheme$7 = /*@__PURE__*/EditorView.baseTheme({
         ".cm-gutters": {
             display: "flex",
             height: "100%",
@@ -14169,7 +14169,7 @@ var app = (function (exports) {
     function gutters(config) {
         let result = [
             gutterView,
-            baseTheme$1
+            baseTheme$7
         ];
         if (config && config.fixed === false)
             result.push(unfixGutters.of(true));
@@ -14290,7 +14290,7 @@ var app = (function (exports) {
             return value.view.textDirection == Direction.LTR ? { left: value.dom.offsetWidth } : { right: value.dom.offsetWidth };
         })
     });
-    function asArray$1(val) { return (Array.isArray(val) ? val : [val]); }
+    function asArray(val) { return (Array.isArray(val) ? val : [val]); }
     function advanceCursor(cursor, collect, pos) {
         while (cursor.value && cursor.from <= pos) {
             if (cursor.from == pos)
@@ -14353,7 +14353,7 @@ var app = (function (exports) {
                         event.preventDefault();
                 });
             }
-            this.markers = asArray$1(config.markers(view));
+            this.markers = asArray(config.markers(view));
             if (config.initialSpacer) {
                 this.spacer = new GutterElement(view, 0, 0, [config.initialSpacer(view)]);
                 this.dom.appendChild(this.spacer.dom);
@@ -14362,7 +14362,7 @@ var app = (function (exports) {
         }
         update(update) {
             let prevMarkers = this.markers;
-            this.markers = asArray$1(this.config.markers(update.view));
+            this.markers = asArray(this.config.markers(update.view));
             if (this.spacer && this.config.updateSpacer) {
                 let updated = this.config.updateSpacer(this.spacer.markers[0], update);
                 if (updated != this.spacer.markers[0])
@@ -14694,7 +14694,7 @@ var app = (function (exports) {
     Create an extension that configures code folding.
     */
     function codeFolding(config) {
-        let result = [foldState, baseTheme$2];
+        let result = [foldState, baseTheme$6];
         if (config)
             result.push(foldConfig.of(config));
         return result;
@@ -14799,7 +14799,7 @@ var app = (function (exports) {
             codeFolding()
         ];
     }
-    const baseTheme$2 = /*@__PURE__*/EditorView.baseTheme({
+    const baseTheme$6 = /*@__PURE__*/EditorView.baseTheme({
         ".cm-foldPlaceholder": {
             backgroundColor: "#eee",
             border: "1px solid #ddd",
@@ -14815,7 +14815,7 @@ var app = (function (exports) {
         }
     });
 
-    const baseTheme$3 = /*@__PURE__*/EditorView.baseTheme({
+    const baseTheme$5 = /*@__PURE__*/EditorView.baseTheme({
         ".cm-matchingBracket": { backgroundColor: "#328c8252" },
         ".cm-nonmatchingBracket": { backgroundColor: "#bb555544" }
     });
@@ -14858,7 +14858,7 @@ var app = (function (exports) {
     });
     const bracketMatchingUnique = [
         bracketMatchingState,
-        baseTheme$3
+        baseTheme$5
     ];
     /**
     Create an extension that enables bracket matching. Whenever the
@@ -15775,7 +15775,7 @@ var app = (function (exports) {
     */
     const indentWithTab = { key: "Tab", run: indentMore, shift: indentLess };
 
-    const defaults$1 = {
+    const defaults = {
         brackets: ["(", "[", "{", "'", '"'],
         before: ")]}'\":;>"
     };
@@ -15829,7 +15829,7 @@ var app = (function (exports) {
         return fromCodePoint(ch < 128 ? ch : ch + 1);
     }
     function config(state, pos) {
-        return state.languageDataAt("closeBrackets", pos)[0] || defaults$1;
+        return state.languageDataAt("closeBrackets", pos)[0] || defaults;
     }
     function handleInput(view, from, to, insert) {
         if (view.composing)
@@ -15850,7 +15850,7 @@ var app = (function (exports) {
     */
     const deleteBracketPair = ({ state, dispatch }) => {
         let conf = config(state, state.selection.main.head);
-        let tokens = conf.brackets || defaults$1.brackets;
+        let tokens = conf.brackets || defaults.brackets;
         let dont = null, changes = state.changeByRange(range => {
             if (range.empty) {
                 let before = prevChar(state.doc, range.head);
@@ -15887,12 +15887,12 @@ var app = (function (exports) {
     */
     function insertBracket(state, bracket) {
         let conf = config(state, state.selection.main.head);
-        let tokens = conf.brackets || defaults$1.brackets;
+        let tokens = conf.brackets || defaults.brackets;
         for (let tok of tokens) {
             let closed = closing(codePointAt(tok, 0));
             if (bracket == tok)
                 return closed == tok ? handleSame(state, tok, tokens.indexOf(tok + tok + tok) > -1)
-                    : handleOpen(state, tok, closed, conf.before || defaults$1.before);
+                    : handleOpen(state, tok, closed, conf.before || defaults.before);
             if (bracket == closed && closedBracketAt(state, state.selection.main.from))
                 return handleClose(state, tok, closed);
         }
@@ -16115,7 +16115,7 @@ var app = (function (exports) {
             for (let panel of this.panels) {
                 if (panel.dom.parentNode == this.dom) {
                     while (curDOM != panel.dom)
-                        curDOM = rm$1(curDOM);
+                        curDOM = rm(curDOM);
                     curDOM = curDOM.nextSibling;
                 }
                 else {
@@ -16123,7 +16123,7 @@ var app = (function (exports) {
                 }
             }
             while (curDOM)
-                curDOM = rm$1(curDOM);
+                curDOM = rm(curDOM);
         }
         scrollMargin() {
             return !this.dom || this.container ? 0
@@ -16142,7 +16142,7 @@ var app = (function (exports) {
                     this.container.classList.add(cls);
         }
     }
-    function rm$1(node) {
+    function rm(node) {
         let next = node.nextSibling;
         node.remove();
         return next;
@@ -16762,12 +16762,12 @@ var app = (function (exports) {
             return this.regexp ? new RegExpQuery(this) : new StringQuery(this);
         }
     }
-    class QueryType$1 {
+    class QueryType {
         constructor(spec) {
             this.spec = spec;
         }
     }
-    class StringQuery extends QueryType$1 {
+    class StringQuery extends QueryType {
         constructor(spec) {
             super(spec);
             this.unquoted = spec.search.replace(/\\([nrt\\])/g, (_, ch) => ch == "n" ? "\n" : ch == "r" ? "\r" : ch == "t" ? "\t" : "\\");
@@ -16816,7 +16816,7 @@ var app = (function (exports) {
                 add(cursor.value.from, cursor.value.to);
         }
     }
-    class RegExpQuery extends QueryType$1 {
+    class RegExpQuery extends QueryType {
         cursor(doc, from = 0, to = doc.length) {
             return new RegExpCursor(doc, this.spec.search, this.spec.caseSensitive ? undefined : { ignoreCase: true }, from, to);
         }
@@ -16867,7 +16867,7 @@ var app = (function (exports) {
     A state effect that updates the current search query.
     */
     const setSearchQuery = /*@__PURE__*/StateEffect.define();
-    const togglePanel = /*@__PURE__*/StateEffect.define();
+    const togglePanel$1 = /*@__PURE__*/StateEffect.define();
     const searchState = /*@__PURE__*/StateField.define({
         create(state) {
             return new SearchState(defaultQuery(state).create(), createSearchPanel);
@@ -16876,7 +16876,7 @@ var app = (function (exports) {
             for (let effect of tr.effects) {
                 if (effect.is(setSearchQuery))
                     value = new SearchState(effect.value.create(), value.panel);
-                else if (effect.is(togglePanel))
+                else if (effect.is(togglePanel$1))
                     value = new SearchState(value.query, effect.value ? createSearchPanel : null);
             }
             return value;
@@ -17074,7 +17074,7 @@ var app = (function (exports) {
         }
         else {
             view.dispatch({ effects: [
-                    togglePanel.of(true),
+                    togglePanel$1.of(true),
                     state ? setSearchQuery.of(defaultQuery(view.state, state.query.spec)) : StateEffect.appendConfig.of(searchExtensions)
                 ] });
         }
@@ -17090,7 +17090,7 @@ var app = (function (exports) {
         let panel = getPanel(view, createSearchPanel);
         if (panel && panel.dom.contains(view.root.activeElement))
             view.focus();
-        view.dispatch({ effects: togglePanel.of(false) });
+        view.dispatch({ effects: togglePanel$1.of(false) });
         return true;
     };
     /**
@@ -17238,7 +17238,7 @@ var app = (function (exports) {
         }
         return EditorView.announce.of(`${view.state.phrase("current match")}. ${text} ${view.state.phrase("on line")} ${view.state.doc.lineAt(from).number}`);
     }
-    const baseTheme$5 = /*@__PURE__*/EditorView.baseTheme({
+    const baseTheme$3 = /*@__PURE__*/EditorView.baseTheme({
         ".cm-panel.cm-search": {
             padding: "2px 6px 4px",
             position: "relative",
@@ -17271,10 +17271,10 @@ var app = (function (exports) {
     const searchExtensions = [
         searchState,
         /*@__PURE__*/Prec.lowest(searchHighlighter),
-        baseTheme$5
+        baseTheme$3
     ];
 
-    const ios$1 = typeof navigator != "undefined" &&
+    const ios = typeof navigator != "undefined" &&
         !/*@__PURE__*//Edge\/(\d+)/.exec(navigator.userAgent) && /*@__PURE__*//Apple Computer/.test(navigator.vendor) &&
         (/*@__PURE__*//Mobile\/\w+/.test(navigator.userAgent) || navigator.maxTouchPoints > 2);
     const Outside = "-10000px";
@@ -17330,7 +17330,7 @@ var app = (function (exports) {
         combine: values => {
             var _a, _b, _c;
             return ({
-                position: ios$1 ? "absolute" : ((_a = values.find(conf => conf.position)) === null || _a === void 0 ? void 0 : _a.position) || "fixed",
+                position: ios ? "absolute" : ((_a = values.find(conf => conf.position)) === null || _a === void 0 ? void 0 : _a.position) || "fixed",
                 parent: ((_b = values.find(conf => conf.parent)) === null || _b === void 0 ? void 0 : _b.parent) || null,
                 tooltipSpace: ((_c = values.find(conf => conf.tooltipSpace)) === null || _c === void 0 ? void 0 : _c.tooltipSpace) || windowSpace,
             });
@@ -17505,7 +17505,7 @@ var app = (function (exports) {
             scroll() { this.maybeMeasure(); }
         }
     });
-    const baseTheme$6 = /*@__PURE__*/EditorView.baseTheme({
+    const baseTheme$2 = /*@__PURE__*/EditorView.baseTheme({
         ".cm-tooltip": {
             zIndex: 100
         },
@@ -17571,7 +17571,7 @@ var app = (function (exports) {
     Behavior by which an extension can provide a tooltip to be shown.
     */
     const showTooltip = /*@__PURE__*/Facet.define({
-        enables: [tooltipPlugin, baseTheme$6]
+        enables: [tooltipPlugin, baseTheme$2]
     });
     const showHoverTooltip = /*@__PURE__*/Facet.define();
     class HoverTooltipHost {
@@ -18228,7 +18228,7 @@ var app = (function (exports) {
                 }
             }
             if (set)
-                scrollIntoView$1(this.list, set);
+                scrollIntoView(this.list, set);
             return set;
         }
         measureInfo() {
@@ -18286,7 +18286,7 @@ var app = (function (exports) {
     function completionTooltip(stateField) {
         return (view) => new CompletionTooltip(view, stateField);
     }
-    function scrollIntoView$1(container, element) {
+    function scrollIntoView(container, element) {
         let parent = container.getBoundingClientRect();
         let self = element.getBoundingClientRect();
         if (self.top < parent.top)
@@ -18375,7 +18375,7 @@ var app = (function (exports) {
             this.open = open;
         }
         static start() {
-            return new CompletionState(none$3, "cm-ac-" + Math.floor(Math.random() * 2e6).toString(36), null);
+            return new CompletionState(none, "cm-ac-" + Math.floor(Math.random() * 2e6).toString(36), null);
         }
         update(tr) {
             let { state } = tr, conf = state.facet(completionConfig);
@@ -18428,7 +18428,7 @@ var app = (function (exports) {
             "aria-controls": id
         };
     }
-    const none$3 = [];
+    const none = [];
     function cmpOption(a, b) {
         let dScore = b.match[0] - a.match[0];
         if (dScore)
@@ -18720,7 +18720,7 @@ var app = (function (exports) {
         }
     });
 
-    const baseTheme$7 = /*@__PURE__*/EditorView.baseTheme({
+    const baseTheme$1 = /*@__PURE__*/EditorView.baseTheme({
         ".cm-tooltip.cm-tooltip-autocomplete": {
             "& > ul": {
                 fontFamily: "monospace",
@@ -18832,7 +18832,7 @@ var app = (function (exports) {
             completionConfig.of(config),
             completionPlugin,
             completionKeymapExt,
-            baseTheme$7
+            baseTheme$1
         ];
     }
     /**
@@ -19096,10 +19096,10 @@ var app = (function (exports) {
         return EditorView.mouseSelectionStyle.of((view, event) => filter(event) ? rectangleSelectionStyle(view, event) : null);
     }
 
-    const C$1 = "\u037c";
-    const COUNT$1 = typeof Symbol == "undefined" ? "__" + C$1 : Symbol.for(C$1);
-    const SET$1 = typeof Symbol == "undefined" ? "__styleSet" + Math.floor(Math.random() * 1e8) : Symbol("styleSet");
-    const top$1 = typeof globalThis != "undefined" ? globalThis : typeof window != "undefined" ? window : {};
+    const C = "\u037c";
+    const COUNT = typeof Symbol == "undefined" ? "__" + C : Symbol.for(C);
+    const SET = typeof Symbol == "undefined" ? "__styleSet" + Math.floor(Math.random() * 1e8) : Symbol("styleSet");
+    const top = typeof globalThis != "undefined" ? globalThis : typeof window != "undefined" ? window : {};
 
     // :: - Style modules encapsulate a set of CSS rules defined from
     // JavaScript. Their definitions are only available in a given DOM
@@ -19110,7 +19110,7 @@ var app = (function (exports) {
     // CSS rules generated for a given DOM root is bounded by the amount
     // of style modules that were used. So to avoid leaking rules, don't
     // create these dynamically, but treat them as one-time allocations.
-    class StyleModule$1 {
+    class StyleModule {
       // :: (Object<Style>, ?{finish: ?(string) → string})
       // Create a style module from the given spec.
       //
@@ -19155,9 +19155,9 @@ var app = (function (exports) {
       // :: () → string
       // Generate a new unique CSS class name.
       static newName() {
-        let id = top$1[COUNT$1] || 1;
-        top$1[COUNT$1] = id + 1;
-        return C$1 + id.toString(36)
+        let id = top[COUNT] || 1;
+        top[COUNT] = id + 1;
+        return C + id.toString(36)
       }
 
       // :: (union<Document, ShadowRoot>, union<[StyleModule], StyleModule>)
@@ -19174,29 +19174,29 @@ var app = (function (exports) {
       // in a way that changes the order of already mounted modules, the old
       // order will be changed.
       static mount(root, modules) {
-        (root[SET$1] || new StyleSet$1(root)).mount(Array.isArray(modules) ? modules : [modules]);
+        (root[SET] || new StyleSet(root)).mount(Array.isArray(modules) ? modules : [modules]);
       }
     }
 
-    let adoptedSet$1 = null;
+    let adoptedSet = null;
 
-    class StyleSet$1 {
+    class StyleSet {
       constructor(root) {
         if (!root.head && root.adoptedStyleSheets && typeof CSSStyleSheet != "undefined") {
-          if (adoptedSet$1) {
-            root.adoptedStyleSheets = [adoptedSet$1.sheet].concat(root.adoptedStyleSheets);
-            return root[SET$1] = adoptedSet$1
+          if (adoptedSet) {
+            root.adoptedStyleSheets = [adoptedSet.sheet].concat(root.adoptedStyleSheets);
+            return root[SET] = adoptedSet
           }
           this.sheet = new CSSStyleSheet;
           root.adoptedStyleSheets = [this.sheet].concat(root.adoptedStyleSheets);
-          adoptedSet$1 = this;
+          adoptedSet = this;
         } else {
           this.styleTag = (root.ownerDocument || root).createElement("style");
           let target = root.head || root;
           target.insertBefore(this.styleTag, target.firstChild);
         }
         this.modules = [];
-        root[SET$1] = this;
+        root[SET] = this;
       }
 
       mount(modules) {
@@ -19349,7 +19349,7 @@ var app = (function (exports) {
         static get(base, mods) {
             if (!mods.length)
                 return base;
-            let exists = mods[0].instances.find(t => t.base == base && sameArray$1(mods, t.modified));
+            let exists = mods[0].instances.find(t => t.base == base && sameArray(mods, t.modified));
             if (exists)
                 return exists;
             let set = [], tag = new Tag(set, base, mods);
@@ -19362,7 +19362,7 @@ var app = (function (exports) {
             return tag;
         }
     }
-    function sameArray$1(a, b) {
+    function sameArray(a, b) {
         return a.length == b.length && a.every((x, i) => x == b[i]);
     }
     function permute(array) {
@@ -19500,7 +19500,7 @@ var app = (function (exports) {
             this.map = Object.create(null);
             let modSpec;
             function def(spec) {
-                let cls = StyleModule$1.newName();
+                let cls = StyleModule.newName();
                 (modSpec || (modSpec = Object.create(null)))["." + cls] = spec;
                 return cls;
             }
@@ -19515,7 +19515,7 @@ var app = (function (exports) {
                     for (let tag of tags)
                         this.map[tag.id] = cls;
             }
-            this.module = modSpec ? new StyleModule$1(modSpec) : null;
+            this.module = modSpec ? new StyleModule(modSpec) : null;
             this.scope = options.scope || null;
             this.match = this.match.bind(this);
             let ext = [treeHighlighter];
@@ -20217,7 +20217,7 @@ var app = (function (exports) {
                 ]);
             }),
             hoverTooltip(lintTooltip),
-            baseTheme$8
+            baseTheme
         ]));
     }
     /**
@@ -20235,7 +20235,7 @@ var app = (function (exports) {
     be useful when writing an extension that needs to track these.
     */
     const setDiagnosticsEffect = /*@__PURE__*/StateEffect.define();
-    const togglePanel$1 = /*@__PURE__*/StateEffect.define();
+    const togglePanel = /*@__PURE__*/StateEffect.define();
     const movePanelSelection = /*@__PURE__*/StateEffect.define();
     const lintState = /*@__PURE__*/StateField.define({
         create() {
@@ -20254,7 +20254,7 @@ var app = (function (exports) {
                 if (effect.is(setDiagnosticsEffect)) {
                     value = LintState.init(effect.value, value.panel, tr.state);
                 }
-                else if (effect.is(togglePanel$1)) {
+                else if (effect.is(togglePanel)) {
                     value = new LintState(value.diagnostics, effect.value ? LintPanel.open : null, value.selected);
                 }
                 else if (effect.is(movePanelSelection)) {
@@ -20298,7 +20298,7 @@ var app = (function (exports) {
     const openLintPanel = (view) => {
         let field = view.state.field(lintState, false);
         if (!field || !field.panel)
-            view.dispatch({ effects: maybeEnableLint(view.state, [togglePanel$1.of(true)]) });
+            view.dispatch({ effects: maybeEnableLint(view.state, [togglePanel.of(true)]) });
         let panel = getPanel(view, LintPanel.open);
         if (panel)
             panel.dom.querySelector(".cm-panel-lint ul").focus();
@@ -20311,7 +20311,7 @@ var app = (function (exports) {
         let field = view.state.field(lintState, false);
         if (!field || !field.panel)
             return false;
-        view.dispatch({ effects: togglePanel$1.of(false) });
+        view.dispatch({ effects: togglePanel.of(false) });
         return true;
     };
     /**
@@ -20632,7 +20632,7 @@ var app = (function (exports) {
     function underline(color) {
         return svg(`<path d="m0 2.5 l2 -1.5 l1 0 l2 1.5 l1 0" stroke="${color}" fill="none" stroke-width=".7"/>`, `width="6" height="3"`);
     }
-    const baseTheme$8 = /*@__PURE__*/EditorView.baseTheme({
+    const baseTheme = /*@__PURE__*/EditorView.baseTheme({
         ".cm-diagnostic": {
             padding: "3px 6px 3px 8px",
             marginLeft: "-1px",
@@ -20716,6 +20716,77 @@ var app = (function (exports) {
                 margin: 0
             }
         }
+    });
+    class LintGutterMarker extends GutterMarker {
+        constructor(diagnostics) {
+            super();
+            this.diagnostics = diagnostics;
+            this.severity = diagnostics.reduce((max, d) => {
+                let s = d.severity;
+                return s == "error" || s == "warning" && max == "info" ? s : max;
+            }, "info");
+        }
+        toDOM(view) {
+            let elt = document.createElement("div");
+            elt.className = "cm-lint-marker cm-lint-marker-" + this.severity;
+            elt.onmouseover = () => gutterMarkerMouseOver(view, elt, this.diagnostics);
+            return elt;
+        }
+    }
+    function trackHoverOn(view, marker) {
+        let mousemove = (event) => {
+            let rect = marker.getBoundingClientRect();
+            if (event.clientX > rect.left - 10 /* Margin */ && event.clientX < rect.right + 10 /* Margin */ &&
+                event.clientY > rect.top - 10 /* Margin */ && event.clientY < rect.bottom + 10 /* Margin */)
+                return;
+            for (let target = event.target; target; target = target.parentNode) {
+                if (target.nodeType == 1 && target.classList.contains("cm-tooltip-lint"))
+                    return;
+            }
+            window.removeEventListener("mousemove", mousemove);
+            if (view.state.field(lintGutterTooltip))
+                view.dispatch({ effects: setLintGutterTooltip.of(null) });
+        };
+        window.addEventListener("mousemove", mousemove);
+    }
+    function gutterMarkerMouseOver(view, marker, diagnostics) {
+        function hovered() {
+            let line = view.visualLineAtHeight(marker.getBoundingClientRect().top + 5);
+            const linePos = view.coordsAtPos(line.from), markerRect = marker.getBoundingClientRect();
+            if (linePos) {
+                view.dispatch({ effects: setLintGutterTooltip.of({
+                        pos: line.from,
+                        above: false,
+                        create() {
+                            return {
+                                dom: diagnosticsTooltip(view, diagnostics),
+                                offset: { x: markerRect.left - linePos.left, y: 0 }
+                            };
+                        }
+                    }) });
+            }
+            marker.onmouseout = marker.onmousemove = null;
+            trackHoverOn(view, marker);
+        }
+        let hoverTimeout = setTimeout(hovered, 600 /* Time */);
+        marker.onmouseout = () => {
+            clearTimeout(hoverTimeout);
+            marker.onmouseout = marker.onmousemove = null;
+        };
+        marker.onmousemove = () => {
+            clearTimeout(hoverTimeout);
+            hoverTimeout = setTimeout(hovered, 600 /* Time */);
+        };
+    }
+    const setLintGutterTooltip = /*@__PURE__*/StateEffect.define();
+    const lintGutterTooltip = /*@__PURE__*/StateField.define({
+        create() { return null; },
+        update(tooltip, tr) {
+            if (tooltip && tr.docChanged)
+                tooltip = Object.assign(Object.assign({}, tooltip), { pos: tr.changes.mapPos(tooltip.pos) });
+            return tr.effects.reduce((t, e) => e.is(setLintGutterTooltip) ? e.value : t, tooltip);
+        },
+        provide: field => showTooltip.from(field)
     });
 
     /**
@@ -22370,7 +22441,7 @@ var app = (function (exports) {
         return [eoLanguage];
     }
 
-    var StringInput$1 = /** @class */ (function () {
+    var StringInput = /** @class */ (function () {
         function StringInput(input) {
             this.input = input;
             this.lineChunks = false;
@@ -22436,7 +22507,7 @@ var app = (function (exports) {
     function validatorTraversal(input, _a) {
         var _b = _a === void 0 ? {} : _a, _c = _b.fullMatch, fullMatch = _c === void 0 ? true : _c;
         if (typeof input === "string")
-            input = new StringInput$1(input);
+            input = new StringInput(input);
         var state = {
             valid: true,
             parentNodes: [],
@@ -22486,7 +22557,7 @@ var app = (function (exports) {
     }
     function printTree(cursor, input, _a) {
         var _b = _a === void 0 ? {} : _a, from = _b.from, to = _b.to, _c = _b.start, start = _c === void 0 ? 0 : _c, includeParents = _b.includeParents;
-        var inp = typeof input === "string" ? new StringInput$1(input) : input;
+        var inp = typeof input === "string" ? new StringInput(input) : input;
         var text = Text.of(inp.read(0, inp.length).split("\n"));
         var state = {
             output: "",
@@ -22607,7 +22678,7 @@ var app = (function (exports) {
         return diagnostics;
     }
 
-    var code$1 = "+alias org.eolang.io.stdout\n+alias org.eolang.txt.sprintf\n\nmain > [args...]\n  leap > [y]\n    @ >\n      or.\n        and.\n          eq. (mod. y 4) 0\n          not. (eq. (mod. y 100) 0)\n        eq. (mod. y 400) 0\n  @ >\n    stdout\n      sprintf\n        \"%d is %sa leap year!\"\n        year! >\n          (args.get 0).as-int\n        if. (leap y:year) \"\" \"not \"\n\n";
+    var code = "+alias org.eolang.io.stdout\n+alias org.eolang.txt.sprintf\n\nmain > [args...]\n  leap > [y]\n    @ >\n      or.\n        and.\n          eq. (mod. y 4) 0\n          not. (eq. (mod. y 100) 0)\n        eq. (mod. y 400) 0\n  @ >\n    stdout\n      sprintf\n        \"%d is %sa leap year!\"\n        year! >\n          (args.get 0).as-int\n        if. (leap y:year) \"\" \"not \"\n\n";
     // `+alias org.eolang.io.stdout
     // +alias org.eolang.txt.sprintf
     // #sample object
@@ -22651,7 +22722,7 @@ var app = (function (exports) {
         logTree(syntaxTree(v.state), String(v.state.doc));
     }
     var initialState = EditorState.create({
-        doc: code$1,
+        doc: code,
         extensions: [
             basicSetup,
             myTheme,
@@ -22675,7 +22746,9 @@ var app = (function (exports) {
 
     exports.view = view;
 
+    Object.defineProperty(exports, '__esModule', { value: true });
+
     return exports;
 
-}({}));
+})({});
 //# sourceMappingURL=bundle.js.map

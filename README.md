@@ -58,7 +58,7 @@ Programmers aren't good at remembering actual **types** of variables. Instead, t
 * Install packages and build
     ```sh
     npm i
-    npm run build:doc
+    npm run build
     ```
 * Open in browser `docs/index.html`. E.g.
     ```sh

@@ -13,12 +13,12 @@
 * Discussed [here](https://github.com/cqfn/eo/issues/568)
 * Comparison (Dialect vs EO)
 <p align="left">
-  <img src="./README/dialect 1.png" height="300" title="hover text">
-  <img src="./README/eo  1.png" height="300" alt="accessibility text">
+  <img src="./README/dialect 1.png" height="300" title="Dialect">
+  <img src="./README/eo  1.png" height="300" alt="EO">
 </p>
 <p align="left">
-  <img src="./README/dialect 2.png" height="300" title="hover text">
-  <img src="./README/eo 2.png" height="300" alt="accessibility text">
+  <img src="./README/dialect 2.png" height="300" title="Dialect">
+  <img src="./README/eo 2.png" height="300" alt="EO">
 </p>
 
 ## Use in your HTML

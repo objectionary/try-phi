@@ -154,7 +154,7 @@ OBJECT
     // !right
     SPACES
     DEFINITION
-  )+
+  )*
 }
 
 // first line in an object

@@ -52,7 +52,7 @@ Programmers aren't good at remembering actual **types** of variables. Instead, t
 
 ## Use in your HTML
 * Create a tag with `id="editor"`
-* Put `bundle.js` from `docs/build/` into your project and include it as a `<script>`
+* Put `bundle.js` from `bundle/` into your project and include it as a `<script>`
 
 ## Run
 * Install packages and build
@@ -64,3 +64,10 @@ Programmers aren't good at remembering actual **types** of variables. Instead, t
     ```sh
     firefox docs/index.html
     ```
+
+* Open browser console to see full Lezer tree
+
+* Re-build after changes in `.grammar`
+  ```sh
+  npm run build
+  ```

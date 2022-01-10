@@ -14,11 +14,11 @@
 * Comparison (Dialect vs EO)
 <p align="left">
   <img src="./README/dialect 1.png" height="300" title="Dialect">
-  <img src="./README/eo  1.png" height="300" alt="EO">
+  <img src="./README/eo  1.png" height="300" title="EO">
 </p>
 <p align="left">
   <img src="./README/dialect 2.png" height="300" title="Dialect">
-  <img src="./README/eo 2.png" height="300" alt="EO">
+  <img src="./README/eo 2.png" height="300" title="EO">
 </p>
 
 ## Use in your HTML

@@ -21,7 +21,7 @@
   <img src="./README/eo 2.png" height="300" title="EO">
 </p>
 
-* Prim's algorithm ([Dialect](./code/Dialect/prim.eod), [EO](https://github.com/polystat/eo-graphs/blob/master/src/main/eo/prim.eo))
+* Prim's algorithm ([Dialect](./code_examples/Dialect/prim.eod), [EO](https://github.com/polystat/eo-graphs/blob/master/src/main/eo/prim.eo))
 
 ## Premise
 Programmers aren't good at remembering actual **types** of variables. Instead, they mostly operate with **names** and can check the type (or bound object) just when it's necessary. This dialect tries to make their work with names as convenient as possible.

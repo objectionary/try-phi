@@ -184,14 +184,16 @@ DOT_NAME
     FREE_NAME
   }
 
+
+
 // attribute name
 ATTR_NAME {
   
+  DOT_NAME
   (
-    FREE_NAME
-    |
-    AT
-  )
+    DOT
+    DOT_NAME
+  )*
   ~app_or_decl
   CONST?
   (
@@ -220,13 +222,17 @@ DOT_ACCESS
 
 APPLICATION
 {
-  DOT_NAME
+  (
+    DOT_NAME
     |
     ARRAY_STAR
+    ~array_or_inline_array
+  )
   (
     DOT
     DOT_NAME
   )*
+  ~app_or_decl
 }
 
 INVERSE_DOT
@@ -280,6 +286,7 @@ ANONYMOUS
   )*
   |
   ARRAY_STAR
+  ~array_or_inline_array
   INLINE?
 }
 

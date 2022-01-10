@@ -62,7 +62,7 @@
   
   HEX{ "0x" ($[0-9a-f])+}
 
-  FREE_NAME{ $[a-z] ($[a-z0-9]| $[_-])*}
+  FREE_NAME{ $[a-z] ($[a-z0-9A-Z]| $[_-])*}
   FOREIGN_NAME {$[a-z] ($[a-z0-9]| $[_-])*}
 
   TEXT_MARK{ "\"\"\""}

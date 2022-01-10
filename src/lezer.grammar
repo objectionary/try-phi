@@ -161,8 +161,8 @@ OBJECT
 DECLARATION
 {
   ATTR_NAME
+  ~free_list_or_inline
   (
-    !right
     space
     FREE_LIST
   )?
@@ -263,6 +263,7 @@ INLINE_ATTRIBUTE
 {
   LB
   DECLARATION
+  ~free_list_or_inline
   space
   INLINE
   RB

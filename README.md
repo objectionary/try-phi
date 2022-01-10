@@ -46,14 +46,14 @@ Programmers aren't good at remembering actual **types** of variables. Instead, t
 ## Neutral sides of this dialect
 * The dialect preserves the uniqueness of what an arrow `>` or a colon `:` bind, namely, an attribute name with its value. 
 
-* It isn't very hard to learn that an expression like `name >` means attribute `name` bound to something, while just `name` means application or just another object's name.
+* It isn't very hard to learn that an expression like `name >` means attribute `name` bound to something, while just `name` means application or another object's name.
 
 ## Downsides
 * The code becomes a bit longer
 
-## Use in your HTML
-* Create a tag with `id="editor"`
-* Put `bundle.js` from `bundle/` into your project and include it as a `<script>`
+## Use with your HTML
+* Create a tag with `id="editor"`. The editor tab will appear inside it. You can change tag id in `src/main` where `view` is declared.
+* Put `bundle.js` from `docs/build/` into your project and include it as a `<script>`
 
 ## Run
 * Install packages and build

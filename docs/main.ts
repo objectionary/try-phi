@@ -28,7 +28,7 @@ main > [args...]
         "%d is %sa leap year!"
         year! >
           (args.get 0).as-int
-        if. (leap year:y) "" "not "
+        if. (leap y:year) "" "not "
 
 `
 // `+alias org.eolang.io.stdout

@@ -22607,7 +22607,7 @@ var app = (function (exports) {
         return diagnostics;
     }
 
-    var code$1 = "+alias org.eolang.io.stdout\n+alias org.eolang.txt.sprintf\n\nmain > [args...]\n  leap > [y]\n    @ >\n      or.\n        and.\n          eq. (mod. y 4) 0\n          not. (eq. (mod. y 100) 0)\n        eq. (mod. y 400) 0\n  @ >\n    stdout\n      sprintf\n        \"%d is %sa leap year!\"\n        year! >\n          (args.get 0).as-int\n        if. (leap year:y) \"\" \"not \"\n\n";
+    var code$1 = "+alias org.eolang.io.stdout\n+alias org.eolang.txt.sprintf\n\nmain > [args...]\n  leap > [y]\n    @ >\n      or.\n        and.\n          eq. (mod. y 4) 0\n          not. (eq. (mod. y 100) 0)\n        eq. (mod. y 400) 0\n  @ >\n    stdout\n      sprintf\n        \"%d is %sa leap year!\"\n        year! >\n          (args.get 0).as-int\n        if. (leap y:year) \"\" \"not \"\n\n";
     // `+alias org.eolang.io.stdout
     // +alias org.eolang.txt.sprintf
     // #sample object

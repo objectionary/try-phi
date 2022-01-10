@@ -11,7 +11,7 @@ Created using [Lezer Grammar](https://lezer.codemirror.net/) and [Codemirror 6](
 ## Differences of this *dialect from EO
 * An attribute (or object) name should precede its value when reading left-to-right, top-to-bottom
 * Discussed [here](https://github.com/cqfn/eo/issues/568)
-* Comparison
+* Comparison (Dialect vs EO)
 <p align="left">
   <img src="./README/dialect 1.png" height="300" title="hover text">
   <img src="./README/eo  1.png" height="300" alt="accessibility text">

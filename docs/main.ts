@@ -4,10 +4,10 @@ import { keymap, ViewUpdate } from '@codemirror/view';
 import { indentWithTab } from '@codemirror/commands'
 // import { lintKeymap } from '@codemirror/lint'
 import { eo } from './eo'
-import { logTree, printTree } from './print-lezer-tree';
-import { underlineKeymap } from './underlines';
+import { logTree, printTree } from './utils/print-lezer-tree';
+import { underlineKeymap } from './utils/underlines';
 import { linter } from '@codemirror/lint';
-import { lintExample } from './diagnostics';
+import { lintExample } from './utils/diagnostics';
 
 
 let code = 

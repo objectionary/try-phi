@@ -5,8 +5,12 @@
 ## Try online
 * [Here](https://br4ch1st0chr0n3.github.io/eo-editor/)
 
-## Diagnostics
-* Rudimentary parser errors
+## Features
+* Syntax highlighting
+* Show parsing errors
+* Show [Lezer](https://lezer.codemirror.net/) parse tree in browser console (thanks to [this post](https://discuss.codemirror.net/t/whats-the-best-to-test-and-debug-grammars/2542/5))
+* Highlight code (beta) with `Ctrl`+`H`
+* Actions from [basic-setup](https://codemirror.net/6/docs/ref/#basic-setup), including [keybindings](https://codemirror.net/6/docs/ref/#commands.defaultKeymap)
 
 ## Comparison of this *dialect with EO
 * An attribute (or object) name should precede its value when reading left-to-right, top-to-bottom

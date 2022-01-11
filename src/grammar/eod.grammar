@@ -132,7 +132,7 @@ OBJECTS
       COMMENT 
       EOL
     )*
-    SPACES?
+    TABS?
     OBJECT
     (
       !left
@@ -141,8 +141,14 @@ OBJECTS
   )+
 }
 
+tab
+{
+  space 
+  space
+}
+
 // a sequence of spaces
-SPACES {(!left space)+}
+TABS {(!left tab)+}
 
 
 // ordinary object or class attribute
@@ -152,7 +158,7 @@ OBJECT
   EOL
   (
     // !right
-    SPACES
+    TABS
     DEFINITION
   )*
 }

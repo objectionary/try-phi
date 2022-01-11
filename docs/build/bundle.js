@@ -22431,11 +22431,11 @@ var app = (function (exports) {
                     LB: tags.paren,
                     RB: tags.paren,
                     LSQ: tags.squareBracket,
-                    RSQ: tags.squareBracket
+                    RSQ: tags.squareBracket,
                 }),
-            ]
+            ],
         }),
-        languageData: {}
+        languageData: {},
     });
     function eo() {
         return [eoLanguage];
@@ -22511,7 +22511,7 @@ var app = (function (exports) {
         var state = {
             valid: true,
             parentNodes: [],
-            lastLeafTo: 0
+            lastLeafTo: 0,
         };
         return {
             state: state,
@@ -22541,8 +22541,8 @@ var app = (function (exports) {
                 onLeave: function (node) {
                     if (!node.isLeaf)
                         state.parentNodes.shift();
-                }
-            }
+                },
+            },
         };
     }
     var Color;
@@ -22562,7 +22562,7 @@ var app = (function (exports) {
         var state = {
             output: "",
             prefixes: [],
-            hasNextSibling: false
+            hasNextSibling: false,
         };
         var validator = validatorTraversal(inp);
         traverseTree(cursor, {
@@ -22605,7 +22605,7 @@ var app = (function (exports) {
             onLeave: function (node) {
                 validator.traversal.onLeave(node);
                 state.prefixes.pop();
-            }
+            },
         });
         return state.output;
     }
@@ -22616,6 +22616,15 @@ var app = (function (exports) {
     function logTree(tree, input, options) {
         console.log(printTree(tree, input, options));
     }
+    function logToConsole(v) {
+        console.clear();
+        logTree(syntaxTree(v.state), String(v.state.doc));
+    }
+    var logLezerTree = EditorView.updateListener.of(function (v) {
+        if (v.docChanged) {
+            logToConsole(v);
+        }
+    });
 
     var addUnderline = StateEffect.define();
     var underlineField = StateField.define({
@@ -22636,7 +22645,7 @@ var app = (function (exports) {
         },
         provide: function (f) { return EditorView.decorations.from(f); }
     });
-    var underlineMark = Decoration.mark({ "class": "cm-underline" });
+    var underlineMark = Decoration.mark({ class: "cm-underline" });
     var underlineTheme = EditorView.baseTheme({
         ".cm-underline": { textDecoration: "underline 2px blue wavy" }
     });
@@ -22661,6 +22670,17 @@ var app = (function (exports) {
             run: underlineSelection
         }]);
 
+    function update(cm) {
+        var newRef = window.location.protocol + '//' + window.location.host + window.location.pathname
+            + "?snippet=" + encodeURIComponent(cm.state.doc.toString());
+        document.getElementById('__permalink__').setAttribute("href", newRef);
+    }
+    var updatePermalink = EditorView.updateListener.of(function (v) {
+        if (v.docChanged) {
+            update(v);
+        }
+    });
+
     function lintExample(view) {
         var diagnostics = [];
         syntaxTree(view.state).iterate({
@@ -22670,56 +22690,29 @@ var app = (function (exports) {
                         from: from,
                         to: to,
                         severity: "error",
-                        message: "Parsing error!"
+                        message: "Parsing error!",
                     });
                 }
-            }
+            },
         });
         return diagnostics;
     }
+    var parseErrors = linter(lintExample);
 
-    var code = "+alias org.eolang.io.stdout\n+alias org.eolang.txt.sprintf\n\nmain > [args...]\n  leap > [y]\n    @ >\n      or.\n        and.\n          eq. (mod. y 4) 0\n          not. (eq. (mod. y 100) 0)\n        eq. (mod. y 400) 0\n  @ >\n    stdout\n      sprintf\n        \"%d is %sa leap year!\"\n        year! >\n          (args.get 0).as-int\n        if. (leap y:year) \"\" \"not \"\n\n";
-    // `+alias org.eolang.io.stdout
-    // +alias org.eolang.txt.sprintf
-    // #sample object
-    // main > [args...]
-    //   leap > [y]
-    //     @ >
-    //       or.
-    //         and.
-    //           eq. ([x] (y > 4.0e-1)) t:0A-BB
-    //           not. (eq. (mod. y x:0x13a) --)
-    //         eq. (mod. y 400.) TRUE
-    //   @ >
-    //     stdout
-    //       sprintf
-    //         "%d is %sa leap year!"
-    //         year! >
-    //           (args.get 0).as-int
-    //         if. (leap y:year) "" "not "
-    // `
+    var code = "+alias org.eolang.io.stdout\n+alias org.eolang.txt.sprintf\n\nmain > [args...]\n  leap > [y]\n    @ >\n      or.\n        and.\n          eq. (mod. y 4) 0\n          not. (eq. (mod. y 100) 0)\n        eq. (mod. y 400) 0\n  @ >\n    stdout\n      sprintf\n        \"%d is %sa leap year!\"\n        year! >\n          (args.get 0).as-int\n        if. (leap y:year) \"\" \"not \"\n";
     var myTheme = EditorView.baseTheme({
         $: {
             maxHeight: '80vh',
             maxWidth: '60vw',
-            outline: '1px auto #ddd'
+            outline: '1px auto #ddd',
         },
         $scroller: {
             fontFamily: '"Fira Mono", monospace',
-            fontSize: '30px'
+            fontSize: '30px',
         }
     });
-    function updatePermalink(cm) {
-        var newRef = window.location.protocol + '//' + window.location.host + window.location.pathname
-            + "?snippet=" + encodeURIComponent(cm.state.doc.toString());
-        document.getElementById('__permalink__').setAttribute("href", newRef);
-    }
     function sameIndent(context, pos) {
         return context.lineIndent(Math.max(pos - 1, 0));
-    }
-    function logToFile(v) {
-        console.clear();
-        logTree(syntaxTree(v.state), String(v.state.doc));
     }
     var initialState = EditorState.create({
         doc: code,
@@ -22727,16 +22720,12 @@ var app = (function (exports) {
             basicSetup,
             myTheme,
             eo(),
-            EditorView.updateListener.of(function (v) {
-                if (v.docChanged) {
-                    updatePermalink(v);
-                    logToFile(v);
-                }
-            }),
+            updatePermalink,
+            logLezerTree,
             keymap.of([indentWithTab]),
             underlineKeymap,
             indentService.of(sameIndent),
-            linter(lintExample)
+            parseErrors
         ]
     });
     var view = new EditorView({

@@ -7,12 +7,12 @@
   ARRAY_STAR{ "*"}
   CONST{ "!"}
   COLON{ ":"}
-  COPY{ "\'"}
-  VERTEX{ "<"}
-  ROOT{ 'Q'}
+  // COPY{ "\'"}
+  // VERTEX{ "<"}
+  // ROOT{ 'Q'}
   SIGMA{ "&"}
   XI{ "$"}
-  QUESTION{ "?"}
+  // QUESTION{ "?"}
   DOTS{ "..."}
   SLASH{ "/"}
   ARROW{ ">"}

@@ -45,7 +45,7 @@ export default {
         commonjs(),
         !production && serve(),
         !production && livereload(PATH),
-        typescript(),
+        typescript({lib: ["es5", "es6", "dom"], target: "es5"}),
     ],
     watch: {
         clearScreen: false

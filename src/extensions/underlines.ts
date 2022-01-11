@@ -25,7 +25,7 @@ const underlineTheme = EditorView.baseTheme({
     ".cm-underline": { textDecoration: "underline 2px blue wavy" }
 })
 
-export function underlineSelection(view: EditorView) {
+function underlineSelection(view: EditorView) {
     let effects: StateEffect<unknown>[] = view.state.selection.ranges
         .filter(r => !r.empty)
         .map(({ from, to }) => addUnderline.of({ from, to }))

@@ -30,3 +30,10 @@
 	top: -2px;
 	font-family: var(--code-font);
 }
+
+.cm-tab {
+	background-position: right;
+	background-repeat: no-repeat;
+	border-left: 1px solid rgb(142, 168, 192);
+	background-image: none;
+}

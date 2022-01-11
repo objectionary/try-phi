@@ -21,4 +21,4 @@ function lintExample(view: EditorView): readonly Diagnostic[] {
     return diagnostics;
 }
 
-export {lintExample}
+export const parseErrors = linter(lintExample)

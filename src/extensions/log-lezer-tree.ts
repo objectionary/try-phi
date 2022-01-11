@@ -1,4 +1,7 @@
 import { Text } from "@codemirror/text"
+import { EditorView } from '@codemirror/basic-setup'
+import { syntaxTree} from '@codemirror/language'
+import { ViewUpdate } from '@codemirror/view';
 import { Input, NodeType, SyntaxNode, Tree, TreeCursor } from "@lezer/common"
 
 class StringInput implements Input {
@@ -223,3 +226,14 @@ export function logTree(
 ): void {
   console.log(printTree(tree, input, options))
 }
+
+function logToConsole(v: ViewUpdate){
+  console.clear();
+  logTree(syntaxTree(v.state), String(v.state.doc));
+}
+
+export const logLezerTree = EditorView.updateListener.of((v: ViewUpdate) =>{
+  if (v.docChanged) {
+    logToConsole(v);
+  }
+})

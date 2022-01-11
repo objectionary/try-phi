@@ -1,13 +1,12 @@
 import { EditorState, EditorView, basicSetup } from '@codemirror/basic-setup'
-import { indentService, IndentContext, syntaxTree} from '@codemirror/language'
-import { keymap, ViewUpdate } from '@codemirror/view';
+import { indentService, IndentContext} from '@codemirror/language'
+import { keymap } from '@codemirror/view';
 import { indentWithTab } from '@codemirror/commands'
-// import { lintKeymap } from '@codemirror/lint'
-import { eo } from './utils/eo'
-import { logTree, printTree } from './utils/print-lezer-tree';
-import { underlineKeymap } from './utils/underlines';
-import { linter } from '@codemirror/lint';
-import { lintExample } from './utils/diagnostics';
+import { eo } from './eo'
+import { logLezerTree } from './extensions/log-lezer-tree';
+import { underlineKeymap } from './extensions/underlines';
+import { updatePermalink } from './extensions/permalink';
+import { parseErrors } from './extensions/diagnostics';
 
 
 let code = 
@@ -29,28 +28,7 @@ main > [args...]
         year! >
           (args.get 0).as-int
         if. (leap y:year) "" "not "
-
 `
-// `+alias org.eolang.io.stdout
-// +alias org.eolang.txt.sprintf
-
-// #sample object
-// main > [args...]
-//   leap > [y]
-//     @ >
-//       or.
-//         and.
-//           eq. ([x] (y > 4.0e-1)) t:0A-BB
-//           not. (eq. (mod. y x:0x13a) --)
-//         eq. (mod. y 400.) TRUE
-//   @ >
-//     stdout
-//       sprintf
-//         "%d is %sa leap year!"
-//         year! >
-//           (args.get 0).as-int
-//         if. (leap y:year) "" "not "
-// `
 
 const myTheme = EditorView.baseTheme({
   $: {
@@ -64,22 +42,10 @@ const myTheme = EditorView.baseTheme({
   }
 })
 
-function updatePermalink(cm: ViewUpdate){
-  let newRef =
-    window.location.protocol + '//' + window.location.host + window.location.pathname
-    + "?snippet=" + encodeURIComponent(cm.state.doc.toString())
-  document.getElementById('__permalink__').setAttribute("href", newRef)
-}
-
-
 function sameIndent(context: IndentContext, pos: number){
   return context.lineIndent(Math.max(pos-1, 0))
 }
 
-function logToFile(v: ViewUpdate){
-  console.clear();
-  logTree(syntaxTree(v.state), String(v.state.doc));
-}
 
 const initialState = EditorState.create({
   doc: code,
@@ -87,16 +53,12 @@ const initialState = EditorState.create({
     basicSetup,
     myTheme,
     eo(),
-    EditorView.updateListener.of((v: ViewUpdate) =>{
-      if (v.docChanged) {
-        updatePermalink(v);
-        logToFile(v);
-      }
-    }),
+    updatePermalink,
+    logLezerTree,
     keymap.of([indentWithTab]),
     underlineKeymap,
     indentService.of(sameIndent),
-    linter(lintExample)
+    parseErrors
   ]
 })
 

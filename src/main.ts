@@ -3,10 +3,10 @@ import { indentService, IndentContext} from '@codemirror/language'
 import { keymap } from '@codemirror/view';
 import { indentWithTab } from '@codemirror/commands'
 import { eo } from './eo'
-import { logLezerTree } from './extensions/log-lezer-tree';
-import { underlineKeymap } from './extensions/underlines';
 import { updatePermalink } from './extensions/permalink';
 import { parseErrors } from './extensions/diagnostics';
+import { indentGuides } from './extensions/indent-guides';
+import { logLezerTree } from './extensions/log-lezer-tree';
 
 
 let code = 
@@ -54,11 +54,11 @@ const initialState = EditorState.create({
     myTheme,
     eo(),
     updatePermalink,
-    logLezerTree,
     keymap.of([indentWithTab]),
-    underlineKeymap,
     indentService.of(sameIndent),
-    parseErrors
+    parseErrors,
+    indentGuides,
+    logLezerTree
   ]
 })
 

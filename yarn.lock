@@ -149,10 +149,10 @@
     "@codemirror/state" "^0.19.0"
     "@codemirror/view" "^0.19.0"
 
-"@codemirror/rangeset@^0.19.0", "@codemirror/rangeset@^0.19.1", "@codemirror/rangeset@^0.19.5":
-  "integrity" "sha512-L3b+RIwIRKOJ3pJLOtpkxCUjGnxZKFyPb0CjYWKnVLuzEIaEExWWK7sp6rsejxOy8RjYzfCHlFhYB4UdQN7brw=="
-  "resolved" "https://registry.npmjs.org/@codemirror/rangeset/-/rangeset-0.19.5.tgz"
-  "version" "0.19.5"
+"@codemirror/rangeset@^0.19.0", "@codemirror/rangeset@^0.19.1", "@codemirror/rangeset@^0.19.5", "@codemirror/rangeset@^0.19.6":
+  "integrity" "sha512-wYtgGnW2Jtrh2nj7vpcBoEZib+jfyilrLN6w7YMTzzSRN8xXhYRorOUg4VQIa1JwFcMQrjSCkIdqXsDqOX1cYg=="
+  "resolved" "https://registry.npmjs.org/@codemirror/rangeset/-/rangeset-0.19.6.tgz"
+  "version" "0.19.6"
   dependencies:
     "@codemirror/state" "^0.19.0"
 

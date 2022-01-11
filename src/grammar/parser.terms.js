@@ -8,7 +8,7 @@ export const
   METAS = 6,
   META = 7,
   OBJECTS = 8,
-  SPACES = 9,
+  TABS = 9,
   OBJECT = 10,
   DECLARATION = 11,
   ATTR_NAME = 12,

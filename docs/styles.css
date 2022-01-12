@@ -34,10 +34,10 @@
 .cm-tab{
   background-position: right;
   background-repeat: no-repeat;
-  border-left: 1px solid rgb(142, 168, 192);
+  border-left: 1px solid rgba(73, 73, 73, 0.356);
   background-image: none;
 }
 
 .cm-tab-active {
-	border-left: 3px solid rgb(142, 168, 192);
+	border-left: 1px solid rgb(73, 73, 73);
 }

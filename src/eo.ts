@@ -2,15 +2,12 @@ import { parser } from './grammar/parser'
 import { foldNodeProp, LRLanguage } from '@codemirror/language'
 import { styleTags, tags as t } from '@codemirror/highlight'
 
-const foldInner = tree => ({ from: tree.start + 1, to: tree.end - 1 })
-
+const foldInner = (tree) => ({ from: tree.start + 1, to: tree.end - 1 })
 
 export const eoLanguage = LRLanguage.define({
   parser: parser.configure({
     props: [
-      foldNodeProp.add({
-
-      }),
+      foldNodeProp.add({}),
       styleTags({
         COMMENT: t.comment,
         META: t.documentMeta,
@@ -32,7 +29,6 @@ export const eoLanguage = LRLanguage.define({
 
         CHAR: t.character,
 
-
         ARROW: t.operatorKeyword,
         COLON: t.operatorKeyword,
         STAR: t.operatorKeyword,
@@ -50,8 +46,7 @@ export const eoLanguage = LRLanguage.define({
       }),
     ],
   }),
-  languageData: {
-  },
+  languageData: {},
 })
 
 export function eo() {

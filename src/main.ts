@@ -1,16 +1,14 @@
 import { EditorState, EditorView, basicSetup } from '@codemirror/basic-setup'
 import { indentService, IndentContext } from '@codemirror/language'
-import { keymap } from '@codemirror/view';
+import { keymap } from '@codemirror/view'
 import { indentWithTab } from '@codemirror/commands'
 import { eo } from './eo'
-import { updatePermalink } from './extensions/permalink';
-import { parseErrors } from './extensions/diagnostics';
-import { indentGuides } from './extensions/indent-guides';
-import { logLezerTree } from './extensions/log-lezer-tree';
+import { updatePermalink } from './extensions/permalink'
+import { parseErrors } from './extensions/diagnostics'
+import { indentGuides } from './extensions/indent-guides'
+import { logLezerTree } from './extensions/log-lezer-tree'
 
-
-let code =
-  `+alias org.eolang.io.stdout
+let code = `+alias org.eolang.io.stdout
 +alias org.eolang.txt.sprintf
 
 main > [args...]
@@ -39,13 +37,12 @@ const myTheme = EditorView.baseTheme({
   $scroller: {
     fontFamily: '"Fira Mono", monospace',
     fontSize: '30px',
-  }
+  },
 })
 
 function sameIndent(context: IndentContext, pos: number) {
   return context.lineIndent(Math.max(pos - 1, 0))
 }
-
 
 const initialState = EditorState.create({
   doc: code,
@@ -58,14 +55,13 @@ const initialState = EditorState.create({
     indentService.of(sameIndent),
     parseErrors,
     indentGuides,
-    logLezerTree
-  ]
+    logLezerTree,
+  ],
 })
-
 
 const view = new EditorView({
   state: initialState,
-  parent: document.querySelector("#editor")
+  parent: document.querySelector('#editor'),
 })
 
 export { view }

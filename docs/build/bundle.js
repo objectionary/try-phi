@@ -22448,9 +22448,13 @@ var app = (function (exports) {
     }
 
     function update(cm) {
-        var newRef = window.location.protocol + '//' + window.location.host + window.location.pathname
-            + "?snippet=" + encodeURIComponent(cm.state.doc.toString());
-        document.getElementById('__permalink__').setAttribute("href", newRef);
+        var newRef = window.location.protocol +
+            '//' +
+            window.location.host +
+            window.location.pathname +
+            '?snippet=' +
+            encodeURIComponent(cm.state.doc.toString());
+        document.getElementById('__permalink__').setAttribute('href', newRef);
     }
     var updatePermalink = EditorView.updateListener.of(function (v) {
         if (v.docChanged) {
@@ -22466,8 +22470,8 @@ var app = (function (exports) {
                     diagnostics.push({
                         from: from,
                         to: to,
-                        severity: "error",
-                        message: "Parsing error!",
+                        severity: 'error',
+                        message: 'Parsing error!',
                     });
                 }
             },
@@ -22476,51 +22480,62 @@ var app = (function (exports) {
     }
     var parseErrors = linter(lintExample);
 
-    // const addUnderline = StateEffect.define<{ from: number, to: number }>()
-    // const underlineField = StateField.define<DecorationSet>({
-    //     create() {
-    //         return Decoration.none
-    //     },
-    //     update(underlines, tr) {
-    //         underlines = underlines.map(tr.changes)
-    //         for (let e of tr.effects) if (e.is(addUnderline)) {
-    //             underlines = underlines.update({
-    //                 add: [underlineMark.range(e.value.from, e.value.to)]
-    //             })
-    //         }
-    //         return underlines
-    //     },
-    //     provide: f => EditorView.decorations.from(f)
-    // })
-    var underlineMark = Decoration.mark({ class: "cm-tab" });
-    // const underlineTheme = EditorView.baseTheme({
-    //     // ".cm-underline": { textDecoration: "underline 2px blue" }
-    //     ".cm-underline": { }
-    // })
+    var indentMark = Decoration.mark({ class: 'cm-tab' });
+    var indentActiveMark = Decoration.mark({ class: 'cm-tab-active cm-tab' });
     function tabDecorations(view) {
-        var context = new IndentContext(view.state);
-        var builder = new RangeSetBuilder();
+        var state = view.state;
+        var context = new IndentContext(state);
+        // find range of lines that are inside parent object for object at cursor
+        var cursorRange = state.selection.ranges.filter(function (range) { return range.empty; })[0];
+        console.log(cursorRange);
+        var cursorPos = cursorRange.head;
+        var cursorLine = state.doc.lineAt(cursorPos);
+        var cursorIndent = Math.floor(Math.max(context.lineIndent(cursorPos) - 1, 0) / 2) * 2;
+        // highlighting needed in (start; end) range
+        var start = -1;
+        var end = -1;
+        var endSet = false;
         for (var _i = 0, _a = view.visibleRanges; _i < _a.length; _i++) {
             var _b = _a[_i], from = _b.from, to = _b.to;
             for (var pos = from; pos <= to;) {
                 var line = view.state.doc.lineAt(pos);
                 var indent = context.lineIndent(line.to);
+                if (indent <= cursorIndent + 1 && line.number < cursorLine.number) {
+                    start = line.number;
+                }
+                if (!endSet && indent <= cursorIndent && line.number > cursorLine.number) {
+                    end = line.number;
+                    endSet = true;
+                }
+                pos = line.to + 1;
+            }
+        }
+        // if cursor on the last line
+        if (!endSet) {
+            end = state.doc.lineAt(state.doc.length).number;
+        }
+        // set appropriate styles for tabs
+        var builder = new RangeSetBuilder();
+        for (var _c = 0, _d = view.visibleRanges; _c < _d.length; _c++) {
+            var _e = _d[_c], from = _e.from, to = _e.to;
+            for (var pos = from; pos <= to;) {
+                var line = view.state.doc.lineAt(pos);
+                var indent = context.lineIndent(line.to);
                 for (var i = 0; i < indent; i += 2) {
                     var j = line.from + i;
-                    builder.add(j, j + 1, underlineMark);
+                    if (line.number >= start && line.number <= end && i === cursorIndent) {
+                        builder.add(j, j + 1, indentActiveMark);
+                    }
+                    else {
+                        builder.add(j, j + 1, indentMark);
+                    }
                 }
                 pos = line.to + 1;
             }
         }
         return builder.finish();
-        // if (!effects.length) return false
-        // if (!view.state.field(underlineField, false))
-        //     effects.push(StateEffect.appendConfig.of([underlineField,
-        //         underlineTheme]))
-        // view.dispatch({ effects })
-        // return true
     }
-    var indentGuide = ViewPlugin.fromClass(/** @class */ (function () {
+    var indentGuides = ViewPlugin.fromClass(/** @class */ (function () {
         function class_1(view) {
             this.decorations = tabDecorations(view);
         }
@@ -22531,44 +22546,7 @@ var app = (function (exports) {
         };
         return class_1;
     }()), {
-        decorations: function (v) { return v.decorations; }
-    });
-
-    EditorView.baseTheme({
-        "&light .cm-zebraStripe": { backgroundColor: "#f4fafa" },
-        "&dark .cm-zebraStripe": { backgroundColor: "#1a2727" }
-    });
-    var stepSize = Facet.define({
-        combine: function (values) { return values.length ? Math.min.apply(Math, values) : 2; }
-    });
-    var stripe = Decoration.line({
-        attributes: { class: "cm-zebraStripe" }
-    });
-    function stripeDeco(view) {
-        var step = view.state.facet(stepSize);
-        var builder = new RangeSetBuilder();
-        for (var _i = 0, _a = view.visibleRanges; _i < _a.length; _i++) {
-            var _b = _a[_i], from = _b.from, to = _b.to;
-            for (var pos = from; pos <= to;) {
-                var line = view.state.doc.lineAt(pos);
-                if ((line.number % step) == 0)
-                    builder.add(line.from, line.from, stripe);
-                pos = line.to + 1;
-            }
-        }
-        return builder.finish();
-    }
-    var showStripes = ViewPlugin.fromClass(/** @class */ (function () {
-        function class_1(view) {
-            this.decorations = stripeDeco(view);
-        }
-        class_1.prototype.update = function (update) {
-            if (update.docChanged || update.viewportChanged)
-                this.decorations = stripeDeco(update.view);
-        };
-        return class_1;
-    }()), {
-        decorations: function (v) { return v.decorations; }
+        decorations: function (v) { return v.decorations; },
     });
 
     var code = "+alias org.eolang.io.stdout\n+alias org.eolang.txt.sprintf\n\nmain > [args...]\n  leap > [y]\n    @ >\n      or.\n        and.\n          eq. (mod. y 4) 0\n          not. (eq. (mod. y 100) 0)\n        eq. (mod. y 400) 0\n  @ >\n    stdout\n      sprintf\n        \"%d is %sa leap year!\"\n        year! >\n          (args.get 0).as-int\n        if. (leap y:year) \"\" \"not \"\n";
@@ -22581,7 +22559,7 @@ var app = (function (exports) {
         $scroller: {
             fontFamily: '"Fira Mono", monospace',
             fontSize: '30px',
-        }
+        },
     });
     function sameIndent(context, pos) {
         return context.lineIndent(Math.max(pos - 1, 0));
@@ -22593,19 +22571,16 @@ var app = (function (exports) {
             myTheme,
             eo(),
             updatePermalink,
-            // logLezerTree,
             keymap.of([indentWithTab]),
-            // underlineKeymap,
             indentService.of(sameIndent),
             parseErrors,
-            indentGuide,
-            showStripes
-            // zebraStripes({step: 2})
-        ]
+            indentGuides,
+            // logLezerTree,
+        ],
     });
     var view = new EditorView({
         state: initialState,
-        parent: document.querySelector("#editor")
+        parent: document.querySelector('#editor'),
     });
 
     exports.view = view;

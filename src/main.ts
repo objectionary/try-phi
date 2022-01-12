@@ -55,7 +55,7 @@ const initialState = EditorState.create({
     indentService.of(sameIndent),
     parseErrors,
     indentGuides,
-    logLezerTree,
+    // logLezerTree,
   ],
 })
 

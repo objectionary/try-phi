@@ -7,25 +7,24 @@ import {
 } from '@codemirror/view'
 import { IndentContext } from '@codemirror/language'
 import { RangeSetBuilder } from '@codemirror/rangeset'
+import { EditorState } from '@codemirror/basic-setup'
 
 const indentMark = Decoration.mark({ class: 'cm-tab' })
 
 const indentActiveMark = Decoration.mark({ class: 'cm-tab-active cm-tab' })
 
-function tabDecorations(view: EditorView) {
+function getCursorRange(view: EditorView) {
   let state = view.state
-
   let context = new IndentContext(state)
 
   // find range of lines that are inside parent object for object at cursor
-  let cursorRange = state.selection.ranges.filter((range) => range.empty)[0]
-  console.log(cursorRange)
-  let cursorPos = cursorRange.head
+  let cursorRange = state.selection.main
+  let cursorPos = cursorRange.from
   let cursorLine = state.doc.lineAt(cursorPos)
   let cursorIndent =
     Math.floor(Math.max(context.lineIndent(cursorPos) - 1, 0) / 2) * 2
-  
-    // highlighting needed in (start; end) range
+
+  // highlighting needed in (start; end) range
   let start = -1
   let end = -1
   let endSet = false
@@ -34,10 +33,14 @@ function tabDecorations(view: EditorView) {
     for (let pos = from; pos <= to; ) {
       let line = view.state.doc.lineAt(pos)
       let indent = context.lineIndent(line.to)
-      if (indent <= cursorIndent+1 && line.number < cursorLine.number) {
+      if (indent <= cursorIndent + 1 && line.number < cursorLine.number) {
         start = line.number
       }
-      if (!endSet && indent <= cursorIndent && line.number > cursorLine.number) {
+      if (
+        !endSet &&
+        indent <= cursorIndent &&
+        line.number > cursorLine.number
+      ) {
         end = line.number
         endSet = true
       }
@@ -46,9 +49,19 @@ function tabDecorations(view: EditorView) {
   }
 
   // if cursor on the last line
-  if (!endSet){
+  if (!endSet) {
     end = state.doc.lineAt(state.doc.length).number
   }
+
+  return {cursorIndent: cursorIndent, start: start, end: end}
+}
+
+function tabDecorations(view: EditorView) {
+  let state = view.state
+
+  let context = new IndentContext(state)
+
+  let {cursorIndent, start, end} = getCursorRange(view)
 
   // set appropriate styles for tabs
   let builder = new RangeSetBuilder<Decoration>()
@@ -81,7 +94,7 @@ export const indentGuides = ViewPlugin.fromClass(
     }
 
     update(update: ViewUpdate) {
-      if (update.docChanged || update.viewportChanged) {
+      if (update.docChanged || update.viewportChanged || update.transactions) {
         this.decorations = tabDecorations(update.view)
       }
     }

@@ -22482,13 +22482,12 @@ var app = (function (exports) {
 
     var indentMark = Decoration.mark({ class: 'cm-tab' });
     var indentActiveMark = Decoration.mark({ class: 'cm-tab-active cm-tab' });
-    function tabDecorations(view) {
+    function getCursorRange(view) {
         var state = view.state;
         var context = new IndentContext(state);
         // find range of lines that are inside parent object for object at cursor
-        var cursorRange = state.selection.ranges.filter(function (range) { return range.empty; })[0];
-        console.log(cursorRange);
-        var cursorPos = cursorRange.head;
+        var cursorRange = state.selection.main;
+        var cursorPos = cursorRange.from;
         var cursorLine = state.doc.lineAt(cursorPos);
         var cursorIndent = Math.floor(Math.max(context.lineIndent(cursorPos) - 1, 0) / 2) * 2;
         // highlighting needed in (start; end) range
@@ -22503,7 +22502,9 @@ var app = (function (exports) {
                 if (indent <= cursorIndent + 1 && line.number < cursorLine.number) {
                     start = line.number;
                 }
-                if (!endSet && indent <= cursorIndent && line.number > cursorLine.number) {
+                if (!endSet &&
+                    indent <= cursorIndent &&
+                    line.number > cursorLine.number) {
                     end = line.number;
                     endSet = true;
                 }
@@ -22514,10 +22515,16 @@ var app = (function (exports) {
         if (!endSet) {
             end = state.doc.lineAt(state.doc.length).number;
         }
+        return { cursorIndent: cursorIndent, start: start, end: end };
+    }
+    function tabDecorations(view) {
+        var state = view.state;
+        var context = new IndentContext(state);
+        var _a = getCursorRange(view), cursorIndent = _a.cursorIndent, start = _a.start, end = _a.end;
         // set appropriate styles for tabs
         var builder = new RangeSetBuilder();
-        for (var _c = 0, _d = view.visibleRanges; _c < _d.length; _c++) {
-            var _e = _d[_c], from = _e.from, to = _e.to;
+        for (var _i = 0, _b = view.visibleRanges; _i < _b.length; _i++) {
+            var _c = _b[_i], from = _c.from, to = _c.to;
             for (var pos = from; pos <= to;) {
                 var line = view.state.doc.lineAt(pos);
                 var indent = context.lineIndent(line.to);
@@ -22540,7 +22547,7 @@ var app = (function (exports) {
             this.decorations = tabDecorations(view);
         }
         class_1.prototype.update = function (update) {
-            if (update.docChanged || update.viewportChanged) {
+            if (update.docChanged || update.viewportChanged || update.transactions) {
                 this.decorations = tabDecorations(update.view);
             }
         };

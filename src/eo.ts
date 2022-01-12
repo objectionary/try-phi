@@ -1,6 +1,6 @@
-import {parser} from './grammar/parser'
-import {foldNodeProp, LRLanguage} from '@codemirror/language'
-import {styleTags, tags as t} from '@codemirror/highlight'
+import { parser } from './grammar/parser'
+import { foldNodeProp, LRLanguage } from '@codemirror/language'
+import { styleTags, tags as t } from '@codemirror/highlight'
 
 const foldInner = tree => ({ from: tree.start + 1, to: tree.end - 1 })
 
@@ -17,22 +17,22 @@ export const eoLanguage = LRLanguage.define({
 
         AT: t.url,
         RHO: t.url,
-        
+
         BOOL: t.bool,
-        
+
         INT: t.float,
         BYTES: t.float,
         HEX: t.float,
-        
+
         FLOAT: t.float,
         REGEX: t.regexp,
-        
+
         STRING: t.string,
         TEXT: t.string,
-        
+
         CHAR: t.character,
-        
-        
+
+
         ARROW: t.operatorKeyword,
         COLON: t.operatorKeyword,
         STAR: t.operatorKeyword,
@@ -42,7 +42,7 @@ export const eoLanguage = LRLanguage.define({
         SLASH: t.operatorKeyword,
         PLUS: t.operatorKeyword,
         MINUS: t.operatorKeyword,
-        
+
         LB: t.paren,
         RB: t.paren,
         LSQ: t.squareBracket,

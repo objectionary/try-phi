@@ -22556,6 +22556,14 @@ var app = (function (exports) {
         decorations: function (v) { return v.decorations; },
     });
 
+    function getPreviousIndent(context, pos) {
+        var doc = context.state.doc;
+        var lineBefore = doc.lineAt(pos).number;
+        var currentIndent = context.lineIndent(doc.line(lineBefore).from);
+        return currentIndent;
+    }
+    var sameIndent = indentService.of(getPreviousIndent);
+
     var code = "+alias org.eolang.io.stdout\n+alias org.eolang.txt.sprintf\n\nmain > [args...]\n  leap > [y]\n    @ >\n      or.\n        and.\n          eq. (mod. y 4) 0\n          not. (eq. (mod. y 100) 0)\n        eq. (mod. y 400) 0\n  @ >\n    stdout\n      sprintf\n        \"%d is %sa leap year!\"\n        year! >\n          (args.get 0).as-int\n        if. (leap y:year) \"\" \"not \"\n";
     var myTheme = EditorView.baseTheme({
         $: {
@@ -22568,9 +22576,6 @@ var app = (function (exports) {
             fontSize: '30px',
         },
     });
-    function sameIndent(context, pos) {
-        return context.lineIndent(Math.max(pos - 1, 0));
-    }
     var initialState = EditorState.create({
         doc: code,
         extensions: [
@@ -22579,9 +22584,9 @@ var app = (function (exports) {
             eo(),
             updatePermalink,
             keymap.of([indentWithTab]),
-            indentService.of(sameIndent),
             parseErrors,
             indentGuides,
+            sameIndent,
             // logLezerTree,
         ],
     });

@@ -1,5 +1,4 @@
 import { EditorState, EditorView, basicSetup } from '@codemirror/basic-setup'
-import { indentService, IndentContext } from '@codemirror/language'
 import { keymap } from '@codemirror/view'
 import { indentWithTab } from '@codemirror/commands'
 import { eo } from './eo'
@@ -7,6 +6,7 @@ import { updatePermalink } from './extensions/permalink'
 import { parseErrors } from './extensions/diagnostics'
 import { indentGuides } from './extensions/indent-guides'
 import { logLezerTree } from './extensions/log-lezer-tree'
+import { sameIndent } from './extensions/same-indent'
 
 let code = `+alias org.eolang.io.stdout
 +alias org.eolang.txt.sprintf
@@ -40,9 +40,7 @@ const myTheme = EditorView.baseTheme({
   },
 })
 
-function sameIndent(context: IndentContext, pos: number) {
-  return context.lineIndent(Math.max(pos - 1, 0))
-}
+
 
 const initialState = EditorState.create({
   doc: code,
@@ -52,9 +50,9 @@ const initialState = EditorState.create({
     eo(),
     updatePermalink,
     keymap.of([indentWithTab]),
-    indentService.of(sameIndent),
     parseErrors,
     indentGuides,
+    sameIndent,
     // logLezerTree,
   ],
 })

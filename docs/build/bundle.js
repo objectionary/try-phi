@@ -13101,7 +13101,7 @@ var app = (function (exports) {
         /// case will start at `ranges[0].from`.
         startParse(input, fragments, ranges) {
             if (typeof input == "string")
-                input = new StringInput(input);
+                input = new StringInput$1(input);
             ranges = !ranges ? [new Range(0, input.length)] : ranges.length ? ranges.map(r => new Range(r.from, r.to)) : [new Range(0, 0)];
             return this.createParse(input, fragments || [], ranges);
         }
@@ -13115,7 +13115,7 @@ var app = (function (exports) {
             }
         }
     }
-    class StringInput {
+    class StringInput$1 {
         constructor(string) {
             this.string = string;
         }
@@ -22556,6 +22556,201 @@ var app = (function (exports) {
         decorations: function (v) { return v.decorations; },
     });
 
+    var StringInput = /** @class */ (function () {
+        function StringInput(input) {
+            this.input = input;
+            this.lineChunks = false;
+        }
+        Object.defineProperty(StringInput.prototype, "length", {
+            get: function () {
+                return this.input.length;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        StringInput.prototype.chunk = function (from) {
+            return this.input.slice(from);
+        };
+        StringInput.prototype.read = function (from, to) {
+            return this.input.slice(from, to);
+        };
+        return StringInput;
+    }());
+    function cursorNode(_a, isLeaf) {
+        var type = _a.type, from = _a.from, to = _a.to;
+        if (isLeaf === void 0) { isLeaf = false; }
+        return { type: type, from: from, to: to, isLeaf: isLeaf };
+    }
+    function traverseTree(cursor, _a) {
+        var _b = _a.from, from = _b === void 0 ? -Infinity : _b, _c = _a.to, to = _c === void 0 ? Infinity : _c, _d = _a.includeParents, includeParents = _d === void 0 ? false : _d, beforeEnter = _a.beforeEnter, onEnter = _a.onEnter, onLeave = _a.onLeave;
+        if (!(cursor instanceof TreeCursor))
+            cursor = cursor instanceof Tree ? cursor.cursor() : cursor.cursor;
+        for (;;) {
+            var node = cursorNode(cursor);
+            var leave = false;
+            if (node.from <= to && node.to >= from) {
+                var enter = !node.type.isAnonymous &&
+                    (includeParents || (node.from >= from && node.to <= to));
+                if (enter && beforeEnter)
+                    beforeEnter(cursor);
+                node.isLeaf = !cursor.firstChild();
+                if (enter) {
+                    leave = true;
+                    if (onEnter(node) === false)
+                        return;
+                }
+                if (!node.isLeaf)
+                    continue;
+            }
+            for (;;) {
+                node = cursorNode(cursor, node.isLeaf);
+                if (leave && onLeave)
+                    if (onLeave(node) === false)
+                        return;
+                leave = cursor.type.isAnonymous;
+                node.isLeaf = false;
+                if (cursor.nextSibling())
+                    break;
+                if (!cursor.parent())
+                    return;
+                leave = true;
+            }
+        }
+    }
+    function isChildOf(child, parent) {
+        return (child.from >= parent.from &&
+            child.from <= parent.to &&
+            child.to <= parent.to &&
+            child.to >= parent.from);
+    }
+    function validatorTraversal(input, _a) {
+        var _b = _a === void 0 ? {} : _a, _c = _b.fullMatch, fullMatch = _c === void 0 ? true : _c;
+        if (typeof input === 'string')
+            input = new StringInput(input);
+        var state = {
+            valid: true,
+            parentNodes: [],
+            lastLeafTo: 0,
+        };
+        return {
+            state: state,
+            traversal: {
+                onEnter: function (node) {
+                    state.valid = true;
+                    if (!node.isLeaf)
+                        state.parentNodes.unshift(node);
+                    if (node.from > node.to || node.from < state.lastLeafTo) {
+                        state.valid = false;
+                    }
+                    else if (node.isLeaf) {
+                        if (state.parentNodes.length &&
+                            !isChildOf(node, state.parentNodes[0]))
+                            state.valid = false;
+                        state.lastLeafTo = node.to;
+                    }
+                    else {
+                        if (state.parentNodes.length) {
+                            if (!isChildOf(node, state.parentNodes[0]))
+                                state.valid = false;
+                        }
+                        else if (fullMatch &&
+                            (node.from !== 0 || node.to !== input.length)) {
+                            state.valid = false;
+                        }
+                    }
+                },
+                onLeave: function (node) {
+                    if (!node.isLeaf)
+                        state.parentNodes.shift();
+                },
+            },
+        };
+    }
+    var Color;
+    (function (Color) {
+        Color[Color["Red"] = 31] = "Red";
+        Color[Color["Green"] = 32] = "Green";
+        Color[Color["Yellow"] = 33] = "Yellow";
+    })(Color || (Color = {}));
+    function colorize(value, color) {
+        return String(value);
+        // return "\u001b[" + color + "m" + String(value) + "\u001b[39m"
+    }
+    function printTree(cursor, input, _a) {
+        var _b = _a === void 0 ? {} : _a, from = _b.from, to = _b.to, _c = _b.start, start = _c === void 0 ? 0 : _c, includeParents = _b.includeParents;
+        var inp = typeof input === 'string' ? new StringInput(input) : input;
+        var text = Text.of(inp.read(0, inp.length).split('\n'));
+        var state = {
+            output: '',
+            prefixes: [],
+            hasNextSibling: false,
+        };
+        var validator = validatorTraversal(inp);
+        traverseTree(cursor, {
+            from: from,
+            to: to,
+            includeParents: includeParents,
+            beforeEnter: function (cursor) {
+                state.hasNextSibling = cursor.nextSibling() && cursor.prevSibling();
+            },
+            onEnter: function (node) {
+                validator.traversal.onEnter(node);
+                var isTop = state.output === '';
+                var hasPrefix = !isTop || node.from > 0;
+                if (hasPrefix) {
+                    state.output += (!isTop ? '\n' : '') + state.prefixes.join('');
+                    if (state.hasNextSibling) {
+                        state.output += ' ├─ ';
+                        state.prefixes.push(' │  ');
+                    }
+                    else {
+                        state.output += ' └─ ';
+                        state.prefixes.push('    ');
+                    }
+                }
+                var hasRange = node.from !== node.to;
+                state.output +=
+                    (node.type.isError || !validator.state.valid
+                        ? colorize(node.type.name, Color.Red)
+                        : node.type.name) +
+                        ' ' +
+                        (hasRange
+                            ? '[' +
+                                colorize(locAt(text, start + node.from), Color.Yellow) +
+                                '..' +
+                                colorize(locAt(text, start + node.to), Color.Yellow) +
+                                ']'
+                            : colorize(locAt(text, start + node.from), Color.Yellow));
+                if (hasRange && node.isLeaf) {
+                    state.output +=
+                        ': ' +
+                            colorize(JSON.stringify(inp.read(node.from, node.to)), Color.Green);
+                }
+            },
+            onLeave: function (node) {
+                validator.traversal.onLeave(node);
+                state.prefixes.pop();
+            },
+        });
+        return state.output;
+    }
+    function locAt(text, pos) {
+        var line = text.lineAt(pos);
+        return line.number + ':' + (pos - line.from);
+    }
+    function logTree(tree, input, options) {
+        console.log(printTree(tree, input, options));
+    }
+    function logToConsole(v) {
+        console.clear();
+        logTree(syntaxTree(v.state), String(v.state.doc));
+    }
+    var logLezerTree = EditorView.updateListener.of(function (v) {
+        if (v.docChanged) {
+            logToConsole(v);
+        }
+    });
+
     function getPreviousIndent(context, pos) {
         var doc = context.state.doc;
         var lineBefore = doc.lineAt(pos).number;
@@ -22587,7 +22782,7 @@ var app = (function (exports) {
             parseErrors,
             indentGuides,
             sameIndent,
-            // logLezerTree,
+            logLezerTree,
         ],
     });
     var view = new EditorView({

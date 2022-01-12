@@ -53,7 +53,7 @@ const initialState = EditorState.create({
     parseErrors,
     indentGuides,
     sameIndent,
-    // logLezerTree,
+    logLezerTree,
   ],
 })
 

@@ -10,6 +10,7 @@
 
 <link rel="shortcut icon" href="https://www.yegor256.com/images/books/elegant-objects/cactus.png" />
 <link rel="stylesheet" href="./styles.css">
+<script src="../src/utils.ts"></script>
 
 <style>
   body {
@@ -23,8 +24,7 @@
 <body>
   <div style="text-align: center;">
     <h2>EO dialect* editor</h2>
-    
-    | <a href="" id="__permalink__">permalink to this snippet</a>
+    <button type="button" class="btn btn-link" id="__permalink__" onclick="copyPermalink()">Copy permalink</button>
   </div>
   <br />
 
@@ -159,8 +159,7 @@
       view.dispatch({
         changes: { from: 0, to: view.state.doc.length, insert: snippet },
       });
-    </script>
-    <script>
-      // copy permalink to clipboard
+
+      let copyPermalink = app.copyPermalink
     </script>
 </body>

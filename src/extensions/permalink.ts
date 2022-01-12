@@ -1,19 +1,36 @@
-import { ViewUpdate } from '@codemirror/view'
-import { EditorView } from '@codemirror/basic-setup'
+import { ViewPlugin, ViewUpdate } from '@codemirror/view'
+import { EditorState, EditorView } from '@codemirror/basic-setup'
+import copy from 'copy-to-clipboard'
 
-function update(cm: ViewUpdate) {
+const linkId = '__permalink__'
+const attributeHref = 'href'
+
+function setLink(state: EditorState) {
   let newRef =
     window.location.protocol +
     '//' +
     window.location.host +
     window.location.pathname +
     '?snippet=' +
-    encodeURIComponent(cm.state.doc.toString())
-  document.getElementById('__permalink__').setAttribute('href', newRef)
+    encodeURIComponent(state.doc.toString())
+  document.getElementById(linkId).setAttribute('href', newRef)
 }
 
-export const updatePermalink = EditorView.updateListener.of((v: ViewUpdate) => {
-  if (v.docChanged) {
-    update(v)
+export const updatePermalink = ViewPlugin.fromClass(
+  class {
+    constructor(view: EditorView) {
+      setLink(view.state)
+    }
+
+    update(update: ViewUpdate) {
+      if (update.docChanged) {
+        setLink(update.state)
+      }
+    }
   }
-})
+)
+
+export function copyPermalink(){
+  let snippet = document.getElementById(linkId).getAttribute(attributeHref)
+  copy(snippet)
+}

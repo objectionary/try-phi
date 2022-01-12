@@ -2,11 +2,12 @@ import { EditorState, EditorView, basicSetup } from '@codemirror/basic-setup'
 import { keymap } from '@codemirror/view'
 import { indentWithTab } from '@codemirror/commands'
 import { eo } from './eo'
-import { updatePermalink } from './extensions/permalink'
+import { updatePermalink, copyPermalink } from './extensions/permalink'
 import { parseErrors } from './extensions/diagnostics'
 import { indentGuides } from './extensions/indent-guides'
 import { logLezerTree } from './extensions/log-lezer-tree'
 import { sameIndent } from './extensions/same-indent'
+
 
 let code = `+alias org.eolang.io.stdout
 +alias org.eolang.txt.sprintf
@@ -40,8 +41,6 @@ const myTheme = EditorView.baseTheme({
   },
 })
 
-
-
 const initialState = EditorState.create({
   doc: code,
   extensions: [
@@ -62,4 +61,4 @@ const view = new EditorView({
   parent: document.querySelector('#editor'),
 })
 
-export { view }
+export { view, copyPermalink}

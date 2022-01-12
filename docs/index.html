@@ -23,12 +23,8 @@
 <body>
   <div style="text-align: center;">
     <h2>EO dialect* editor</h2>
-    based on <a href="https://codemirror.net/6/">Codemirror 6</a>
+    
     | <a href="" id="__permalink__">permalink to this snippet</a>
-    | <a href="https://github.com/br4ch1st0chr0n3/eo-editor">GitHub repo</a>
-    | <a href="https://github.com/br4ch1st0chr0n3/eo-editor#differences-of-this-dialect-from-eo">compare with EO
-      snippets</a>
-    | <a href="https://github.com/cqfn/eo">EO repo</a>
   </div>
   <br />
 
@@ -38,26 +34,30 @@
       <div class="row">
         <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#guideTabs"
           aria-expanded="false" aria-controls="guideTabs">
-          Editor features
+          Editor guide
         </button>
         <div class="collapse" id="guideTabs">
           <div class="card card-body">
-            <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
+            <ul class="nav nav-tabs mb-3" id="nav-tab" role="tablist">
               <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="pills-keybindings-tab" data-bs-toggle="pill" data-bs-target="#pills-keybindings"
-                  type="button" role="tab" aria-controls="pills-keybindings" aria-selected="true">Keybindings</button>
+                <button class="nav-link active" id="keybindings-tab" data-bs-toggle="pill" data-bs-target="#keybindings"
+                  type="button" role="tab" aria-controls="keybindings" aria-selected="true">Keybindings</button>
               </li>
               <li class="nav-item" role="presentation">
-                <button class="nav-link" id="pills-diagnostics-tab" data-bs-toggle="pill" data-bs-target="#pills-diagnostics"
-                  type="button" role="tab" aria-controls="pills-diagnostics" aria-selected="false">Diagnostics</button>
+                <button class="nav-link" id="diagnostics-tab" data-bs-toggle="pill" data-bs-target="#diagnostics"
+                  type="button" role="tab" aria-controls="diagnostics" aria-selected="false">Diagnostics</button>
               </li>
               <li class="nav-item" role="presentation">
-                <button class="nav-link" id="pills-lezer-tab" data-bs-toggle="pill" data-bs-target="#pills-lezer"
-                  type="button" role="tab" aria-controls="pills-lezer" aria-selected="false">Lezer tree</button>
+                <button class="nav-link" id="lezer-tab" data-bs-toggle="pill" data-bs-target="#lezer"
+                  type="button" role="tab" aria-controls="lezer" aria-selected="false">Lezer tree</button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="links-tab" data-bs-toggle="pill" data-bs-target="#links"
+                  type="button" role="tab" aria-controls="links" aria-selected="false">Links</button>
               </li>
             </ul>
-            <div class="tab-content" id="pills-tabContent">
-              <div class="tab-pane fade show active" id="pills-keybindings" role="tabpanel" aria-labelledby="pills-keybindings-tab">
+            <div class="tab-content" id="tabContent">
+              <div class="tab-pane fade show active" id="keybindings" role="tabpanel" aria-labelledby="keybindings-tab">
                 <table class="table table-hover wide-table">
                   <thead>
                     <tr>
@@ -88,16 +88,8 @@
                     </tr>
                   </tbody>
                 </table>
-                <!-- <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#collapseExample" aria-expanded="false" aria-controls="collapseExample">
-                Keybindings tab
-              </button>
-              <div class="collapse" id="collapseExample">
-                <div class="card card-body">
-                  
-                </div>
-              </div> -->
               </div>
-              <div class="tab-pane fade" id="pills-diagnostics" role="tabpanel" aria-labelledby="pills-diagnostics-tab">
+              <div class="tab-pane fade" id="diagnostics" role="tabpanel" aria-labelledby="diagnostics-tab">
                 <table class="table table-hover wide-table">
                   <thead>
                     <tr>
@@ -107,26 +99,45 @@
                   </thead>
                   <tbody>
                     <tr>
-                      <td>A red triangle</td>
-                      <td>A position of a parsing error</td>
+                      <td>Red triangle</td>
+                      <td>Position of a parsing error</td>
                     </tr>
                     <tr>
                       <td>Red wavy underlines</td>
-                      <td>(possibly) a part of an incorrect expression</td>
+                      <td>(Possibly) a part of an incorrect expression</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-              <div class="tab-pane fade" id="pills-lezer" role="tabpanel" aria-labelledby="pills-lezer-tab">
+              <div class="tab-pane fade" id="lezer" role="tabpanel" aria-labelledby="lezer-tab">
                 If toggled, full <a href="https://lezer.codemirror.net/">Lezer</a> parse tree is in your browser's console
+              </div>
+              <div class="tab-pane fade" id="links" role="tabpanel" aria-labelledby="links-tab">
+                <table class="table table-hover wide-table">
+                  <tbody>
+                    <tr>
+                      <td><a href="https://github.com/br4ch1st0chr0n3/eo-editor">GitHub repo</a></td>
+                    </tr>
+                    <tr>
+                      <td><a href="https://github.com/cqfn/eo">EO repo</a></td>
+                    </tr>
+                    <tr>
+                      <td><a href="https://github.com/br4ch1st0chr0n3/eo-editor#comparison-of-this-dialect-with-eo">Comparison with EO</a></td>
+                    </tr>
+                    <tr>
+                      <td>
+                        We use <a href="https://codemirror.net/6/">Codemirror 6</a>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
         </div>
         <div class="row p-2">
           <p><b>*</b> The only syntactic difference from EO is that for an attribute (or an object), its name should always
-            precede its value when reading left-to-right, top-to-bottom [<a
-              href="https://github.com/cqfn/eo/issues/568">discussion</a>]</p>
+            precede its value when reading left-to-right, top-to-bottom [<a href="https://github.com/cqfn/eo/issues/568">discussion</a>]</p>
         </div>
       </div>
     </div>
@@ -148,5 +159,8 @@
       view.dispatch({
         changes: { from: 0, to: view.state.doc.length, insert: snippet },
       });
+    </script>
+    <script>
+      // copy permalink to clipboard
     </script>
 </body>

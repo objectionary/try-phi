@@ -22414,12 +22414,13 @@ var app = (function (exports) {
                 styleTags({
                     COMMENT: tags.comment,
                     META: tags.documentMeta,
-                    AT: tags.url,
-                    RHO: tags.url,
+                    AT: tags.keyword,
+                    RHO: tags.keyword,
+                    ARRAY_STAR: tags.keyword,
                     BOOL: tags.bool,
-                    INT: tags.float,
-                    BYTES: tags.float,
-                    HEX: tags.float,
+                    INT: tags.integer,
+                    BYTES: tags.number,
+                    HEX: tags.number,
                     FLOAT: tags.float,
                     REGEX: tags.regexp,
                     STRING: tags.string,
@@ -22427,13 +22428,10 @@ var app = (function (exports) {
                     CHAR: tags.character,
                     ARROW: tags.operatorKeyword,
                     COLON: tags.operatorKeyword,
-                    STAR: tags.operatorKeyword,
                     CONST: tags.operatorKeyword,
                     DOT: tags.operatorKeyword,
                     DOTS: tags.operatorKeyword,
                     SLASH: tags.operatorKeyword,
-                    PLUS: tags.operatorKeyword,
-                    MINUS: tags.operatorKeyword,
                     LB: tags.paren,
                     RB: tags.paren,
                     LSQ: tags.squareBracket,
@@ -22443,8 +22441,22 @@ var app = (function (exports) {
         }),
         languageData: {},
     });
+    var eoHighlighting = HighlightStyle.define([
+        { tag: tags.comment, color: '#A0A1A7' },
+        { tag: tags.documentMeta, color: '#7826e2' },
+        { tag: tags.keyword, color: '#195791' },
+        { tag: tags.bool, color: '#986801' },
+        { tag: tags.integer, color: '#986801' },
+        { tag: tags.float, color: '#986801' },
+        { tag: tags.regexp, color: '#0184BC' },
+        { tag: tags.string, color: '#50A14F' },
+        { tag: tags.character, color: '#0184BC' },
+        { tag: tags.operatorKeyword, color: '#A626A4' },
+        { tag: tags.paren, color: '#383A42' },
+        { tag: tags.squareBracket, color: '#383A42' },
+    ]);
     function eo() {
-        return [eoLanguage];
+        return [eoLanguage, eoHighlighting];
     }
 
     var toggleSelection = function () {

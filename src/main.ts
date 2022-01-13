@@ -30,7 +30,7 @@ main > [args...]
 `
 
 const myTheme = EditorView.baseTheme({
-  $: {
+  $: {  
     maxHeight: '80vh',
     maxWidth: '60vw',
     outline: '1px auto #ddd',
@@ -39,7 +39,10 @@ const myTheme = EditorView.baseTheme({
     fontFamily: '"Fira Mono", monospace',
     fontSize: '30px',
   },
+
 })
+
+
 
 const initialState = EditorState.create({
   doc: code,

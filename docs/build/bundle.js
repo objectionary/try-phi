@@ -22863,11 +22863,11 @@ var app = (function (exports) {
                 if (hasPrefix) {
                     state.output += (!isTop ? '\n' : '') + state.prefixes.join('');
                     if (state.hasNextSibling) {
-                        state.output += ' ├─ ';
-                        state.prefixes.push(' │  ');
+                        state.output += ' ┣━  ';
+                        state.prefixes.push(' ┃  ');
                     }
                     else {
-                        state.output += ' └─ ';
+                        state.output += ' ┗━ ';
                         state.prefixes.push('    ');
                     }
                 }
@@ -22908,22 +22908,7 @@ var app = (function (exports) {
         console.clear();
         logTree(syntaxTree(state), String(state.doc));
     }
-    // const lezerTreeEnabled = StateField.define<boolean>({
-    //   create(state) {
-    //     console.log('created')
-    //     return true
-    //   },
-    //   update(isSet, tr) {
-    //     let oddToggles = (tr.effects.filter(e => e.is(toggle)).length % 2) === 1
-    //     return oddToggles ? !isSet : isSet
-    //   },
-    // })
     var logLezerTree = EditorView.updateListener.of(function (v) {
-        // if (v.state.field(lezerTreeEnabled, false) === undefined) {
-        //   v.state.update({ effects: StateEffect.appendConfig.of([lezerTreeEnabled]) })
-        // }
-        // console.log(v.state.field(lezerTreeEnabled, false))
-        // let treeEnabled = v.state.field(lezerTreeEnabled, false)
         if (v.docChanged) {
             logToConsole(v.state);
         }
@@ -22941,19 +22926,6 @@ var app = (function (exports) {
         }
         return [myCompartment.of([]), keymap.of([{ key: key, run: toggle }])];
     }
-    // field
-    // const toggle = StateEffect.define()
-    // function toggleTree(view: EditorView) {
-    //   view.dispatch({ effects: toggle.of(null) })
-    //   return true
-    // }
-    // export const lezerToggle = keymap.of([
-    //   {
-    //     key: 'Mod-b',
-    //     preventDefault: true,
-    //     run: toggleTree,
-    //   },
-    // ])
 
     function getPreviousIndent(context, pos) {
         var doc = context.state.doc;
@@ -22986,9 +22958,7 @@ var app = (function (exports) {
             parseErrors,
             indentGuides,
             sameIndent,
-            toggleTree("Mod-Shift-l")
-            // logLezerTree,
-            // lezerToggle
+            toggleTree("Ctrl-Shift-l")
         ],
     });
     var view = new EditorView({

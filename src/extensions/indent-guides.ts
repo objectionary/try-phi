@@ -25,7 +25,7 @@ function getCursorRange(view: EditorView) {
     Math.floor(Math.max(context.lineIndent(cursorPos) - 1, 0) / 2) * 2
 
   // highlighting needed in (start; end) range
-  let start = -1
+  let start = state.doc.length
   let end = -1
   let endSet = false
 
@@ -33,7 +33,7 @@ function getCursorRange(view: EditorView) {
     for (let pos = from; pos <= to; ) {
       let line = view.state.doc.lineAt(pos)
       let indent = context.lineIndent(line.to)
-      if (indent <= cursorIndent + 1 && line.number < cursorLine.number) {
+      if (indent <= cursorIndent && line.number < cursorLine.number) {
         start = line.number
       }
       if (

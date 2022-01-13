@@ -22666,7 +22666,7 @@ var app = (function (exports) {
         var cursorLine = state.doc.lineAt(cursorPos);
         var cursorIndent = Math.floor(Math.max(context.lineIndent(cursorPos) - 1, 0) / 2) * 2;
         // highlighting needed in (start; end) range
-        var start = -1;
+        var start = state.doc.length;
         var end = -1;
         var endSet = false;
         for (var _i = 0, _a = view.visibleRanges; _i < _a.length; _i++) {
@@ -22674,7 +22674,7 @@ var app = (function (exports) {
             for (var pos = from; pos <= to;) {
                 var line = view.state.doc.lineAt(pos);
                 var indent = context.lineIndent(line.to);
-                if (indent <= cursorIndent + 1 && line.number < cursorLine.number) {
+                if (indent <= cursorIndent && line.number < cursorLine.number) {
                     start = line.number;
                 }
                 if (!endSet &&

@@ -1,4 +1,4 @@
-import { parser } from './grammar/parser'
+import { parser } from '../grammar/parser'
 import { foldNodeProp, LRLanguage } from '@codemirror/language'
 import {
   HighlightStyle,
@@ -6,8 +6,6 @@ import {
   tags as t,
   tags,
 } from '@codemirror/highlight'
-
-const foldInner = (tree) => ({ from: tree.start + 1, to: tree.end - 1 })
 
 export const eoLanguage = LRLanguage.define({
   parser: parser.configure({

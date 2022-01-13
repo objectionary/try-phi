@@ -1,7 +1,7 @@
 import { EditorState, EditorView, basicSetup } from '@codemirror/basic-setup'
 import { keymap } from '@codemirror/view'
 import { indentWithTab } from '@codemirror/commands'
-import { eo } from './eo'
+import { eo } from './extensions/eo'
 import { updatePermalink, copyPermalink } from './extensions/permalink'
 import { parseErrors } from './extensions/diagnostics'
 import { indentGuides } from './extensions/indent-guides'

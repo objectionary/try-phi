@@ -22958,7 +22958,7 @@ var app = (function (exports) {
             parseErrors,
             indentGuides,
             sameIndent,
-            toggleTree("Ctrl-Shift-l")
+            toggleTree("Mod-Shift-l")
         ],
     });
     var view = new EditorView({

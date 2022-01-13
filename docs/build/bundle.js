@@ -22447,6 +22447,7 @@ var app = (function (exports) {
         { tag: tags.keyword, color: '#195791' },
         { tag: tags.bool, color: '#986801' },
         { tag: tags.integer, color: '#986801' },
+        { tag: tags.number, color: '#986801' },
         { tag: tags.float, color: '#986801' },
         { tag: tags.regexp, color: '#0184BC' },
         { tag: tags.string, color: '#50A14F' },

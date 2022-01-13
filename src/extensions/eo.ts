@@ -56,6 +56,7 @@ export const eoHighlighting = HighlightStyle.define([
   { tag: tags.keyword, color: '#195791' },
   { tag: tags.bool, color: '#986801' },
   { tag: tags.integer, color: '#986801' },
+  { tag: tags.number, color: '#986801' },
   { tag: tags.float, color: '#986801' },
   { tag: tags.regexp, color: '#0184BC' },
   { tag: tags.string, color: '#50A14F' },
@@ -64,6 +65,7 @@ export const eoHighlighting = HighlightStyle.define([
   { tag: tags.paren, color: '#383A42' },
   { tag: tags.squareBracket, color: '#383A42' },
 ])
+
 
 export function eo() {
   return [eoLanguage, eoHighlighting]

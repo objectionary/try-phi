@@ -3,6 +3,7 @@ import { EditorView } from '@codemirror/basic-setup'
 import { syntaxTree } from '@codemirror/language'
 import { ViewUpdate } from '@codemirror/view'
 import { Input, NodeType, SyntaxNode, Tree, TreeCursor } from '@lezer/common'
+import { StateEffect, StateField } from '@codemirror/state'
 
 class StringInput implements Input {
   constructor(private readonly input: string) {}
@@ -261,13 +262,34 @@ export function logTree(
   console.log(printTree(tree, input, options))
 }
 
-function logToConsole(v: ViewUpdate) {
+import { EditorState } from '@codemirror/basic-setup'
+
+function logToConsole(state: EditorState) {
   console.clear()
-  logTree(syntaxTree(v.state), String(v.state.doc))
+  logTree(syntaxTree(state), String(state.doc))
 }
 
 export const logLezerTree = EditorView.updateListener.of((v: ViewUpdate) => {
   if (v.docChanged) {
-    logToConsole(v)
+    logToConsole(v.state)
   }
 })
+
+import { Compartment } from '@codemirror/state'
+import { keymap } from '@codemirror/view'
+
+export function toggleTree(key: string) {
+  let extension = logLezerTree
+  let myCompartment = new Compartment()
+  function toggle(view: EditorView) {
+    let on = myCompartment.get(view.state) == extension
+    
+    on ? console.clear() : logToConsole(view.state)
+
+    view.dispatch({
+      effects: myCompartment.reconfigure(on ? [] : extension),
+    })
+    return true
+  }
+  return [myCompartment.of([]), keymap.of([{ key, run: toggle }])]
+}

@@ -5,7 +5,7 @@ import { eo } from './eo'
 import { updatePermalink, copyPermalink } from './extensions/permalink'
 import { parseErrors } from './extensions/diagnostics'
 import { indentGuides } from './extensions/indent-guides'
-import { logLezerTree } from './extensions/log-lezer-tree'
+import { toggleTree } from './extensions/log-lezer-tree'
 import { sameIndent } from './extensions/same-indent'
 
 
@@ -52,7 +52,7 @@ const initialState = EditorState.create({
     parseErrors,
     indentGuides,
     sameIndent,
-    logLezerTree,
+    toggleTree("Ctrl-Shift-l")
   ],
 })
 

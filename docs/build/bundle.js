@@ -22904,15 +22904,56 @@ var app = (function (exports) {
     function logTree(tree, input, options) {
         console.log(printTree(tree, input, options));
     }
-    function logToConsole(v) {
+    function logToConsole(state) {
         console.clear();
-        logTree(syntaxTree(v.state), String(v.state.doc));
+        logTree(syntaxTree(state), String(state.doc));
     }
+    // const lezerTreeEnabled = StateField.define<boolean>({
+    //   create(state) {
+    //     console.log('created')
+    //     return true
+    //   },
+    //   update(isSet, tr) {
+    //     let oddToggles = (tr.effects.filter(e => e.is(toggle)).length % 2) === 1
+    //     return oddToggles ? !isSet : isSet
+    //   },
+    // })
     var logLezerTree = EditorView.updateListener.of(function (v) {
+        // if (v.state.field(lezerTreeEnabled, false) === undefined) {
+        //   v.state.update({ effects: StateEffect.appendConfig.of([lezerTreeEnabled]) })
+        // }
+        // console.log(v.state.field(lezerTreeEnabled, false))
+        // let treeEnabled = v.state.field(lezerTreeEnabled, false)
         if (v.docChanged) {
-            logToConsole(v);
+            logToConsole(v.state);
         }
     });
+    function toggleTree(key) {
+        var extension = logLezerTree;
+        var myCompartment = new Compartment();
+        function toggle(view) {
+            var on = myCompartment.get(view.state) == extension;
+            on ? console.clear() : logToConsole(view.state);
+            view.dispatch({
+                effects: myCompartment.reconfigure(on ? [] : extension),
+            });
+            return true;
+        }
+        return [myCompartment.of([]), keymap.of([{ key: key, run: toggle }])];
+    }
+    // field
+    // const toggle = StateEffect.define()
+    // function toggleTree(view: EditorView) {
+    //   view.dispatch({ effects: toggle.of(null) })
+    //   return true
+    // }
+    // export const lezerToggle = keymap.of([
+    //   {
+    //     key: 'Mod-b',
+    //     preventDefault: true,
+    //     run: toggleTree,
+    //   },
+    // ])
 
     function getPreviousIndent(context, pos) {
         var doc = context.state.doc;
@@ -22945,7 +22986,9 @@ var app = (function (exports) {
             parseErrors,
             indentGuides,
             sameIndent,
-            logLezerTree,
+            toggleTree("Mod-Shift-l")
+            // logLezerTree,
+            // lezerToggle
         ],
     });
     var view = new EditorView({

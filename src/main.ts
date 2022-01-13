@@ -52,7 +52,7 @@ const initialState = EditorState.create({
     parseErrors,
     indentGuides,
     sameIndent,
-    toggleTree("Ctrl-Shift-l")
+    toggleTree("Mod-Shift-l")
   ],
 })
 

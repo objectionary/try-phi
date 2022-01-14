@@ -48,7 +48,7 @@ Programmers aren't good at remembering actual **types** of variables. Instead, t
 
 * Expressions look more familiar after both mainstream languages **and**  𝜑-calculus.
 
-* The code becomes a bit sparser, due to placeme of an attribute value **under** name
+* The code becomes a bit sparser, due to placement of an attribute value **under** name
 
 ## Neutral sides of this dialect
 * The dialect preserves the uniqueness of what an arrow `>` or a colon `:` bind, namely, an attribute name with its value. 

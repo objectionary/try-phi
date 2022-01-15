@@ -160,7 +160,6 @@ viewModel m@Model{..} =
           ]
         ]
 
-
 getGraphSteps :: Model -> [CGraph.Configuration Gr]
 getGraphSteps Model{..} =
   case modelAST of
@@ -218,11 +217,25 @@ tabContent tabId content buttonId isActive =
         Active -> " show active"
         _ -> ""
 
+func :: String
+func = Prelude.unlines [
+    "function pollDOM () {"
+  , "  const el = document.getElementById('editor');"
+  , "  if (el !== null) {"
+  , "    return el.textContent"
+  , "  } else {"
+  , "    return '[]'"
+  , "  }"
+  , "}"
+  , "pollDOM();"
+  ]
+-- func = "'code'"
+
 #ifndef __GHCJS__
 codemirrorGetValue :: JSM MisoString
 -- codemirrorGetValue = return (ms (show Phi.ex6))
 codemirrorGetValue = do
-  res <- eval $ textToStr ("function f(){return document.getElementById('editor').textContent;"::Text)
+  res <- eval $ textToStr (pack func)
   str <- valToStr res
   let misoStr = ms $ strToText str
   return misoStr

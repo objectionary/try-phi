@@ -51,6 +51,9 @@ dependencies:
 - transformers
 - trifecta
 - unordered-containers
+- bytestring
+- warp
+- websockets
 
 library:
   source-dirs: src

@@ -45,6 +45,7 @@ extra-deps:
 
 ghc-options:
   '$everything': -haddock
+
 #
 # extra-deps: []
 

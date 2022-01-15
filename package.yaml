@@ -66,6 +66,8 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    js-sources:
+        bundle.js
     when:
       - condition: impl(ghcjs)
         then:
@@ -103,4 +105,3 @@ tests:
     - Glob
     - QuickCheck
     - template-haskell
-

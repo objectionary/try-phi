@@ -7,12 +7,63 @@ module Content where
 
 import qualified Data.Map    as Map
 import           Miso.String
+import           Miso
+
+infoIcon :: MisoString -> View action
+infoIcon infoId =  i_ [
+  id_ infoId,
+  class_ "bi bi-info-square",
+  data_ "bs-container" "body",
+  data_ "bs-toggle" "popover",
+  data_ "bs-placement" "top",
+  data_ "bs-content" (infoContent infoId)] []
+
+data TabMode = Active | Disabled
+
+tabButton :: MisoString -> MisoString -> MisoString -> MisoString -> TabMode  -> View action
+tabButton buttonId contentId infoId txt isActive =
+  button_ [
+    class_ $ "nav-link" <> active,
+    id_ buttonId,
+    data_ "bs-toggle" "tab",
+    data_ "bs-target" ("#" <> contentId),
+    type_ "button",
+    textProp "role" "tab",
+    textProp "aria-controls" contentId,
+    textProp "aria-selected" selected
+    ] [
+    infoIcon infoId,
+    text txt
+  ]
+  where
+    (active, selected) =
+      case isActive of
+        Active -> (" active", "true")
+        _      -> ("", "false")
+
+
+tabContent :: MisoString -> View action -> MisoString -> TabMode -> View action
+tabContent tabId content buttonId isActive =
+  div_ [
+    class_ $ "tab-pane fade" <> active,
+    class_ "pt-3",
+    id_ tabId,
+    textProp "role" "tabpanel",
+    textProp "aria-labelledby" buttonId
+  ] [
+    content
+  ]
+  where
+    active =
+      case isActive of
+        Active -> " show active"
+        _      -> ""
 
 infoContent :: MisoString -> MisoString
-infoContent infoId = Map.findWithDefault "" infoId conts
+infoContent infoId = Map.findWithDefault "" infoId contents
   where
-    conts :: Map.Map MisoString MisoString
-    conts =
+    contents :: Map.Map MisoString MisoString
+    contents =
       Map.fromList
         [ ( "editor_info"
           , "<div>" <>

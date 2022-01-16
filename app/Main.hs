@@ -70,12 +70,12 @@ main :: IO ()
 main = do
 #ifndef __GHCJS__
   getCodeScript <- readFile "src/scripts/get-code.js"
-  popoversScript <- readFile "src/scripts/init-popovers.js"
-  setSnippetScript <- readFile "src/scripts/set-snippet.js"
+  -- popoversScript <- readFile "src/scripts/init-popovers.js"
+  -- setSnippetScript <- readFile "src/scripts/set-snippet.js"
   let model = initModel {
-    getCodeScript = getCodeScript,
-    popoversScript = popoversScript, 
-    setSnippetScript = setSnippetScript
+    getCodeScript = getCodeScript
+    -- popoversScript = popoversScript, 
+    -- setSnippetScript = setSnippetScript
   }
 #else
   let model = initModel
@@ -125,7 +125,7 @@ viewModel m@Model {..} =
     []
     [ eoLogoSection,
       editorDiv,
-      links,
+      links m,
       div_
         [ id_ "app_div"
         , class_ "pt-5"
@@ -137,7 +137,7 @@ viewModel m@Model {..} =
                 Left err   -> (Phi.Loc 0, div_ [class_ "pb-2"] [pre_ [] [text $ ms err]])
                 Right t -> (t, div_ [][])
           in
-            div_ [] [div_ [] [divElem], termTabs term m {modelAST = Right term}]
+            div_ [onCreated Reload] [divElem, termTabs term m {modelAST = Right term}]
         ],
       pageFooter
     ]
@@ -210,8 +210,8 @@ eoLogoSection =
         ]
     ]
 
-links :: View action
-links =
+links :: Model -> View action
+links Model{..} =
   div_
     []
     [ link_ [href_ "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css", rel_ "stylesheet", type_ "text/css"],
@@ -220,7 +220,9 @@ links =
       link_ [href_ "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css", rel_ "stylesheet", type_ "text/css"],
       link_ [href_ "https://www.yegor256.com/images/books/elegant-objects/cactus.png", rel_ "shortcut icon"],
       link_ [href_ "https://cdn.jsdelivr.net/gh/yegor256/tacit@gh-pages/tacit-css.min.css", rel_ "stylesheet", type_ "text/css"],
-      link_ [href_ "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi@switch-from-js-to-hs/src/styles/styles.css", rel_ "stylesheet", type_ "text/css"]
+      link_ [href_ "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi@switch-from-js-to-hs/src/styles/styles.css", rel_ "stylesheet", type_ "text/css"],
+      script_ [src_ "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi@switch-from-js-to-hs/src/scripts/init-popovers.js", type_ "text/javascript"] "",
+      script_ [src_ "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi@switch-from-js-to-hs/src/scripts/set-snippet.js", type_ "text/javascript"] ""
     ]
 
 getGraphSteps :: Model -> [CGraph.Configuration Gr]
@@ -254,9 +256,7 @@ termTabs term m@Model {..} =
           tabContent "content_cbn_reduction" (pre_ [] [text . ms . show $ Phi.ppWhnfSteps term]) "button_cbn_reduction" Disabled,
           tabContent "content_cbn_with_tap" (pre_ [] [text . ms . show $ Phi.ppStepsFor term]) "button_cbn_with_tap" Disabled,
           tabContent "content_cbn_with_graph" (graphContent term) "button_cbn_with_graph" Disabled
-        ],
-      script_ [] (ms setSnippetScript),
-      script_ [] (ms popoversScript)
+        ]
     ]
   where
     graphContent t =

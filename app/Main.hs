@@ -5,17 +5,17 @@
 
 module Main where
 
-import           Miso
-import           Miso.String
-
+import           Content                              (TabMode (..), infoIcon,
+                                                       tabButton, tabContent)
 import           Data.Graph.Inductive.PatriciaTree    (Gr)
-import qualified Phi.Minimal                          as Phi
-import qualified Phi.Minimal.Machine.CallByName.Graph as CGraph
-
-import           Content                              (TabMode (..), tabButton,
-                                                       tabContent)
+import           Data.Map.Strict.Internal             as Map (fromList)
+import           Data.Text                            (pack)
+import           Miso
+import           Miso.String                          (MisoString,
+                                                       fromMisoString, ms)
+import qualified Phi.Minimal                          as Phi(Term(..),parseTerm, ppWhnfSteps, ppStepsFor, nf, whnf, ppGraphStepsFor )
 import qualified Phi.Minimal.ConfigurationDot         as CDot
-
+import qualified Phi.Minimal.Machine.CallByName.Graph as CGraph
 
 #ifndef __GHCJS__
 import           Language.Javascript.JSaddle          (eval, strToText,
@@ -36,11 +36,14 @@ runApp = id
 #endif
 
 data Model = Model
-  { modelSource     :: MisoString
-  , modelAST        :: Either String Phi.Term
-  , graphStepNumber :: Int
-  , getCodeScript   :: String
-  } deriving (Show, Eq)
+  { modelSource      :: MisoString,
+    modelAST         :: Either String Phi.Term,
+    graphStepNumber  :: Int,
+    getCodeScript    :: String,
+    popoversScript   :: String,
+    setSnippetScript :: String
+  }
+  deriving (Show, Eq)
 
 -- | Sum type for application events
 data Action
@@ -52,132 +55,235 @@ data Action
   deriving (Show, Eq)
 
 initModel :: Model
-initModel = Model
-  { modelSource = ""
-  , modelAST = Left "initializing..."
-  , graphStepNumber = 0
-  , getCodeScript = ""
-  }
+initModel =
+  Model
+    { modelSource = "",
+      modelAST = Left "initializing...",
+      graphStepNumber = 0,
+      getCodeScript = "",
+      popoversScript = "",
+      setSnippetScript = ""
+    }
 
 -- | Entry point for a miso application
 main :: IO ()
 main = do
+#ifndef __GHCJS__
   getCodeScript <- readFile "src/scripts/get-code.js"
-  let model = initModel {getCodeScript = getCodeScript}
+  popoversScript <- readFile "src/scripts/init-popovers.js"
+  setSnippetScript <- readFile "src/scripts/set-snippet.js"
+  let model = initModel {
+    getCodeScript = getCodeScript,
+    popoversScript = popoversScript, 
+    setSnippetScript = setSnippetScript
+  }
+#else
+  let model = initModel
+#endif
   runApp $ startApp App {..}
   where
-    initialAction = NoOp        -- initial action to be executed on application load
-    update = updateModel          -- update function
-    view   = viewModel            -- view function
-    events = defaultEvents        -- default delegated events
-    subs   = []                   -- empty subscription list
+    initialAction = Reload -- initial action to be executed on application load
+    update = updateModel -- update function
+    view = viewModel -- view function
+    events = defaultEvents -- default delegated events
+    subs = [] -- empty subscription list
 #ifndef __GHCJS__
     mountPoint = Nothing
 #else
-    mountPoint = Just "ghcjs"   -- mount point for application (Nothing defaults to 'body')
+    mountPoint = Nothing   -- mount point for application (Nothing defaults to 'body')
 #endif
-    logLevel = Off                -- used during prerendering to see if the VDOM and DOM are in sync (only used with `miso` function)
+    logLevel = Off -- used during prerendering to see if the VDOM and DOM are in sync (only used with `miso` function)
 
 -- | Updates model, optionally introduces side effects
 updateModel :: Action -> Model -> Effect Action Model
-updateModel Reload m = m <# do
-  Recompile <$> codemirrorGetValue m
-updateModel (Recompile code) m = noEff m
-  { modelAST = Phi.parseTerm (fromMisoString code) }
+updateModel Reload m =
+  m <# do
+
+#ifndef __GHCJS__
+    Recompile <$> codemirrorGetValue m
+#else
+    Recompile <$> codemirrorGetValue
+#endif
+
+updateModel (Recompile code) m =
+  noEff
+    m
+      { modelAST = Phi.parseTerm (fromMisoString code)
+      }
 updateModel NoOp m = noEff m
-updateModel PrevStep m@Model{..} =
-  noEff m { graphStepNumber = max 0 (graphStepNumber - 1) }
-updateModel NextStep m@Model{..} =
-  noEff m { graphStepNumber = min (graphStepNumber + 1) (Prelude.length (getGraphSteps m) - 1)}
+updateModel PrevStep m@Model {..} =
+  noEff m {graphStepNumber = max 0 (graphStepNumber - 1)}
+updateModel NextStep m@Model {..} =
+  noEff m {graphStepNumber = min (graphStepNumber + 1) (Prelude.length (getGraphSteps m) - 1)}
+
+
 
 -- | Constructs a virtual DOM from a model
 viewModel :: Model -> View Action
-viewModel m@Model{..} =
-      div_ [] [
-        div_ [id_ "editor"] []
-      , link_ [href_ "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css", rel_ "stylesheet", type_ "text/css"]
-      , script_ [src_ "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js", type_ "text/javascript"] ""
-      , script_ [src_ "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-minimal-editor/docs/build/bundle.js", type_ "text/javascript"] ""
-      , link_ [href_ "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css", rel_ "stylesheet", type_ "text/css"]
-      , link_ [href_ "https://www.yegor256.com/images/books/elegant-objects/cactus.png", rel_ "shortcut icon"]
-      , link_ [href_ "https://cdn.jsdelivr.net/gh/yegor256/tacit@gh-pages/tacit-css.min.css", rel_ "stylesheet", type_ "text/css"]
-      , link_ [href_ "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi/src/styles/styles.css", rel_ "stylesheet", type_ "text/css"]
-      , link_ [href_ "styles.css", rel_ "stylesheet", type_ "text/css"]
-      , div_ [
-          id_ "app_div"
-        ] [
-          button_ [ onClick Reload, class_ "btn btn-secondary mb-5"] [ text "Reload" ]
-        , case modelAST of
-            Left err   -> errorTabs $ ms err
-            Right term -> termTabs term m
+viewModel m@Model {..} =
+  div_
+    []
+    [ eoLogoSection,
+      editorDiv,
+      links,
+      div_
+        [ id_ "app_div"
+        , class_ "pt-5"
         ]
-      ]
+        [ button_ [onClick Reload, class_ "btn btn-secondary mb-5"] [text "Reload"],
+          let 
+            (term, divElem) = 
+              case modelAST of
+                Left err   -> (Phi.Loc 0, div_ [class_ "pb-2"] [pre_ [] [text $ ms err]])
+                Right t -> (t, div_ [][])
+          in
+            div_ [] [div_ [] [divElem], termTabs term m {modelAST = Right term}]
+        ],
+      pageFooter
+    ]
+
+pageFooter :: View action
+pageFooter =
+  nav_
+    []
+    [ ul_
+        []
+        [ li_
+            []
+            [ text "To discuss how 𝜑-calculus works, join our ",
+              a_ [href_ "https://t.me/polystat_org"] [text "Telegram group"]
+            ]
+        ],
+      ul_
+        []
+        [ li_
+            []
+            [ a_
+                [href_ "https://github.com/polystat/try-phi/stargazers"]
+                [ img_
+                    [ src_ "https://img.shields.io/github/stars/polystat/try-phi.svg?style=flat-square",
+                      alt_ "github stars"
+                    ]
+                ]
+            ]
+        ]
+    ]
+
+editorDiv :: View action
+editorDiv =
+  div_
+    [class_ "container-fluid", id_ "cont"]
+    [ div_
+        [class_ "col"]
+        [ div_
+            [class_ "row"]
+            [ p_
+                []
+                [ text "Minimal ",
+                  a_ [href_ "https://www.eolang.org"] [text "𝜑-calculus "],
+                  text "expression (",
+                  a_ [id_ "__permalink__", href_ "#"] [text "permalink"],
+                  text ")",
+                  infoIcon "editor_info"
+                ],
+              div_ [id_ "editor"] []
+            ]
+        ]
+    ]
+
+eoLogoSection :: View action
+eoLogoSection =
+  section_
+    []
+    [ header_
+        []
+        [ center_
+            []
+            [ a_
+                [href_ "https://www.eolang.org"]
+                [ img_
+                    [ src_ "https://www.yegor256.com/images/books/elegant-objects/cactus.png",
+                      style_ $ Map.fromList [("width", "64px"), ("height", "64px")]
+                    ]
+                ]
+            ]
+        ]
+    ]
+
+links :: View action
+links =
+  div_
+    []
+    [ link_ [href_ "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css", rel_ "stylesheet", type_ "text/css"],
+      script_ [src_ "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js", type_ "text/javascript"] "",
+      script_ [src_ "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-minimal-editor/docs/build/bundle.js", type_ "text/javascript"] "",
+      link_ [href_ "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css", rel_ "stylesheet", type_ "text/css"],
+      link_ [href_ "https://www.yegor256.com/images/books/elegant-objects/cactus.png", rel_ "shortcut icon"],
+      link_ [href_ "https://cdn.jsdelivr.net/gh/yegor256/tacit@gh-pages/tacit-css.min.css", rel_ "stylesheet", type_ "text/css"],
+      link_ [href_ "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi@switch-from-js-to-hs/src/styles/styles.css", rel_ "stylesheet", type_ "text/css"]
+    ]
 
 getGraphSteps :: Model -> [CGraph.Configuration Gr]
-getGraphSteps Model{..} =
+getGraphSteps Model {..} =
   case modelAST of
-        Left _ -> []
-        Right term ->
-          CGraph.steps @Gr (CGraph.initConfiguration term)
+    Left _ -> []
+    Right term ->
+      CGraph.steps @Gr (CGraph.initConfiguration term)
 
 termTabs :: Phi.Term -> Model -> View Action
-termTabs term m@Model{..} =
-    div_ [] [
-      nav_ [] [
-        div_ [class_ "nav nav-tabs", id_ "nav-tab", textProp "role" "tablist"] [
-          tabButton "button_original_term" "content_original_term" "info_original_term" " Original term" Active
-        , tabButton "button_whnf" "content_whnf" "info_whnf" " Weak head normal form (WHNF)" Disabled
-        , tabButton "button_nf" "content_nf" "info_nf" " Normal form (NF)" Disabled
-        , tabButton "button_cbn_reduction" "content_cbn_reduction" "info_cbn_reduction" " Call-by-name term reduction" Disabled
-        , tabButton "button_cbn_with_tap" "content_cbn_with_tap" "info_cbn_with_tap" " Call-by-name term reduction (via abstract machine)" Disabled
-        , tabButton "button_cbn_with_graph" "content_cbn_with_graph" "info_cbn_with_graph" " Call-by-name evaluation on a graph" Disabled
-        ]
-      ]
-    , div_ [class_ "tab-content", id_"nav-tabContent"] [
-        tabContent "content_original_term" (pre_ [] [text (ms (show term))])  "button_original_term" Active
-      , tabContent "content_whnf" (pre_ [] [text (ms (show (Phi.whnf term)))]) "button_whnf" Disabled
-      , tabContent "content_nf" (pre_ [] [text (ms (show (Phi.nf term)))]) "button_nf" Disabled
-      , tabContent "content_cbn_reduction" (pre_ [] [text . ms . show $ Phi.ppWhnfSteps term]) "button_cbn_reduction" Disabled
-      , tabContent "content_cbn_with_tap" (pre_ [] [text . ms . show $ Phi.ppStepsFor term]) "button_cbn_with_tap" Disabled
-      , tabContent "content_cbn_with_graph" (graphContent term) "button_cbn_with_graph" Disabled
-      ]
+termTabs term m@Model {..} =
+  div_
+    []
+    [ nav_
+        []
+        [ div_
+            [class_ "nav nav-tabs", id_ "nav-tab", textProp "role" "tablist"]
+            [ tabButton "button_original_term" "content_original_term" "info_original_term" " Original term" Active,
+              tabButton "button_whnf" "content_whnf" "info_whnf" " Weak head normal form (WHNF)" Disabled,
+              tabButton "button_nf" "content_nf" "info_nf" " Normal form (NF)" Disabled,
+              tabButton "button_cbn_reduction" "content_cbn_reduction" "info_cbn_reduction" " Call-by-name term reduction" Disabled,
+              tabButton "button_cbn_with_tap" "content_cbn_with_tap" "info_cbn_with_tap" " Call-by-name term reduction (via abstract machine)" Disabled,
+              tabButton "button_cbn_with_graph" "content_cbn_with_graph" "info_cbn_with_graph" " Call-by-name evaluation on a graph" Disabled
+            ]
+        ],
+      div_
+        [class_ "tab-content", id_ "nav-tabContent"]
+        [ tabContent "content_original_term" (pre_ [] [text (ms (show term))]) "button_original_term" Active,
+          tabContent "content_whnf" (pre_ [] [text (ms (show (Phi.whnf term)))]) "button_whnf" Disabled,
+          tabContent "content_nf" (pre_ [] [text (ms (show (Phi.nf term)))]) "button_nf" Disabled,
+          tabContent "content_cbn_reduction" (pre_ [] [text . ms . show $ Phi.ppWhnfSteps term]) "button_cbn_reduction" Disabled,
+          tabContent "content_cbn_with_tap" (pre_ [] [text . ms . show $ Phi.ppStepsFor term]) "button_cbn_with_tap" Disabled,
+          tabContent "content_cbn_with_graph" (graphContent term) "button_cbn_with_graph" Disabled
+        ],
+      script_ [] (ms setSnippetScript),
+      script_ [] (ms popoversScript)
     ]
-    where
-      graphContent t =
-        div_ [class_ "row"] [
-          div_ [class_ "col"] [
-            div_ [class_ "row"] [
-              div_ [class_ "col"] [
-                button_ [ onClick PrevStep ] [ text "Previous step" ]
-              , button_ [ onClick NextStep ] [ text "Next step" ]
-              ]
-            , div_ [class_ "col-2"] []
+  where
+    graphContent t =
+      div_
+        [class_ "row"]
+        [ div_
+            [class_ "col"]
+            [ div_
+                [class_ "row"]
+                [ div_
+                    [class_ "col"]
+                    [ button_ [onClick PrevStep] [text "Previous step"],
+                      button_ [onClick NextStep] [text "Next step"]
+                    ],
+                  div_ [class_ "col-2"] []
+                ],
+              pre_ [] [text . ms . show $ Phi.ppGraphStepsFor t graphStepNumber]
+            ],
+          div_
+            [class_ "col"]
+            [ img_
+                [ let dotStringState = CDot.renderAsDot @Gr (getGraphSteps m !! graphStepNumber)
+                   in src_ (ms ("https://quickchart.io/graphviz?layout=dot&format=svg&graph=" <> dotStringState)),
+                  height_ "400"
+                ]
             ]
-          , pre_ [] [text . ms . show $ Phi.ppGraphStepsFor t graphStepNumber]
-          ]
-        , div_ [class_ "col"] [
-            img_ [
-              let
-                dotStringState = CDot.renderAsDot @Gr (getGraphSteps m !! graphStepNumber)
-              in
-                src_ (ms ("https://quickchart.io/graphviz?layout=dot&format=svg&graph=" <> dotStringState ))
-                , height_ "400"
-            ]
-          ]
         ]
-
-errorTabs :: MisoString -> View Action
-errorTabs err =
-  div_ [onCreated Reload] [
-      nav_ [] [
-        div_ [class_ "nav nav-tabs", id_ "nav-tab", textProp "role" "tablist"] [
-          tabButton "button_error" "content_error" "info_error" " Error" Active
-        ]
-      ]
-    , div_ [class_ "tab-content", id_"nav-tabContent"] [
-        tabContent "content_error" (pre_ [] [text $ ms err])  "button_error" Active
-      ]
-  ]
 
 #ifndef __GHCJS__
 codemirrorGetValue :: Model -> JSM MisoString

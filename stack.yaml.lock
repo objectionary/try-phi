@@ -32,20 +32,6 @@ packages:
       sha256: 53d9041fc7be7cdf6eec6946af1ba51d48aaaec250edff5f9a9896b53fe5d04c
   original:
     hackage: jsaddle-warp-0.9.8.0@sha256:d1c75ae6ab519f923bc8a13775abd779e584bd17c96a49a76f799860bd9174e9,2713
-- completed:
-    hackage: warp-3.3.13@sha256:0db023ae6b65743a82b8ec23db60e73c6046dffa03884eae3289a248e50965ba,10798
-    pantry-tree:
-      size: 3899
-      sha256: 5242276b306a6c921fed1f4d29b4041c1ac4df0f863b535e1046ed6f3114f3c9
-  original:
-    hackage: warp-3.3.13@sha256:0db023ae6b65743a82b8ec23db60e73c6046dffa03884eae3289a248e50965ba,10798
-- completed:
-    hackage: websockets-0.12.7.1@sha256:4363a5ca794af094971266a1397807ac55d5b3124645060fb78c64ac4c88a1f1,7863
-    pantry-tree:
-      size: 2592
-      sha256: 68e77e982cbf108cb2ad65f1075c5323ad635c2e7faa262f8475d5d4a2d25f27
-  original:
-    hackage: websockets-0.12.7.1
 snapshots:
 - completed:
     size: 532832

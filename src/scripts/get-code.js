@@ -3,4 +3,5 @@ function pollDOM() {
     return app.view.state.doc.toString()
   }
 }
+
 pollDOM()

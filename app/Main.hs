@@ -8,18 +8,18 @@ module Main where
 import           Miso
 import           Miso.String
 
-import qualified Phi.Minimal.Machine.CallByName.Graph as CGraph
 import           Data.Graph.Inductive.PatriciaTree    (Gr)
 import qualified Phi.Minimal                          as Phi
+import qualified Phi.Minimal.Machine.CallByName.Graph as CGraph
 
+import           Content                              (TabMode (..), tabButton,
+                                                       tabContent)
 import qualified Phi.Minimal.ConfigurationDot         as CDot
-import Content(TabMode(..), tabButton, tabContent)
 
 
 #ifndef __GHCJS__
-import           Language.Javascript.JSaddle          (eval,
-                                                       strToText, textToStr,
-                                                       valToStr)
+import           Language.Javascript.JSaddle          (eval, strToText,
+                                                       textToStr, valToStr)
 import           Language.Javascript.JSaddle.Warp     as JSaddle
 #endif
 
@@ -39,7 +39,7 @@ data Model = Model
   { modelSource     :: MisoString
   , modelAST        :: Either String Phi.Term
   , graphStepNumber :: Int
-  , getCodeScript :: String
+  , getCodeScript   :: String
   } deriving (Show, Eq)
 
 -- | Sum type for application events
@@ -99,6 +99,9 @@ viewModel m@Model{..} =
       , script_ [src_ "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js", type_ "text/javascript"] ""
       , script_ [src_ "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-minimal-editor/docs/build/bundle.js", type_ "text/javascript"] ""
       , link_ [href_ "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css", rel_ "stylesheet", type_ "text/css"]
+      , link_ [href_ "https://www.yegor256.com/images/books/elegant-objects/cactus.png", rel_ "shortcut icon"]
+      , link_ [href_ "https://cdn.jsdelivr.net/gh/yegor256/tacit@gh-pages/tacit-css.min.css", rel_ "stylesheet", type_ "text/css"]
+      , link_ [href_ "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi/src/styles/styles.css", rel_ "stylesheet", type_ "text/css"]
       , link_ [href_ "styles.css", rel_ "stylesheet", type_ "text/css"]
       , div_ [
           id_ "app_div"
@@ -176,13 +179,8 @@ errorTabs err =
       ]
   ]
 
--- func :: String
--- func = 
-
-
 #ifndef __GHCJS__
 codemirrorGetValue :: Model -> JSM MisoString
--- codemirrorGetValue = return (ms (show Phi.ex6))
 codemirrorGetValue Model{..} = do
   res <- eval $ textToStr (pack getCodeScript)
   str <- valToStr res

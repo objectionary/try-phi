@@ -257,6 +257,8 @@ termTabs term m@Model {..} =
           tabContent "content_cbn_with_tap" (pre_ [] [text . ms . show $ Phi.ppStepsFor term]) "button_cbn_with_tap" Disabled,
           tabContent "content_cbn_with_graph" (graphContent term) "button_cbn_with_graph" Disabled
         ]
+        -- ,
+      -- script_ [src_ "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi@switch-from-js-to-hs/src/scripts/init-popovers.js", type_ "text/javascript"] ""
     ]
   where
     graphContent t =

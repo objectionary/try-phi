@@ -22622,6 +22622,17 @@ var app = (function (exports) {
             encodeURIComponent(state.doc.toString());
         document.getElementById(linkId).setAttribute('href', newRef);
     }
+    function initFromLink(view) {
+        var params = new URLSearchParams(window.location.search);
+        var snippet = view.state.doc.toString();
+        if (params.has("snippet")) {
+            snippet = params.get("snippet");
+        }
+        // change editor content
+        view.dispatch({
+            changes: { from: 0, to: view.state.doc.length, insert: snippet },
+        });
+    }
     var updatePermalink = ViewPlugin.fromClass(/** @class */ (function () {
         function class_1(view) {
             setLink(view.state);
@@ -22980,6 +22991,7 @@ var app = (function (exports) {
     });
 
     exports.copyPermalink = copyPermalink;
+    exports.initFromLink = initFromLink;
     exports.view = view;
 
     Object.defineProperty(exports, '__esModule', { value: true });

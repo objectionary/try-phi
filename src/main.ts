@@ -2,7 +2,7 @@ import { EditorState, EditorView, basicSetup } from '@codemirror/basic-setup'
 import { keymap } from '@codemirror/view'
 import { indentWithTab } from '@codemirror/commands'
 import { eo } from './extensions/eo'
-import { updatePermalink, copyPermalink } from './extensions/permalink'
+import { updatePermalink, copyPermalink, initFromLink } from './extensions/permalink'
 import { parseErrors } from './extensions/diagnostics'
 import { indentGuides } from './extensions/indent-guides'
 import { toggleTree } from './extensions/log-lezer-tree'
@@ -64,4 +64,4 @@ const view = new EditorView({
   parent: document.querySelector('#editor'),
 })
 
-export { view, copyPermalink}
+export { view, copyPermalink, initFromLink}

@@ -1,7 +1,5 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE LambdaCase                 #-}
-{-# LANGUAGE RecordWildCards            #-}
-{-# LANGUAGE TypeApplications           #-}
+{-# LANGUAGE LambdaCase       #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Phi.Minimal.ConfigurationDot where
 
@@ -12,7 +10,6 @@ import qualified Data.GraphViz.Attributes             as Attributes
 import qualified Data.GraphViz.Attributes.Colors      as Colors
 import qualified Data.GraphViz.Attributes.Complete    as Complete
 import qualified Data.GraphViz.Printing               as GraphViz
-import           Data.IntMap                          (updateWithKey)
 import qualified Data.Map                             as Map
 import qualified Data.Text.Lazy                       as Text
 import           Phi.Minimal.Graph                    (TermEdge (..),
@@ -31,7 +28,7 @@ import qualified Phi.Minimal.Model                    as Model
 --
 -- * environment (blue)
 toGraphviz ::
-     Graph.Graph gr => CGraph.Configuration gr -> GraphViz.DotGraph Graph.Node
+  Graph.Graph gr => CGraph.Configuration gr -> GraphViz.DotGraph Graph.Node
 toGraphviz c = GraphViz.graphToDot params g
   where
     g = CGraph.graph c
@@ -40,12 +37,12 @@ toGraphviz c = GraphViz.graphToDot params g
       GraphViz.nonClusteredParams
         { GraphViz.globalAttributes =
             [ GraphViz.GraphAttrs
-                [ Complete.Size (Complete.GSize 100 Nothing False)
-                , Complete.Layout GraphViz.Dot
+                [ Complete.Size (Complete.GSize 100 Nothing False),
+                  Complete.Layout GraphViz.Dot
                 ]
-            ]
-        , GraphViz.fmtNode = fmtTermNode modeMap
-        , GraphViz.fmtEdge = fmtTermEdge modeMap
+            ],
+          GraphViz.fmtNode = fmtTermNode modeMap,
+          GraphViz.fmtEdge = fmtTermEdge modeMap
         }
 
 currentColor :: Colors.Color
@@ -67,7 +64,7 @@ makeHightlight x =
     _  -> Complete.Color (Colors.toColorList x) : [width]
 
 fmtTermEdge ::
-     ModeMap -> (Graph.Node, Graph.Node, TermEdge) -> [GraphViz.Attribute]
+  ModeMap -> (Graph.Node, Graph.Node, TermEdge) -> [GraphViz.Attribute]
 fmtTermEdge modeMap (from, to, edge) = edgeFormat
   where
     label =
@@ -77,11 +74,11 @@ fmtTermEdge modeMap (from, to, edge) = edgeFormat
         CopyEdge   -> [GraphViz.style GraphViz.dotted]
     highlight =
       makeHightlight $
-      case (Map.findWithDefault [] from modeMap, Map.findWithDefault [] to modeMap) of
-        (l1,l2)
-          | elem ActionNode l1 && elem ActionNode l2 -> [actionColor]
-          | elem ParentNode l1 && elem ParentNode l2 -> [parentColor]
-          | True -> []
+        case (Map.findWithDefault [] from modeMap, Map.findWithDefault [] to modeMap) of
+          (l1, l2)
+            | elem ActionNode l1 && elem ActionNode l2 -> [actionColor]
+            | elem ParentNode l1 && elem ParentNode l2 -> [parentColor]
+            | True -> []
     edgeFormat = label ++ highlight
 
 fmtTermNode :: ModeMap -> (Graph.Node, TermNode) -> [GraphViz.Attribute]
@@ -94,15 +91,16 @@ fmtTermNode modeMap (node, nodeType) = nodeFormat
         ObjNode      -> []
     highlight =
       makeHightlight $
-      case Map.lookup node modeMap of
-        Just l ->
-          map
-            (\case
-               CurrentNode -> currentColor
-               ParentNode -> parentColor
-               ActionNode -> actionColor)
-            (filter (/= ActionNode) l)
-        _ -> []
+        case Map.lookup node modeMap of
+          Just l ->
+            map
+              ( \case
+                  CurrentNode -> currentColor
+                  ParentNode -> parentColor
+                  ActionNode -> actionColor
+              )
+              (filter (/= ActionNode) l)
+          _ -> []
     nodeFormat = label ++ highlight
 
 data NodeMode
@@ -123,9 +121,10 @@ type Edges = Map.Map (Graph.Node, TermEdge) Graph.Node
 
 addModeByEdge :: Graph.Node -> CGraph.Action -> Edges -> ModeMap -> ModeMap
 addModeByEdge node action edges m = m1
-    -- proper label to search by  
-    -- locator edges are a subset of attribute edges
   where
+    -- proper label to search by
+    -- locator edges are a subset of attribute edges
+
     l =
       case action of
         CGraph.DotAction (_n, a)  -> DotEdge a
@@ -155,25 +154,26 @@ getClassifiedActions :: [CGraph.Action] -> Edges -> ModeMap -> ModeMap
 getClassifiedActions actions edges modeMap =
   case actions of
     [] -> modeMap
-    ac@(CGraph.DotAction (node, _attr)):as ->
+    ac@(CGraph.DotAction (node, _attr)) : as ->
       addMode node ActionNode $
-      addModeByEdge node ac edges $ getClassifiedActions as edges modeMap
-    ac@(CGraph.AppAction (node, env)):as ->
+        addModeByEdge node ac edges $ getClassifiedActions as edges modeMap
+    ac@(CGraph.AppAction (node, env)) : as ->
       addMode node ActionNode $
-      addModeByEdge node ac edges $
-      getClassifiedEnvironment env $ getClassifiedActions as edges modeMap
-    ac@(CGraph.LocAction (node, _ord)):as ->
+        addModeByEdge node ac edges $
+          getClassifiedEnvironment env $ getClassifiedActions as edges modeMap
+    ac@(CGraph.LocAction (node, _ord)) : as ->
       addMode node ActionNode $
-      addModeByEdge node ac edges $ getClassifiedActions as edges modeMap
+        addModeByEdge node ac edges $ getClassifiedActions as edges modeMap
 
 getClassifiedEnvironment :: CGraph.Environment -> ModeMap -> ModeMap
 getClassifiedEnvironment environment modeMap =
   foldl
-    (\m par ->
-       addMode
-         (CGraph.original par)
-         ParentNode
-         (getClassifiedCopies (CGraph.copies par) m))
+    ( \m par ->
+        addMode
+          (CGraph.original par)
+          ParentNode
+          (getClassifiedCopies (CGraph.copies par) m)
+    )
     modeMap
     environment
 

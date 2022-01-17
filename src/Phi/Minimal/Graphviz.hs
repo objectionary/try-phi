@@ -1,7 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE LambdaCase                 #-}
-{-# LANGUAGE RecordWildCards            #-}
-{-# LANGUAGE TypeApplications           #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Phi.Minimal.Graphviz where
 
@@ -21,12 +18,12 @@ toGraphviz = GraphViz.graphToDot params . (toGraph_ @Gr)
       GraphViz.nonClusteredParams
         { GraphViz.globalAttributes =
             [ GraphViz.GraphAttrs
-                [ GraphViz.Size (GraphViz.GSize 100 Nothing False)
-                , GraphViz.Layout GraphViz.Dot
+                [ GraphViz.Size (GraphViz.GSize 100 Nothing False),
+                  GraphViz.Layout GraphViz.Dot
                 ]
-            ]
-        , GraphViz.fmtNode = fmtTermNode
-        , GraphViz.fmtEdge = fmtTermEdge
+            ],
+          GraphViz.fmtNode = fmtTermNode,
+          GraphViz.fmtEdge = fmtTermEdge
         }
 
 fmtTermEdge :: (Graph.Node, Graph.Node, TermEdge) -> [GraphViz.Attribute]

@@ -3,19 +3,19 @@
 
 module Phi.Minimal.Parser where
 
-import           Control.Applicative       ((<|>))
-import           Data.Char                 (isAlpha, isAlphaNum)
-import           Data.Function             ((&))
-import qualified Data.HashSet              as HashSet
-import           Data.Text.Prettyprint.Doc as Doc
-import           GHC.Exts                  (fromList)
-import           Text.Parser.Token         ()
-import           Text.Parser.Token.Style   (emptyIdents)
-import Text.Trifecta
-    ( IdentifierStyle(..), Parser, TokenParsing, symbol, (<?>) )
-import qualified Text.Trifecta             as Trifecta
+import           Control.Applicative     ((<|>))
+import           Data.Char               (isAlpha, isAlphaNum)
+import           Data.Function           ((&))
+import qualified Data.HashSet            as HashSet
+import           GHC.Exts                (fromList)
+import           Prettyprinter           as Doc (unAnnotate)
+import           Text.Parser.Token       ()
+import           Text.Parser.Token.Style (emptyIdents)
+import           Text.Trifecta           (IdentifierStyle (..), Parser,
+                                          TokenParsing, symbol, (<?>))
+import qualified Text.Trifecta           as Trifecta
 
-import           Phi.Minimal.Model
+import           Phi.Minimal.Model       (Attr, AttrValue (..), Term (..))
 
 parseTerm :: String -> Either String Term
 parseTerm = parseString (pTerm <* Trifecta.eof)
@@ -88,14 +88,14 @@ pIdentStyle =
     , _styleReserved = HashSet.fromList []
     }
 
-isIdent :: Char  -> Bool 
-isIdent c = 
-  case c of 
+isIdent :: Char  -> Bool
+isIdent c =
+  case c of
     '@' -> True
-    _ -> isAlpha c
+    _   -> isAlpha c
 
-isInsideChar :: Char -> Bool 
-isInsideChar c = isAlphaNum c || c == '_'  
+isInsideChar :: Char -> Bool
+isInsideChar c = isAlphaNum c || c == '_'
 
 -- ** Char predicates
 isDelim :: Char -> Bool

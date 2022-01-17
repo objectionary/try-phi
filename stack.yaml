@@ -18,7 +18,9 @@
 # resolver: ./custom-snapshot.yaml
 # resolver: https://example.com/snapshots/2018-01-01.yaml
 resolver:
-  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/16/23.yaml
+  # url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/16/23.yaml
+  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/21.yaml
+
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -36,10 +38,12 @@ packages:
 # forks / in-progress versions pinned to a git hash. For example:
 #
 extra-deps:
-- miso-1.8.0.0
-- jsaddle-0.9.8.0@sha256:d7acf2247cc93c2d8d0959eccf627077c4175c81b762c8d107c7006dda662d05,4418
-- ref-tf-0.4.0.2@sha256:69de3550250e0cd69f45d080359cb314a9487c915024349c75b78732bbee9332,1134
-- jsaddle-warp-0.9.8.0@sha256:d1c75ae6ab519f923bc8a13775abd779e584bd17c96a49a76f799860bd9174e9,2713
+- miso-1.8.1.0
+- jsaddle-0.9.8.1
+- ref-tf-0.4.0.2
+- jsaddle-warp-0.9.8.0
+- prettyprinter-1.7.1
+- servant-lucid-0.9.0.4
 
 ghc-options:
   '$everything': -haddock

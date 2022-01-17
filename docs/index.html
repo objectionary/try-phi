@@ -23,7 +23,7 @@
 <body>
   <div style="text-align: center;">
     <h2>EO dialect* editor</h2>
-    <button type="button" class="btn btn-link" id="__permalink__" onclick="copyPermalink()">Copy permalink</button>
+    <button type="button" class="btn btn-link" id="__permalink__" onclick="copyLink()">Copy permalink</button>
   </div>
   <br />
 
@@ -142,8 +142,14 @@
       </div>
     </div>
 
-    <script src="build/bundle.js">
+    <script src="build/bundle.js"></script>
+    <script>
       app.initFromLink(app.view)
-      let copyPermalink = app.copyPermalink
+
+      function copyLink(){
+        permalink = document.getElementById("__permalink__")
+        navigator.clipboard.writeText(permalink.getAttribute('href'))
+      }
+
     </script>
 </body>

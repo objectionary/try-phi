@@ -1,6 +1,5 @@
 import { ViewPlugin, ViewUpdate } from '@codemirror/view'
 import { EditorState, EditorView } from '@codemirror/basic-setup'
-import copy from 'copy-to-clipboard'
 
 const linkId = '__permalink__'
 const attributeHref = 'href'
@@ -13,7 +12,7 @@ function setLink(state: EditorState) {
     window.location.pathname +
     '?snippet=' +
     encodeURIComponent(state.doc.toString())
-  document.getElementById(linkId).setAttribute('href', newRef)
+  document.getElementById(linkId).setAttribute(attributeHref, newRef)
 }
 
 export function initFromLink(view: EditorView){
@@ -44,8 +43,3 @@ export const updatePermalink = ViewPlugin.fromClass(
     }
   }
 )
-
-export function copyPermalink() {
-  let snippet = document.getElementById(linkId).getAttribute(attributeHref)
-  copy(snippet)
-}

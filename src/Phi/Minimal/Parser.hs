@@ -9,10 +9,9 @@ import           Data.Function           ((&))
 import qualified Data.HashSet            as HashSet
 import           GHC.Exts                (fromList)
 import           Prettyprinter           as Doc (unAnnotate)
-import           Text.Parser.Token       ()
+import           Text.Parser.Token       (integer)
 import           Text.Parser.Token.Style (emptyIdents)
-import           Text.Trifecta           (IdentifierStyle (..), Parser,
-                                          TokenParsing, symbol, (<?>))
+import           Text.Trifecta           (IdentifierStyle (..), Parser, TokenParsing, symbol, (<?>))
 import qualified Text.Trifecta           as Trifecta
 
 import           Phi.Minimal.Model       (Attr, AttrValue (..), Term (..))
@@ -24,7 +23,7 @@ pTerm :: (TokenParsing m, Monad m) => m Term
 pTerm = foldl (&) <$> pNotDotAppTerm <*> Trifecta.many pDotApp
 
 pNotDotAppTerm :: (TokenParsing m, Monad m) => m Term
-pNotDotAppTerm = pLoc <|> pObj
+pNotDotAppTerm = pLoc <|> pObj <|> pInt
 
 pDotApp :: (TokenParsing m, Monad m) => m (Term -> Term)
 pDotApp = pDot <|> pApp
@@ -77,7 +76,7 @@ pAttr = normalise <$> pIdent
         "@" -> "𝜑"
         a -> a
 
-pIdent :: (TokenParsing m, Monad m) => m String
+pIdent :: (TokenParsing m, Monad m) => m Attr
 pIdent = Trifecta.ident pIdentStyle
 
 pIdentStyle :: (TokenParsing m, Monad m) => IdentifierStyle m
@@ -87,6 +86,9 @@ pIdentStyle =
     , _styleLetter = Trifecta.satisfy isInsideChar
     , _styleReserved = HashSet.fromList []
     }
+
+pInt :: (TokenParsing m, Monad m) => m Term
+pInt = INTEGER <$> integer
 
 isIdent :: Char  -> Bool
 isIdent c =

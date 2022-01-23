@@ -9,7 +9,7 @@
 {-# LANGUAGE UndecidableInstances       #-}
 {-# LANGUAGE ViewPatterns               #-}
 
-module Phi.Minimal.Model where
+module Phi.Minimal.Model(ex19, Object(..), Attr, Term(..), incLocators, AttrValue(..), substituteLocator, (.?), splitAttrs, whnfSteps, whnf, nf) where
 
 import           Data.HashMap.Strict.InsOrd (InsOrdHashMap)
 import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
@@ -23,6 +23,13 @@ newtype Object a =
     { getObject :: InsOrdHashMap Attr (AttrValue a)
     }
   deriving (Eq, Functor, Foldable, Traversable, IsList)
+
+-- showObject :: Show a => Object a -> String
+-- showObject o = show $ getobject o
+
+-- instance Show a => Object a where
+--   show o = showObject o
+
 
 (.?) :: Object a -> Attr -> Maybe (AttrValue a)
 Object o .? a = InsOrdHashMap.lookup a o
@@ -46,6 +53,7 @@ data Term
   | Dot Term Attr
   | App Term (Attr, Term)
   | Loc Int
+  | INTEGER Integer
   deriving (Eq)
 
 appList :: Term -> Maybe (Term, [(Attr, Term)])
@@ -79,6 +87,7 @@ incLocatorsFrom k =
     Loc n
       | n >= k -> Loc (n + 1)
       | otherwise -> Loc n
+    dataTerm -> dataTerm
 
 incLocators :: Term -> Term
 incLocators = incLocatorsFrom 0
@@ -94,6 +103,7 @@ substituteLocator (k, v) =
       | n < k -> Loc n
       | n == k -> v
       | otherwise -> Loc (n - 1)
+    dataTerm -> dataTerm
 
 whnfSteps :: Term -> [Term]
 whnfSteps term = term : unfoldr (fmap dup . whnfStep) term
@@ -124,6 +134,7 @@ whnfStep =
         _ -> (`App` (a, u)) <$> whnfStep t
     Obj {} -> Nothing
     Loc {} -> Nothing
+    _dataTerm -> Nothing
 
 -- | Compute a term to its weak head normal form (does not compute inside of objects).
 whnf :: Term -> Term
@@ -150,6 +161,7 @@ whnf =
         t' -> App t' (a, u)
     t@Obj {} -> t
     t@Loc {} -> t
+    dataTerm -> dataTerm
 
 -- | Compute a term to its normal form.
 nf :: Term -> Term
@@ -176,6 +188,7 @@ nf =
         t' -> App (nf t') (a, nf u)
     Obj o -> Obj (nf <$> o)
     t@Loc {} -> t
+    dataTerm -> dataTerm
 
 -- * Examples
 -- | Empty object.
@@ -299,6 +312,12 @@ ex18 :: Term
 ex18 = Dot (Obj [("x", VoidAttr), ("y", Attached t)]) "y"
   where
     t = App (Loc 0) ("x", Loc 1)
+
+ex19 :: Term
+ex19 = Dot (Obj [("x", VoidAttr), ("y", Attached t)]) "y"
+  where
+    t = App (Loc 0) ("x", INTEGER 1)
+
 
 -- * Terms translated from \(\lambda\)-calculus to \(\varphi\)-calculus
 -- | Apply a term that represents \(\lambda\)-term to another term.

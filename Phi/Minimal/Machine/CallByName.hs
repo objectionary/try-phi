@@ -8,7 +8,7 @@ import           Data.HashMap.Strict.InsOrd (InsOrdHashMap)
 import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
 import           Data.List                  (unfoldr)
 
-import           Phi.Minimal.Model
+import Phi.Minimal.Model
 
 type Environment = [Parent]
 

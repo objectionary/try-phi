@@ -14,7 +14,8 @@ data TermNode
   = ObjNode
   | LocDotNode (Maybe Int)
   | VoidNode
-  deriving (Show, Eq)
+  | DataNode (Term)
+  deriving (Eq)
 
 data TermEdge
   = DotEdge Attr
@@ -52,6 +53,8 @@ toGraphBuilder =
       edgeFromTo node CopyEdge tnode
       edgeFromTo node (AttrEdge a) unode
       return node
+    INTEGER i -> do
+      freshNode ObjNode
 
 prettyLocator :: Int -> String
 prettyLocator n = "ρ" <> n'

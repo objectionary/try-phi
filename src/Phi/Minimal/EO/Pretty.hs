@@ -76,8 +76,8 @@ ppTerm =
     App t (a, u) -> ppAppAttr Nothing  (t, (Just a, u)) sepAttach
     Loc n -> ppLoc n
     DataTerm t -> 
-      case t of 
-        DataInteger i-> ppInt i
+      case t of
+        DataInteger i -> ppInt Nothing i
 
 ppTermAttr :: Maybe Attr -> Term -> Separator -> Doc ann
 ppTermAttr a =
@@ -88,11 +88,16 @@ ppTermAttr a =
     Loc n -> \_ -> ppLoc n
     DataTerm t -> 
       case t of 
-        DataInteger i-> \_ -> ppInt i
+        DataInteger i-> \_ -> ppInt a i
 
-ppInt :: Integer -> Doc ann
-ppInt i = pretty $ show i
+ppInt :: Maybe Attr -> Integer -> Doc ann
+ppInt a i = 
+  case a of 
+    Just attr -> pretty i <> pretty sepAttach <> pretty attr
+    Nothing -> pretty i
 
+
+-- TODO several or number?
 ppLoc :: Int -> Doc ann
 ppLoc n = pretty ("^"::String) <> pretty n
 
@@ -128,6 +133,7 @@ ppDotAttr a (t, b) separator =
   ppTerm t
 
 
+-- TODO support application to object?
 ppAppAttr :: Maybe Attr -> (Term, (Maybe Attr, Term)) -> Separator -> Doc ann
 ppAppAttr a (t1, (b, t2)) separator = 
   ppTermAttr a t1 separator <> 

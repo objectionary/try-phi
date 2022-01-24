@@ -118,6 +118,6 @@ infoContent infoId = Map.findWithDefault "" infoId contents
             "<div>")
         , ( "info_eo"
           , "<div>" <>
-            "φ-term translated to EO" <>
+            "𝜑-term translated to EO" <>
             "<div>")
         ]

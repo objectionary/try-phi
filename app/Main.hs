@@ -21,13 +21,12 @@ import qualified Phi.Minimal                          as Phi (Term (..), nf,
 import qualified Phi.Minimal.ConfigurationDot         as CDot
 import qualified Phi.Minimal.Machine.CallByName.Graph as CGraph
 import qualified Phi.Minimal.Model                    as Model (ex19)
+import           Phi.Minimal.EO.Pretty                (ppTerm)
 
 #ifndef __GHCJS__
 import           Language.Javascript.JSaddle          (eval, strToText,
                                                        textToStr, valToStr)
 import           Language.Javascript.JSaddle.Warp     as JSaddle
-import           Phi.Minimal.EO.Pretty                (ppTerm)
-
 #endif
 
 #ifndef __GHCJS__

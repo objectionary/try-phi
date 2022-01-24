@@ -3,7 +3,7 @@ const params = new URLSearchParams(window.location.search)
 
 // use default snippet if one is not set in the query parameters
 snippet = `[
-  price -> ^1.int_2,
+  price -> 2,
   book -> [
     title -> ^2.title,
     price -> ?
@@ -13,7 +13,7 @@ snippet = `[
     @ -> ^1.book
   ](price -> ^0.price),
   title -> ^0.manga.manga_title
-].manga.pric`
+].manga.price`
 
 if (params.has('snippet')) {
   snippet = decodeURIComponent(params.get('snippet'))

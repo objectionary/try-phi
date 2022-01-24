@@ -16,10 +16,10 @@ export const
   FREE_NAME = 14,
   DOTS = 15,
   RSQ = 16,
-  INLINE = 17,
-  INLINE_TOKEN = 18,
-  PARENTHESIZED = 19,
-  LB = 20,
+  INLINE_TOKEN = 17,
+  PARENTHESIZED = 18,
+  LB = 19,
+  INLINE = 20,
   ANONYMOUS = 21,
   RB = 22,
   ARRAY_STAR = 23,
@@ -48,5 +48,4 @@ export const
   CONST = 46,
   SLASH = 47,
   FOREIGN_NAME = 48,
-  DEFINITION = 49,
-  INLINE_EXPRESSION = 50
+  DEFINITION = 49

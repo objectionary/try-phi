@@ -143,7 +143,7 @@ OBJECTS
 
 tab
 {
-  space 
+  space
   space
 }
 
@@ -176,7 +176,12 @@ DECLARATION
   (
     FREE_LIST
     |
-    INLINE
+    INLINE_TOKEN
+    (
+      !left
+      space
+      INLINE_TOKEN
+    )*
   )
   space
   ARROW
@@ -203,11 +208,10 @@ DOT_NAME
 ATTR_NAME
 {
   DOT_NAME
-  // ~attr_or_app
   CONST?
   (
     (
-      space
+      space 
       SLASH
       FOREIGN_NAME
     )
@@ -217,9 +221,7 @@ ATTR_NAME
 APPLICATION
 {
   DOT_NAME
-  // ~attr_or_app
   (
-    !right
     DOT
     DOT_NAME
   )*
@@ -228,7 +230,6 @@ APPLICATION
 DOT_ACCESS
 {
   (
-    // !left
     DOT
     DOT_NAME
   )+
@@ -278,7 +279,9 @@ DEFINITION
 {
   OBJECT
   |
-  INLINE_EXPRESSION
+  INLINE
+
+  EOL
 }
 
 
@@ -320,12 +323,6 @@ INLINE_TOKEN
     COLON
     DOT_NAME
   )?
-}
-
-INLINE_EXPRESSION
-{
-  INLINE
-  EOL
 }
 
 INLINE

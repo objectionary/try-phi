@@ -148,7 +148,12 @@ tab
 }
 
 // a sequence of spaces
-TABS {(!left tab)+}
+TABS {
+  (
+    !left 
+    tab
+  )+
+}
 
 
 // ordinary object or class attribute
@@ -157,53 +162,48 @@ OBJECT
   DECLARATION
   EOL
   (
-    // !right
     TABS
     DEFINITION
   )*
 }
 
+// есть declaration, а есть anonymous 
+// различие в том, что declaration заканчивается стрелкой и атрибутом
+
 // first line in an object
 DECLARATION
 {
-  FREE_LIST
   (
-    space
-    ARROW
-    space
-    ATTR_NAME
+    FREE_LIST
     |
-    (
-      space
-      INLINE_ATTRIBUTE
-    )+
-  )?
+    INLINE
+  )
+  space
+  ARROW
+  space
+  ATTR_NAME
 }
 
 // any name
 DOT_NAME
-  {
-    AT
-    |
-    RHO
-    |
-    XI
-    |
-    SIGMA
-    |
-    FREE_NAME
-  }
+{
+  AT
+  |
+  RHO
+  |
+  XI
+  |
+  SIGMA
+  |
+  FREE_NAME
+}
 
 
 // attribute name
-ATTR_NAME {
-  
+ATTR_NAME
+{
   DOT_NAME
-  (
-    DOT
-    DOT_NAME
-  )*
-  ~app_or_decl
+  // ~attr_or_app
   CONST?
   (
     (
@@ -213,45 +213,31 @@ ATTR_NAME {
     )
   )?
 }
-// .name | name.name.
-// name.name
-DOT_ACCESS
-{
-  (
-    !left
-    DOT
-    DOT_NAME
-  )+
-}
 
 APPLICATION
 {
+  DOT_NAME
+  // ~attr_or_app
   (
-    DOT_NAME
-    |
-    ARRAY_STAR
-    ~array_or_inline_array
-  )
-  (
+    !right
     DOT
     DOT_NAME
   )*
-  ~app_or_decl
+}
+
+DOT_ACCESS
+{
+  (
+    // !left
+    DOT
+    DOT_NAME
+  )+
 }
 
 INVERSE_DOT
 {
   DOT_NAME
   DOT
-}
-
-ACTION
-{
-  DOT_ACCESS
-  |
-  INVERSE_DOT
-  |
-  APPLICATION
 }
 
 // list of free attributes
@@ -270,27 +256,20 @@ FREE_LIST
   RSQ
 }
 
-INLINE_ATTRIBUTE
-{
-  LB
-  INLINE
-  space
-  ARROW
-  DOT_NAME
-  RB
-}
-
+// [] (p > a)
+// * a b
 ANONYMOUS
 {
   FREE_LIST
   (
     !left
     space
-    INLINE_ATTRIBUTE
+    LB
+    DECLARATION
+    RB
   )*
   |
   ARRAY_STAR
-  ~array_or_inline_array
   INLINE?
 }
 
@@ -314,19 +293,8 @@ PARENTHESIZED
   RB
 }
 
-ARGUMENT
-{
-  (
-    FREE_NAME
-    |
-    AT
-  )
-  COLON
-}
-
 INLINE_TOKEN
 {
-  ARGUMENT?
   (
     (
       PARENTHESIZED
@@ -335,14 +303,23 @@ INLINE_TOKEN
     )
     (
       !left
-      (
-        DOT
-        DOT_NAME
-      )
+      DOT
+      DOT_NAME
     )*
     |
-    ACTION
+    DOT_ACCESS
+    |
+    INVERSE_DOT
+    |
+    APPLICATION
+    |
+    ANONYMOUS
   )
+  !left
+  (
+    COLON
+    DOT_NAME
+  )?
 }
 
 INLINE_EXPRESSION

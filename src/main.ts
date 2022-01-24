@@ -12,21 +12,18 @@ import { sameIndent } from './extensions/same-indent'
 let code = `+alias org.eolang.io.stdout
 +alias org.eolang.txt.sprintf
 
-main > [args...]
-  leap > [y]
-    @ >
-      or.
-        and.
-          eq. (mod. y 4) 0
-          not. (eq. (mod. y 100) 0)
-        eq. (mod. y 400) 0
-  @ >
-    stdout
-      sprintf
-        "%d is %sa leap year!"
-        year! >
-          (args.get 0).as-int
-        if. (leap y:year) "" "not "
+[args...] > main
+  [y] > leap
+    or. > @
+      and.
+        eq. (mod. y 4) 0
+        not. (eq. (mod. y 100) 0)
+      eq. (mod. y 400) 0
+  stdout > @
+    sprintf
+      "%d is %sa leap year!"
+      (args.get 0).as-int > year!
+      if. (leap year:y) "" "not "
 `
 
 const myTheme = EditorView.baseTheme({

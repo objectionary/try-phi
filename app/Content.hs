@@ -6,8 +6,8 @@
 module Content where
 
 import qualified Data.Map    as Map
-import           Miso.String
 import           Miso
+import           Miso.String
 
 infoIcon :: MisoString -> View action
 infoIcon infoId =  i_ [
@@ -65,14 +65,14 @@ infoContent infoId = Map.findWithDefault "" infoId contents
     contents :: Map.Map MisoString MisoString
     contents =
       Map.fromList
-        [ ( "editor_info"
+        [ ( "info_editor"
           , "<div>" <>
             "&bull; Original <a href='https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAATVEUf-E'>syntax</a>" <>
             "<br>" <>
             "&bull; 𝜑-calculus <a href='https://drive.google.com/file/d/1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH/edit?disco=AAAASlupb0I'>definition</a>" <>
             "<br>" <>
             "&bull; <a href='https://bit.ly/32zuO4u'>BNF</a>" <> "<div>")
-        , ( "editor_info"
+        , ( "info_editor"
           , "<div>" <>
             "&bull; Original <a href='https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAATVEUf-E'>syntax</a>" <>
             "<br>" <>
@@ -115,5 +115,9 @@ infoContent infoId = Map.findWithDefault "" infoId contents
             "&bull; <a href='https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/Machine/CallByName/Graph.hs#L77'>Code</a>" <>
             "<br>" <>
             "&bull; It does apply <a href='https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAASJgTzOw'>Decorated Instantiation</a>" <>
+            "<div>")
+        , ( "info_eo"
+          , "<div>" <>
+            "φ-term translated to EO" <>
             "<div>")
         ]

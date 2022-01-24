@@ -14,7 +14,7 @@ import           Text.Parser.Token.Style (emptyIdents)
 import           Text.Trifecta           (IdentifierStyle (..), Parser, TokenParsing, symbol, (<?>))
 import qualified Text.Trifecta           as Trifecta
 
-import           Phi.Minimal.Model       (Attr, AttrValue (..), Term (..))
+import           Phi.Minimal.Model       (Attr, AttrValue (..), Term (..), DataValue (..))
 
 parseTerm :: String -> Either String Term
 parseTerm = parseString (pTerm <* Trifecta.eof)
@@ -88,7 +88,7 @@ pIdentStyle =
     }
 
 pInt :: (TokenParsing m, Monad m) => m Term
-pInt = INTEGER <$> integer
+pInt = DataTerm . DataInteger <$> integer
 
 isIdent :: Char  -> Bool
 isIdent c =

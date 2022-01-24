@@ -4,7 +4,7 @@
 {-# LANGUAGE TypeApplications  #-}
 
 module Main where
-  
+
 import           Content                              (TabMode (..), infoIcon,
                                                        tabButton, tabContent)
 import           Data.Graph.Inductive.PatriciaTree    (Gr)
@@ -13,16 +13,20 @@ import           Data.Text                            (pack)
 import           Miso
 import           Miso.String                          (MisoString,
                                                        fromMisoString, ms)
-import qualified Phi.Minimal                          as Phi(Term(..),parseTerm, ppWhnfSteps, ppStepsFor, nf, whnf, ppGraphStepsFor )
+import qualified Phi.Minimal                          as Phi (Term (..), nf,
+                                                              parseTerm,
+                                                              ppGraphStepsFor,
+                                                              ppStepsFor,
+                                                              ppWhnfSteps, whnf)
 import qualified Phi.Minimal.ConfigurationDot         as CDot
 import qualified Phi.Minimal.Machine.CallByName.Graph as CGraph
-import qualified Phi.Minimal.Model as Model(ex19)
+import qualified Phi.Minimal.Model                    as Model (ex19)
 
 #ifndef __GHCJS__
 import           Language.Javascript.JSaddle          (eval, strToText,
                                                        textToStr, valToStr)
 import           Language.Javascript.JSaddle.Warp     as JSaddle
-import Phi.Minimal.EO.Pretty(ppTerm)
+import           Phi.Minimal.EO.Pretty                (ppTerm)
 
 #endif
 
@@ -42,7 +46,7 @@ data Model = Model
   { modelSource      :: MisoString,
     modelAST         :: Either String Phi.Term,
     graphStepNumber  :: Int,
-    getCodeScript    :: String,
+    jsGetCode        :: String,
     popoversScript   :: String,
     setSnippetScript :: String
   }
@@ -64,7 +68,7 @@ initModel =
       -- modelAST = Left "initializing...",
       modelAST = Right Model.ex19,
       graphStepNumber = 0,
-      getCodeScript = "",
+      jsGetCode = "",
       popoversScript = "",
       setSnippetScript = ""
     }
@@ -73,18 +77,19 @@ initModel =
 main :: IO ()
 main = do
 #ifndef __GHCJS__
-  getCodeScript <- readFile "src/scripts/get-code.js"
+  jsGetCode <- readFile "src/scripts/get-code.js"
   -- popoversScript <- readFile "src/scripts/init-popovers.js"
   -- setSnippetScript <- readFile "src/scripts/set-snippet.js"
   let model = initModel {
-    getCodeScript = getCodeScript
-    -- popoversScript = popoversScript, 
+    jsGetCode = jsGetCode
+    -- popoversScript = popoversScript,
     -- setSnippetScript = setSnippetScript
   }
 #else
   let model = initModel
 #endif
   runApp $ startApp Miso.App {..}
+
   where
     -- initialAction = Reload -- initial action to be executed on application load
     initialAction = NoOp -- initial action to be executed on application load
@@ -136,13 +141,13 @@ viewModel m@Model {..} =
         , class_ "pt-5"
         ]
         [ button_ [onClick Reload, class_ "btn btn-secondary mb-5"] [text "Reload"],
-          let 
-            (term, divElem) = 
+          let
+            (term, divElem) =
               case modelAST of
                 Left err   -> (Phi.Loc 0, div_ [class_ "pb-2"] [pre_ [] [text $ ms err]])
                 Right t -> (t, div_ [][])
           in
-            div_ [onCreated Reload] [divElem, termTabs term m {modelAST = Right term}]
+            div_ [] [divElem, termTabs term m {modelAST = Right term}]
         ],
       pageFooter
     ]
@@ -189,7 +194,7 @@ editorDiv =
                   text "expression (",
                   a_ [id_ "__permalink__", href_ "#"] [text "permalink"],
                   text ")",
-                  infoIcon "editor_info"
+                  infoIcon "info_editor"
                 ],
               div_ [id_ "editor"] []
             ]
@@ -264,8 +269,6 @@ termTabs term m@Model {..} =
           tabContent "content_cbn_with_tap" (pre_ [] [text . ms . show $ Phi.ppStepsFor term]) "button_cbn_with_tap" Disabled,
           tabContent "content_cbn_with_graph" (graphContent term) "button_cbn_with_graph" Disabled
         ]
-        -- ,
-      -- script_ [src_ "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi@switch-from-js-to-hs/src/scripts/init-popovers.js", type_ "text/javascript"] ""
     ]
   where
     graphContent t =
@@ -297,7 +300,7 @@ termTabs term m@Model {..} =
 #ifndef __GHCJS__
 codemirrorGetValue :: Model -> JSM MisoString
 codemirrorGetValue Model{..} = do
-  res <- eval $ textToStr (pack getCodeScript)
+  res <- eval $ textToStr (pack jsGetCode)
   str <- valToStr res
   let misoStr = ms $ strToText str
   return misoStr

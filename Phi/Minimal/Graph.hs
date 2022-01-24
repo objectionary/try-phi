@@ -9,6 +9,8 @@ import           Phi.Utils.GraphBuilder
 import           Control.Monad              (forM_)
 import           Data.Graph.Inductive.Graph (DynGraph)
 import qualified Data.Graph.Inductive.Graph as Graph
+import qualified Phi.Minimal.EO.Pretty as P(ppInt)
+
 
 data TermNode
   = ObjNode
@@ -37,7 +39,7 @@ toGraphBuilder =
         edgeFromTo node (AttrEdge attr) sub
       return node
     Loc n -> do
-      node1 <- freshNode (LocDotNode (Just n))
+      node1 <- freshNode (LocDotNode Nothing)
       node2 <- freshNode (LocDotNode Nothing)
       edgeFromTo node1 (AttrEdge (prettyLocator n)) node2
       return node1
@@ -54,9 +56,15 @@ toGraphBuilder =
       edgeFromTo node (AttrEdge a) unode
       return node
     DataTerm t -> do
-      case t of
-        DataInteger i ->
-          freshNode $ DataNode (DataInteger i)
+      node1 <- freshNode (LocDotNode Nothing)
+      node2 <- freshNode (LocDotNode Nothing)
+      edgeFromTo node1 (AttrEdge (prettyData t)) node2
+      return node1
+
+prettyData :: DataValue  -> String
+prettyData =
+  \case 
+    DataInteger i -> show i
 
 prettyLocator :: Int -> String
 prettyLocator n = "ρ" <> n'

@@ -88,8 +88,8 @@ fmtTermNode modeMap (node, nodeType) = nodeFormat
       case nodeType of
         VoidNode     -> [GraphViz.toLabel "VOID"]
         LocDotNode _ -> [GraphViz.shape GraphViz.BoxShape]
+        DataNode _ -> [GraphViz.shape GraphViz.BoxShape]
         ObjNode      -> []
-        DataNode _ -> []
 
     highlight =
       makeHightlight $

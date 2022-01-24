@@ -166,14 +166,18 @@ OBJECT
 // first line in an object
 DECLARATION
 {
-  ATTR_NAME
-  ~free_list_or_inline
+  FREE_LIST
   (
     space
-    FREE_LIST
+    ARROW
+    space
+    ATTR_NAME
+    |
+    (
+      space
+      INLINE_ATTRIBUTE
+    )+
   )?
-  |
-  FREE_LIST
 }
 
 // any name
@@ -189,7 +193,6 @@ DOT_NAME
     |
     FREE_NAME
   }
-
 
 
 // attribute name
@@ -209,11 +212,6 @@ ATTR_NAME {
       FOREIGN_NAME
     )
   )?
-  // !right
-  // !left
-  space
-  // !right
-  ARROW
 }
 // .name | name.name.
 // name.name
@@ -275,10 +273,10 @@ FREE_LIST
 INLINE_ATTRIBUTE
 {
   LB
-  DECLARATION
-  ~free_list_or_inline
-  space
   INLINE
+  space
+  ARROW
+  DOT_NAME
   RB
 }
 

@@ -10,6 +10,7 @@ import  Prettyprinter as Pretty
 
 import Phi.Minimal.Model
     ( Term(..),
+      DataValue(..),
       AttrValue(..),
       Object (..),
       Attr,
@@ -62,56 +63,77 @@ import Phi.Minimal.Model
 -- []
 --   $ > a
  
+type Separator = String
+
+sepAttach = " > "
+sepArgument = ":"
 
 ppTerm :: Term -> Doc ann
 ppTerm =
   \case
-    Obj o -> ppObjAttr "" o
-    Dot t a -> ppTerm t <> dot <> pretty a
-    App t (a, u) -> ppTerm t <> parens (ppAttrWithValue (a, Attached u))
+    Obj o -> ppObjAttr Nothing o sepAttach 
+    Dot t a -> ppDotAttr Nothing  (t, a) sepAttach
+    App t (a, u) -> ppAppAttr Nothing  (t, (Just a, u)) sepAttach
     Loc n -> ppLoc n
-    INTEGER i -> ppInt i
+    DataTerm t -> 
+      case t of 
+        DataInteger i-> ppInt i
 
-ppTermAttr :: Attr -> Term -> Doc ann
+ppTermAttr :: Maybe Attr -> Term -> Separator -> Doc ann
 ppTermAttr a =
   \case
     Obj o -> ppObjAttr a o
     Dot t b -> ppDotAttr a (t, b)
-    App t1 (b, t2) -> ppApp t1 b t2
-    Loc n -> ppLoc n
-    INTEGER i -> ppInt i
+    App t1 (b, t2) -> ppAppAttr a (t1, (Just b, t2))
+    Loc n -> \_ -> ppLoc n
+    DataTerm t -> 
+      case t of 
+        DataInteger i-> \_ -> ppInt i
 
 ppInt :: Integer -> Doc ann
 ppInt i = pretty $ show i
 
 ppLoc :: Int -> Doc ann
-ppLoc n = pretty ("^" <> n')
-  where
-    n' = map toSuperscript (show n)
-    toSuperscript c =
-      case lookup c (zip "1234567890" "¹²³⁴⁵⁶⁷⁸⁹⁰") of
-        Just c' -> c'
-        _       -> c
+ppLoc n = pretty ("^"::String) <> pretty n
 
-ppObjAttr :: Attr -> Object Term -> Doc ann
-ppObjAttr a o =
+
+ppObjAttr :: Maybe Attr -> Object Term -> Separator -> Doc ann
+ppObjAttr a o separator =
   nest 2 $
-  encloseSep "[" "]" " " (pretty <$> void) <+>
-  ">" <+> pretty a <> hardline <> ppAttachedAttrs attached
+  encloseSep "[" "]" " " (pretty <$> void) <>
+  case a of 
+    Just attr -> pretty separator <> pretty attr
+    Nothing  -> ""
+  <> hardline 
+  <> ppAttachedAttrs attached separator
   where
     (void, attached) = splitAttrs o
 
-ppAttachedAttrs :: [(Attr, Term)] -> Doc ann
-ppAttachedAttrs = vsep . map (uncurry ppTermAttr)
+ppAttachedAttrs :: [(Attr, Term)] -> Separator -> Doc ann
+ppAttachedAttrs attrs separator = 
+  vsep $ map (\(a,t) -> ppTermAttr a t separator) attrs'
+  where 
+    attrs' = map (\(a, t) -> (Just a, t)) attrs
 
-ppDotAttr :: Attr -> (Term, Attr) -> Doc ann
-ppDotAttr a (t, b) =
-  nest 2 $ pretty b <> "." <+> ">" <+> pretty a <> hardline <> ppTerm t
+ppDotAttr :: Maybe Attr -> (Term, Attr) -> Separator -> Doc ann
+ppDotAttr a (t, b) separator =
+  nest 2 $ 
+  pretty b <> 
+  "." <> 
+  case a of
+    Just attr -> pretty separator <> pretty attr
+    Nothing  -> ""
+  <>
+  hardline <>
+  ppTerm t
 
 
--- assume unnest after printing t1
-ppApp :: Term -> Attr -> Term -> Doc ann
-ppApp t1 a t2 = ppTerm t1 <+> ppTerm t2 <> ":" <> pretty a
+ppAppAttr :: Maybe Attr -> (Term, (Maybe Attr, Term)) -> Separator -> Doc ann
+ppAppAttr a (t1, (b, t2)) separator = 
+  ppTermAttr a t1 separator <> 
+  hardline <>
+  indent 2
+  (ppTermAttr b t2 sepArgument)
 
 ppAttrWithValue :: (Attr, AttrValue Term) -> Doc ann
 ppAttrWithValue (a, value) =

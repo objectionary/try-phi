@@ -89,6 +89,8 @@ fmtTermNode modeMap (node, nodeType) = nodeFormat
         VoidNode     -> [GraphViz.toLabel "VOID"]
         LocDotNode _ -> [GraphViz.shape GraphViz.BoxShape]
         ObjNode      -> []
+        DataNode _ -> []
+
     highlight =
       makeHightlight $
         case Map.lookup node modeMap of
@@ -97,7 +99,7 @@ fmtTermNode modeMap (node, nodeType) = nodeFormat
               ( \case
                   CurrentNode -> currentColor
                   ParentNode -> parentColor
-                  ActionNode -> actionColor
+                  ActionNode -> actionColor 
               )
               (filter (/= ActionNode) l)
           _ -> []

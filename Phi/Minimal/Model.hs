@@ -1,27 +1,42 @@
-{-# OPTIONS_GHC -Wall #-}
-{-# LANGUAGE DeriveFoldable             #-}
-{-# LANGUAGE DeriveFunctor              #-}
-{-# LANGUAGE DeriveTraversable          #-}
+{-# LANGUAGE DeriveFoldable #-}
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE LambdaCase                 #-}
-{-# LANGUAGE OverloadedLists            #-}
-{-# LANGUAGE PatternSynonyms            #-}
-{-# LANGUAGE UndecidableInstances       #-}
-{-# LANGUAGE ViewPatterns               #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedLists #-}
+{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ViewPatterns #-}
+{-# OPTIONS_GHC -Wall #-}
 
-module Phi.Minimal.Model(ex19, Object(..), Attr, Term(..), incLocators, AttrValue(..), substituteLocator, (.?), splitAttrs, whnfSteps, whnf, nf) where
+module Phi.Minimal.Model
+  ( ex19,
+    Object (..),
+    Attr,
+    Term (..),
+    incLocators,
+    AttrValue (..),
+    substituteLocator,
+    (.?),
+    splitAttrs,
+    whnfSteps,
+    whnf,
+    nf,
+    pattern Apps,
+    DataValue(..)
+  )
+where
 
-import           Data.HashMap.Strict.InsOrd (InsOrdHashMap)
+import Data.HashMap.Strict.InsOrd (InsOrdHashMap)
 import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
-import           Data.List                  (foldl', unfoldr)
-import           GHC.Exts                   (IsList (..))
+import Data.List (foldl', unfoldr)
+import GHC.Exts (IsList (..))
 
 type Attr = String
 
-newtype Object a =
-  Object
-    { getObject :: InsOrdHashMap Attr (AttrValue a)
-    }
+newtype Object a = Object
+  { getObject :: InsOrdHashMap Attr (AttrValue a)
+  }
   deriving (Eq, Functor, Foldable, Traversable, IsList)
 
 -- showObject :: Show a => Object a -> String
@@ -29,7 +44,6 @@ newtype Object a =
 
 -- instance Show a => Object a where
 --   show o = showObject o
-
 
 (.?) :: Object a -> Attr -> Maybe (AttrValue a)
 Object o .? a = InsOrdHashMap.lookup a o
@@ -45,15 +59,20 @@ data AttrValue a
 splitAttrs :: Object a -> ([Attr], [(Attr, a)])
 splitAttrs = foldr add ([], []) . toList
   where
-    add (a, VoidAttr) (void, attached)   = (a : void, attached)
+    add (a, VoidAttr) (void, attached) = (a : void, attached)
     add (a, Attached t) (void, attached) = (void, (a, t) : attached)
+
+
+data DataValue = 
+  DataInteger Integer
+  deriving (Eq)
 
 data Term
   = Obj (Object Term)
   | Dot Term Attr
   | App Term (Attr, Term)
   | Loc Int
-  | INTEGER Integer
+  | DataTerm DataValue
   deriving (Eq)
 
 appList :: Term -> Maybe (Term, [(Attr, Term)])
@@ -63,18 +82,19 @@ appList =
     _ -> Nothing
   where
     go (App t x) xs = go t (x : xs)
-    go t xs         = (t, xs)
+    go t xs = (t, xs)
 
 peelApps :: Term -> (Term, [(Attr, Term)])
 peelApps = go []
   where
     go xs (App t x) = go (x : xs) t
-    go xs t         = (t, xs)
+    go xs t = (t, xs)
 
 pattern Apps :: Term -> [(Attr, Term)] -> Term
-
-pattern Apps f xs <- (appList -> Just (f, xs))
-  where Apps f xs = foldl' App f xs
+pattern Apps f xs <-
+  (appList -> Just (f, xs))
+  where
+    Apps f xs = foldl' App f xs
 
 {-# COMPLETE Obj, Dot, Apps, Loc #-}
 
@@ -121,16 +141,16 @@ whnfStep =
             Just (Attached u) -> Just (substituteLocator (0, t) u)
             Nothing ->
               case o .? "𝜑" of
-                Just _  -> Just (Dot (Dot t "𝜑") a)
+                Just _ -> Just (Dot (Dot t "𝜑") a)
                 Nothing -> Nothing
         _ -> (`Dot` a) <$> whnfStep t
     App t (a, u) ->
       case t of
         Obj o ->
           case o .? a of
-            Just VoidAttr     -> Just (Obj (o .= (a, incLocators u)))
+            Just VoidAttr -> Just (Obj (o .= (a, incLocators u)))
             Just (Attached _) -> Nothing
-            Nothing           -> Nothing
+            Nothing -> Nothing
         _ -> (`App` (a, u)) <$> whnfStep t
     Obj {} -> Nothing
     Loc {} -> Nothing
@@ -148,16 +168,16 @@ whnf =
             Just (Attached u) -> whnf (substituteLocator (0, t') u)
             Nothing ->
               case o .? "𝜑" of
-                Just _  -> whnf (Dot (Dot t' "𝜑") a)
+                Just _ -> whnf (Dot (Dot t' "𝜑") a)
                 Nothing -> Dot t' a
         t' -> Dot t' a
     App t (a, u) ->
       case whnf t of
         t'@(Obj o) ->
           case o .? a of
-            Just VoidAttr     -> Obj (o .= (a, incLocators u))
+            Just VoidAttr -> Obj (o .= (a, incLocators u))
             Just (Attached _) -> App t' (a, u)
-            Nothing           -> App t' (a, u)
+            Nothing -> App t' (a, u)
         t' -> App t' (a, u)
     t@Obj {} -> t
     t@Loc {} -> t
@@ -175,22 +195,23 @@ nf =
             Just (Attached u) -> nf (substituteLocator (0, t') u)
             Nothing ->
               case o .? "𝜑" of
-                Just _  -> nf (Dot (Dot t' "𝜑") a)
+                Just _ -> nf (Dot (Dot t' "𝜑") a)
                 Nothing -> Dot (nf t') a
         t' -> Dot (nf t') a
     App t (a, u) ->
       case whnf t of
         t'@(Obj o) ->
           case o .? a of
-            Just VoidAttr     -> nf (Obj (o .= (a, incLocators u)))
+            Just VoidAttr -> nf (Obj (o .= (a, incLocators u)))
             Just (Attached _) -> App (nf t') (a, nf u)
-            Nothing           -> App (nf t') (a, nf u)
+            Nothing -> App (nf t') (a, nf u)
         t' -> App (nf t') (a, nf u)
     Obj o -> Obj (nf <$> o)
     t@Loc {} -> t
     dataTerm -> dataTerm
 
 -- * Examples
+
 -- | Empty object.
 --
 -- >>> empty
@@ -232,8 +253,8 @@ ex6 = Dot (Dot (App t ("z", u)) "x") "y"
   where
     t =
       Obj
-        [ ("x", Attached (Obj [("y", Attached (Dot (Loc 1) "z"))]))
-        , ("z", VoidAttr)
+        [ ("x", Attached (Obj [("y", Attached (Dot (Loc 1) "z"))])),
+          ("z", VoidAttr)
         ]
     u = Obj []
 
@@ -252,11 +273,11 @@ ex9 = App (Dot t "d") ("b", Loc 0)
   where
     t =
       Obj
-        [ ("a", VoidAttr)
-        , ("b", VoidAttr)
-        , ("c", Attached (Loc 2))
-        , ("d", Attached (Obj []))
-        , ("e", Attached (Loc 3))
+        [ ("a", VoidAttr),
+          ("b", VoidAttr),
+          ("c", Attached (Loc 2)),
+          ("d", Attached (Obj [])),
+          ("e", Attached (Loc 3))
         ]
 
 ex10 :: Term
@@ -264,9 +285,9 @@ ex10 = Dot t "z"
   where
     t =
       Obj
-        [ ("x", VoidAttr)
-        , ("y", VoidAttr)
-        , ("z", Attached (App (Loc 0) ("y", Loc 0)))
+        [ ("x", VoidAttr),
+          ("y", VoidAttr),
+          ("z", Attached (App (Loc 0) ("y", Loc 0)))
         ]
 
 ex11 :: Term
@@ -294,12 +315,14 @@ ex16 = Dot (Dot t "a") "y"
   where
     t =
       Obj
-        [ ( "a"
-          , Attached
-              (Obj
-                 [ ("z", Attached (Loc 1))
-                 , ("y", Attached (Obj [("x", Attached (Loc 1))]))
-                 ]))
+        [ ( "a",
+            Attached
+              ( Obj
+                  [ ("z", Attached (Loc 1)),
+                    ("y", Attached (Obj [("x", Attached (Loc 1))]))
+                  ]
+              )
+          )
         ]
 
 ex17 :: Term
@@ -316,10 +339,10 @@ ex18 = Dot (Obj [("x", VoidAttr), ("y", Attached t)]) "y"
 ex19 :: Term
 ex19 = Dot (Obj [("x", VoidAttr), ("y", Attached t)]) "y"
   where
-    t = App (Loc 0) ("x", INTEGER 1)
-
+    t = App (Loc 0) ("x", DataTerm (DataInteger 1))
 
 -- * Terms translated from \(\lambda\)-calculus to \(\varphi\)-calculus
+
 -- | Apply a term that represents \(\lambda\)-term to another term.
 --
 -- >>> app (Loc 0) (Loc 1)

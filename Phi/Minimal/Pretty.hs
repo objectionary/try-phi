@@ -35,6 +35,12 @@ ppTerm =
     Dot t a -> ppTerm t <> dot <> pretty a
     App t (a, u) -> ppTerm t <> parens (ppAttrWithValue (a, Attached u))
     Loc n -> ppLoc n
+    DataTerm t ->
+      case t of 
+        DataInteger i -> pretty i
+
+ppInt :: Integer -> Doc ann
+ppInt i = pretty i
 
 encloseSepAfter :: Doc ann -> Doc ann -> Doc ann -> [Doc ann] -> Doc ann
 encloseSepAfter bra ket separator =

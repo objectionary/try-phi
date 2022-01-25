@@ -45,7 +45,7 @@
 .btn-yellow:hover,
 .btn-yellow:active,
 .btn-yellow:visited {
-  background-color: #eab42b !important;
+  background-color: #eab42b;
 }
 
 .btn-yellow:focus{

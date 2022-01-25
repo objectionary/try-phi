@@ -32,7 +32,7 @@ ppTerm :: Term -> Doc ann
 ppTerm =
   \case
     Obj o -> ppObj o
-    Dot t a -> ppTerm t <> dot <> pretty a
+    Dot t a -> ppTerm t <> dot <> ppAttr a
     App t (a, u) -> ppTerm t <> parens (ppAttrWithValue (a, Attached u))
     Loc n -> ppLoc n
     DataTerm t ->
@@ -65,7 +65,12 @@ ppObj o
 
 ppAttrWithValue :: (Attr, AttrValue Term) -> Doc ann
 ppAttrWithValue (a, value) =
-  group $ group (pretty a <+> "↦") <+> ppAttrValue value
+  group $ group (ppAttr a <+> "↦") <+> ppAttrValue value
+
+ppAttr :: Attr -> Doc ann
+ppAttr a 
+  | a == "@" = "𝜑"
+  | otherwise = pretty a
 
 ppAttrValue :: AttrValue Term -> Doc ann
 ppAttrValue =
@@ -110,9 +115,9 @@ ppActions [] = "ɛ"
 ppActions as = foldMap ppAction as
 
 ppAction :: Action -> Doc ann
-ppAction (DotAction a) = "." <> pretty a
+ppAction (DotAction a) = "." <> ppAttr a
 ppAction (AppAction (a, (u, e))) =
-  parens (group (pretty a <+> "↦") <+> tupled [ppTerm u, ppEnvironment e])
+  parens (group (ppAttr a <+> "↦") <+> tupled [ppTerm u, ppEnvironment e])
 
 ppEnvironment :: Environment -> Doc ann
 ppEnvironment parents =
@@ -175,7 +180,7 @@ ppGraphActions as = foldMap ppGraphAction as
 ppGraphAction :: Graph.Action -> Doc ann
 ppGraphAction =
   \case
-    Graph.DotAction (_, a) -> "." <> pretty a
+    Graph.DotAction (_, a) -> "." <> ppAttr a
     Graph.AppAction (n, e) -> tupled [pretty n, ppGraphEnvironment e]
     Graph.LocAction (_, n) -> ppLoc n
 

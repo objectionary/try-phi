@@ -47,8 +47,17 @@
 
 .btn-yellow, .btn-yellow:hover, .btn-yellow:active, .btn-yellow:visited {
   background-color: #eab42b !important;
+  box-shadow: #332606 !important;
 }
 
-.btn-green, .btn-green:hover, .btn-green:active, .btn-green:visited {
+.btn-green, .btn-green:hover, .btn-green:active, .btn-green:visited{
   background-color: #54c234 !important;
+}
+
+.nav>li>button{
+  color: black;
+}
+
+.nav>li>button:active, .nav>li>button:hover{
+  color: #54c234 !important;
 }

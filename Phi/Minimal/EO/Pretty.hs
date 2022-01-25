@@ -7,6 +7,7 @@ module Phi.Minimal.EO.Pretty where
 -- TODO use Prettyprinter since Doc is deprecated
 -- import           Data.Text.Prettyprint.Doc as Doc
 import  Prettyprinter as Pretty
+import Data.List(intercalate)
 
 import Phi.Minimal.Model
     ( Term(..),
@@ -65,7 +66,9 @@ import Phi.Minimal.Model
  
 type Separator = String
 
+sepAttach :: Separator
 sepAttach = " > "
+sepArgument :: Separator
 sepArgument = ":"
 
 ppTerm :: Term -> Doc ann
@@ -99,7 +102,10 @@ ppInt a i =
 
 -- TODO several or number?
 ppLoc :: Int -> Doc ann
-ppLoc n = pretty ("^"::String) <> pretty n
+ppLoc n
+  | n == 0 = pretty ("$"::String)
+  | n > 0 = pretty $ intercalate "." (replicate n "^" )
+  | otherwise = error "incorrect locator value"
 
 
 ppObjAttr :: Maybe Attr -> Object Term -> Separator -> Doc ann

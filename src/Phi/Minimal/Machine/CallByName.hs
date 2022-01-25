@@ -146,3 +146,8 @@ step conf@Configuration {..} =
                         }
             _ -> Nothing -- should never happen?
         [] -> Nothing -- nothing left to do
+    -- Just (DataTerm t) ->
+    --   case t of
+    --     DataInteger i
+    --       | null environment -> Nothing
+    --       | otherwise -> Just conf {currentTerm = Nothing}

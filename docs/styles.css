@@ -40,3 +40,15 @@
 .cm-editor {
   border: 1px solid gray;
 }
+
+.btn-primary, .btn-primary:hover, .btn-primary:active, .btn-primary:visited {
+  background-color: #8064A2 !important;
+}
+
+.btn-yellow, .btn-yellow:hover, .btn-yellow:active, .btn-yellow:visited {
+  background-color: #eab42b !important;
+}
+
+.btn-green, .btn-green:hover, .btn-green:active, .btn-green:visited {
+  background-color: #54c234 !important;
+}

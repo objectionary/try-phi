@@ -73,7 +73,7 @@ pAttr = normalise <$> pIdent
   where
     normalise =
       \case
-        "@" -> "𝜑"
+        "@" -> "@"
         a -> a
 
 pIdent :: (TokenParsing m, Monad m) => m Attr

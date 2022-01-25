@@ -1,44 +1,53 @@
-{-# OPTIONS_GHC -Wall -fno-warn-orphans        #-}
+{-# OPTIONS_GHC -Wall -fno-warn-orphans#-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE TypeApplications  #-}
+
 module Phi.Minimal.Pretty where
 
 import           Data.Graph.Inductive.PatriciaTree    (Gr)
 import           Data.HashMap.Strict.InsOrd           (InsOrdHashMap)
 import qualified Data.HashMap.Strict.InsOrd           as InsOrdHashMap
-import           Data.Text.Prettyprint.Doc            as Doc
 
+import           Prettyprinter            as Doc
 import           Phi.Minimal.Machine.CallByName
 import qualified Phi.Minimal.Machine.CallByName.Graph as Graph
 import           Phi.Minimal.Model
 
-instance Show Term where show = show . pretty
-instance Pretty Term where pretty = ppTerm
+instance Show Term where
+  show = show . pretty
 
-instance Show (AttrValue Term) where show = show . pretty
-instance Pretty (AttrValue Term) where pretty = ppAttrValue
+instance Pretty Term where
+  pretty = ppTerm
+
+instance Show (AttrValue Term) where
+  show = show . pretty
+
+instance Pretty (AttrValue Term) where
+  pretty = ppAttrValue
 
 ppTerm :: Term -> Doc ann
-ppTerm = \case
-  Obj o -> ppObj o
-  Dot t a -> ppTerm t <> dot <> pretty a
-  App t (a, u) ->
-    ppTerm t <> parens (ppAttrWithValue (a, Attached u))
-  Loc n -> ppLoc n
+ppTerm =
+  \case
+    Obj o -> ppObj o
+    Dot t a -> ppTerm t <> dot <> pretty a
+    App t (a, u) -> ppTerm t <> parens (ppAttrWithValue (a, Attached u))
+    Loc n -> ppLoc n
+    DataTerm t ->
+      case t of 
+        DataInteger i -> pretty i
 
-encloseSepAfter
-  :: Doc ann
-  -> Doc ann
-  -> Doc ann
-  -> [Doc ann]
-  -> Doc ann
-encloseSepAfter bra ket separator = \case
-  []    -> bra <> ket
-  [doc] -> bra <> doc <> ket
-  docs  -> bra <> mconcat (addSepAfter docs) <> ket
+ppInt :: Integer -> Doc ann
+ppInt i = pretty i
+
+encloseSepAfter :: Doc ann -> Doc ann -> Doc ann -> [Doc ann] -> Doc ann
+encloseSepAfter bra ket separator =
+  \case
+    [] -> bra <> ket
+    [doc] -> bra <> doc <> ket
+    docs -> bra <> mconcat (addSepAfter docs) <> ket
   where
     addSepAfter []         = []
     addSepAfter [doc]      = [doc]
@@ -47,19 +56,22 @@ encloseSepAfter bra ket separator = \case
 ppObj :: Object Term -> Doc ann
 ppObj o
   | null (getObject o) = "⟦⟧"
-  | otherwise
-    = group . nest 2 . encloseSepAfter ("⟦" <> line) (nest (-2) (line <> "⟧")) (comma <> line)
-    . map ppAttrWithValue . InsOrdHashMap.toList . getObject
-    $ o
+  | otherwise =
+    group .
+    nest 2 .
+    encloseSepAfter ("⟦" <> line) (nest (-2) (line <> "⟧")) (comma <> line) .
+    map ppAttrWithValue . InsOrdHashMap.toList . getObject $
+    o
 
 ppAttrWithValue :: (Attr, AttrValue Term) -> Doc ann
-ppAttrWithValue (a, value) = group $
-  group (pretty a <+> "↦") <+> ppAttrValue value
+ppAttrWithValue (a, value) =
+  group $ group (pretty a <+> "↦") <+> ppAttrValue value
 
 ppAttrValue :: AttrValue Term -> Doc ann
-ppAttrValue = \case
-  VoidAttr -> "ø"
-  Attached t -> ppTerm t
+ppAttrValue =
+  \case
+    VoidAttr -> "ø"
+    Attached t -> ppTerm t
 
 ppLoc :: Int -> Doc ann
 ppLoc n = pretty ("ρ" <> n')
@@ -71,23 +83,27 @@ ppLoc n = pretty ("ρ" <> n')
         _       -> c
 
 ppWhnfSteps :: Term -> Doc ann
-ppWhnfSteps term = encloseSepAfter "" "" hardline $
-  zipWith ppStep [1 :: Int ..] (whnfSteps term)
+ppWhnfSteps term =
+  encloseSepAfter "" "" hardline $ zipWith ppStep [1 :: Int ..] (whnfSteps term)
   where
     ppStep i t = Doc.fill 5 (Doc.brackets (pretty i)) <+> align (ppTerm t)
 
 -- * Call-by-name term reduction machine
-
 ppStepsFor :: Term -> Doc ann
-ppStepsFor term = encloseSepAfter "" "" hardline $
+ppStepsFor term =
+  encloseSepAfter "" "" hardline $
   zipWith ppStep [1 :: Int ..] (steps (initConfiguration term))
   where
-    ppStep i conf = Doc.fill 5 (Doc.brackets (pretty i)) <+> align (ppConfiguration conf)
+    ppStep i conf =
+      Doc.fill 5 (Doc.brackets (pretty i)) <+> align (ppConfiguration conf)
 
 ppConfiguration :: Configuration -> Doc ann
-ppConfiguration Configuration{..} =
-  encloseSepAfter "< " " >" (" " <> Doc.semi <> " ")
-    [ maybe "ɛ" ppTerm currentTerm, ppActions actions, ppEnvironment environment ]
+ppConfiguration Configuration {..} =
+  encloseSepAfter
+    "< "
+    " >"
+    (" " <> Doc.semi <> " ")
+    [maybe "ɛ" ppTerm currentTerm, ppActions actions, ppEnvironment environment]
 
 ppActions :: [Action] -> Doc ann
 ppActions [] = "ɛ"
@@ -95,44 +111,58 @@ ppActions as = foldMap ppAction as
 
 ppAction :: Action -> Doc ann
 ppAction (DotAction a) = "." <> pretty a
-ppAction (AppAction (a, (u, e)))
-  = parens (group (pretty a <+> "↦") <+> tupled [ ppTerm u, ppEnvironment e ])
+ppAction (AppAction (a, (u, e))) =
+  parens (group (pretty a <+> "↦") <+> tupled [ppTerm u, ppEnvironment e])
 
 ppEnvironment :: Environment -> Doc ann
-ppEnvironment parents
-  = foldMap (\parent -> ppParent parent <> ":") parents <> "ɛ"
+ppEnvironment parents =
+  foldMap (\parent -> ppParent parent <> ":") parents <> "ɛ"
 
 ppParent :: Parent -> Doc ann
-ppParent Parent{..} = tupled
-  [ ppObj original, ppApplications applications ]
+ppParent Parent {..} = tupled [ppObj original, ppApplications applications]
 
 ppApplications :: InsOrdHashMap Attr (Term, Environment) -> Doc ann
 ppApplications o
   | null o = "⟦⟧"
-  | otherwise
-    = group . nest 2 . encloseSepAfter ("⟦" <> line) (nest (-2) (line <> "⟧")) (comma <> line)
-    . map (ppAction . AppAction) . InsOrdHashMap.toList
-    $ o
+  | otherwise =
+    group .
+    nest 2 .
+    encloseSepAfter ("⟦" <> line) (nest (-2) (line <> "⟧")) (comma <> line) .
+    map (ppAction . AppAction) . InsOrdHashMap.toList $
+    o
 
 -- * Call-by-name graph-assisted evaluation machine
-
-ppGraphStepsFor :: Term -> Doc ann
-ppGraphStepsFor term = encloseSepAfter "" "" hardline $
+ppGraphStepsFor :: Term -> Int -> Doc ann
+ppGraphStepsFor term stepNumber =
+  encloseSepAfter "" "" hardline $
   zipWith ppStep [1 :: Int ..] (Graph.steps (Graph.initConfiguration @Gr term))
   where
-    ppStep i conf = Doc.fill 5 (Doc.brackets (pretty i)) <+> align (ppGraphConfiguration conf)
+    arrowPointer i =
+      Doc.pretty $
+      if i - 1 == stepNumber
+        then "->"
+        else "" :: String
+    ppStep i conf =
+      Doc.fill 5 (Doc.brackets (pretty i)) <+>
+      Doc.fill 5 (align (arrowPointer i)) <+> align (ppGraphConfiguration conf)
 
 ppGraphConfiguration' :: Graph.Configuration Gr -> Doc ann
-ppGraphConfiguration' Graph.Configuration{..} =
-  encloseSepAfter "< " " >" (" " <> Doc.semi <> " ")
+ppGraphConfiguration' Graph.Configuration {..} =
+  encloseSepAfter
+    "< "
+    " >"
+    (" " <> Doc.semi <> " ")
     [ maybe "ɛ" pretty currentNode
     , ppGraphActions actions
     , ppGraphEnvironment environment
     ]
 
 ppGraphConfiguration :: Graph.Configuration gr -> Doc ann
-ppGraphConfiguration Graph.Configuration{..} =
-  encloseSepAfter "< " " >" (" " <> Doc.semi <> " ")
+ppGraphConfiguration Graph.Configuration {..} =
+  encloseSepAfter
+    "< "
+    " >"
+    (" " <> Doc.semi <> " ")
     [ maybe "ɛ" pretty currentNode
     , ppGraphActions actions
     , ppGraphEnvironment environment
@@ -143,17 +173,18 @@ ppGraphActions [] = "ɛ"
 ppGraphActions as = foldMap ppGraphAction as
 
 ppGraphAction :: Graph.Action -> Doc ann
-ppGraphAction = \case
-  Graph.DotAction a -> "." <> pretty a
-  Graph.AppAction (n, e) -> tupled [ pretty n, ppGraphEnvironment e ]
-  Graph.LocAction n -> ppLoc n
+ppGraphAction =
+  \case
+    Graph.DotAction (_, a) -> "." <> pretty a
+    Graph.AppAction (n, e) -> tupled [pretty n, ppGraphEnvironment e]
+    Graph.LocAction (_, n) -> ppLoc n
 
 ppGraphEnvironment :: Graph.Environment -> Doc ann
-ppGraphEnvironment parents
-  = foldMap (\parent -> ppGraphParent parent <> ":") parents <> "ɛ"
+ppGraphEnvironment parents =
+  foldMap (\parent -> ppGraphParent parent <> ":") parents <> "ɛ"
 
 ppGraphParent :: Graph.Parent -> Doc ann
-ppGraphParent Graph.Parent{..} = encloseSep "" "" "▸" $
-  map ppGraphCopy copies ++ [ pretty original ]
+ppGraphParent Graph.Parent {..} =
+  encloseSep "" "" "▸" $ map ppGraphCopy copies ++ [pretty original]
   where
-    ppGraphCopy (n, e) = tupled [ pretty n, ppGraphEnvironment e ]
+    ppGraphCopy (n, e) = tupled [pretty n, ppGraphEnvironment e]

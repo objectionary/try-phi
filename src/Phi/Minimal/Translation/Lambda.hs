@@ -19,14 +19,12 @@ phiToLambda = \case
     let (void, attached) = Phi.splitAttrs o
         void' = [ (a, Dot (Var 0) a) | a <- void ]
         attached' = [ (b, phiToLambda t) | (b, t) <- attached]
-     in case "𝜑" `elem` (void <> map fst attached) of
-          False ->
-            Fix (Abs (Abs (
-              Obj (InsOrdHashMap.fromList (void' <> attached')))))
-          True ->
-            Fix (Abs (Abs (
-              App (Dot (App (Var 1) (Var 0)) "𝜑") (Obj []) `With`
-              InsOrdHashMap.fromList (void' <> attached'))))
+     in if "𝜑" `elem` (void <> map fst attached) then
+          Fix (Abs (Abs (
+            App (Dot (App (Var 1) (Var 0)) "𝜑") (Obj []) `With`
+            InsOrdHashMap.fromList (void' <> attached')))) else
+          Fix (Abs (Abs (
+            Obj (InsOrdHashMap.fromList (void' <> attached')))))
 
 phiToLambdaIsSound :: Phi.Term -> Bool
 phiToLambdaIsSound t =

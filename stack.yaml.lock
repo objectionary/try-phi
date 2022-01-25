@@ -5,37 +5,51 @@
 
 packages:
 - completed:
-    hackage: miso-1.8.0.0@sha256:090e8702d6ffd096e79ea083f5f3293737e3ec44a68b21b8013dc445b92064f0,4339
+    hackage: miso-1.8.1.0@sha256:5254e49a3f695ee93f4ecc95e0e353e4a25cbcd46992f6310ac242d777a0fe55,3687
     pantry-tree:
-      size: 3178
-      sha256: 5f1108f4912474e3526ddd2deb23833510c5b35d2c6be690b893059e0e3dd490
+      size: 3126
+      sha256: 62bd8b4572c8b501b17f1cf589ca9f7536a76dba1a50db939ee06272366dce5a
   original:
-    hackage: miso-1.8.0.0
+    hackage: miso-1.8.1.0
 - completed:
-    hackage: jsaddle-0.9.8.0@sha256:d7acf2247cc93c2d8d0959eccf627077c4175c81b762c8d107c7006dda662d05,4418
+    hackage: jsaddle-0.9.8.1@sha256:baa0876b47cc0f0d5ca7037500daeedb9545de2f25521097bfdbf68fe58679e9,4419
     pantry-tree:
       size: 4329
-      sha256: 45c8931120722d76150dc14b4092eeef73002a4c3bab6ac1b5b40650dd4b9b0f
+      sha256: 0dc6ddfd83ea40b7d19d2788f0db94a9e9254ed78be47c1cef67654a5623c118
   original:
-    hackage: jsaddle-0.9.8.0@sha256:d7acf2247cc93c2d8d0959eccf627077c4175c81b762c8d107c7006dda662d05,4418
+    hackage: jsaddle-0.9.8.1
 - completed:
     hackage: ref-tf-0.4.0.2@sha256:69de3550250e0cd69f45d080359cb314a9487c915024349c75b78732bbee9332,1134
     pantry-tree:
       size: 211
       sha256: fc5a4a35b4c782a33f452c1dc66ffa8ddbf321e2db369bd8823c796f0d4d8c7f
   original:
-    hackage: ref-tf-0.4.0.2@sha256:69de3550250e0cd69f45d080359cb314a9487c915024349c75b78732bbee9332,1134
+    hackage: ref-tf-0.4.0.2
 - completed:
     hackage: jsaddle-warp-0.9.8.0@sha256:d1c75ae6ab519f923bc8a13775abd779e584bd17c96a49a76f799860bd9174e9,2713
     pantry-tree:
       size: 475
       sha256: 53d9041fc7be7cdf6eec6946af1ba51d48aaaec250edff5f9a9896b53fe5d04c
   original:
-    hackage: jsaddle-warp-0.9.8.0@sha256:d1c75ae6ab519f923bc8a13775abd779e584bd17c96a49a76f799860bd9174e9,2713
+    hackage: jsaddle-warp-0.9.8.0
+- completed:
+    hackage: prettyprinter-1.7.1@sha256:9c43c9d8c3cd9f445596e5a2379574bba87f935a4d1fa41b5407ee3cf4edc743,6987
+    pantry-tree:
+      size: 3460
+      sha256: cd6f393bf7cba603a1958a139915fc343efd5488e36fd7b3b5c6956c002d04fa
+  original:
+    hackage: prettyprinter-1.7.1
+- completed:
+    hackage: servant-lucid-0.9.0.4@sha256:698db96903a145fdef40cc897f8790728642af917c37b941a98b2da872b65f08,1787
+    pantry-tree:
+      size: 392
+      sha256: 39e0e7b2b25980bfe4df036e89959188f9ef9e8c78c85e241fa9a682d1d78cf3
+  original:
+    hackage: servant-lucid-0.9.0.4
 snapshots:
 - completed:
-    size: 532832
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/16/23.yaml
-    sha256: fbb2a0519008533924c7753bd7164ddd1009f09504eb06674acad6049b46db09
+    size: 586120
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/22.yaml
+    sha256: f9970d6f25c63e3e4265aa8e9c69a047ba8919d1107e4996bdd7555b75aad0eb
   original:
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/16/23.yaml
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/22.yaml

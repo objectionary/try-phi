@@ -13,11 +13,11 @@ Try out these live examples:
 This is an experimental interpreter for a variant of 𝜑-calculus.
 Right now we implement it as a term rewriting system with the following features (see [formal rules](images/untyped-calculus-rules.png)):
 
-1. We support the following syntax:
+1. We support [this syntax](https://bnfplayground.pauliankline.com/?bnf=%3Cterm%3E%20%3A%3A%3D%20%3Cterm%3E%20%22.%22%20%3Cattribute%3E%20%7C%20%3Cterm%3E%20%22(%22%20%3Csp%3E%20%3Carrow%3E%20%3Csp%3E%20%22)%22%20%7C%20%22%5E%22%20%3Clevel%3E%20%7C%20%22%5B%22%20%3Csp%3E%20%3Clist%3E%20%3Csp%3E%20%22%5D%22%0A%3Csp%3E%20%3A%3A%3D%20%22%20%22*%0A%3Cvoid%3E%20%3A%3A%3D%20%22%3F%22%20%7C%20%22%5B%22%20%3Csp%3E%20%22%5D%22%0A%3Carrow%3E%20%3A%3A%3D%20%3Cattribute%3E%20%3Csp%3E%20%22-%3E%22%20%3Csp%3E%20%3Cterm%3E%0A%3Clist%3E%20%3A%3A%3D%20%3Cattribute%3E%20%3Csp%3E%20%22-%3E%22%20%3Csp%3E%20%3Cvoid%3E%20%7C%20%3Carrow%3E%20%7C%20%3Clist%3E%20%3Csp%3E%20%22%2C%22%20%3Csp%3E%20%3Clist%3E%0A%3Cattribute%3E%20%3A%3A%3D%20%5Ba-z%5D%20(%5Ba-z%5D%20%7C%20%5B0-9%5D)*%0A%3Clevel%3E%20%3A%3A%3D%20%220%22%20%7C%20%5B1-9%5D%20%5B0-9%5D*&name=Target%20Minimal%20Phi)
 
-    1. Objects: `[x -> y, y -> [z -> ?]]` (here `?` stands for free attribute marker `ø`)
-    2. Attributes: `[y -> x].y.z`
-    3. Single named application: `[x -> ?, @ -> x](x -> y)` (`@` stand for 𝜑 attribute)
+    1. Objects: `[x -> ^0.y, y -> [z -> ?]]` (here `?` stands for free attribute marker `ø`)
+    2. Attributes: `[y -> ^0.x].y.z`
+    3. Single named application: `[x -> ?, @ -> ^0.x](x -> ^0.y)` (`@` stand for 𝜑 attribute)
 
 2. By default, the interpreter will try to immediately parse and dataize an expression written in the editor.
 
@@ -26,24 +26,59 @@ Right now we implement it as a term rewriting system with the following features
 4. At the moment, infinite recursion can hang the page and editor, — simply reload the page!
 
 ## How to contribute
-
-* Install and open VS Code
-* IDE will ask if you want to clone a repository. Paste URL to this repo
-* Open terminal (`Ctrl+` `)
-* Install [stack](https://docs.haskellstack.org/en/stable/install_and_upgrade/)
-* Build project and make stack rebuild it on changes
+* Clone this repository
     ```sh
-    stack build --watch-all
+    git clone --recurse-submodules -j8 https://github.com/br4ch1st0chr0n3/try-phi
+    cd try-phi
     ```
+    
+* Install [Node.js](https://nodejs.org/en/download/)
+
+* Install codemirror dependencies
+    ```sh
+    npm --prefix codemirror i
+    ```
+
+* Install [nix](https://nixos.org/download.html)
+
+### VS Code
+
+* Install VS Code
+
+* Open it in `try-phi` folder
+    ```sh
+    code .
+    ```
+
+* Open terminal in VS Code (`Ctrl+` `)
+
+* Install [stack](https://docs.haskellstack.org/en/stable/install_and_upgrade/)
+
+* Build project. Also, use this command to rebuild the project
+    ```sh
+    sh build.sh
+    ```
+
 * Install `Haskell` extension. It will enable linter and documentation on hover
+
+    * "Multi cradle ..." error [troubleshooting](https://stackoverflow.com/q/64650979)
+
 * Open `app/Main.hs` and hover onto a function and check if docs appear
-* Run this project
-    * Windows
-        ```sh
-        stack exec try-phi-exe
-        ```
-    * Linux, MacOS
-        ```sh
-        stack exec try-phi
-        ```
-* Open in browser http://localhost:8080/
+    
+* Open `index.html` in browser, e.g.:
+    ```sh
+    firefox index.html
+    ```
+
+    * In case nothing changes, clear browser cache
+
+* Optionally, the extension `stylish-hindent` for formatting the code
+
+* Use [Nix Environment Selector](https://marketplace.visualstudio.com/items?itemName=arrterian.nix-env-selector)
+
+* If typechecking doesn't work, reload VS Code
+
+* You can see Haskell code's output at `localhost:8080/` after
+    ```sh
+    stack run
+    ```

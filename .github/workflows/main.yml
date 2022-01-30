@@ -31,12 +31,7 @@ jobs:
       - uses: cachix/cachix-action@v10
         with:
           name: miso-haskell
-
-      - name: Cache install Nix packages
-        uses: rikhuijzer/cache-install@v1.0.7
-        with:
-          key: nix-${{ hashFiles('default.nix') }}
-
+          
       - run: |
           cp -r ./result/bin/try-phi.jsexe/ dist/
           chmod -R +w dist/

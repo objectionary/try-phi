@@ -32,10 +32,12 @@ jobs:
         with:
           name: miso-haskell
 
-      - name: Cache install Nix packages
-        uses: rikhuijzer/cache-install@v1.0.0
-        with:
-          key: nix-${{ hashFiles('default.nix') }}
+#       - name: Cache install Nix packages
+#         uses: rikhuijzer/cache-install@v1.0.8
+#         with:
+#           key: nix-${{ hashFiles('default.nix') }}
+
+      - run: nix-build
 
       - run: |
           cp -r ./result/bin/try-phi.jsexe/ dist/

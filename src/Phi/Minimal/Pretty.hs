@@ -38,10 +38,11 @@ ppTerm =
     DataTerm t ->
       case t of 
         DataInteger i -> pretty i
+        NoData -> pretty $ show NoData
 
 ppInt :: Integer -> Doc ann
 ppInt i = pretty i
-
+  
 encloseSepAfter :: Doc ann -> Doc ann -> Doc ann -> [Doc ann] -> Doc ann
 encloseSepAfter bra ket separator =
   \case

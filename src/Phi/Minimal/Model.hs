@@ -1,12 +1,12 @@
-{-# LANGUAGE DeriveFoldable #-}
-{-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE DeriveFoldable             #-}
+{-# LANGUAGE DeriveFunctor              #-}
+{-# LANGUAGE DeriveTraversable          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE OverloadedLists #-}
-{-# LANGUAGE PatternSynonyms #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE LambdaCase                 #-}
+{-# LANGUAGE OverloadedLists            #-}
+{-# LANGUAGE PatternSynonyms            #-}
+{-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE ViewPatterns               #-}
 {-# OPTIONS_GHC -Wall #-}
 
 module Phi.Minimal.Model
@@ -27,10 +27,10 @@ module Phi.Minimal.Model
   )
 where
 
-import Data.HashMap.Strict.InsOrd (InsOrdHashMap)
+import           Data.HashMap.Strict.InsOrd (InsOrdHashMap)
 import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
-import Data.List (foldl', unfoldr)
-import GHC.Exts (IsList (..))
+import           Data.List                  (foldl', unfoldr)
+import           GHC.Exts                   (IsList (..))
 
 type Attr = String
 
@@ -59,13 +59,15 @@ data AttrValue a
 splitAttrs :: Object a -> ([Attr], [(Attr, a)])
 splitAttrs = foldr add ([], []) . toList
   where
-    add (a, VoidAttr) (void, attached) = (a : void, attached)
+    add (a, VoidAttr) (void, attached)   = (a : void, attached)
     add (a, Attached t) (void, attached) = (void, (a, t) : attached)
 
 
-data DataValue = 
+data DataValue =
   DataInteger Integer
-  deriving (Eq)
+  | NoData
+  deriving (Eq, Show)
+
 
 data Term
   = Obj (Object Term)
@@ -82,13 +84,13 @@ appList =
     _ -> Nothing
   where
     go (App t x) xs = go t (x : xs)
-    go t xs = (t, xs)
+    go t xs         = (t, xs)
 
 peelApps :: Term -> (Term, [(Attr, Term)])
 peelApps = go []
   where
     go xs (App t x) = go (x : xs) t
-    go xs t = (t, xs)
+    go xs t         = (t, xs)
 
 pattern Apps :: Term -> [(Attr, Term)] -> Term
 pattern Apps f xs <-
@@ -141,16 +143,16 @@ whnfStep =
             Just (Attached u) -> Just (substituteLocator (0, t) u)
             Nothing ->
               case o .? "𝜑" of
-                Just _ -> Just (Dot (Dot t "𝜑") a)
+                Just _  -> Just (Dot (Dot t "𝜑") a)
                 Nothing -> Nothing
         _ -> (`Dot` a) <$> whnfStep t
     App t (a, u) ->
       case t of
         Obj o ->
           case o .? a of
-            Just VoidAttr -> Just (Obj (o .= (a, incLocators u)))
+            Just VoidAttr     -> Just (Obj (o .= (a, incLocators u)))
             Just (Attached _) -> Nothing
-            Nothing -> Nothing
+            Nothing           -> Nothing
         _ -> (`App` (a, u)) <$> whnfStep t
     Obj {} -> Nothing
     Loc {} -> Nothing
@@ -168,16 +170,16 @@ whnf =
             Just (Attached u) -> whnf (substituteLocator (0, t') u)
             Nothing ->
               case o .? "𝜑" of
-                Just _ -> whnf (Dot (Dot t' "𝜑") a)
+                Just _  -> whnf (Dot (Dot t' "𝜑") a)
                 Nothing -> Dot t' a
         t' -> Dot t' a
     App t (a, u) ->
       case whnf t of
         t'@(Obj o) ->
           case o .? a of
-            Just VoidAttr -> Obj (o .= (a, incLocators u))
+            Just VoidAttr     -> Obj (o .= (a, incLocators u))
             Just (Attached _) -> App t' (a, u)
-            Nothing -> App t' (a, u)
+            Nothing           -> App t' (a, u)
         t' -> App t' (a, u)
     t@Obj {} -> t
     t@Loc {} -> t
@@ -195,16 +197,16 @@ nf =
             Just (Attached u) -> nf (substituteLocator (0, t') u)
             Nothing ->
               case o .? "𝜑" of
-                Just _ -> nf (Dot (Dot t' "𝜑") a)
+                Just _  -> nf (Dot (Dot t' "𝜑") a)
                 Nothing -> Dot (nf t') a
         t' -> Dot (nf t') a
     App t (a, u) ->
       case whnf t of
         t'@(Obj o) ->
           case o .? a of
-            Just VoidAttr -> nf (Obj (o .= (a, incLocators u)))
+            Just VoidAttr     -> nf (Obj (o .= (a, incLocators u)))
             Just (Attached _) -> App (nf t') (a, nf u)
-            Nothing -> App (nf t') (a, nf u)
+            Nothing           -> App (nf t') (a, nf u)
         t' -> App (nf t') (a, nf u)
     Obj o -> Obj (nf <$> o)
     t@Loc {} -> t

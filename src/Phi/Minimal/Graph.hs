@@ -9,14 +9,14 @@ import           Phi.Utils.GraphBuilder
 import           Control.Monad              (forM_)
 import           Data.Graph.Inductive.Graph (DynGraph)
 import qualified Data.Graph.Inductive.Graph as Graph
-import qualified Phi.Minimal.EO.Pretty as P(ppInt)
+import qualified Phi.Minimal.EO.Pretty      as P (ppInt)
 
 
 data TermNode
   = ObjNode
   | LocDotNode (Maybe Int)
   | VoidNode
-  | DataNode DataValue
+  | SomeNode
   deriving (Eq)
 
 data TermEdge
@@ -38,15 +38,16 @@ toGraphBuilder =
         sub <- toGraphBuilder subterm
         edgeFromTo node (AttrEdge attr) sub
       return node
+    -- TODO put locators, data, not strings on edges
     Loc n -> do
-      node1 <- freshNode (LocDotNode Nothing)
-      node2 <- freshNode (LocDotNode Nothing)
+      node1 <- freshNode (LocDotNode $ Just n)
+      node2 <- freshNode (LocDotNode $ Just n)
       edgeFromTo node1 (AttrEdge (prettyLocator n)) node2
       return node1
     Dot t a -> do
-      node <- freshNode (LocDotNode Nothing)
-      sub <- toGraphBuilder t
-      edgeFromTo node (DotEdge a) sub
+      node <- freshNode SomeNode
+      tnode <- toGraphBuilder t
+      edgeFromTo node (DotEdge a) tnode
       return node
     App t (a, u) -> do
       node <- freshNode ObjNode
@@ -56,15 +57,16 @@ toGraphBuilder =
       edgeFromTo node (AttrEdge a) unode
       return node
     DataTerm t -> do
-      node1 <- freshNode (LocDotNode Nothing)
-      node2 <- freshNode (LocDotNode Nothing)
+      node1 <- freshNode SomeNode
+      node2 <- freshNode SomeNode
       edgeFromTo node1 (AttrEdge (prettyData t)) node2
       return node1
 
 prettyData :: DataValue  -> String
 prettyData =
-  \case 
+  \case
     DataInteger i -> show i
+    NoData -> show NoData
 
 prettyLocator :: Int -> String
 prettyLocator n = "ρ" <> n'

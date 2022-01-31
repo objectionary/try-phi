@@ -121,9 +121,9 @@ step conf@Configuration {..} =
       case Graph.context graph node of
         (_, _, LocDotNode (Just n), _) ->
           Just
-            conf  
+            conf
               {currentNode = Nothing, actions = LocAction (node, n) : actions}
-        (_, _, LocDotNode Nothing, [(DotEdge a, to)]) ->
+        (_, _, SomeNode, [(DotEdge a, to)]) ->
           Just
             conf
               {currentNode = Just to, actions = DotAction (node, a) : actions}
@@ -143,3 +143,5 @@ step conf@Configuration {..} =
                   , actions = AppAction (node, environment) : actions
                   }
         (_, _, VoidNode, _) -> Nothing -- runtime error?
+        (_,_, SomeNode, _) ->
+          Just conf {currentNode = Nothing, actions = [], environment = [Parent [] 3010]}

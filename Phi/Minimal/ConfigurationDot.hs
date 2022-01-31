@@ -13,10 +13,9 @@ import qualified Data.GraphViz.Printing               as GraphViz
 import qualified Data.Map                             as Map
 import qualified Data.Text.Lazy                       as Text
 import           Phi.Minimal.Graph                    (TermEdge (..),
-                                                       TermNode (..),
-                                                       prettyLocator)
+                                                       TermNode (..),)
 import qualified Phi.Minimal.Machine.CallByName.Graph as CGraph
-import qualified Phi.Minimal.Model                    as Model
+import  Phi.Minimal.Model                    as Model
 
 -- | convert configuration to GraphViz DOT graph
 --
@@ -72,6 +71,8 @@ fmtTermEdge modeMap (from, to, edge) = edgeFormat
         DotEdge a  -> [GraphViz.toLabel ("." <> a)]
         AttrEdge a -> [GraphViz.toLabel a]
         CopyEdge   -> [GraphViz.style GraphViz.dotted]
+        LocEdge n -> [GraphViz.toLabel $ prettyLocator n]
+        DataEdge d -> [GraphViz.toLabel $ prettyData d]
     highlight =
       makeHightlight $
         case (Map.findWithDefault [] from modeMap, Map.findWithDefault [] to modeMap) of
@@ -81,13 +82,27 @@ fmtTermEdge modeMap (from, to, edge) = edgeFormat
             | True -> []
     edgeFormat = label ++ highlight
 
+prettyData :: Model.DataValue  -> String
+prettyData =
+  \case
+    Model.DataInteger i -> show i
+    NoData -> show NoData
+
+prettyLocator :: Int -> String
+prettyLocator n = "ρ" <> n'
+  where
+    n' = map toSuperscript (show n)
+    toSuperscript c =
+      case lookup c (zip "1234567890" "¹²³⁴⁵⁶⁷⁸⁹⁰") of
+        Just c' -> c'
+        _       -> c
+
 fmtTermNode :: ModeMap -> (Graph.Node, TermNode) -> [GraphViz.Attribute]
 fmtTermNode modeMap (node, nodeType) = nodeFormat
   where
     label =
       case nodeType of
         VoidNode     -> [GraphViz.toLabel "VOID"]
-        LocDotNode _ -> [GraphViz.shape GraphViz.BoxShape]
         SomeNode     -> [GraphViz.shape GraphViz.BoxShape]
         ObjNode      -> []
 

@@ -66,7 +66,7 @@ splitAttrs = foldr add ([], []) . toList
 data DataValue =
   DataInteger Integer
   | NoData
-  deriving (Eq, Show)
+  deriving (Eq, Show, Ord)
 
 
 data Term

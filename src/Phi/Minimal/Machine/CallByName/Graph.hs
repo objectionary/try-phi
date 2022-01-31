@@ -11,6 +11,8 @@ import qualified Data.Graph.Inductive.Graph as Graph
 import           Phi.Minimal.Graph
 import           Phi.Minimal.Model
 
+import Phi.Utils.GraphBuilder
+
 type Environment = [Parent]
 
 data Parent =
@@ -72,6 +74,9 @@ findInCurrentParent a Parent {..} graph = go copies
             Just to -> Just (Right to)
             Nothing -> Nothing
 
+rootNode :: Int
+rootNode = 0
+
 -- IDK what's environment?
 -- IDK what's parent
 step :: Graph gr => Configuration gr -> Maybe (Configuration gr)
@@ -119,15 +124,21 @@ step conf@Configuration {..} =
                       }
     Just node ->
       case Graph.context graph node of
-        (_, _, LocDotNode (Just n), _) ->
-          Just
-            conf
-              {currentNode = Nothing, actions = LocAction (node, n) : actions}
-        (_, _, SomeNode, [(DotEdge a, to)]) ->
-          Just
-            conf
-              {currentNode = Just to, actions = DotAction (node, a) : actions}
-        (_, _, LocDotNode Nothing, _) -> Nothing -- should never happen!
+        (_, _, SomeNode, edge) ->
+          case edge of
+            [(LocEdge n, _)] -> 
+              Just
+                conf
+                  {currentNode = Nothing, actions = LocAction (node, n) : actions}
+            [(DotEdge a, to)] ->
+              Just
+                conf
+                  {currentNode = Just to, actions = DotAction (node, a) : actions}
+            [(DataEdge d, _)] -> 
+              Just 
+                conf {currentNode = Just 0, actions = [DotAction (rootNode, show d)], environment = [Parent [] 3010]}
+            _ -> 
+              Just conf {currentNode = Nothing, actions = [], environment = []}
         (_, _, ObjNode, outEdges) ->
           case lookup CopyEdge outEdges of
             Nothing ->
@@ -143,5 +154,10 @@ step conf@Configuration {..} =
                   , actions = AppAction (node, environment) : actions
                   }
         (_, _, VoidNode, _) -> Nothing -- runtime error?
-        (_,_, SomeNode, _) ->
-          Just conf {currentNode = Nothing, actions = [], environment = [Parent [] 3010]}
+
+
+toGraph :: DynGraph gr => Term -> (Graph.Node, gr TermNode TermEdge)
+toGraph = buildGraph VoidNode . toGraphBuilder
+
+toGraph_ :: DynGraph gr => Term -> gr TermNode TermEdge
+toGraph_ = snd . toGraph

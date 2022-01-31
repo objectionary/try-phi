@@ -1,33 +1,30 @@
-{-# LANGUAGE LambdaCase       #-}
-{-# LANGUAGE RecordWildCards  #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeApplications #-}
 
 module Phi.Minimal.Machine.CallByName where
 
-import           Data.HashMap.Strict.InsOrd (InsOrdHashMap)
+import Data.HashMap.Strict.InsOrd (InsOrdHashMap)
 import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
-import           Data.List                  (unfoldr)
-
+import Data.List (unfoldr)
 import Phi.Minimal.Model
 
 type Environment = [Parent]
 
-data Parent =
-  Parent
-    { original     :: Object Term
-    , applications :: InsOrdHashMap Attr (Term, Environment)
-    }
+data Parent = Parent
+  { original :: Object Term,
+    applications :: InsOrdHashMap Attr (Term, Environment)
+  }
 
 data Action
   = DotAction Attr
   | AppAction (Attr, (Term, Environment))
 
-data Configuration =
-  Configuration
-    { currentTerm :: Maybe Term
-    , actions     :: [Action]
-    , environment :: Environment
-    }
+data Configuration = Configuration
+  { currentTerm :: Maybe Term,
+    actions :: [Action],
+    environment :: Environment
+  }
 
 initConfiguration :: Term -> Configuration
 initConfiguration term =
@@ -38,11 +35,11 @@ initConfiguration term =
 fromParent :: Parent -> Term
 fromParent Parent {..} =
   Obj $
-  Object $
-  InsOrdHashMap.unionWith
-    (flip const)
-    (getObject original)
-    (Attached . incLocators . from <$> applications)
+    Object $
+      InsOrdHashMap.unionWith
+        (flip const)
+        (getObject original)
+        (Attached . incLocators . from <$> applications)
   where
     from (u, e) = withParents u e
 
@@ -60,16 +57,16 @@ withParents = foldl $ \t parent -> substituteLocator (0, fromParent parent) t
 
 fromParents1 :: [Parent] -> Term
 fromParents1 [] = error "invalid Configuration"
-fromParents1 (Parent term apps:parents) =
+fromParents1 (Parent term apps : parents) =
   case withParents (Obj term) parents of
     Obj term' -> fromParent (Parent term' apps)
-    _         -> error "impossible"
+    _ -> error "impossible"
 
 fromConfiguration :: Configuration -> Term
 fromConfiguration Configuration {..} =
   case currentTerm of
     Nothing -> fromActions (fromParents1 environment) actions
-    Just t  -> withParents (fromActions t actions) environment
+    Just t -> withParents (fromActions t actions) environment
 
 stepThrough :: Configuration -> Configuration
 stepThrough = last . steps
@@ -91,27 +88,30 @@ step conf@Configuration {..} =
     Just (Loc n) ->
       case environment of
         [] -> Nothing
-        (_:env) ->
+        (_ : env) ->
           Just conf {currentTerm = Just (Loc (n - 1)), environment = env}
     Just (Dot t a) ->
       Just conf {currentTerm = Just t, actions = DotAction a : actions}
     Just (App t (a, u)) ->
       Just
         conf
-          { currentTerm = Just t
-          , actions = AppAction (a, (u, environment)) : actions
+          { currentTerm = Just t,
+            actions = AppAction (a, (u, environment)) : actions
           }
     Just (Obj o) ->
       Just
         conf
-          { currentTerm = Nothing
-          , environment = Parent o InsOrdHashMap.empty : environment
+          { currentTerm = Nothing,
+            environment = Parent o InsOrdHashMap.empty : environment
           }
+    Just (DataTerm _t)
+      | null environment -> Nothing
+      | otherwise -> Just conf {currentTerm = Nothing}
     Nothing ->
       case actions of
-        DotAction a:as ->
+        DotAction a : as ->
           case environment of
-            Parent {..}:_env ->
+            Parent {..} : _env ->
               case original .? a of
                 Nothing -> Nothing -- runtime error?
                 Just VoidAttr ->
@@ -120,13 +120,16 @@ step conf@Configuration {..} =
                     Just (u, e') ->
                       Just
                         conf
-                          {currentTerm = Just u, actions = as, environment = e'}
+                          { currentTerm = Just u,
+                            actions = as,
+                            environment = e'
+                          }
                 Just (Attached u) ->
                   Just conf {currentTerm = Just u, actions = as}
             _ -> Nothing -- should never happen?
-        AppAction (a, (u, e')):as ->
+        AppAction (a, (u, e')) : as ->
           case environment of
-            Parent {..}:env ->
+            Parent {..} : env ->
               case original .? a of
                 Nothing -> Nothing -- runtime error?
                 Just Attached {} -> Nothing -- runtime error?
@@ -135,19 +138,14 @@ step conf@Configuration {..} =
                   | otherwise ->
                     Just
                       conf
-                        { actions = as
-                        , environment =
+                        { actions = as,
+                          environment =
                             Parent
                               { applications =
-                                  InsOrdHashMap.insert a (u, e') applications
-                              , ..
+                                  InsOrdHashMap.insert a (u, e') applications,
+                                ..
                               } :
                             env
                         }
             _ -> Nothing -- should never happen?
         [] -> Nothing -- nothing left to do
-    -- Just (DataTerm t) ->
-    --   case t of
-    --     DataInteger i
-    --       | null environment -> Nothing
-    --       | otherwise -> Just conf {currentTerm = Nothing}

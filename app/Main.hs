@@ -19,9 +19,9 @@ import qualified Phi.Minimal                          as Phi (Term (..), nf,
                                                               ppStepsFor,
                                                               ppWhnfSteps, whnf)
 import qualified Phi.Minimal.ConfigurationDot         as CDot
+import           Phi.Minimal.EO.Pretty                (ppTerm)
 import qualified Phi.Minimal.Machine.CallByName.Graph as CGraph
 import qualified Phi.Minimal.Model                    as Model (ex19)
-import           Phi.Minimal.EO.Pretty                (ppTerm)
 
 #ifndef __GHCJS__
 import           Language.Javascript.JSaddle          (eval, strToText,
@@ -149,6 +149,8 @@ viewModel m@Model {..} =
             div_ [] [divElem, termTabs term m {modelAST = Right term}]
         ],
       pageFooter
+      ,
+      div_ [onCreated Reload] []
     ]
 
 pageFooter :: View action

@@ -1,10 +1,10 @@
 name:                eo-parser
 version:             0.1.0.0
-github:              "githubuser/eo-parser"
+github:              "br4ch1st0chr0n3/eo-parser"
 license:             BSD3
-author:              "Author name here"
-maintainer:          "example@example.com"
-copyright:           "2022 Author name here"
+author:              "Danila Danko"
+maintainer:          "br4ch1st0chr0n3@gmail.com"
+copyright:           "2022 Danila Danko"
 
 extra-source-files:
 - README.md
@@ -17,32 +17,69 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/githubuser/eo-parser#readme>
+description:         Please see the README on GitHub at <https://github.com/br4ch1st0chr0n3/eo-parser#readme>
+
+custom-setup:
+  dependencies:
+    - base
+    - Cabal
+    - cabal-doctest >=1.0.2 && <1.1
+
+ghc-options:
+- -Wall -fno-warn-type-defaults -O2
 
 dependencies:
 - base >= 4.7 && < 5
-- text
-- filepath
+- ansi-terminal
+- bifunctors
+- bound
 - containers
-- acme-missiles # added
+- deepseq
+# - fgl
+- free
+# - graphviz
+- hashable
+- insert-ordered-containers
+- kan-extensions
+- logict
+- mtl
+- parsers
+- prettyprinter
+# - prettyprinter-ansi-terminal
+- profunctors
+- text
+- transformers
+# - trifecta
+- unordered-containers
 - megaparsec
 
 library:
   source-dirs: src
 
 executables:
-  eo-parser-exe:
+  eo-parser:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
-    dependencies:
-    - eo-parser
+    when:
+      - condition: impl(ghcjs)
+        then:
+          dependencies:
+          - eo-parser
+          # - miso >= 1.8
+          # - jsaddle
+        else:
+          dependencies:
+          - eo-parser
+          # - miso >= 1.8
+          # - jsaddle
+          # - jsaddle-warp
 
 tests:
-  eo-parser-test:
+  spec:
     main:                Spec.hs
     source-dirs:         test
     ghc-options:
@@ -51,3 +88,17 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - eo-parser
+    - hspec
+    - QuickCheck
+
+  doctests:
+    source-dirs: test
+    main: doctests.hs
+    other-modules: []
+    dependencies:
+    - base
+    - doctest
+    - Glob
+    - QuickCheck
+    - template-haskell
+

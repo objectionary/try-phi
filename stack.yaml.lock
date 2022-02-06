@@ -5,23 +5,30 @@
 
 packages:
 - completed:
-    hackage: acme-missiles-0.3@sha256:2ba66a092a32593880a87fb00f3213762d7bca65a687d45965778deb8694c5d1,613
+    hackage: mtl-2.2.2@sha256:1050fb71acd9f5d67da7d992583f5bd0eb14407b9dc7acc122af1b738b706ca3,2261
     pantry-tree:
-      size: 226
-      sha256: 614bc0cca76937507ea0a5ccc17a504c997ce458d7f2f9e43b15a10c8eaeb033
+      size: 1713
+      sha256: b8bdc2259e2f943a7252fb164805666fe108ac959d398e0af27b43ba2ebc241c
   original:
-    hackage: acme-missiles-0.3
+    hackage: mtl-2.2.2
 - completed:
-    hackage: megaparsec-9.0.1@sha256:2244ab77521a52a0083966c5405b3151f149e1db50b1a5b104cd9b1e56617203,3248
+    hackage: ref-tf-0.5.0.1@sha256:51174dc1ec8411812e4cad647f4e5cb60ed801a280b9f09f87ad77f2d34f5bb9,1237
     pantry-tree:
-      size: 1447
-      sha256: 0e2df0d318e48e352b3d766c46cdabc3abb5dcc3dfcb062bdd0a8d44f34a975c
+      size: 212
+      sha256: d0d0314bc338570036365f0437d1494357bf5cc1f131a4c2ae823145c88c31fc
   original:
-    hackage: megaparsec-9.0.1@sha256:2244ab77521a52a0083966c5405b3151f149e1db50b1a5b104cd9b1e56617203,3248
+    hackage: ref-tf-0.5.0.1
+- completed:
+    hackage: megaparsec-9.2.0@sha256:0248397bedfddbb94584925a09ba793cf2327362a3183624bd7bfaed529163cb,3347
+    pantry-tree:
+      size: 1518
+      sha256: 71403f455a514f62cb0c62145b6f6ce19bec34b16ed150a53df02ea9d773d0be
+  original:
+    hackage: megaparsec-9.2.0
 snapshots:
 - completed:
-    size: 586110
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/21.yaml
-    sha256: ce4fb8d44f3c6c6032060a02e0ebb1bd29937c9a70101c1517b92a87d9515160
+    size: 586120
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/22.yaml
+    sha256: f9970d6f25c63e3e4265aa8e9c69a047ba8919d1107e4996bdd7555b75aad0eb
   original:
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/21.yaml
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/22.yaml

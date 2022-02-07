@@ -253,7 +253,7 @@ EOL
   INDENT*
   ;
 
-fragment BYTE: [0-9A-F][0-9A-F];
+// fragment BYTE: [0-9A-F][0-9A-F];
 fragment EMPTY_BYTES : MINUS MINUS;
 fragment LINE_BYTES : BYTE (MINUS BYTE)+;
 

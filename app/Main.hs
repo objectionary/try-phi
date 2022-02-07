@@ -4,13 +4,13 @@
 module Main (main) where
 
 import           Control.Applicative        (Alternative ((<|>)))
-import           Control.Monad              ()
+import           Control.Monad              (guard)
 import           Data.Text                  (Text)
 import           Data.Text                  (pack)
 import qualified Data.Text                  as T
 import           Data.Void                  (Void)
 import           Text.Megaparsec            (Parsec, parseTest, choice, Stream (Tokens))
-import           Text.Megaparsec.Char       (string, space1)
+import           Text.Megaparsec.Char       (string, space1, alphaNumChar)
 import qualified Text.Megaparsec.Char.Lexer as L
 
 
@@ -133,7 +133,7 @@ pTerminal s t p = do
   let Position row column = p
   return initNode {
     nodeToken = t
-  , range = Range row column row (column + T.length c)
+  , range = Range row column row (column + T.length c - 1)
   }
 
 pARROW :: Position -> Parser Node
@@ -187,7 +187,34 @@ pTEXT_MARK = pTerminal "\"\"\"" TEXT_MARK
 pDOTS :: Position -> Parser Node
 pDOTS = pTerminal "..." DOTS
 
+inByteRange :: Char -> Bool
+inByteRange c 
+  | '0' <= c && c <= '9' = True
+  | 'A' <= c && c <= 'F' = True
+  | otherwise = False
 
+pBYTE :: Position -> Parser Node
+pBYTE p = do
+  s1 <- alphaNumChar
+  guard (inByteRange s1)
+  s2 <- alphaNumChar
+  guard (inByteRange s2)
+  let Position row column = p
+  return initNode {
+    nodeToken = BYTE [s1, s2]
+  , range = Range row column row (column + 1)
+  }
+
+-- takeP eats many tokens
+
+pEMPTY_BYTES :: Position -> Parser Node
+pEMPTY_BYTES = pTerminal "--" EMPTY_BYTES
+
+-- pLINE_BYTES :: Position -> Parser Node 
+-- pLINE_BYTES p = do
+--   s1 <- pBYTE 
+--   s2 <- many pBYTE
+  
 
 main :: IO ()
 main = do

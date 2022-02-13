@@ -1,46 +1,49 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings     #-}
-
+{-# LANGUAGE RecordWildCards       #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use camelCase" #-}
 
 module Main (main) where
 
-import           Control.Applicative  (Alternative ((<|>)), optional)
-import           Control.Monad        (guard)
-import qualified Data.List            as DL
-import           Data.Text            (Text, head, null, pack, singleton,
-                                       unpack)
-import qualified Data.Text            as T
-import           Data.Void            (Void)
-import           Text.Megaparsec      (MonadParsec (notFollowedBy, takeWhile1P),
-                                       Parsec, Stream (Token, Tokens), choice,
-                                       many, manyTill, noneOf, parseTest, ParsecT (..),
-                                       satisfy, some, takeWhileP, try, (<|>), runParser, runParserT, empty)
-import           Text.Megaparsec.Char (alphaNumChar, char, crlf, eol, newline,
-                                       printChar, string)
-import Data.Maybe (fromMaybe)
-import Control.Monad.Identity
-import Control.Monad.State.Strict
+import           Control.Applicative        (Alternative ((<|>)), optional)
+import           Control.Monad              (guard)
+import           Control.Monad.Identity
+import           Control.Monad.State.Strict
+import qualified Data.List                  as DL
+import           Data.Maybe                 (fromMaybe)
+import           Data.Text                  (Text, head, null, pack, singleton,
+                                             unpack)
+import qualified Data.Text                  as T
+import           Data.Void                  (Void)
+import           Text.Megaparsec            (MonadParsec (notFollowedBy, takeWhile1P),
+                                             Parsec, ParsecT (..),
+                                             Stream (Token, Tokens), choice,
+                                             empty, many, manyTill, noneOf,
+                                             parseTest, runParser, runParserT,
+                                             satisfy, some, takeWhileP, try,
+                                             (<|>))
+import           Text.Megaparsec.Char       (alphaNumChar, char, crlf, eol,
+                                             newline, printChar, string)
 
-data PositionState =
-  PositionState {
-    row :: Int
-  , column :: Int
-  } deriving (Show)
+import           Text.Printf                (printf)
+-- data PositionState =
+--   PositionState {
+--     row :: Int
+--   , column :: Int
+--   } deriving (Show)
 
-type Parser = StateT PositionState (ParsecT Void Text Identity)
+type Parser = StateT Position (ParsecT Void Text Identity)
 -- type Parser = ParsecT Void Text State
 
-pScheme :: Parser Text
-pScheme = string "data"
-  <|> string "file"
-  <|> string "ftp"
-  <|> string "http"
-  <|> string "https"
-  <|> string "irc"
-  <|> string "mailto"
+data Position =
+  Position {
+    row    :: Int
+  , column :: Int
+  }
 
+instance Show Position where
+  show (Position r c) = printf "%d:%d" (r+1) (c+1)
 
 
 data TokenType =
@@ -68,7 +71,7 @@ data TokenType =
   | AT
   | BOOL Text
   | BYTE Text
-  | BYTES Text
+  | BYTES
   | CHAR Text
   | COLON
   | COMMENT Text
@@ -120,7 +123,8 @@ data Node =
   Node {
     nodeToken :: TokenType
   , nodes     :: [Node]
-  , range     :: Range
+  , start     :: Position
+  , end       :: Position
   }
 
 
@@ -130,41 +134,21 @@ tab = "|  "
 type TabNumber = Int
 
 printTree :: TabNumber -> Node -> String
-printTree n node =
+printTree n Node{..} =
   DL.intercalate "" (replicate n tab)
-  <> show (nodeToken node)
-  <> show (range node)
-  <> "\n"
-  <> foldl (\s a -> s <> printTree (n + 1) a) "" (nodes node)
+  <> printf "%s [%s..%s]\n" (show nodeToken) (show start) (show end)
+  <> foldl (\s a -> s <> printTree (n + 1) a) "" nodes
 
 instance Show Node where
   show n = printTree 0 n
-
-
-data Range =
-  Range {
-    startRow    :: Int
-  , startColumn :: Int
-  , endRow      :: Int
-  , endColumn   :: Int
-  }
-
-instance Show Range where
-  show (Range p1 p2 p3 p4) = "[" <> show (p1 + 1) <> ":" <> show (p2 + 1) <> ".." <> show (p3 + 1) <> ":" <> show (p4 + 1) <> "]"
 
 initNode :: Node
 initNode =
   Node {
     nodeToken = NONE
   , nodes = []
-  , range = Range 0 0 0 (-1)
-  }
-
-pTerminal :: Text -> TokenType -> Node -> Parser Node
-pTerminal s t node = do
-  n <- nodeAfter node <$> string s
-  return n {
-    nodeToken = t
+  , start = Position 0 0
+  , end = Position 0 (-1)
   }
 
 cARROW :: Text
@@ -226,179 +210,183 @@ cEMPTY_BYTES = "--"
 cEMPTY_TEXT :: Text
 cEMPTY_TEXT = ""
 
+next :: Parser ()
+next = advance 1
+
+advance :: Int -> Parser ()
+advance n = do
+  p <- get
+  put (p {column = column p + n})
+  return ()
+
+-- | parses text, advances position
+pText :: Text -> Parser Text
+pText s = do
+  t <- string s
+  advance (T.length s-1)
+  return t
+
 inByteRange :: Char -> Bool
 inByteRange c
   | '0' <= c && c <= '9' = True
   | 'A' <= c && c <= 'F' = True
   | otherwise = False
 
-
-pBYTE :: Node -> Parser Node
-pBYTE p = do
+pBYTE :: Parser Node
+pBYTE = do
+  next
+  p1 <- get
   s1 <- alphaNumChar
   guard (inByteRange s1)
   s2 <- alphaNumChar
   guard (inByteRange s2)
-  let byte = pack [s1, s2]
-  return (nodeAfter p byte) {
-    nodeToken = BYTE byte
+  next
+  p2 <- get
+  return initNode {
+    nodeToken = BYTE (pack [s1, s2])
+  , start = p1
+  , end = p2
   }
 
--- takeP eats many tokens
+pEMPTY_BYTES :: Parser Text
+pEMPTY_BYTES = pText cEMPTY_BYTES
 
-pEMPTY_BYTES :: Node -> Parser Node
-pEMPTY_BYTES = pTerminal cEMPTY_BYTES EMPTY_BYTES
-
-
-pLINE_BYTES :: Node -> Parser Node
-pLINE_BYTES p = do
-    byte <- pBYTE p
-    byteNodes <- some (string cMINUS *> pBYTE p)
-    let indexed = DL.scanl correctPosition byte byteNodes
-    return initNode {
-      nodeToken = LINE_BYTES
-    , range = concatRangesFrom byte (DL.last indexed)
-    , nodes = indexed
-    }
-    where
-      correctPosition n a = correct a
-        where
-          aStartColumn = endColumn (range n) + 2
-          aEndColumn = aStartColumn + 1
-          correct x = x {range = (range x) {startColumn = aStartColumn, endColumn = aEndColumn}}
-
-pCOMMENT :: Node -> Parser Node
-pCOMMENT p = do
-  h <- nodeAfter p <$> string cHASH
-  content <- nodeAfter h <$> (pack <$> (many printChar :: Parser String))
+pLINE_BYTES :: Parser Node
+pLINE_BYTES = do
+  next
+  p1 <- get
+  byte <- pBYTE
+  bytes <- some (pText cMINUS *> pBYTE)
+  p2 <- get
   return initNode {
-    nodeToken = COMMENT (nodeText content)
-  , range = concatRangesFrom h content
+    nodeToken = LINE_BYTES
+  , nodes = byte : bytes
+  , start = p1
+  , end = p2
+  }
+
+pCOMMENT :: Parser Node
+pCOMMENT = do
+  next
+  p1 <- get
+  h <- string cHASH
+  advance (T.length h)
+  content <- pack <$> many printChar
+  advance (T.length content - 1)
+  p2 <- get
+  return initNode {
+    nodeToken = COMMENT content
+  , start = p1
+  , end = p2
   }
 
 pOptionalString :: Parser String -> Parser Text
 pOptionalString p = do
+  next
   s <- optional (try p)
+  advance (length s - 1)
   let t = maybe cEMPTY_TEXT pack s
   return t
 
-pMETA :: Node -> Parser Node
-pMETA p = do
-  plus <- nodeAfter p <$> string cPLUS
-  name <- nodeAfter plus <$> (pack <$> many alphaNumChar)
-  suffix <- nodeAfter name <$> pOptionalString ((:) <$> char ' ' <*> many printChar)
+pMETA :: Parser Node
+pMETA = do
+  next
+  p1 <- get
+  _ <- string cPLUS
+  next
+  name <- pack <$> many alphaNumChar
+  advance (T.length name)
+  suffix <- pOptionalString (char ' ' *> many printChar)
+  advance (T.length suffix)
+  p2 <- get
   return initNode {
-    nodeToken = META (nodeText name) (nodeText suffix)
-  , range = concatRangesFrom plus suffix
-  -- , nodes = [plus, name, suffix]
+    nodeToken = META name suffix
+  , start = p1
+  , end = p2
   }
 
-nodeAfter :: Node -> Text -> Node
-nodeAfter (Node _ _ (Range _ _ r c)) t =
-  initNode {
-    nodeToken = Some t
-  , range = Range r (c + 1) r (c + T.length t)
-  }
-
-nodeText :: Node -> Text
-nodeText (Node t _ _) =
-  case t of
-    Some s -> s
-    _ -> T.empty
-
-pREGEX :: Node -> Parser Node
-pREGEX p = do
-  slash1 <- pTerminal cSLASH SLASH p
-  r <- nodeAfter slash1 <$> takeWhile1P (Just "regex expression") (`notElem` map T.head [cSLASH, cNEWLINE, cCARET_RETURN])
-  slash2 <- pTerminal cSLASH SLASH r
-  suffix <- nodeAfter slash2 <$> (pack <$> many alphaNumChar)
+pREGEX :: Parser Node
+pREGEX = do
+  next
+  p1 <- get
+  _ <- string cSLASH
+  next
+  r <- takeWhile1P (Just "regex expression") (`notElem` map T.head [cSLASH, cNEWLINE, cCARET_RETURN])
+  advance (T.length r)
+  _ <- string cSLASH
+  next
+  suffix <- pack <$> many alphaNumChar
+  advance (T.length suffix - 1)
+  p2 <- get
   return initNode {
-    nodeToken = REGEX (nodeText r) (nodeText suffix)
-  , range = concatRangesFrom slash1 suffix
+    nodeToken = REGEX r suffix
+  , start = p1
+  , end = p2
   }
 
-pEOL_INDENT :: Node -> Parser Node
-pEOL_INDENT p = do
-  eols <- nodeAfter p <$> eol
-  let rng@(Range _ _ r _) = range eols
-  let newRow = eols {range = rng {endRow = r + 1, endColumn = -1}}
-  indents <- nodeAfter newRow <$> (foldl (<>) T.empty <$> many (string cINDENT))
-  let nIndents = T.length (nodeText indents) `div` 2
-  return indents {
+nextLine :: Parser ()
+nextLine = do
+  p <- get
+  put p {row = row p + 1, column = -1}
+  return ()
+
+pEOL_INDENT :: Parser Node
+pEOL_INDENT = do
+  next
+  p1 <- get
+  eols <- eol
+  advance (T.length eols)
+  nextLine
+  indents <- T.concat <$> many (pText cINDENT)
+  p2 <- get
+  let nIndents = T.length indents `div` 2
+  return initNode {
     nodeToken = INDENT nIndents
+  , start = p1
+  , end = p2
   }
 
-concatRanges :: Range -> Range -> Range
-concatRanges (Range r1 c1 _ _) (Range _ _ r2 c2) = Range r1 c1 r2 c2
-
-concatRangesFrom :: Node -> Node -> Range
-concatRangesFrom (Node _ _ r1) (Node _ _ r2) = concatRanges r1 r2
-
-pBYTES :: Node -> Parser Node
-pBYTES p = do
-  _ <- pEMPTY_BYTES p
-  return initNode
+pBYTES :: Parser Node
+pBYTES = do
+  next
+  p1 <- get
+  bytes <- choice (map try [parser1, parser3, parser2])
+  p2 <- get
+  return initNode {
+    nodeToken = BYTES
+  , start = p1
+  , end = p2
+  , nodes = bytes
+  }
   where
-    p1 p = do
-      emp <- pEMPTY_BYTES p
-      return [emp]
-    p2 p = do
-      byte <- pBYTE p
-      minus <- pTerminal cMINUS MINUS byte
-      return [byte, minus]
-    p4 p = do
-      m <- pTerminal cMINUS MINUS p
-      e <- pEOL_INDENT m
-      lb <- pLINE_BYTES e
+    parser1 = do
+      _ <- pEMPTY_BYTES
+      return []
+    parser2 = do
+      byte <- pBYTE
+      _ <- pText cMINUS
+      return [byte]
+    parser4 = do
+      _ <- pText cMINUS
+      e <- pEOL_INDENT
+      lb <- pLINE_BYTES
       return [e, lb]
-    p3 p = do
-      lb <- pLINE_BYTES p
-      lbs <- concat <$> many (p4 p)
-      -- IDK how to correct indexation
-      return lbs
-
-
-pState :: Parser Text
-pState = do
-  a <- string "ok"
-  PositionState r c <- get
-  put (PositionState (r + 2) (c + 2))
-  return a
-
-pMany :: Parser Text
-pMany = do T.concat <$> many pState
-
-type MyParser = StateT String (ParsecT Void Text Identity)
-
-parser :: MyParser String
-parser = a <|> b
-  where
-    a = "foo" <$ put "branch A" <* empty
-    b = get   <* put "branch B"
+    parser3 = do
+      lb <- pLINE_BYTES
+      lbs <- concat <$> many parser4
+      return (lb:lbs)
 
 main :: IO ()
 main = do
-  code <- readFile "./app/code.eo"
-  -- parseTest pScheme $ pack code
+  let file = "./app/code.eo"
+  code <- pack <$> readFile file
   putStrLn "\n"
   -- let p            = runStateT parser "initial"
   --     Right (a, s) = runParser p "" ""
   -- putStrLn ("Result:      " ++ show a)
   -- putStrLn ("Final state: " ++ show s)
-  
-  let p = runStateT pMany (PositionState 0 0)
-      a = runParser p "" "okokok"
+
+  let p = runStateT (many (choice $ map try [pCOMMENT, pMETA, pEOL_INDENT, pREGEX, pLINE_BYTES, pBYTE])) (Position 0 (-1))
+      a = runParser p "" code
   putStrLn ("Result:      " ++ show a)
-  -- putStrLn ("Final state: " ++ show s)
-  putStrLn ""
-  -- let p = initNode
-  -- return
-  -- parseTest (many $
-  --   try (pLINE_BYTES p) <|>
-  --   try (pCOMMENT p) <|>
-  --   try (pMETA p) <|>
-  --   try (pEMPTY_BYTES p) <|>
-  --   try (pREGEX p) <|>
-  --   try (pEOL_INDENT p)
-  --   ) (pack code)
 

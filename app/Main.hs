@@ -6,18 +6,20 @@
 
 module Main (main) where
 
-import           Control.Applicative  (Alternative ((<|>)))
+import           Control.Applicative  (Alternative ((<|>)), optional)
 import           Control.Monad        (guard)
 import qualified Data.List            as DL
-import           Data.Text            (Text, pack, unpack, singleton, head)
+import           Data.Text            (Text, head, null, pack, singleton,
+                                       unpack)
 import qualified Data.Text            as T
 import           Data.Void            (Void)
-import           Text.Megaparsec      (MonadParsec (notFollowedBy, takeWhile1P), Parsec,
-                                       Stream (Tokens, Token), choice, many, manyTill,
-                                       noneOf, parseTest, satisfy, some,
-                                       takeWhileP, try, (<|>))
+import           Text.Megaparsec      (MonadParsec (notFollowedBy, takeWhile1P),
+                                       Parsec, Stream (Token, Tokens), choice,
+                                       many, manyTill, noneOf, parseTest,
+                                       satisfy, some, takeWhileP, try, (<|>))
 import           Text.Megaparsec.Char (alphaNumChar, char, crlf, eol, newline,
                                        printChar, string)
+import Data.Maybe (fromMaybe)
 
 type Parser = Parsec Void Text
 
@@ -79,7 +81,7 @@ data TokenType =
   | LINEBREAK Text
   | LINE_BYTES
   | LSQ
-  | META Text (Maybe Text)
+  | META Text Text
   | MINUS
   | NAME Text
   | NEWLINE
@@ -94,7 +96,6 @@ data TokenType =
   | SLASH
   | SPACE
   | STAR
-  | Text Text
   | TAB
   | TEXT Text
   | TEXT_MARK
@@ -102,6 +103,7 @@ data TokenType =
   | VERTEX
   | XI
   | NONE
+  | Some Text
   deriving (Show)
 
 
@@ -157,14 +159,18 @@ initNode =
 
 -- will later be split
 
-pTerminal :: Text -> TokenType -> Position -> Parser Node
-pTerminal s t p = do
-  c <- string s
-  let l = T.length c - 1
-  return initNode {
+pTerminal :: Text -> TokenType -> Node -> Parser Node
+pTerminal s t node = do
+  n <- parseAfter node <$> string s
+  return n {
     nodeToken = t
-  , range = (rangeFrom p) {endColumn = column p + l - 1}
   }
+  -- let l = T.length c - 1
+  -- let Range _ _ _ col = range node
+  -- return initNode {
+  --   nodeToken = t
+  -- , range = }
+  -- }
 
 cARROW :: Text
 cARROW = "<"
@@ -220,6 +226,10 @@ cNEWLINE :: Text
 cNEWLINE = "\n"
 cCARET_RETURN :: Text
 cCARET_RETURN = "\r"
+cEMPTY_BYTES :: Text
+cEMPTY_BYTES = "--"
+cEMPTY_TEXT :: Text
+cEMPTY_TEXT = ""
 
 inByteRange :: Char -> Bool
 inByteRange c
@@ -227,34 +237,31 @@ inByteRange c
   | 'A' <= c && c <= 'F' = True
   | otherwise = False
 
-pBYTE :: Position -> Parser Node
+pBYTE :: Node -> Parser Node
 pBYTE p = do
   s1 <- alphaNumChar
   guard (inByteRange s1)
   s2 <- alphaNumChar
   guard (inByteRange s2)
-  let Position row column = p
-  return initNode {
-    nodeToken = BYTE (pack [s1, s2])
-  , range = Range row column row (column + 1)
+  let byte = pack [s1, s2]
+  return (parseAfter p byte) {
+    nodeToken = BYTE byte
   }
 
 -- takeP eats many tokens
 
-pEMPTY_BYTES :: Position -> Parser Node
-pEMPTY_BYTES = pTerminal "--" EMPTY_BYTES
+pEMPTY_BYTES :: Node -> Parser Node
+pEMPTY_BYTES = pTerminal cEMPTY_BYTES EMPTY_BYTES
 
-pLINE_BYTES :: Position -> Parser Node
+
+pLINE_BYTES :: Node -> Parser Node
 pLINE_BYTES p = do
     byte <- pBYTE p
-    let bytes = some (string cMINUS *> pBYTE p)
-    byteNodes <- bytes
+    byteNodes <- some (string cMINUS *> pBYTE p)
     let indexed = DL.scanl correctPosition byte byteNodes
-    let len = 2 + (length indexed - 1) * 3
-
     return initNode {
       nodeToken = LINE_BYTES
-    , range = (range byte) {endColumn = column p + len - 1}
+    , range = concatRangesFrom byte (DL.last indexed)
     , nodes = indexed
     }
     where
@@ -267,83 +274,96 @@ pLINE_BYTES p = do
 rangeFrom :: Position -> Range
 rangeFrom p = Range (row p) (column p) (row p) (column p)
 
-pCOMMENT :: Position -> Parser Node
+pCOMMENT :: Node -> Parser Node
 pCOMMENT p = do
-  _ <- string cHASH
-  content <- pack <$>  (many printChar :: Parser String)
-  let l = 1 + T.length content
+  h <- parseAfter p <$> string cHASH
+  content <- parseAfter h <$> (pack <$> (many printChar :: Parser String))
   return initNode {
-    nodeToken = COMMENT content
-  , range = (rangeFrom p) {endColumn = column p + l - 1}
+    nodeToken = COMMENT (nodeText content)
+  , range = concatRangesFrom h content
   }
 
-pMETA :: Position -> Parser Node
+pOptionalString :: Parser String -> Parser Text
+pOptionalString p = do
+  s <- optional (try p)
+  let t = maybe cEMPTY_TEXT pack s
+  return t
+
+pMETA :: Node -> Parser Node
 pMETA p = do
-  _ <- string cPLUS
-  name <- pack <$> (many alphaNumChar :: Parser String)
-  suffix <- pack <$> try (char ' ' *> many printChar :: Parser String)
-  let mSuffix =
-        case suffix of
-          empty -> Nothing
-          _  -> Just suffix
-  let l = 1 + T.length name + maybe 0 (\s -> 1 + T.length s) mSuffix
+  plus <- parseAfter p <$> string cPLUS
+  name <- parseAfter plus <$> (pack <$> many alphaNumChar)
+  suffix <- parseAfter name <$> pOptionalString (char ' ' *> many printChar)
   return initNode {
-    nodeToken = META name mSuffix
-  , range = Range (row p) (column p) (row p) (column p + l - 1)
+    nodeToken = META (nodeText name) (nodeText suffix)
+  , range = concatRangesFrom plus suffix
   }
 
--- cond :: Token Text -> Bool
--- cond t = t `notElem` map T.head [cSLASH, cNEWLINE, cCARET_RETURN]
+textToNode :: Position -> Text -> Node
+textToNode p t = initNode {
+    nodeToken = Some t
+  , range = (rangeFrom p) {endColumn = column p + T.length t - 1}
+  }
 
-pREGEX :: Position -> Parser Node
+parseAfter :: Node -> Text -> Node
+parseAfter (Node _ _ (Range _ _ r c)) = textToNode (Position r c)
+
+nodeText :: Node -> Text
+nodeText (Node t _ _) =
+  case t of
+    Some s -> s
+    _ -> T.empty
+
+pREGEX :: Node -> Parser Node
 pREGEX p = do
-  _ <- string cSLASH
-  -- r <- manyTill printChar (string cSLASH)
-  let cond s = s `notElem` map T.head [cSLASH, cNEWLINE, cCARET_RETURN]
-  r <- takeWhile1P Nothing cond :: Parser Text
-
-  suffix <- pack <$> many alphaNumChar
-  let l = 1 + T.length r + 1 + T.length suffix
+  slash1 <- pTerminal cSLASH SLASH p
+  r <- parseAfter slash1 <$> takeWhile1P (Just "regex expression") (`notElem` map T.head [cSLASH, cNEWLINE, cCARET_RETURN])
+  slash2 <- pTerminal cSLASH SLASH r
+  suffix <- parseAfter slash2 <$> (pack <$> many alphaNumChar)
   return initNode {
-    nodeToken = REGEX r suffix
-  , range = (rangeFrom p) {endColumn = column p + l - 1}
-  , nodes = []
+    nodeToken = REGEX (nodeText r) (nodeText suffix)
+  , range = concatRangesFrom slash1 suffix
   }
 
--- | works for single-line terms
-nodeLength :: Node -> Int
-nodeLength n = l
-  where
-    Range _ column1 _ column2 = range n
-    l = column2 - column1 + 1
-
-pEOL :: Position -> Parser Node
-pEOL p = do
-  eols <- eol
-  indents <- fmap length (many (string cINDENT))
-  let node = initNode
+pEOL_INDENT :: Node -> Parser Node
+pEOL_INDENT p = do
+  eols <- parseAfter p <$> eol
+  let r = range eols
+  let newRow = eols {range = r {endRow = endRow r + 1, endColumn = 0}}
+  indents <- parseAfter newRow <$> (foldl (<>) T.empty <$> many (string cINDENT))
+  let nIndents = T.length (nodeText indents) `div` 2
   return initNode {
-    nodeToken = INDENT indents
-  , range = (rangeFrom p) {endRow = startRow (range node), endColumn = indents * 2 - 1}
+    nodeToken = INDENT nIndents
+  , range = concatRangesFrom eols indents
   }
 
-positionAfter :: Node -> Position
-positionAfter n = Position r (c+1)
-  where
-    Range _ _ r c = range n
+concatRanges :: Range -> Range -> Range
+concatRanges (Range r1 c1 _ _) (Range _ _ r2 c2) = Range r1 c1 r2 c2
 
-pBYTES :: Position -> Parser Node
+concatRangesFrom :: Node -> Node -> Range
+concatRangesFrom (Node _ _ r1) (Node _ _ r2) = concatRanges r1 r2
+
+pBYTES :: Node -> Parser Node
 pBYTES p = do
   _ <- pEMPTY_BYTES p
   return initNode
   where
-    p1 p = pEMPTY_BYTES p
+    p1 p = do
+      emp <- pEMPTY_BYTES p
+      return [emp]
     p2 p = do
       byte <- pBYTE p
-      _ <- pTerminal cMINUS MINUS (positionAfter byte)
-      let l = nodeLength byte + 1
-      return byte {range = (rangeFrom p) {endColumn = column p + l - 1}}
-
+      minus <- pTerminal cMINUS MINUS byte
+      return [byte {range = concatRangesFrom byte minus}]
+    p4 p = do
+      m <- pTerminal cMINUS MINUS p
+      e <- pEOL_INDENT m
+      lb <- pLINE_BYTES e
+      let rng = concatRangesFrom m lb
+      return initNode
+    p3 p = do
+      lb <- pLINE_BYTES p
+      return initNode
 
 
 
@@ -352,13 +372,13 @@ main = do
   code <- readFile "./app/code.eo"
   -- parseTest pScheme $ pack code
   putStrLn "\n"
-  let p = Position 0 0
-  parseTest (
-    pLINE_BYTES p <|>
-    pCOMMENT p <|>
-    pMETA p <|>
-    pEMPTY_BYTES p <|>
-    pREGEX p <|>
-    pEOL p
+  let p = initNode
+  parseTest (many $
+    try (pLINE_BYTES p) <|>
+    try (pCOMMENT p) <|>
+    try (pMETA p) <|>
+    try (pEMPTY_BYTES p) <|>
+    try (pREGEX p) <|>
+    try (pEOL_INDENT p)
     ) (pack code)
 

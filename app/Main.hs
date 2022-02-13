@@ -15,15 +15,22 @@ import qualified Data.Text            as T
 import           Data.Void            (Void)
 import           Text.Megaparsec      (MonadParsec (notFollowedBy, takeWhile1P),
                                        Parsec, Stream (Token, Tokens), choice,
-                                       many, manyTill, noneOf, parseTest,
-                                       satisfy, some, takeWhileP, try, (<|>))
+                                       many, manyTill, noneOf, parseTest, ParsecT (..),
+                                       satisfy, some, takeWhileP, try, (<|>), runParser, runParserT, empty)
 import           Text.Megaparsec.Char (alphaNumChar, char, crlf, eol, newline,
                                        printChar, string)
 import Data.Maybe (fromMaybe)
+import Control.Monad.Identity
+import Control.Monad.State.Strict
 
+data PositionState =
+  PositionState {
+    row :: Int
+  , column :: Int
+  } deriving (Show)
 
-
-type Parser = Parsec Void Text
+type Parser = StateT PositionState (ParsecT Void Text Identity)
+-- type Parser = ParsecT Void Text State
 
 pScheme :: Parser Text
 pScheme = string "data"
@@ -225,6 +232,7 @@ inByteRange c
   | 'A' <= c && c <= 'F' = True
   | otherwise = False
 
+
 pBYTE :: Node -> Parser Node
 pBYTE p = do
   s1 <- alphaNumChar
@@ -350,19 +358,47 @@ pBYTES p = do
       return lbs
 
 
+pState :: Parser Text
+pState = do
+  a <- string "ok"
+  PositionState r c <- get
+  put (PositionState (r + 2) (c + 2))
+  return a
+
+pMany :: Parser Text
+pMany = do T.concat <$> many pState
+
+type MyParser = StateT String (ParsecT Void Text Identity)
+
+parser :: MyParser String
+parser = a <|> b
+  where
+    a = "foo" <$ put "branch A" <* empty
+    b = get   <* put "branch B"
 
 main :: IO ()
 main = do
   code <- readFile "./app/code.eo"
   -- parseTest pScheme $ pack code
   putStrLn "\n"
-  let p = initNode
-  parseTest (many $
-    try (pLINE_BYTES p) <|>
-    try (pCOMMENT p) <|>
-    try (pMETA p) <|>
-    try (pEMPTY_BYTES p) <|>
-    try (pREGEX p) <|>
-    try (pEOL_INDENT p)
-    ) (pack code)
+  -- let p            = runStateT parser "initial"
+  --     Right (a, s) = runParser p "" ""
+  -- putStrLn ("Result:      " ++ show a)
+  -- putStrLn ("Final state: " ++ show s)
+  
+  let p = runStateT pMany (PositionState 0 0)
+      a = runParser p "" "okokok"
+  putStrLn ("Result:      " ++ show a)
+  -- putStrLn ("Final state: " ++ show s)
+  putStrLn ""
+  -- let p = initNode
+  -- return
+  -- parseTest (many $
+  --   try (pLINE_BYTES p) <|>
+  --   try (pCOMMENT p) <|>
+  --   try (pMETA p) <|>
+  --   try (pEMPTY_BYTES p) <|>
+  --   try (pREGEX p) <|>
+  --   try (pEOL_INDENT p)
+  --   ) (pack code)
 

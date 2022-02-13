@@ -211,10 +211,10 @@ data
   REGEX
   ;
 
-COMMENT: HASH ~[\r\n]*;
-META: PLUS NAME (SPACE ~[\r\n]+)?;
+// COMMENT: HASH ~[\r\n]*;
+// META: PLUS NAME (SPACE ~[\r\n]+)?;
 
-REGEX: SLASH ~[\r\n]+ SLASH [a-z]*;
+// REGEX: SLASH ~[\r\n]+ SLASH [a-z]*;
 
 // ROOT: 'Q';
 // STAR: '*';
@@ -243,19 +243,19 @@ REGEX: SLASH ~[\r\n]+ SLASH [a-z]*;
 // fragment INDENT:
 //     SPACE SPACE
 //     ;
-fragment LINEBREAK:
-    ('\n' | '\r\n')
-    ;
-EOL
-  :
-  LINEBREAK
-  LINEBREAK?
-  INDENT*
-  ;
+// fragment LINEBREAK:
+//     ('\n' | '\r\n')
+//     ;
+// EOL
+//   :
+//   LINEBREAK
+//   LINEBREAK?
+//   INDENT*
+//   ;
 
 // fragment BYTE: [0-9A-F][0-9A-F];
-fragment EMPTY_BYTES : MINUS MINUS;
-fragment LINE_BYTES : BYTE (MINUS BYTE)+;
+// fragment EMPTY_BYTES : MINUS MINUS;
+// fragment LINE_BYTES : BYTE (MINUS BYTE)+;
 
 BYTES:
        EMPTY_BYTES

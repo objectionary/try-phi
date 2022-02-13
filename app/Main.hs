@@ -21,6 +21,8 @@ import           Text.Megaparsec.Char (alphaNumChar, char, crlf, eol, newline,
                                        printChar, string)
 import Data.Maybe (fromMaybe)
 
+
+
 type Parser = Parsec Void Text
 
 pScheme :: Parser Text
@@ -143,34 +145,20 @@ data Range =
 instance Show Range where
   show (Range p1 p2 p3 p4) = "[" <> show (p1 + 1) <> ":" <> show (p2 + 1) <> ".." <> show (p3 + 1) <> ":" <> show (p4 + 1) <> "]"
 
-data Position =
-  Position {
-    row    :: Int
-  , column :: Int
-  } deriving (Show)
-
 initNode :: Node
 initNode =
   Node {
     nodeToken = NONE
   , nodes = []
-  , range = Range 0 0 0 0
+  , range = Range 0 0 0 (-1)
   }
-
--- will later be split
 
 pTerminal :: Text -> TokenType -> Node -> Parser Node
 pTerminal s t node = do
-  n <- parseAfter node <$> string s
+  n <- nodeAfter node <$> string s
   return n {
     nodeToken = t
   }
-  -- let l = T.length c - 1
-  -- let Range _ _ _ col = range node
-  -- return initNode {
-  --   nodeToken = t
-  -- , range = }
-  -- }
 
 cARROW :: Text
 cARROW = "<"
@@ -244,7 +232,7 @@ pBYTE p = do
   s2 <- alphaNumChar
   guard (inByteRange s2)
   let byte = pack [s1, s2]
-  return (parseAfter p byte) {
+  return (nodeAfter p byte) {
     nodeToken = BYTE byte
   }
 
@@ -271,13 +259,10 @@ pLINE_BYTES p = do
           aEndColumn = aStartColumn + 1
           correct x = x {range = (range x) {startColumn = aStartColumn, endColumn = aEndColumn}}
 
-rangeFrom :: Position -> Range
-rangeFrom p = Range (row p) (column p) (row p) (column p)
-
 pCOMMENT :: Node -> Parser Node
 pCOMMENT p = do
-  h <- parseAfter p <$> string cHASH
-  content <- parseAfter h <$> (pack <$> (many printChar :: Parser String))
+  h <- nodeAfter p <$> string cHASH
+  content <- nodeAfter h <$> (pack <$> (many printChar :: Parser String))
   return initNode {
     nodeToken = COMMENT (nodeText content)
   , range = concatRangesFrom h content
@@ -291,22 +276,21 @@ pOptionalString p = do
 
 pMETA :: Node -> Parser Node
 pMETA p = do
-  plus <- parseAfter p <$> string cPLUS
-  name <- parseAfter plus <$> (pack <$> many alphaNumChar)
-  suffix <- parseAfter name <$> pOptionalString (char ' ' *> many printChar)
+  plus <- nodeAfter p <$> string cPLUS
+  name <- nodeAfter plus <$> (pack <$> many alphaNumChar)
+  suffix <- nodeAfter name <$> pOptionalString ((:) <$> char ' ' <*> many printChar)
   return initNode {
     nodeToken = META (nodeText name) (nodeText suffix)
   , range = concatRangesFrom plus suffix
+  -- , nodes = [plus, name, suffix]
   }
 
-textToNode :: Position -> Text -> Node
-textToNode p t = initNode {
+nodeAfter :: Node -> Text -> Node
+nodeAfter (Node _ _ (Range _ _ r c)) t =
+  initNode {
     nodeToken = Some t
-  , range = (rangeFrom p) {endColumn = column p + T.length t - 1}
+  , range = Range r (c + 1) r (c + T.length t)
   }
-
-parseAfter :: Node -> Text -> Node
-parseAfter (Node _ _ (Range _ _ r c)) = textToNode (Position r c)
 
 nodeText :: Node -> Text
 nodeText (Node t _ _) =
@@ -317,9 +301,9 @@ nodeText (Node t _ _) =
 pREGEX :: Node -> Parser Node
 pREGEX p = do
   slash1 <- pTerminal cSLASH SLASH p
-  r <- parseAfter slash1 <$> takeWhile1P (Just "regex expression") (`notElem` map T.head [cSLASH, cNEWLINE, cCARET_RETURN])
+  r <- nodeAfter slash1 <$> takeWhile1P (Just "regex expression") (`notElem` map T.head [cSLASH, cNEWLINE, cCARET_RETURN])
   slash2 <- pTerminal cSLASH SLASH r
-  suffix <- parseAfter slash2 <$> (pack <$> many alphaNumChar)
+  suffix <- nodeAfter slash2 <$> (pack <$> many alphaNumChar)
   return initNode {
     nodeToken = REGEX (nodeText r) (nodeText suffix)
   , range = concatRangesFrom slash1 suffix
@@ -327,14 +311,13 @@ pREGEX p = do
 
 pEOL_INDENT :: Node -> Parser Node
 pEOL_INDENT p = do
-  eols <- parseAfter p <$> eol
-  let r = range eols
-  let newRow = eols {range = r {endRow = endRow r + 1, endColumn = 0}}
-  indents <- parseAfter newRow <$> (foldl (<>) T.empty <$> many (string cINDENT))
+  eols <- nodeAfter p <$> eol
+  let rng@(Range _ _ r _) = range eols
+  let newRow = eols {range = rng {endRow = r + 1, endColumn = -1}}
+  indents <- nodeAfter newRow <$> (foldl (<>) T.empty <$> many (string cINDENT))
   let nIndents = T.length (nodeText indents) `div` 2
-  return initNode {
+  return indents {
     nodeToken = INDENT nIndents
-  , range = concatRangesFrom eols indents
   }
 
 concatRanges :: Range -> Range -> Range
@@ -354,16 +337,17 @@ pBYTES p = do
     p2 p = do
       byte <- pBYTE p
       minus <- pTerminal cMINUS MINUS byte
-      return [byte {range = concatRangesFrom byte minus}]
+      return [byte, minus]
     p4 p = do
       m <- pTerminal cMINUS MINUS p
       e <- pEOL_INDENT m
       lb <- pLINE_BYTES e
-      let rng = concatRangesFrom m lb
-      return initNode
+      return [e, lb]
     p3 p = do
       lb <- pLINE_BYTES p
-      return initNode
+      lbs <- concat <$> many (p4 p)
+      -- IDK how to correct indexation
+      return lbs
 
 
 

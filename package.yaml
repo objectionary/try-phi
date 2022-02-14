@@ -52,6 +52,7 @@ dependencies:
 # - trifecta
 - unordered-containers
 - megaparsec
+- scientific
 
 library:
   source-dirs: src

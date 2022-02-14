@@ -130,86 +130,86 @@ application
   htail?
   ;
 
-htail
-  :
-  (
-    SPACE
-    head
-    |
-    SPACE
-    application
-    method
-    |
-    SPACE
-    LB
-    application
-    RB
-    |
-    SPACE
-    application
-    has
-    |
-    SPACE
-    application
-    suffix
-    |
-    SPACE
-    abstraction
-  )+
-  ;
+// htail
+//   :
+//   (
+//     SPACE
+//     head
+//     |
+//     SPACE
+//     application
+//     method
+//     |
+//     SPACE
+//     LB
+//     application
+//     RB
+//     |
+//     SPACE
+//     application
+//     has
+//     |
+//     SPACE
+//     application
+//     suffix
+//     |
+//     SPACE
+//     abstraction
+//   )+
+//   ;
 
-head
-  :
-  DOTS?
-  (
-    ROOT
-    |
-    AT
-    |
-    RHO
-    |
-    XI
-    |
-    SIGMA
-    |
-    STAR
-    |
-    NAME
-    COPY?
-    |
-    NAME
-    DOT
-    |
-    data
-  )
-  ;
+// head
+//   :
+//   DOTS?
+//   (
+//     ROOT
+//     |
+//     AT
+//     |
+//     RHO
+//     |
+//     XI
+//     |
+//     SIGMA
+//     |
+//     STAR
+//     |
+//     NAME
+//     COPY?
+//     |
+//     NAME
+//     DOT
+//     |
+//     data
+//   )
+//   ;
 
-has
-  :
-  COLON
-  NAME
-  ;
+// has
+//   :
+//   COLON
+//   NAME
+//   ;
 
-data
-  :
-  BYTES
-  |
-  BOOL
-  |
-  TEXT
-  |
-  STRING
-  |
-  INT
-  |
-  FLOAT
-  |
-  HEX
-  |
-  CHAR
-  |
-  REGEX
-  ;
+// data
+//   :
+//   BYTES
+//   |
+//   BOOL
+//   |
+//   TEXT
+//   |
+//   STRING
+//   |
+//   INT
+//   |
+//   FLOAT
+//   |
+//   HEX
+//   |
+//   CHAR
+//   |
+//   REGEX
+//   ;
 
 // COMMENT: HASH ~[\r\n]*;
 // META: PLUS NAME (SPACE ~[\r\n]+)?;
@@ -262,26 +262,27 @@ data
 //     |  BYTE MINUS
 //     |  LINE_BYTES (MINUS EOL LINE_BYTES)*;
 
-BOOL: 'TRUE' | 'FALSE';
-CHAR:  '\'' (~['\\\r\n] | ESCAPE_SEQUENCE) '\'';
-STRING: '"' (~["\\\r\n] | ESCAPE_SEQUENCE)* '"';
+// BOOL: 'TRUE' | 'FALSE';
+// CHAR:  '\'' (~['\\\r\n] | ESCAPE_SEQUENCE) '\'';
+// STRING: '"' (~["\\\r\n] | ESCAPE_SEQUENCE)* '"';
 
 fragment ESCAPE_SEQUENCE
     : '\\' [btnfr"'\\]
     | '\\' ([0-3]? [0-7])? [0-7]
     | '\\' 'u'+ BYTE BYTE
     ;
-INT: (PLUS | MINUS)? [0-9]+;
 
-fragment EXPONENT: ('e'|'E') (PLUS | MINUS)? ('0'..'9')+;
-FLOAT: (PLUS | MINUS)? [0-9]+ DOT [0-9]+ EXPONENT?;
-HEX: '0x' [0-9a-f]+;
+// INT: (PLUS | MINUS)? [0-9]+;
 
-NAME: [a-z][\p{Letter}\p{General_Category=Decimal_Number}_-]*;
+// fragment EXPONENT: ('e'|'E') (PLUS | MINUS)? ('0'..'9')+;
+// FLOAT: (PLUS | MINUS)? [0-9]+ DOT [0-9]+ EXPONENT?;
+// HEX: '0x' [0-9a-f]+;
 
-fragment TEXT_MARK: '"""';
-TEXT:
-    TEXT_MARK ('\n' | '\r\n')
-    (~[\\] | ESCAPE_SEQUENCE)*?
-    TEXT_MARK
-    ;
+// NAME: [a-z][\p{Letter}\p{General_Category=Decimal_Number}_-]*;
+
+// fragment TEXT_MARK: '"""';
+// TEXT:
+//     TEXT_MARK ('\n' | '\r\n')
+//     (~[\\] | ESCAPE_SEQUENCE)*?
+//     TEXT_MARK
+//     ;

@@ -25,6 +25,13 @@ packages:
       sha256: 71403f455a514f62cb0c62145b6f6ce19bec34b16ed150a53df02ea9d773d0be
   original:
     hackage: megaparsec-9.2.0
+- completed:
+    hackage: scientific-0.3.7.0@sha256:76465a82beb2af6ea83ebd00684acc0ffe659e7da7066329931dc8f02fc97507,4826
+    pantry-tree:
+      size: 657
+      sha256: 2e5436cd8a2d2fa045aadc7619aa06cf18f4f77d01b70d8c517213b718b69a2b
+  original:
+    hackage: scientific-0.3.7.0
 snapshots:
 - completed:
     size: 586120

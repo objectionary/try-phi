@@ -54,6 +54,7 @@ library
     , parsers
     , prettyprinter
     , profunctors
+    , scientific
     , text
     , transformers
     , unordered-containers
@@ -83,6 +84,7 @@ executable eo-parser
     , parsers
     , prettyprinter
     , profunctors
+    , scientific
     , text
     , transformers
     , unordered-containers
@@ -120,6 +122,7 @@ test-suite doctests
     , parsers
     , prettyprinter
     , profunctors
+    , scientific
     , template-haskell
     , text
     , transformers
@@ -154,6 +157,7 @@ test-suite spec
     , parsers
     , prettyprinter
     , profunctors
+    , scientific
     , text
     , transformers
     , unordered-containers

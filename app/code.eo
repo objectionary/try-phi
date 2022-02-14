@@ -8,10 +8,10 @@
 +foo
 +bar Some text
 
-AA-AA-
-  AB
-  AB
-
+AA-AF-
+  AB-AB-
+  AB-CD
+  
 500.43.@ > one
 
 # This is just a simple string

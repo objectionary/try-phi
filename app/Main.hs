@@ -21,32 +21,75 @@ import           Text.Megaparsec            (MonadParsec (notFollowedBy, takeWhi
                                              SourcePos (SourcePos),
                                              Stream (Token, Tokens), choice,
                                              empty, getSourcePos, many,
-                                             manyTill, noneOf, parseTest,
-                                             runParser, runParserT, satisfy,
-                                             some, takeWhileP, try, unPos,
-                                             (<|>))
+                                             manyTill, noneOf, option,
+                                             parseTest, runParser, runParserT,
+                                             satisfy, some, takeWhileP, try,
+                                             unPos, (<|>))
 import           Text.Megaparsec.Char       (alphaNumChar, char, crlf, eol,
                                              newline, printChar, string)
 
 import           Text.Printf                (printf)
--- data PositionState =
---   PositionState {
---     row :: Int
---   , column :: Int
---   } deriving (Show)
 
--- type Parser = StateT Position (ParsecT Void Text Identity)
 type Parser = Parsec Void Text
 
-data Position =
-  Position {
-    row    :: Int
-  , column :: Int
-  }
-
-instance Show Position where
-  show (Position r c) = printf "%d:%d" r c
-
+cARROW :: Text
+cARROW = "<"
+cAT :: Text
+cAT = "@"
+cCOLON :: Text
+cCOLON = ":"
+cCONST :: Text
+cCONST = "!"
+cCOPY :: Text
+cCOPY = "\'"
+cDOT :: Text
+cDOT = "."
+cHASH :: Text
+cHASH = "#"
+cINDENT :: Text
+cINDENT = "  "
+cLB :: Text
+cLB = "("
+cLSQ :: Text
+cLSQ = "["
+cMINUS :: Text
+cMINUS = "-"
+cPLUS :: Text
+cPLUS = "+"
+cQUESTION :: Text
+cQUESTION = "?"
+cRB :: Text
+cRB = ")"
+cRHO :: Text
+cRHO = "^"
+cROOT :: Text
+cROOT = "Q"
+cRSQ :: Text
+cRSQ = "]"
+cSIGMA :: Text
+cSIGMA = "&"
+cSLASH :: Text
+cSLASH = "/"
+cSPACE :: Text
+cSPACE = " "
+cSTAR :: Text
+cSTAR = "*"
+cVERTEX :: Text
+cVERTEX = "<"
+cXI :: Text
+cXI = "$"
+cTEXT_MARK :: Text
+cTEXT_MARK = "\"\"\""
+cDOTS :: Text
+cDOTS = "..."
+cNEWLINE :: Text
+cNEWLINE = "\n"
+cCARET_RETURN :: Text
+cCARET_RETURN = "\r"
+cEMPTY_BYTES :: Text
+cEMPTY_BYTES = "--"
+cEMPTY_TEXT :: Text
+cEMPTY_TEXT = ""
 
 data TokenType =
   -- Non-terminals
@@ -121,6 +164,15 @@ data TokenType =
   deriving (Show)
 
 
+data Position =
+  Position {
+    row    :: Int
+  , column :: Int
+  }
+
+instance Show Position where
+  show (Position r c) = printf "%d:%d" r c
+
 data Node =
   Node {
     nodeToken :: TokenType
@@ -153,65 +205,6 @@ initNode =
   , end = Position 0 0
   }
 
-cARROW :: Text
-cARROW = "<"
-cAT :: Text
-cAT = "@"
-cCOLON :: Text
-cCOLON = ":"
-cCONST :: Text
-cCONST = "!"
-cCOPY :: Text
-cCOPY = "\'"
-cDOT :: Text
-cDOT = "."
-cHASH :: Text
-cHASH = "#"
-cINDENT :: Text
-cINDENT = "  "
-cLB :: Text
-cLB = "("
-cLSQ :: Text
-cLSQ = "["
-cMINUS :: Text
-cMINUS = "-"
-cPLUS :: Text
-cPLUS = "+"
-cQUESTION :: Text
-cQUESTION = "?"
-cRB :: Text
-cRB = ")"
-cRHO :: Text
-cRHO = "^"
-cROOT :: Text
-cROOT = "Q"
-cRSQ :: Text
-cRSQ = "]"
-cSIGMA :: Text
-cSIGMA = "&"
-cSLASH :: Text
-cSLASH = "/"
-cSPACE :: Text
-cSPACE = " "
-cSTAR :: Text
-cSTAR = "*"
-cVERTEX :: Text
-cVERTEX = "<"
-cXI :: Text
-cXI = "$"
-cTEXT_MARK :: Text
-cTEXT_MARK = "\"\"\""
-cDOTS :: Text
-cDOTS = "..."
-cNEWLINE :: Text
-cNEWLINE = "\n"
-cCARET_RETURN :: Text
-cCARET_RETURN = "\r"
-cEMPTY_BYTES :: Text
-cEMPTY_BYTES = "--"
-cEMPTY_TEXT :: Text
-cEMPTY_TEXT = ""
-
 getPos :: Parser Position
 getPos = do
   SourcePos f r c <- getSourcePos
@@ -237,32 +230,16 @@ pBYTE = do
   , end = p2
   }
 
-pEMPTY_BYTES :: Parser Text
-pEMPTY_BYTES = string cEMPTY_BYTES
-
 pLINE_BYTES :: Parser Node
 pLINE_BYTES = do
   p1 <- getPos
-  byte <- pBYTE
-  bytes <- some (string cMINUS *> pBYTE)
+  byte1 <- pBYTE
+  byte2 <- char '-' *> pBYTE
+  bytes <- fromMaybe [] <$> optional (try (many (string cMINUS *> pBYTE)))
   p2 <- getPos
   return initNode {
     nodeToken = LINE_BYTES
-  , nodes = byte : bytes
-  , start = p1
-  , end = p2
-  }
-
-pBB :: Parser Node
-pBB = do
-  p1 <- getPos
-  b1 <- pBYTE
-  _ <- string cMINUS
-  b2 <- pBYTE
-  p2 <- getPos
-  return initNode {
-    nodeToken = Some ""
-  , nodes = [b1,b2]
+  , nodes = byte1 : byte2 : bytes
   , start = p1
   , end = p2
   }
@@ -279,18 +256,12 @@ pCOMMENT = do
   , end = p2
   }
 
-pOptionalString :: Parser String -> Parser Text
-pOptionalString p = do
-  s <- optional (try p)
-  let t = maybe cEMPTY_TEXT pack s
-  return t
-
 pMETA :: Parser Node
 pMETA = do
   p1 <- getPos
   _ <- string cPLUS
   name <- pack <$> many alphaNumChar
-  suffix <- pOptionalString (char ' ' *> many printChar)
+  suffix <- pack <$> option "" (string cSPACE *> many printChar)
   p2 <- getPos
   return initNode {
     nodeToken = META name suffix
@@ -328,7 +299,11 @@ pEOL_INDENT = do
 pBYTES :: Parser Node
 pBYTES = do
   p1 <- getPos
-  bytes <- choice (map try [parser1, parser3, parser2])
+  bytes <- choice (map try [
+      parser1
+    , parser3
+    , parser2
+    ])
   p2 <- getPos
   return initNode {
     nodeToken = BYTES
@@ -338,7 +313,7 @@ pBYTES = do
   }
   where
     parser1 = do
-      _ <- pEMPTY_BYTES
+      _ <- string cEMPTY_BYTES
       return []
     parser2 = do
       byte <- pBYTE
@@ -351,21 +326,18 @@ pBYTES = do
       return [e, lb]
     parser3 = do
       lb <- pLINE_BYTES
-      lbs <- concat <$> many parser4
+      lbs <- concat <$> many (try parser4)
       return (lb:lbs)
 
 
--- pImplemented :: StateT Position (ParsecT Void Text Identity) [Node]
-pImplemented :: ParsecT Void Text Identity [Node]
-pImplemented = many (choice $ map try [pCOMMENT, pMETA, pEOL_INDENT, pREGEX, pLINE_BYTES, pBB])
 
-pTest :: Parser Node
-pTest = pLINE_BYTES
+pImplemented :: ParsecT Void Text Identity [Node]
+pImplemented = many (choice $ map try [pCOMMENT, pMETA, pEOL_INDENT, pREGEX, pBYTES, pLINE_BYTES])
 
 main :: IO ()
 main = do
   let file = "./app/code.eo"
   code <- pack <$> readFile file
   putStrLn "\n"
+  -- parseTest pBYTES code
   parseTest pImplemented code
-

@@ -257,10 +257,10 @@ data
 // fragment EMPTY_BYTES : MINUS MINUS;
 // fragment LINE_BYTES : BYTE (MINUS BYTE)+;
 
-BYTES:
-       EMPTY_BYTES
-    |  BYTE MINUS
-    |  LINE_BYTES (MINUS EOL LINE_BYTES)*;
+// BYTES:
+//        EMPTY_BYTES
+//     |  BYTE MINUS
+//     |  LINE_BYTES (MINUS EOL LINE_BYTES)*;
 
 BOOL: 'TRUE' | 'FALSE';
 CHAR:  '\'' (~['\\\r\n] | ESCAPE_SEQUENCE) '\'';

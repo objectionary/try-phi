@@ -47,88 +47,88 @@ object
   )*
   ;
 
-abstraction
-  :
-  attributes
-  (
-     (suffix (SPACE SLASH (NAME | QUESTION))?)
-   | htail
-  )?
-  ;
+// abstraction
+//   :
+//   attributes
+//   (
+//      (suffix (SPACE SLASH (NAME | QUESTION))?)
+//    | htail
+//   )?
+//   ;
 
-attributes
-  :
-  LSQ
-  (attribute (SPACE attribute)*)?
-  RSQ
-  ;
+// attributes
+//   :
+//   LSQ
+//   (attribute (SPACE attribute)*)?
+//   RSQ
+//   ;
 
-attribute
-  :
-  label
-  ;
+// attribute
+//   :
+//   label
+//   ;
 
-label
-  :
-  AT
-  |
-  NAME
-  DOTS?
-  ;
+// label
+//   :
+//   AT
+//   |
+//   NAME
+//   DOTS?
+//   ;
 
-tail
-  :
-  EOL
-  TAB
-  (object EOL)+
-  UNTAB
-  ;
+// tail
+//   :
+//   EOL
+//   TAB
+//   (object EOL)+
+//   UNTAB
+//   ;
 
-suffix
-  :
-  SPACE
-  ARROW
-  SPACE
-  label
-  CONST?
-  ;
+// suffix
+//   :
+//   SPACE
+//   ARROW
+//   SPACE
+//   label
+//   CONST?
+//   ;
 
-method
-  :
-  DOT
-  mtd=(
-    NAME
-    |
-    RHO
-    |
-    AT
-    |
-    VERTEX
-  )
-  ;
+// method
+//   :
+//   DOT
+//   mtd=(
+//     NAME
+//     |
+//     RHO
+//     |
+//     AT
+//     |
+//     VERTEX
+//   )
+//   ;
 
-application
-  :
-  head
-  htail?
-  |
-  application
-  method
-  htail?
-  |
-  LB
-  application
-  RB
-  htail?
-  |
-  application
-  has
-  htail?
-  |
-  application
-  suffix
-  htail?
-  ;
+// application
+//   :
+//   head
+//   htail?
+//   |
+//   application
+//   method
+//   htail?
+//   |
+//   LB
+//   application
+//   RB
+//   htail?
+//   |
+//   application
+//   has
+//   htail?
+//   |
+//   application
+//   suffix
+//   htail?
+//   ;
 
 // htail
 //   :

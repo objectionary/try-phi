@@ -18,10 +18,12 @@ import qualified Data.Text                  as T
 import           Data.Void                  (Void)
 import           Text.Megaparsec            (MonadParsec (notFollowedBy, takeWhile1P),
                                              Parsec, ParsecT (..),
+                                             SourcePos (SourcePos),
                                              Stream (Token, Tokens), choice,
-                                             empty, many, manyTill, noneOf,
-                                             parseTest, runParser, runParserT,
-                                             satisfy, some, takeWhileP, try,
+                                             empty, getSourcePos, many,
+                                             manyTill, noneOf, parseTest,
+                                             runParser, runParserT, satisfy,
+                                             some, takeWhileP, try, unPos,
                                              (<|>))
 import           Text.Megaparsec.Char       (alphaNumChar, char, crlf, eol,
                                              newline, printChar, string)
@@ -33,8 +35,8 @@ import           Text.Printf                (printf)
 --   , column :: Int
 --   } deriving (Show)
 
-type Parser = StateT Position (ParsecT Void Text Identity)
--- type Parser = ParsecT Void Text State
+-- type Parser = StateT Position (ParsecT Void Text Identity)
+type Parser = Parsec Void Text
 
 data Position =
   Position {
@@ -43,7 +45,7 @@ data Position =
   }
 
 instance Show Position where
-  show (Position r c) = printf "%d:%d" (r+1) (c+1)
+  show (Position r c) = printf "%d:%d" r c
 
 
 data TokenType =
@@ -148,7 +150,7 @@ initNode =
     nodeToken = NONE
   , nodes = []
   , start = Position 0 0
-  , end = Position 0 (-1)
+  , end = Position 0 0
   }
 
 cARROW :: Text
@@ -210,21 +212,10 @@ cEMPTY_BYTES = "--"
 cEMPTY_TEXT :: Text
 cEMPTY_TEXT = ""
 
-next :: Parser ()
-next = advance 1
-
-advance :: Int -> Parser ()
-advance n = do
-  p <- get
-  put (p {column = column p + n})
-  return ()
-
--- | parses text, advances position
-pText :: Text -> Parser Text
-pText s = do
-  t <- string s
-  advance (T.length s-1)
-  return t
+getPos :: Parser Position
+getPos = do
+  SourcePos f r c <- getSourcePos
+  return (Position (unPos r) (unPos c))
 
 inByteRange :: Char -> Bool
 inByteRange c
@@ -234,14 +225,12 @@ inByteRange c
 
 pBYTE :: Parser Node
 pBYTE = do
-  next
-  p1 <- get
+  p1 <- getPos
   s1 <- alphaNumChar
   guard (inByteRange s1)
   s2 <- alphaNumChar
   guard (inByteRange s2)
-  next
-  p2 <- get
+  p2 <- getPos
   return initNode {
     nodeToken = BYTE (pack [s1, s2])
   , start = p1
@@ -249,15 +238,14 @@ pBYTE = do
   }
 
 pEMPTY_BYTES :: Parser Text
-pEMPTY_BYTES = pText cEMPTY_BYTES
+pEMPTY_BYTES = string cEMPTY_BYTES
 
 pLINE_BYTES :: Parser Node
 pLINE_BYTES = do
-  next
-  p1 <- get
+  p1 <- getPos
   byte <- pBYTE
-  bytes <- some (pText cMINUS *> pBYTE)
-  p2 <- get
+  bytes <- some (string cMINUS *> pBYTE)
+  p2 <- getPos
   return initNode {
     nodeToken = LINE_BYTES
   , nodes = byte : bytes
@@ -265,15 +253,26 @@ pLINE_BYTES = do
   , end = p2
   }
 
+pBB :: Parser Node
+pBB = do
+  p1 <- getPos
+  b1 <- pBYTE
+  _ <- string cMINUS
+  b2 <- pBYTE
+  p2 <- getPos
+  return initNode {
+    nodeToken = Some ""
+  , nodes = [b1,b2]
+  , start = p1
+  , end = p2
+  }
+
 pCOMMENT :: Parser Node
 pCOMMENT = do
-  next
-  p1 <- get
-  h <- string cHASH
-  advance (T.length h)
+  p1 <- getPos
+  _ <- string cHASH
   content <- pack <$> many printChar
-  advance (T.length content - 1)
-  p2 <- get
+  p2 <- getPos
   return initNode {
     nodeToken = COMMENT content
   , start = p1
@@ -282,23 +281,17 @@ pCOMMENT = do
 
 pOptionalString :: Parser String -> Parser Text
 pOptionalString p = do
-  next
   s <- optional (try p)
-  advance (length s - 1)
   let t = maybe cEMPTY_TEXT pack s
   return t
 
 pMETA :: Parser Node
 pMETA = do
-  next
-  p1 <- get
+  p1 <- getPos
   _ <- string cPLUS
-  next
   name <- pack <$> many alphaNumChar
-  advance (T.length name)
   suffix <- pOptionalString (char ' ' *> many printChar)
-  advance (T.length suffix)
-  p2 <- get
+  p2 <- getPos
   return initNode {
     nodeToken = META name suffix
   , start = p1
@@ -307,38 +300,24 @@ pMETA = do
 
 pREGEX :: Parser Node
 pREGEX = do
-  next
-  p1 <- get
+  p1 <- getPos
   _ <- string cSLASH
-  next
   r <- takeWhile1P (Just "regex expression") (`notElem` map T.head [cSLASH, cNEWLINE, cCARET_RETURN])
-  advance (T.length r)
   _ <- string cSLASH
-  next
   suffix <- pack <$> many alphaNumChar
-  advance (T.length suffix - 1)
-  p2 <- get
+  p2 <- getPos
   return initNode {
     nodeToken = REGEX r suffix
   , start = p1
   , end = p2
   }
 
-nextLine :: Parser ()
-nextLine = do
-  p <- get
-  put p {row = row p + 1, column = -1}
-  return ()
-
 pEOL_INDENT :: Parser Node
 pEOL_INDENT = do
-  next
-  p1 <- get
-  eols <- eol
-  advance (T.length eols)
-  nextLine
-  indents <- T.concat <$> many (pText cINDENT)
-  p2 <- get
+  p1 <- getPos
+  _ <- eol
+  indents <- T.concat <$> many (string cINDENT)
+  p2 <- getPos
   let nIndents = T.length indents `div` 2
   return initNode {
     nodeToken = INDENT nIndents
@@ -348,10 +327,9 @@ pEOL_INDENT = do
 
 pBYTES :: Parser Node
 pBYTES = do
-  next
-  p1 <- get
+  p1 <- getPos
   bytes <- choice (map try [parser1, parser3, parser2])
-  p2 <- get
+  p2 <- getPos
   return initNode {
     nodeToken = BYTES
   , start = p1
@@ -364,10 +342,10 @@ pBYTES = do
       return []
     parser2 = do
       byte <- pBYTE
-      _ <- pText cMINUS
+      _ <- string cMINUS
       return [byte]
     parser4 = do
-      _ <- pText cMINUS
+      _ <- string cMINUS
       e <- pEOL_INDENT
       lb <- pLINE_BYTES
       return [e, lb]
@@ -376,17 +354,18 @@ pBYTES = do
       lbs <- concat <$> many parser4
       return (lb:lbs)
 
+
+-- pImplemented :: StateT Position (ParsecT Void Text Identity) [Node]
+pImplemented :: ParsecT Void Text Identity [Node]
+pImplemented = many (choice $ map try [pCOMMENT, pMETA, pEOL_INDENT, pREGEX, pLINE_BYTES, pBB])
+
+pTest :: Parser Node
+pTest = pLINE_BYTES
+
 main :: IO ()
 main = do
   let file = "./app/code.eo"
   code <- pack <$> readFile file
   putStrLn "\n"
-  -- let p            = runStateT parser "initial"
-  --     Right (a, s) = runParser p "" ""
-  -- putStrLn ("Result:      " ++ show a)
-  -- putStrLn ("Final state: " ++ show s)
-
-  let p = runStateT (many (choice $ map try [pCOMMENT, pMETA, pEOL_INDENT, pREGEX, pLINE_BYTES, pBYTE])) (Position 0 (-1))
-      a = runParser p "" code
-  putStrLn ("Result:      " ++ show a)
+  parseTest pImplemented code
 

@@ -109,24 +109,22 @@ method
 
 application
   :
-  head
-  htail?
-  |
-  application
-  method
-  htail?
-  |
-  LB
-  application
-  RB
-  htail?
-  |
-  application
-  has
-  htail?
-  |
-  application
-  suffix
+  (
+    head
+    |
+    application
+    (
+      method
+      |
+      has
+      |
+      suffix
+    )
+    |
+    LB
+    application
+    RB
+  )
   htail?
   ;
 

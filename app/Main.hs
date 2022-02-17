@@ -1,77 +1,37 @@
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE RecordWildCards       #-}
 {-# HLINT ignore "Use camelCase" #-}
+{-# OPTIONS_GHC -Wno-deferred-out-of-scope-variables #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 module Main (main) where
 
-import Control.Applicative (Alternative ((<|>)), optional)
-import Control.Monad (guard)
-import Control.Monad.Identity
-import Control.Monad.State.Strict
-import Data.Char (digitToInt)
-import qualified Data.List as DL
-import Data.Maybe (fromMaybe)
-import Data.Scientific (Scientific)
-import Data.Text (Text, head, null, pack, unpack)
-import qualified Data.Text as T
-import Data.Void (Void)
-import Text.Megaparsec
-  ( MonadParsec (notFollowedBy, takeWhile1P),
-    Parsec,
-    ParsecT (..),
-    SourcePos (SourcePos),
-    Stream (Token, Tokens),
-    choice,
-    count,
-    empty,
-    getInput,
-    getSourcePos,
-    many,
-    manyTill,
-    noneOf,
-    option,
-    parse,
-    parseTest,
-    runParser,
-    runParserT,
-    satisfy,
-    setInput,
-    some,
-    takeWhileP,
-    try,
-    unPos,
-    (<|>), ErrorItem (Label)
-  )
-import Text.Megaparsec.Char
-  ( alphaNumChar,
-    char,
-    crlf,
-    eol,
-    hexDigitChar,
-    letterChar,
-    newline,
-    numberChar,
-    printChar,
-    space,
-    string,
-  )
-import Text.Megaparsec.Char.Lexer
-  ( charLiteral,
-    decimal,
-    float,
-    hexadecimal,
-    scientific,
-    signed,
-  )
-import Text.Printf (printf)
+import           Control.Applicative        (Alternative ((<|>)), optional)
+import           Control.Monad.Identity
+import           Data.Char                  (digitToInt)
+import qualified Data.List                  as DL
+import           Data.Scientific            (Scientific)
+import           Data.Text                  (Text, pack)
+import qualified Data.Text                  as T
+import           Data.Void                  (Void)
+import           Text.Megaparsec            (MonadParsec (takeWhile1P), Parsec,
+                                             SourcePos (SourcePos), choice,
+                                             count, eof, getSourcePos, many,
+                                             manyTill, option, parseTest, some,
+                                             try, unPos)
+import           Text.Megaparsec.Char       (alphaNumChar, char, eol,
+                                             hexDigitChar, letterChar,
+                                             numberChar, printChar, string)
+import           Text.Megaparsec.Char.Lexer (charLiteral, decimal, scientific,
+                                             signed)
+import           Text.Megaparsec.Debug      (dbg)
+import           Text.Printf                (printf)
 
 type Parser = Parsec Void Text
 
 cARROW :: Text
-cARROW = "<"
+cARROW = ">"
 
 cAT :: Text
 cAT = "@"
@@ -233,13 +193,13 @@ data TokenType
   | VERTEX
   | XI
   | NONE
-  | Some
-  | Many
-  | Group
+  | SeveralNode
+  | JustNode
+  | NothingNode
   deriving (Show)
 
 data Position = Position
-  { row :: Int,
+  { row    :: Int,
     column :: Int
   }
 
@@ -248,9 +208,9 @@ instance Show Position where
 
 data Node = Node
   { nodeToken :: TokenType,
-    nodes :: [Maybe Node],
-    start :: Position,
-    end :: Position
+    nodes     :: [Node],
+    start     :: Position,
+    end       :: Position
   }
 
 tab :: String
@@ -258,15 +218,18 @@ tab = "|  "
 
 type TabNumber = Int
 
-printTree :: TabNumber -> Maybe Node -> String
-printTree n (Just Node {..}) =
+printTree :: TabNumber -> Node -> String
+printTree n Node {..} =
   DL.intercalate "" (replicate n tab)
-    <> printf "%s [%s..%s]\n" (show nodeToken) (show start) (show end)
+    <> case nodeToken of
+      JustNode -> printf "%s\n" (show nodeToken)
+      SeveralNode -> printf "%s\n" (show nodeToken)
+      NothingNode -> printf "%s\n" (show nodeToken)
+      _ -> printf "%s [%s..%s]\n" (show nodeToken) (show start) (show end)
     <> foldl (\s a -> s <> printTree (n + 1) a) "" nodes
-printTree _ Nothing = ""
 
 instance Show Node where
-  show n = printTree 0 (Just n)
+  show n = printTree 0 n
 
 initNode :: Node
 initNode =
@@ -285,7 +248,7 @@ getPos = do
 pHexDigit :: Char -> Char -> Parser Int
 pHexDigit l1 l2 = do
   c <- hexDigitChar
-  guard (c `elem` (['0' .. '9'] <> [l1 .. l2]))
+  guard (c `elem` ['0' .. '9'] <> [l1 .. l2])
   let c' = digitToInt c
   return c'
 
@@ -295,30 +258,409 @@ pHexDigitUpper = toInteger <$> pHexDigit 'A' 'F'
 pHexDigitLower :: Parser Integer
 pHexDigitLower = toInteger <$> pHexDigit 'a' 'f'
 
-pBYTE :: Parser Node
-pBYTE = do
+pEmpty :: Parser ()
+pEmpty = return ()
+
+hexToInt :: [Integer] -> Integer
+hexToInt = foldl (\x acc -> (acc * 16) + x) 0
+
+pTerminal :: Text -> TokenType -> Parser Node
+pTerminal s t = do
   p1 <- getPos
-  b <- hexToInt <$> count 2 pHexDigitUpper
+  s <- string s
   p2 <- getPos
   return
     initNode
-      { nodeToken = BYTE b,
+      { nodeToken = t,
         start = p1,
         end = p2
       }
 
-pLINE_BYTES :: Parser Node
-pLINE_BYTES = do
+listNode :: [Node] -> Node
+listNode ns =
+  initNode
+    { nodeToken = SeveralNode,
+      nodes = ns
+    }
+
+-- optionalNode p = do
+--   p1 <- getPos
+--   t <- optional (try p)
+--   p2 <- getPos
+--   let n = initNode {start = p1, end = p2}
+--   let res =
+--         case t of
+--           Just s ->
+--             n {
+--               nodeToken = JustNode
+--             , nodes = [s]
+--             }
+--           Nothing ->
+--             n {
+--               nodeToken = NothingNode
+--             }
+--   return res
+
+maybeToNode :: Maybe Node -> Node
+maybeToNode (Just n) =
+  initNode
+    { nodeToken = JustNode,
+      nodes = [n]
+    }
+maybeToNode Nothing =
+  initNode
+    { nodeToken = NothingNode
+    }
+
+optionalNode :: Parser Node -> Parser Node
+optionalNode p = do
   p1 <- getPos
-  byte <- pBYTE
-  bytes <- some (string cMINUS *> pBYTE)
+  n <- maybeToNode <$> optional (try p)
+  p2 <- getPos
+  return n
+
+pProgram :: Parser Node
+pProgram = do
+  p1 <- getPos
+  l <- optionalNode pLicense
+  m <- optionalNode pMetas
+  o <- optionalNode pObjects
+  _ <- eof
   p2 <- getPos
   return
     initNode
-      { nodeToken = LINE_BYTES,
-        nodes = Just <$> (byte : bytes),
+      { nodeToken = Program,
+        start = p1,
+        end = p2,
+        nodes = [l, m, o]
+      }
+
+pLicense :: Parser Node
+pLicense = do
+  p1 <- getPos
+  ms <- some (pCOMMENT <* eol)
+  p2 <- getPos
+  return
+    initNode
+      { nodeToken = License,
+        start = p1,
+        end = p2,
+        nodes = ms
+      }
+
+pMetas :: Parser Node
+pMetas = do
+  p1 <- getPos
+  ms <- some (pMETA <* eol)
+  p2 <- getPos
+  return
+    initNode
+      { nodeToken = Metas,
+        start = p1,
+        end = p2,
+        nodes = ms
+      }
+
+pObjects :: Parser Node
+pObjects = do
+  p1 <- getPos
+  let m = do
+        cs <- listNode <$> many (pCOMMENT <* eol)
+        obj <- pObject
+        _ <- eol
+        return (listNode [cs, obj])
+  ms <- some m
+  p2 <- getPos
+  return
+    initNode
+      { nodeToken = Objects,
+        start = p1,
+        end = p2,
+        nodes = ms
+      }
+
+pObject :: Parser Node
+pObject = do
+  p1 <- getPos
+  comments <- debug "object:comments" $ listNode <$> many (pCOMMENT <* eol)
+  a <-
+      choice
+        [ debug "object:abstraction" (try pAbstraction),
+          debug "object:application" pApplication
+        ]
+  t <- debug "object:pTail" $ optionalNode pTail
+  let g = do
+        _ <- eol
+        method <- pMethod
+        h <- optionalNode pHtail
+        suffix <- optionalNode pSuffix
+        p <- optionalNode pTail
+        return (listNode [method, h, suffix, p])
+  s <- debug "object:after tail" $ listNode <$> many g
+  p2 <- getPos
+  return
+    initNode
+      { nodeToken = Object,
+        start = p1,
+        end = p2,
+        nodes = [comments, a, t, s]
+      }
+
+debugFlag = True
+
+-- debug :: (Text.Megaparsec.Stream.VisualStream s, Text.Megaparsec.Error.ShowErrorComponent e, Show a) => String -> Text.Megaparsec.MonadParsec e s m a -> Text.Megaparsec.MonadParsec e s m a
+debug s p
+  | debugFlag = dbg s p
+  | otherwise = p
+
+
+pAbstraction :: Parser Node
+pAbstraction = do
+  p1 <- getPos
+  attrs <- debug "abstraction:attributes" pAttributes
+  t <- debug "abstraction:optional" $
+    optionalNode
+      ( listNode <$> choice
+          [ try $ do
+              suff <- pSuffix
+              o <- optionalNode (string cSPACE *> string cSLASH *> (pNAME <|> pTerminal cQUESTION QUESTION))
+              return [suff, o],
+            do
+              htail <- pHtail
+              return [htail]
+          ]
+      )
+  p2 <- getPos
+  return
+    initNode
+      { start = p1,
+        end = p2,
+        nodes = [attrs, t]
+      }
+
+pAttributes :: Parser Node
+pAttributes = do
+  p1 <- getPos
+  _ <- string cLSQ
+  let attrs = do
+        a <- pAttribute
+        as <- many (string cSPACE *> pAttribute)
+        return (listNode (a : as))
+  attrs' <- debug "attributes:attributes" $ optionalNode attrs
+  _ <- string cRSQ
+  p2 <- getPos
+  return
+    initNode
+      { nodeToken = Attributes,
+        start = p1,
+        end = p2,
+        nodes = [attrs']
+      }
+
+pAttribute :: Parser Node
+pAttribute = pLabel
+
+pLabel :: Parser Node
+pLabel = do
+  p1 <- getPos
+  l <-
+    debug "label" $ choice
+      [ try $ (: []) <$> pTerminal cAT AT,
+        do
+          name <- pNAME
+          cdots <- optionalNode (pTerminal cDOTS DOTS)
+          return [name, cdots]
+      ]
+  p2 <- getPos
+  return
+    initNode
+      { nodeToken = Label,
+        start = p1,
+        end = p2,
+        nodes = l
+      }
+
+pTail :: Parser Node
+pTail = do
+  p1 <- getPos
+  e <- pEOL_INDENT
+  objects <- listNode <$> some (pObject <* pEOL_INDENT)
+  p2 <- getPos
+  return
+    initNode
+      { nodeToken = Tail,
+        start = p1,
+        end = p2,
+        nodes = [e, objects]
+      }
+
+pSuffix :: Parser Node
+pSuffix = do
+  p1 <- getPos
+  label <- debug "suffix:label" $ string cSPACE *> string cARROW *> string cSPACE *> pLabel
+  c <- debug "suffix:const" $ optionalNode (pTerminal cCONST CONST)
+  p2 <- getPos
+  return
+    initNode
+      { nodeToken = Suffix,
+        start = p1,
+        end = p2,
+        nodes = [label, c]
+      }
+
+pMethod :: Parser Node
+pMethod = do
+  p1 <- getPos
+  method <-
+    string cDOT
+      *> choice
+        [ pNAME,
+          pTerminal cRHO RHO,
+          pTerminal cAT AT,
+          pTerminal cVERTEX VERTEX
+        ]
+  p2 <- getPos
+  return
+    initNode
+      { nodeToken = Method,
+        start = p1,
+        end = p2,
+        nodes = [method]
+      }
+
+pApplication :: Parser Node
+pApplication = do
+  p1 <- getPos
+  nodes <- debug "application:nodes" $
+    choice $ map try
+      [ do
+          h <- pHead
+          ht <- optionalNode pHtail
+          return [h, ht],
+        do
+          application <- pApplication
+          method <- pMethod
+          htail <- optionalNode pHtail
+          return [application, method, htail],
+        do
+          application <- string cLB *> pApplication <* string cRB
+          htail <- optionalNode pHtail
+          return [application, htail],
+        do
+          application <- pApplication
+          has <- pHas
+          htail <- optionalNode pHtail
+          return [application, has, htail],
+        do
+          application <- pApplication
+          suffix <- pSuffix
+          htail <- optionalNode pHtail
+          return [application, suffix, htail]
+      ]
+  p2 <- getPos
+  return
+    initNode
+      { nodeToken = Application,
+        start = p1,
+        end = p2,
+        nodes = nodes
+      }
+
+pHtail :: Parser Node
+pHtail = do
+  p1 <- getPos
+  t <-
+    some $
+      listNode
+        <$> choice
+          [ try $ do
+              app <- string cSPACE *> pApplication
+              m <- pMethod
+              return [app, m],
+            try $ do
+              app <- string cSPACE *> string cLB *> pApplication <* string cRB
+              return [app],
+            try $ do
+              app <- string cSPACE *> pApplication
+              has <- pHas
+              return [app, has],
+            try $ do
+              app <- string cSPACE *> pApplication
+              suff <- pSuffix
+              return [app, suff],
+            try $ do
+              abstr <- string cSPACE *> pAbstraction
+              return [abstr]
+          ]
+  p2 <- getPos
+  return
+    initNode
+      { nodeToken = Htail,
+        start = p1,
+        end = p2,
+        nodes = t
+      }
+
+pHead :: Parser Node
+pHead = do
+  p1 <- getPos
+  _ <- optional (string cDOTS)
+  t <-
+    choice
+      [ pTerminal cROOT ROOT,
+        pTerminal cAT AT,
+        pTerminal cRHO RHO,
+        pTerminal cXI XI,
+        pTerminal cSIGMA SIGMA,
+        pTerminal cSTAR STAR,
+        pNAME <* optional (string cCOPY),
+        pNAME <* string cDOT,
+        pDATA
+      ]
+  p2 <- getPos
+  return
+    initNode
+      { nodeToken = Head,
+        start = p1,
+        end = p2,
+        nodes = [t]
+      }
+
+pHas :: Parser Node
+pHas = do
+  p1 <- getPos
+  _ <- string cCOLON
+  n <- pNAME
+  p2 <- getPos
+  return
+    initNode
+      { nodeToken = Has,
         start = p1,
         end = p2
+      }
+
+pDATA :: Parser Node
+pDATA = do
+  p1 <- getPos
+  d <-
+    choice
+      [ pBYTES,
+        pBOOL,
+        pTEXT,
+        pSTRING,
+        pINT,
+        pFLOAT,
+        pHEX,
+        pCHAR,
+        pREGEX
+      ]
+  p2 <- getPos
+  return
+    initNode
+      { nodeToken = Data,
+        start = p1,
+        end = p2,
+        nodes = [d]
       }
 
 pCOMMENT :: Parser Node
@@ -377,6 +719,32 @@ pEOL_INDENT = do
         end = p2
       }
 
+pBYTE :: Parser Node
+pBYTE = do
+  p1 <- getPos
+  b <- hexToInt <$> count 2 pHexDigitUpper
+  p2 <- getPos
+  return
+    initNode
+      { nodeToken = BYTE b,
+        start = p1,
+        end = p2
+      }
+
+pLINE_BYTES :: Parser Node
+pLINE_BYTES = do
+  p1 <- getPos
+  byte <- pBYTE
+  bytes <- some (string cMINUS *> pBYTE)
+  p2 <- getPos
+  return
+    initNode
+      { nodeToken = LINE_BYTES,
+        nodes = byte : bytes,
+        start = p1,
+        end = p2
+      }
+
 pBYTES :: Parser Node
 pBYTES = do
   p1 <- getPos
@@ -395,7 +763,7 @@ pBYTES = do
       { nodeToken = BYTES,
         start = p1,
         end = p2,
-        nodes = Just <$> bytes
+        nodes = bytes
       }
   where
     parser1 = do
@@ -412,7 +780,7 @@ pBYTES = do
       return [e, lb]
     parser3 = do
       lb <- pLINE_BYTES
-      lbs <- concat <$> many (try parser4)
+      lbs <- concat <$> many parser4
       return (lb : lbs)
 
 pBOOL :: Parser Node
@@ -457,9 +825,6 @@ pSTRING = do
         end = p2
       }
 
-pEmpty :: Parser ()
-pEmpty = return ()
-
 pINT :: Parser Node
 pINT = do
   p1 <- getPos
@@ -483,9 +848,6 @@ pFLOAT = do
         start = p1,
         end = p2
       }
-
-hexToInt :: [Integer] -> Integer
-hexToInt xs = foldl (\x acc -> (acc * 16) + x) 0 xs
 
 pHEX :: Parser Node
 pHEX = do
@@ -517,7 +879,7 @@ pNAME = do
 pTEXT :: Parser Node
 pTEXT = do
   p1 <- getPos
-  t <- pack <$> (string "\"\"\"" *> manyTill (charLiteral <|> newline <|> crlf *> newline) (string "\"\"\""))
+  t <- pack <$> (string "\"\"\"" *> eol *> manyTill charLiteral (string "\"\"\""))
   p2 <- getPos
   return
     initNode
@@ -526,296 +888,10 @@ pTEXT = do
         end = p2
       }
 
-pDATA :: Parser Node
-pDATA = do
-  p1 <- getPos
-  d <-
-    choice
-      [ pBYTES,
-        pBOOL,
-        pTEXT,
-        pSTRING,
-        pINT,
-        pFLOAT,
-        pHEX,
-        pCHAR,
-        pREGEX
-      ]
-  p2 <- getPos
-  return
-    initNode
-      { nodeToken = Data,
-        start = p1,
-        end = p2,
-        nodes = [Just d]
-      }
-
-pHas :: Parser Node
-pHas = do
-  p1 <- getPos
-  _ <- string cCOLON
-  n <- pNAME
-  p2 <- getPos
-  return
-    initNode
-      { nodeToken = Has,
-        start = p1,
-        end = p2
-      }
-
-pHead :: Parser Node
-pHead = do
-  _ <- optional (string cDOTS)
-  t <-
-    choice
-      [ [] <$ string cROOT,
-        [] <$ string cAT,
-        [] <$ string cRHO,
-        [] <$ string cXI,
-        [] <$ string cSIGMA,
-        [] <$ string cSTAR,
-        (: []) <$> (pNAME <* optional (string cCOPY)),
-        (: []) <$> pNAME <* string cDOT,
-        (: []) <$> pDATA
-      ]
-  return initNode
-
-pApplication :: Parser Node
-pApplication = do
-  p1 <- getPos
-  nodes <-
-    choice
-      [ do
-          head <- pHead
-          htail <- optional pHtail
-          return [Just head, htail]
-      , do
-          application <- pApplication
-          method <- pMethod
-          htail <- optional pHtail
-          return [Just application, Just method, htail]
-      , do
-          application <- string cLB *> pApplication <* string cRB
-          htail <- optional pHtail
-          return [Just application, htail]
-      , do
-          application <- pApplication
-          has <- pHas
-          htail <- optional pHtail
-          return [Just application, Just has, htail]
-      , do
-          application <- pApplication
-          suffix <- pSuffix
-          htail <- optional pHtail
-          return [Just application, Just suffix, htail]
-      ]
-  p2 <- getPos
-  return
-    initNode
-      { start = p1,
-        end = p2,
-        nodes = nodes
-      }
-
-pTerminal :: Text -> TokenType -> Parser Node
-pTerminal s t = do
-  p1 <- getPos
-  s <- string s
-  p2 <- getPos
-  return initNode {
-    nodeToken = t
-  , start = p1
-  , end = p2
-  }
-
-
-pMethod :: Parser Node
-pMethod = do
-  p1 <- getPos
-  method <- string cDOT *> choice [
-      pNAME
-    , pTerminal cRHO RHO
-    , pTerminal cAT AT
-    , pTerminal cVERTEX VERTEX
-    ]
-  p2 <- getPos
-  return initNode {
-    start = p1
-  , end = p2
-  }
-
--- listToNode :: TokenType -> ParsecT Void Text Identity [Node] -> Parser Node
--- listToNode t n = do 
---   ns <- n
---   let mns = Just <$> ns
---   e <- listMaybeToNode t mns
---   return e
-
--- listMaybeToNode :: TokenType -> ParsecT Void Text Identity [Maybe Node] -> Parser Node
--- listMaybeToNode t n = return initNode {
---   nodeToken = t
--- , nodes = n
--- }
-
-pObject :: Parser Node
-pObject = do
-  p1 <- getPos
-  -- comments <- listToNode Many <$> many (pCOMMENT <* eol)
-  a <- choice [
-      pAbstraction
-    , pApplication
-    ]
-  t <- optional pTail
-  let g = do
-        _ <- eol
-        method <- pMethod
-        h <- optional pHtail
-        suffix <- optional pSuffix
-        p <- optional pTail
-        return [Just method, h, suffix, p]
-  -- s <- listMaybeToNode Group g
-  p2 <- getPos
-  return initNode {
-    start = p1
-  , end = p2
-  }
-
-
-pTail :: Parser Node
-pTail = do
-  p1 <- getPos
-  objects <- eol *> pEOL_INDENT *> some (pObject <* pEOL_INDENT)
-  p2 <- getPos
-  return initNode {
-    start = p1
-  , end = p2
-  , nodes = Just <$> objects
-  }
-
-pAttributes :: Parser Node
-pAttributes = do
-  p1 <- getPos
-  _ <- string cLSQ
-  attrs <- (:) <$> pAttribute <*> many (string cSPACE *> pAttribute)
-  _ <- string cRSQ
-  p2 <- getPos
-  return initNode {
-    nodeToken = Attributes
-  , start = p1
-  , end = p2
-  , nodes = Just <$> attrs
-  }
-
-pAttribute :: Parser Node
-pAttribute = pLabel
-
-pLabel :: Parser Node
-pLabel = do
-  p1 <- getPos
-  l <- choice [
-      pTerminal cAT AT
-    , pNAME <* optional (string cDOTS)
-    ]
-  p2 <- getPos
-  return initNode {
-    start = p1
-  , end = p2
-  , nodes = [Just l]
-  }
-
-pSuffix :: Parser Node
-pSuffix = do
-  p1 <- getPos
-  label <- string cSPACE *> string cARROW *> string cSPACE *> pLabel <* optional (string cCONST)
-  p2 <- getPos
-  return initNode {
-    nodeToken = Suffix
-  , start = p1
-  , end = p2
-  , nodes = [Just label]
-  }
-
--- pObject :: Parser Node
--- pObject = do 
-
-
-pAbstraction :: Parser Node
-pAbstraction = do
-  p1 <- getPos
-  attrs <- pAttributes
-  t <- optional (choice [
-      do
-        suff <- pSuffix
-        o <- optional (string cSPACE *> string cSLASH *> (pNAME <|> pTerminal cQUESTION QUESTION))
-        return initNode {
-          nodes = [Just suff, o]
-        }
-    , do
-        htail <- pHtail
-        return initNode {
-          nodes = [Just htail]
-        }
-    ])
-  p2 <- getPos
-  return initNode {
-    start = p1
-  , end = p2
-  , nodes = [Just attrs, t]
-  }
-
-pHtail :: Parser Node
-pHtail = do
-  p1 <- getPos
-  t <-
-    some $
-      choice
-        [ do
-            app <- string cSPACE *> pApplication
-            m <- pMethod
-            return [app, m],
-          do
-            app <- string cSPACE *> string cLB *> pApplication <* string cRB
-            return [app],
-          do
-            app <- string cSPACE *> pApplication
-            has <- pHas
-            return [app, has],
-          do
-            app <- string cSPACE *> pApplication
-            suff <- pSuffix
-            return [app, suff],
-          do
-            abstr <- string cSPACE *> pAbstraction
-            return [abstr]
-        ]
-  p2 <- getPos
-  return
-    initNode
-      { nodeToken = Htail,
-        start = p1,
-        end = p2
-      }
-
-pImplemented :: ParsecT Void Text Identity [Node]
-pImplemented =
-  many
-    ( choice $
-        map
-          try
-          [ pDATA,
-            pCOMMENT,
-            pMETA,
-            pEOL_INDENT,
-            pNAME,
-            pHas,
-            pHead
-          ]
-    )
-
 main :: IO ()
 main = do
   let file = "./app/code.eo"
   code <- pack <$> readFile file
   putStrLn "\n"
   -- parseTest pBYTES code
-  parseTest pImplemented code
+  parseTest (debug "object" pObject) code

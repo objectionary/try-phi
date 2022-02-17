@@ -107,26 +107,80 @@ method
   )
   ;
 
+// Left recursive rule
+
+// application
+//   :
+//   head
+//   htail?
+//   |
+//   application
+//   method
+//   htail?
+//   |
+//   LB
+//   application
+//   RB
+//   htail?
+//   |
+//   application
+//   has
+//   htail?
+//   |
+//   application
+//   suffix
+//   htail?
+//   ;
+
+// Removing direct left recursion according to https://en.wikipedia.org/wiki/Left_recursion#Removing_direct_left_recursion
+// application
+//   :
+//   (
+//     head
+//     |
+//     application
+//     (
+//       method
+//       |
+//       has
+//       |
+//       suffix
+//     )
+//     |
+//     LB
+//     application
+//     RB
+//   )
+//   htail?
+//   ;
+
 application
   :
   (
     head
-    |
-    application
-    (
-      method
-      |
-      has
-      |
-      suffix
-    )
     |
     LB
     application
     RB
   )
   htail?
+  application1
   ;
+
+application1
+  : 
+  (
+    method
+    |
+    has
+    |
+    suffix
+  )
+  application
+  |
+  ''
+  ;
+    
 
 htail
   :

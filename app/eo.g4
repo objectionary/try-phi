@@ -5,6 +5,7 @@ tokens { TAB, UNTAB }
 program
   :
   license?
+  EOL
   metas?
   objects
   EOF
@@ -187,22 +188,22 @@ htail
   (
     SPACE
     (
-    head
-    |
-    application
+      head
+      |
+      application
       (
-    method
-    |
+        method
+        |
         has
         |
         suffix
       )
       |
-    LB
-    application
-    RB
-    |
-    abstraction
+      LB
+      application
+      RB
+      |
+      abstraction
     )
   )+
   ;

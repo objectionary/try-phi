@@ -190,17 +190,17 @@ htail
     head
     |
     application
+      (
     method
     |
+        has
+        |
+        suffix
+      )
+      |
     LB
     application
     RB
-    |
-    application
-    has
-    |
-    application
-    suffix
     |
     abstraction
     )

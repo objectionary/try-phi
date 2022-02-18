@@ -1,10 +1,13 @@
-grammar eo;
+grammar eo1;
 
 tokens { TAB, UNTAB }
 
 program
   :
-  license?
+  (
+    license
+    EOL
+  )?
   metas?
   objects
   EOF
@@ -107,54 +110,103 @@ method
   )
   ;
 
+// Left recursive rule
+
+// application
+//   :
+//   head
+//   htail?
+//   |
+//   application
+//   method
+//   htail?
+//   |
+//   LB
+//   application
+//   RB
+//   htail?
+//   |
+//   application
+//   has
+//   htail?
+//   |
+//   application
+//   suffix
+//   htail?
+//   ;
+
+// Removing direct left recursion according to https://en.wikipedia.org/wiki/Left_recursion#Removing_direct_left_recursion
+// application
+//   :
+//   (
+//     head
+//     |
+//     application
+//     (
+//       method
+//       |
+//       has
+//       |
+//       suffix
+//     )
+//     |
+//     LB
+//     application
+//     RB
+//   )
+//   htail?
+//   ;
+
 application
   :
-  head
+  (
+    head
+    |
+    LB
+    application
+    RB
+  )
   htail?
-  |
-  application
-  method
-  htail?
-  |
-  LB
-  application
-  RB
-  htail?
-  |
-  application
-  has
-  htail?
-  |
-  application
-  suffix
-  htail?
+  application1
   ;
+
+application1
+  : 
+  (
+    method
+    |
+    has
+    |
+    suffix
+  )
+  application
+  |
+  ''
+  ;
+    
 
 htail
   :
   (
     SPACE
-    head
-    |
-    SPACE
-    application
-    method
-    |
-    SPACE
-    LB
-    application
-    RB
-    |
-    SPACE
-    application
-    has
-    |
-    SPACE
-    application
-    suffix
-    |
-    SPACE
-    abstraction
+    (
+      head
+      |
+      application
+      (
+        method
+        |
+        has
+        |
+        suffix
+      )
+      |
+      LB
+      application
+      RB
+      |
+      abstraction
+    )
   )+
   ;
 

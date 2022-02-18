@@ -1,0 +1,10 @@
+# The purpose of this test case is to make
+# sure all possible syntax scenarios can
+# be parsed by the ANTLR
+
++alias Test Test
++alias org.example.foo
++foo
++bar Some text
+
+[tt a...] > atom /int

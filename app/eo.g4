@@ -186,27 +186,24 @@ htail
   :
   (
     SPACE
+    (
     head
     |
-    SPACE
     application
     method
     |
-    SPACE
     LB
     application
     RB
     |
-    SPACE
     application
     has
     |
-    SPACE
     application
     suffix
     |
-    SPACE
     abstraction
+    )
   )+
   ;
 

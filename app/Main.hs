@@ -7,7 +7,8 @@
 
 module Main (main) where
 
-import           Control.Applicative        (Alternative ((<|>)), optional)
+import           Control.Applicative        (Alternative ((<|>)), empty,
+                                             optional)
 import           Control.Monad.Identity
 import           Data.Char                  (digitToInt)
 import qualified Data.List                  as DL
@@ -18,14 +19,17 @@ import           Data.Void                  (Void)
 import           Text.Megaparsec            (MonadParsec (takeWhile1P), Parsec,
                                              SourcePos (SourcePos), choice,
                                              count, eof, getSourcePos, many,
-                                             manyTill, option, parseTest, some,
-                                             try, unPos)
+                                             manyTill, parseTest, some,
+                                             try, unPos, (<?>))
 import           Text.Megaparsec.Char       (alphaNumChar, char, eol,
                                              hexDigitChar, letterChar,
                                              numberChar, printChar, string)
 import           Text.Megaparsec.Char.Lexer (charLiteral, decimal, scientific,
                                              signed)
 import           Text.Megaparsec.Debug      (dbg)
+import qualified Text.Megaparsec.Error
+import           Text.Megaparsec.Internal   (ParsecT)
+import qualified Text.Megaparsec.Stream
 import           Text.Printf                (printf)
 
 type Parser = Parsec Void Text
@@ -127,6 +131,7 @@ data TokenType
   = -- Non-terminals
     Abstraction
   | Application
+  | Application1
   | Attribute
   | Attributes
   | Comment
@@ -170,7 +175,7 @@ data TokenType
   | LINEBREAK Text
   | LINE_BYTES
   | LSQ
-  | META Text Text
+  | META
   | MINUS
   | NAME Text
   | NEWLINE
@@ -196,6 +201,7 @@ data TokenType
   | SeveralNode
   | JustNode
   | NothingNode
+  | TextNode Text
   deriving (Show)
 
 data Position = Position
@@ -267,7 +273,7 @@ hexToInt = foldl (\x acc -> (acc * 16) + x) 0
 pTerminal :: Text -> TokenType -> Parser Node
 pTerminal s t = do
   p1 <- getPos
-  s <- string s
+  void $ string s
   p2 <- getPos
   return
     initNode
@@ -282,24 +288,6 @@ listNode ns =
     { nodeToken = SeveralNode,
       nodes = ns
     }
-
--- optionalNode p = do
---   p1 <- getPos
---   t <- optional (try p)
---   p2 <- getPos
---   let n = initNode {start = p1, end = p2}
---   let res =
---         case t of
---           Just s ->
---             n {
---               nodeToken = JustNode
---             , nodes = [s]
---             }
---           Nothing ->
---             n {
---               nodeToken = NothingNode
---             }
---   return res
 
 maybeToNode :: Maybe Node -> Node
 maybeToNode (Just n) =
@@ -317,14 +305,49 @@ optionalNode p = do
   p1 <- getPos
   n <- maybeToNode <$> optional (try p)
   p2 <- getPos
-  return n
+  return n {
+    start = p1
+  , end = p2
+  }
+
+textNode :: Parser Text -> Parser Node
+textNode txt = do
+  p1 <- getPos
+  t <- txt
+  p2 <- getPos
+  return initNode {
+  nodeToken = TextNode t,
+  start = p1,
+  end = p2
+}
+
+debugFlag :: Bool
+debugFlag = True
+
+debug :: (Text.Megaparsec.Stream.VisualStream s, Text.Megaparsec.Error.ShowErrorComponent e, Show a) => String -> ParsecT e s m a -> ParsecT e s m a
+debug label parser
+  | debugFlag = dbg label (try parser)
+  | otherwise = try parser <?> label
+
+manyTry :: MonadParsec e s m => m a -> m [a]
+manyTry p = many (try p)
+
+someTry :: MonadParsec e s m => m a -> m [a]
+someTry p = some (try p)
+
+choiceTry :: MonadParsec e s m => [m a] -> m a
+choiceTry p = choice (map try p)
+
+-- ***************************************************
+-- Parsers | Parsers | Parsers | Parsers | Parsers
+-- ***************************************************
 
 pProgram :: Parser Node
 pProgram = do
   p1 <- getPos
   l <- optionalNode pLicense
   m <- optionalNode pMetas
-  o <- optionalNode pObjects
+  o <- pObjects
   _ <- eof
   p2 <- getPos
   return
@@ -338,20 +361,20 @@ pProgram = do
 pLicense :: Parser Node
 pLicense = do
   p1 <- getPos
-  ms <- some (pCOMMENT <* eol)
+  cs <- debug "license" $ someTry (pCOMMENT <* eol)
   p2 <- getPos
   return
     initNode
       { nodeToken = License,
         start = p1,
         end = p2,
-        nodes = ms
+        nodes = cs
       }
 
 pMetas :: Parser Node
 pMetas = do
   p1 <- getPos
-  ms <- some (pMETA <* eol)
+  ms <- debug "metas" $ someTry (pMETA <* eol)
   p2 <- getPos
   return
     initNode
@@ -365,11 +388,10 @@ pObjects :: Parser Node
 pObjects = do
   p1 <- getPos
   let m = do
-        cs <- listNode <$> many (pCOMMENT <* eol)
-        obj <- pObject
-        _ <- eol
+        cs <- listNode <$> manyTry (pCOMMENT <* eol)
+        obj <- pObject <* eol
         return (listNode [cs, obj])
-  ms <- some m
+  ms <- debug "objects:objects" $ someTry m
   p2 <- getPos
   return
     initNode
@@ -382,21 +404,21 @@ pObjects = do
 pObject :: Parser Node
 pObject = do
   p1 <- getPos
-  comments <- debug "object:comments" $ listNode <$> many (pCOMMENT <* eol)
+  comments <- debug "object:comments" $ listNode <$> manyTry pCOMMENT <* eol
   a <-
-      choice
-        [ debug "object:abstraction" (try pAbstraction),
-          debug "object:application" pApplication
-        ]
+    choiceTry
+      [ debug "object:abstraction" pAbstraction,
+        debug "object:application" pApplication
+      ]
   t <- debug "object:pTail" $ optionalNode pTail
   let g = do
         _ <- eol
-        method <- pMethod
+        method <- try pMethod
         h <- optionalNode pHtail
         suffix <- optionalNode pSuffix
         p <- optionalNode pTail
         return (listNode [method, h, suffix, p])
-  s <- debug "object:after tail" $ listNode <$> many g
+  s <- debug "object:after tail" $ listNode <$> manyTry g
   p2 <- getPos
   return
     initNode
@@ -406,30 +428,24 @@ pObject = do
         nodes = [comments, a, t, s]
       }
 
-debugFlag = True
-
--- debug :: (Text.Megaparsec.Stream.VisualStream s, Text.Megaparsec.Error.ShowErrorComponent e, Show a) => String -> Text.Megaparsec.MonadParsec e s m a -> Text.Megaparsec.MonadParsec e s m a
-debug s p
-  | debugFlag = dbg s p
-  | otherwise = p
-
-
 pAbstraction :: Parser Node
 pAbstraction = do
   p1 <- getPos
   attrs <- debug "abstraction:attributes" pAttributes
-  t <- debug "abstraction:optional" $
-    optionalNode
-      ( listNode <$> choice
-          [ try $ do
-              suff <- pSuffix
-              o <- optionalNode (string cSPACE *> string cSLASH *> (pNAME <|> pTerminal cQUESTION QUESTION))
-              return [suff, o],
-            do
-              htail <- pHtail
-              return [htail]
-          ]
-      )
+  t <-
+    debug "abstraction:optional" $
+      optionalNode
+        ( listNode
+            <$> choiceTry
+              [ do
+                  suff <- pSuffix
+                  o <- optionalNode (string cSPACE *> string cSLASH *> (pNAME <|> pTerminal cQUESTION QUESTION))
+                  return [suff, o],
+                do
+                  htail <- pHtail
+                  return [htail]
+              ]
+        )
   p2 <- getPos
   return
     initNode
@@ -444,7 +460,7 @@ pAttributes = do
   _ <- string cLSQ
   let attrs = do
         a <- pAttribute
-        as <- many (string cSPACE *> pAttribute)
+        as <- manyTry (string cSPACE *> pAttribute)
         return (listNode (a : as))
   attrs' <- debug "attributes:attributes" $ optionalNode attrs
   _ <- string cRSQ
@@ -464,13 +480,14 @@ pLabel :: Parser Node
 pLabel = do
   p1 <- getPos
   l <-
-    debug "label" $ choice
-      [ try $ (: []) <$> pTerminal cAT AT,
-        do
-          name <- pNAME
-          cdots <- optionalNode (pTerminal cDOTS DOTS)
-          return [name, cdots]
-      ]
+    debug "label:label" $
+      choiceTry
+        [ (: []) <$> pTerminal cAT AT,
+          do
+            name <- pNAME
+            cdots <- optionalNode (pTerminal cDOTS DOTS)
+            return [name, cdots]
+        ]
   p2 <- getPos
   return
     initNode
@@ -484,7 +501,7 @@ pTail :: Parser Node
 pTail = do
   p1 <- getPos
   e <- pEOL_INDENT
-  objects <- listNode <$> some (pObject <* pEOL_INDENT)
+  objects <- listNode <$> someTry (pObject <* pEOL_INDENT)
   p2 <- getPos
   return
     initNode
@@ -513,12 +530,12 @@ pMethod = do
   p1 <- getPos
   method <-
     string cDOT
-      *> choice
+      *> choiceTry
         [ pNAME,
           pTerminal cRHO RHO,
           pTerminal cAT AT,
           pTerminal cVERTEX VERTEX
-        ]
+        ] <?> "method"
   p2 <- getPos
   return
     initNode
@@ -531,67 +548,76 @@ pMethod = do
 pApplication :: Parser Node
 pApplication = do
   p1 <- getPos
-  nodes <- debug "application:nodes" $
-    choice $ map try
-      [ do
-          h <- pHead
-          ht <- optionalNode pHtail
-          return [h, ht],
-        do
-          application <- pApplication
-          method <- pMethod
-          htail <- optionalNode pHtail
-          return [application, method, htail],
-        do
-          application <- string cLB *> pApplication <* string cRB
-          htail <- optionalNode pHtail
-          return [application, htail],
-        do
-          application <- pApplication
-          has <- pHas
-          htail <- optionalNode pHtail
-          return [application, has, htail],
-        do
-          application <- pApplication
-          suffix <- pSuffix
-          htail <- optionalNode pHtail
-          return [application, suffix, htail]
-      ]
+  s <-
+    debug "application:head" $
+      choiceTry
+        [ pHead,
+          string cLB *> pApplication <* string cRB
+        ]
+  h <- debug "application:htail" $ optionalNode pHtail
+  a1 <- debug "application:application1" pApplication1
   p2 <- getPos
   return
     initNode
       { nodeToken = Application,
         start = p1,
         end = p2,
-        nodes = nodes
+        nodes = [s, h, a1]
+      }
+
+pApplication1 :: Parser Node
+pApplication1 = do
+  p1 <- getPos
+  c <-
+    dbg "application1:choice" $
+      listNode
+        <$> choiceTry
+          [ do
+              c1 <-
+                dbg "application1:choice1" $
+                  choiceTry
+                    [ pMethod,
+                      pHas,
+                      pSuffix
+                    ]
+              a <- pApplication
+              return [c1, a],
+            [] <$ empty
+          ]
+  p2 <- getPos
+  return
+    initNode
+      { nodeToken = Application1,
+        start = p1,
+        end = p2,
+        nodes = [c]
       }
 
 pHtail :: Parser Node
 pHtail = do
   p1 <- getPos
-  t <-
-    some $
-      listNode
-        <$> choice
-          [ try $ do
-              app <- string cSPACE *> pApplication
-              m <- pMethod
-              return [app, m],
-            try $ do
-              app <- string cSPACE *> string cLB *> pApplication <* string cRB
-              return [app],
-            try $ do
-              app <- string cSPACE *> pApplication
-              has <- pHas
-              return [app, has],
-            try $ do
-              app <- string cSPACE *> pApplication
-              suff <- pSuffix
-              return [app, suff],
-            try $ do
-              abstr <- string cSPACE *> pAbstraction
-              return [abstr]
-          ]
+  let op =
+        choiceTry
+            [ do
+                app <- pApplication
+                m <- pMethod
+                return [app, m],
+              do
+                app <- string cLB *> pApplication <* string cRB
+                return [app],
+              do
+                app <- pApplication
+                has <- pHas
+                return [app, has],
+              do
+                app <- pApplication
+                suff <- pSuffix
+                return [app, suff],
+              do
+                abstr <- pAbstraction
+                return [abstr]
+            ]
+  t <- someTry (string cSPACE *> (listNode <$> op))
   p2 <- getPos
   return
     initNode
@@ -606,7 +632,7 @@ pHead = do
   p1 <- getPos
   _ <- optional (string cDOTS)
   t <-
-    choice
+    choiceTry
       [ pTerminal cROOT ROOT,
         pTerminal cAT AT,
         pTerminal cRHO RHO,
@@ -630,20 +656,21 @@ pHas :: Parser Node
 pHas = do
   p1 <- getPos
   _ <- string cCOLON
-  n <- pNAME
+  n <- pNAME <?> "has:name"
   p2 <- getPos
   return
     initNode
       { nodeToken = Has,
         start = p1,
         end = p2
+      , nodes = [n]
       }
 
 pDATA :: Parser Node
 pDATA = do
   p1 <- getPos
   d <-
-    choice
+    choiceTry
       [ pBYTES,
         pBOOL,
         pTEXT,
@@ -680,14 +707,15 @@ pMETA :: Parser Node
 pMETA = do
   p1 <- getPos
   _ <- string cPLUS
-  name <- pack <$> many alphaNumChar
-  suffix <- pack <$> option "" (string cSPACE *> many printChar)
+  name <- pNAME
+  suffix <- textNode $ pack <$> (string cSPACE *> manyTry printChar)
   p2 <- getPos
   return
     initNode
-      { nodeToken = META name suffix,
+      { nodeToken = META,
         start = p1,
         end = p2
+      , nodes = [name, suffix]
       }
 
 pREGEX :: Parser Node
@@ -735,7 +763,7 @@ pLINE_BYTES :: Parser Node
 pLINE_BYTES = do
   p1 <- getPos
   byte <- pBYTE
-  bytes <- some (string cMINUS *> pBYTE)
+  bytes <- someTry (string cMINUS *> pBYTE)
   p2 <- getPos
   return
     initNode
@@ -749,14 +777,11 @@ pBYTES :: Parser Node
 pBYTES = do
   p1 <- getPos
   bytes <-
-    choice
-      ( map
-          try
+    choiceTry
           [ parser1,
             parser3,
             parser2
           ]
-      )
   p2 <- getPos
   return
     initNode
@@ -780,14 +805,14 @@ pBYTES = do
       return [e, lb]
     parser3 = do
       lb <- pLINE_BYTES
-      lbs <- concat <$> many parser4
+      lbs <- concat <$> manyTry parser4
       return (lb : lbs)
 
 pBOOL :: Parser Node
 pBOOL = do
   p1 <- getPos
   b <-
-    choice
+    choiceTry
       [ BOOL True <$ string cTRUE,
         BOOL False <$ string cFALSE
       ]
@@ -852,7 +877,7 @@ pFLOAT = do
 pHEX :: Parser Node
 pHEX = do
   p1 <- getPos
-  s <- hexToInt <$> (string "0x" *> some pHexDigitLower)
+  s <- hexToInt <$> (string "0x" *> someTry pHexDigitLower)
   p2 <- getPos
   return
     initNode
@@ -861,12 +886,13 @@ pHEX = do
         end = p2
       }
 
+
 pNAME :: Parser Node
 pNAME = do
   p1 <- getPos
-  l1 <- alphaNumChar
+  l1 <- alphaNumChar <?> "name: first letter"
   guard (l1 `elem` ['a' .. 'z'])
-  l2 <- many (letterChar <|> numberChar <|> char '_' <|> char '-')
+  l2 <- many (letterChar <|> numberChar <|> char '_' <|> char '-') <?> "name: other letters"
   p2 <- getPos
   return
     initNode
@@ -893,5 +919,4 @@ main = do
   let file = "./app/code.eo"
   code <- pack <$> readFile file
   putStrLn "\n"
-  -- parseTest pBYTES code
-  parseTest (debug "object" pObject) code
+  parseTest (debug "program" pProgram) code

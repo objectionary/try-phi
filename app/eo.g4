@@ -23,7 +23,7 @@ metas
 objects
   :
   (
-    (COMMENT EOL)*
+    // (COMMENT EOL)*
     object
     EOL
   )+

@@ -1,1 +1,7 @@
 # eo-parser
+
+dev:
+
+```
+ghcid
+```

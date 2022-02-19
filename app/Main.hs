@@ -19,12 +19,12 @@ import qualified Data.Text                  as T
 import           Data.Void                  (Void)
 import           Text.Megaparsec            (MonadParsec (takeWhile1P), Parsec,
                                              SourcePos (SourcePos), choice,
-                                             count, eof, getSourcePos, many,
+                                             count, getSourcePos, many,
                                              manyTill, parseTest, some, try,
-                                             unPos, (<?>), runParser)
-import           Text.Megaparsec.Char       (alphaNumChar, char, crlf, eol,
+                                             unPos, (<?>))
+import           Text.Megaparsec.Char       (alphaNumChar, char, eol,
                                              hexDigitChar, letterChar,
-                                             lowerChar, newline, numberChar,
+                                             lowerChar, numberChar,
                                              printChar, string)
 import           Text.Megaparsec.Char.Lexer (charLiteral, decimal, scientific,
                                              signed)
@@ -425,7 +425,7 @@ pObject = do
         {-debug "object:application"-} pApplication
       ]
   t <- optionalNode ({-debug "object:tail"-} pTail)
-  let g = do
+  let g = try $ do
         e <- pEOL
         method <- {-debug "object:method"-} pMethod
         h <- optionalNode ({-debug "object:htail"-} pHtail)
@@ -509,8 +509,9 @@ pTail = do
   e <- {-debug "tail:eol"-} pEOL
   objects <- listNode $ someTry ( listNode $ do
     o <- {-debug "tail:object"-} pObject
-    e1 <- pEOL
-    return [o, e1])
+    -- e1 <- pEOL
+    -- return [o, e1])
+    return [o])
   p2 <- getPos
   let ans = Node Tail [e, objects] p1 p2
   {-leave "tail" ans-}
@@ -717,7 +718,7 @@ pEOL :: Parser Node
 pEOL = do
   p1 <- getPos
   {-enter "eol"-}
-  _ <- {-debug "eol:eol"-} (eol *> optional eol)
+  _ <- {-debug "eol:eol"-} (try (eol *> optional eol))
   indents <- T.concat <$> many (string cINDENT)
   p2 <- getPos
   let nIndents = T.length indents `div` 2

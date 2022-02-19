@@ -19,13 +19,13 @@ import qualified Data.Text                  as T
 import           Data.Void                  (Void)
 import           Text.Megaparsec            (MonadParsec (takeWhile1P), Parsec,
                                              SourcePos (SourcePos), choice,
-                                             count, eof, getSourcePos,
-                                             many, manyTill, parseTest, some,
-                                             try, unPos, (<?>))
+                                             count, eof, getSourcePos, many,
+                                             manyTill, parseTest, some, try,
+                                             unPos, (<?>))
 import           Text.Megaparsec.Char       (alphaNumChar, char, eol,
                                              hexDigitChar, letterChar,
                                              lowerChar, numberChar, printChar,
-                                             string)
+                                             string, newline, crlf)
 import           Text.Megaparsec.Char.Lexer (charLiteral, decimal, scientific,
                                              signed)
 import           Text.Megaparsec.Debug      (dbg)
@@ -200,7 +200,7 @@ data TokenType
   | VERTEX
   | XI
   | NONE
-  | SeveralNode
+  | ListNode
   | JustNode
   | NothingNode
   | TextNode Text
@@ -231,7 +231,7 @@ printTree n Node {..} =
   DL.intercalate "" (replicate n tab)
     <> case nodeToken of
       JustNode -> printf "%s\n" (show nodeToken)
-      SeveralNode -> printf "%s\n" (show nodeToken)
+      -- ListNode -> printf "%s\n" (show nodeToken)
       NothingNode -> printf "%s\n" (show nodeToken)
       _ -> printf "%s [%s..%s]\n" (show nodeToken) (show start) (show end)
     <> foldl (\s a -> s <> printTree (n + 1) a) "" nodes
@@ -283,7 +283,7 @@ listNode :: Parser [Node] -> Parser Node
 listNode p = do
   ns <- try p
   return initNode
-    { nodeToken = SeveralNode,
+    { nodeToken = ListNode,
       nodes = ns
     }
 
@@ -349,12 +349,12 @@ pProgram :: Parser Node
 pProgram = do
   p1 <- getPos
   enter "program"
-  l <- optionalNode ({-{-debug "program:license"-}-} pLicense)
-  m <- optionalNode ({-debug "program:metas"-} pMetas)
-  o <- {-debug "program:objects"-} pObjects
-  _ <- eof
+  l <- optionalNode (debug "program:license" pLicense)
+  m <- optionalNode (debug "program:metas" pMetas)
+  o <- debug "program:objects" pObjects
+  -- _ <- debug "program:eof" eof
   p2 <- getPos
-  let ans = Node Program [l, m, o] p1 p2 
+  let ans = Node Program [l, m, o] p1 p2
   leave "program" ans
   return ans
 
@@ -362,9 +362,13 @@ pLicense :: Parser Node
 pLicense = do
   p1 <- getPos
   enter "license"
-  cs <- someTry ({-debug "license:comment"-} pCOMMENT <* pEOL)
+  cs <- someTry (listNode $ do
+    c <- debug "license:comment" pCOMMENT
+    e <- pEOL
+    return [c, e]
+    )
   p2 <- getPos
-  let ans = Node License cs p1 p2 
+  let ans = Node License cs p1 p2
   leave "license" ans
   return ans
 
@@ -372,7 +376,10 @@ pMetas :: Parser Node
 pMetas = do
   p1 <- getPos
   enter "metas"
-  ms <- someTry ({-debug "metas:meta"-} pMETA <* pEOL)
+  ms <- someTry (listNode $ do
+    c <- debug "metas:meta" pMETA
+    e <- pEOL
+    return [c, e])
   p2 <- getPos
   let ans = Node Metas ms p1 p2
   leave "metas" ans
@@ -382,21 +389,24 @@ pObjects :: Parser Node
 pObjects = do
   p1 <- getPos
   enter "objects"
-  os <- someTry ({-debug "objects:object"-} pObject <* pEOL)
+  os <- someTry (listNode $ do
+    c <- debug "objects:object" pObject
+    e <- pEOL
+    return [c, e])
   p2 <- getPos
   let ans = Node Objects os p1 p2
   leave "objects" ans
   return ans
 
 enter :: Show a => a -> ParsecT Void Text Identity ()
-enter name = do 
+enter name = do
   pos <- getPos
   debug (show pos <> ": Enter " <> show name) pEmpty
   return ()
 leave :: (Show a1, Show a2) => a1 -> a2 -> ParsecT Void Text Identity ()
 leave name node = do
   pos <- getPos
-  let l = printf "%s: Leave %s with\n %s\n\n" (show pos) (show name) (show node)
+  let l = printf "%s: Leave %s" (show pos) (show name)
   debug l pEmpty
   return ()
 
@@ -405,23 +415,26 @@ pObject :: Parser Node
 pObject = do
   p1 <- getPos
   enter "object"
-  comments <- listNode $ manyTry ({-debug "object:comment"-} pCOMMENT <* pEOL)
+  comments <- listNode $ manyTry (listNode $ do
+    c <- debug "object:comment" pCOMMENT
+    e <- pEOL
+    return [c, e])
   a <-
     choiceTry
-      [ {-debug "object:abstraction"-} pAbstraction,
-        {-debug "object:application"-} pApplication
+      [ debug "object:abstraction" pAbstraction,
+        debug "object:application" pApplication
       ]
-  t <- optionalNode ({-debug "object:tail"-} pTail)
+  t <- optionalNode (debug "object:tail" pTail)
   let g = do
         e <- pEOL
-        method <- {-debug "object:method"-} pMethod
-        h <- optionalNode ({-debug "object:htail"-} pHtail)
-        suffix <- optionalNode ({-debug "object:suffix"-} pSuffix)
-        p <- optionalNode ({-debug "object:tail"-} pTail)
+        method <- debug "object:method" pMethod
+        h <- optionalNode (debug "object:htail" pHtail)
+        suffix <- optionalNode (debug "object:suffix" pSuffix)
+        p <- optionalNode (debug "object:tail" pTail)
         return [e, method, h, suffix, p]
-  s <- listNode $ manyTry $ listNode ({-debug "object:after tail"-} g)
+  s <- listNode $ manyTry $ listNode (debug "object:after tail" g)
   p2 <- getPos
-  let ans = Node Object [comments, a, t, s] p1 p2 
+  let ans = Node Object [comments, a, t, s] p1 p2
   leave "object" ans
   return ans
 
@@ -429,27 +442,27 @@ pAbstraction :: Parser Node
 pAbstraction = do
   p1 <- getPos
   enter "abstraction"
-  attrs <- {-debug "abstraction:attributes"-} pAttributes
+  attrs <- debug "abstraction:attributes" pAttributes
   t <-
     optionalNode $
       listNode $ choiceTry
           [ do
-              suff <- {-debug "abstraction:suffix"-} pSuffix
+              suff <- debug "abstraction:suffix" pSuffix
               o <-
                 optionalNode $
                   string cSPACE
                     *> string cSLASH
                     *> choiceTry
-                      [ {-debug "abstraction:name"-} pNAME,
+                      [ debug "abstraction:name" pNAME,
                         pTerminal cQUESTION QUESTION
                       ]
               return [suff, o],
             do
-              htail <- {-debug "abstraction:htail"-} pHtail
+              htail <- debug "abstraction:htail" pHtail
               return [htail]
           ]
   p2 <- getPos
-  let ans = Node Abstraction [attrs, t] p1 p2 
+  let ans = Node Abstraction [attrs, t] p1 p2
   leave "abstraction" ans
   return ans
 
@@ -459,13 +472,13 @@ pAttributes = do
   enter "attributes"
   _ <- string cLSQ
   let attrs = do
-        a <- {-debug "attributes:attribute1"-} pAttribute
-        as <- manyTry (string cSPACE *> {-debug "attributes:attribute2"-} pAttribute)
+        a <- debug "attributes:attribute1" pAttribute
+        as <- manyTry (string cSPACE *> debug "attributes:attribute2" pAttribute)
         return (a : as)
   attrs' <- optionalNode $ listNode attrs
   _ <- string cRSQ
   p2 <- getPos
-  let ans = Node Attributes [attrs'] p1 p2 
+  let ans = Node Attributes [attrs'] p1 p2
   leave "attributes" ans
   return ans
 
@@ -478,14 +491,14 @@ pLabel = do
   enter "label"
   l <-
     choiceTry
-      [ (: []) <$> {-debug "label:@"-} (pTerminal cAT AT),
+      [ (: []) <$> debug "label:@" (pTerminal cAT AT),
         do
-          name <- {-debug "label:name"-} pNAME
-          dots <- optionalNode ({-debug "label:..."-} (pTerminal cDOTS DOTS))
+          name <- debug "label:name" pNAME
+          dots <- optionalNode (debug "label:..." (pTerminal cDOTS DOTS))
           return [name, dots]
       ]
   p2 <- getPos
-  let ans = Node Label l p1 p2 
+  let ans = Node Label l p1 p2
   leave "label" ans
   return ans
 
@@ -493,10 +506,13 @@ pTail :: Parser Node
 pTail = do
   p1 <- getPos
   enter "tail"
-  e <- {-debug "tail:eol_indent"-} pEOL
-  objects <- listNode $ someTry ({-debug "tail:object"-} pObject <* pEOL)
+  e <- debug "tail:eol" pEOL
+  objects <- listNode $ someTry ( listNode $ do
+    o <- debug "tail:object" pObject
+    e1 <- pEOL
+    return [o, e1])
   p2 <- getPos
-  let ans = Node Tail [e, objects] p1 p2 
+  let ans = Node Tail [e, objects] p1 p2
   leave "tail" ans
   return ans
 
@@ -504,10 +520,10 @@ pSuffix :: Parser Node
 pSuffix = do
   p1 <- getPos
   enter "suffix"
-  label <- string cSPACE *> string cARROW *> string cSPACE *> {-debug "suffix:label"-} pLabel
-  c <- optionalNode ({-debug "suffix:const"-} (pTerminal cCONST CONST))
+  label <- string cSPACE *> string cARROW *> string cSPACE *> debug "suffix:label" pLabel
+  c <- optionalNode (debug "suffix:const" (pTerminal cCONST CONST))
   p2 <- getPos
-  let ans = Node Suffix [label, c] p1 p2 
+  let ans = Node Suffix [label, c] p1 p2
   leave "suffix" ans
   return ans
 
@@ -518,13 +534,13 @@ pMethod = do
   method <-
     string cDOT
       *> choiceTry
-        [ {-debug "method:name"-} pNAME,
-          {-debug "method:^"-} (pTerminal cRHO RHO),
-          {-debug "method:@"-} (pTerminal cAT AT),
-          {-debug "method:<"-} (pTerminal cVERTEX VERTEX)
+        [ debug "method:name" pNAME,
+          debug "method:^" (pTerminal cRHO RHO),
+          debug "method:@" (pTerminal cAT AT),
+          debug "method:<" (pTerminal cVERTEX VERTEX)
         ]
   p2 <- getPos
-  let ans = Node Method [method] p1 p2 
+  let ans = Node Method [method] p1 p2
   leave "method" ans
   return ans
 
@@ -534,13 +550,13 @@ pApplication = do
   enter "application"
   s <-
     choiceTry
-      [ {-debug "application:head"-} pHead,
-        string cLB *> {-debug "application:application"-} pApplication <* string cRB
+      [ debug "application:head" pHead,
+        string cLB *> debug "application:application" pApplication <* string cRB
       ]
-  h <- optionalNode ({-debug "application:htail"-} pHtail)
-  a1 <- {-debug "application:application1"-} pApplication1
+  h <- optionalNode (debug "application:htail" pHtail)
+  a1 <- debug "application:application1" pApplication1
   p2 <- getPos
-  let ans = Node Application [s, h, a1] p1 p2 
+  let ans = Node Application [s, h, a1] p1 p2
   leave "application" ans
   return ans
 
@@ -553,17 +569,17 @@ pApplication1 = do
         [ do
             c1 <-
               choiceTry
-                [ {-debug "application1:method"-} pMethod,
-                  {-debug "application1:has"-} pHas,
-                  {-debug "application1:suffix"-} pSuffix
+                [ debug "application1:method" pMethod,
+                  debug "application1:has" pHas,
+                  debug "application1:suffix" pSuffix
                 ]
-            ht <- optionalNode ({-debug "application1:htail"-} pHtail)
-            a <- {-debug "application1:application1"-} pApplication1
+            ht <- optionalNode (debug "application1:htail" pHtail)
+            a <- debug "application1:application1" pApplication1
             return [c1, ht, a],
           [] <$ pEmpty
         ]
   p2 <- getPos
-  let ans = Node Application1 [c] p1 p2 
+  let ans = Node Application1 [c] p1 p2
   leave "application" ans
   return ans
 
@@ -574,27 +590,27 @@ pHtail = do
   let op =
         listNode $ choiceTry
             [ do
-                h <- {-debug "htail:head"-} pHead
+                h <- debug "htail:head" pHead
                 return [h],
               do
-                app <- {-debug "htail:application"-} pApplication
+                app <- debug "htail:application" pApplication
                 m <-
                   choiceTry
-                    [ {-debug "htail:method"-} pMethod,
-                      {-debug "htail:has"-} pHas,
-                      {-debug "htail:suffix"-} pSuffix
+                    [ debug "htail:method" pMethod,
+                      debug "htail:has" pHas,
+                      debug "htail:suffix" pSuffix
                     ]
                 return [app, m],
               do
-                app <- string cLB *> {-debug "htail:application1"-} pApplication <* string cRB
+                app <- string cLB *> debug "htail:application1" pApplication <* string cRB
                 return [app],
               do
-                abstr <- {-debug "htail:abstraction"-} pAbstraction
+                abstr <- debug "htail:abstraction" pAbstraction
                 return [abstr]
             ]
   t <- someTry (string cSPACE *> op)
   p2 <- getPos
-  let ans = Node Htail t p1 p2 
+  let ans = Node Htail t p1 p2
   leave "htail" ans
   return ans
 
@@ -605,24 +621,24 @@ pHead = do
   dots <- optionalNode $ pTerminal cDOTS DOTS
   t <- listNode $
     choiceTry
-      [ {-debug "head:root"-} ((:[]) <$> pTerminal cROOT ROOT),
-        {-debug "head:at"-} ((:[]) <$> pTerminal cAT AT),
-        {-debug "head:rho"-} ((:[]) <$> pTerminal cRHO RHO),
-        {-debug "head:xi"-}  ((:[]) <$> pTerminal cXI XI),
-        {-debug "head:sigma"-}  ((:[]) <$> pTerminal cSIGMA SIGMA),
-        {-debug "head:star"-}  ((:[]) <$> pTerminal cSTAR STAR),
-        {-debug "head:copy"-}  
+      [ debug "head:root" ((:[]) <$> pTerminal cROOT ROOT),
+        debug "head:at" ((:[]) <$> pTerminal cAT AT),
+        debug "head:rho" ((:[]) <$> pTerminal cRHO RHO),
+        debug "head:xi"  ((:[]) <$> pTerminal cXI XI),
+        debug "head:sigma"  ((:[]) <$> pTerminal cSIGMA SIGMA),
+        debug "head:star"  ((:[]) <$> pTerminal cSTAR STAR),
+        debug "head:copy" (
           do
             name <- pNAME
             c <- choiceTry [
                   optionalNode $ pTerminal cCOPY COPY
                 , pTerminal cDOT DOT
                 ]
-            return [name,c],
-        {-debug "head:data"-} ((:[]) <$> pDATA)
+            return [name,c]),
+        debug "head:data" ((:[]) <$> pDATA)
       ]
   p2 <- getPos
-  let ans = Node Head [dots, t] p1 p2 
+  let ans = Node Head [dots, t] p1 p2
   leave "head" ans
   return ans
 
@@ -631,9 +647,9 @@ pHas = do
   p1 <- getPos
   enter "has"
   _ <- string cCOLON
-  n <- {-debug "has:name"-} pNAME
+  n <- debug "has:name" pNAME
   p2 <- getPos
-  let ans = Node Has [n] p1 p2 
+  let ans = Node Has [n] p1 p2
   leave "has" ans
   return ans
 
@@ -644,18 +660,18 @@ pDATA = do
   enter "data"
   d <-
     choiceTry
-      [ {-debug "data:bytes"-} pBYTES,
-        {-debug "data:bool"-} pBOOL,
-        {-debug "data:text"-} pTEXT,
-        {-debug "data:string"-} pSTRING,
-        {-debug "data:int"-} pINT,
-        {-debug "data:float"-} pFLOAT,
-        {-debug "data:hex"-} pHEX,
-        {-debug "data:char"-} pCHAR,
-        {-debug "data:regex"-} pREGEX
+      [ debug "data:bytes" pBYTES,
+        debug "data:bool" pBOOL,
+        debug "data:text" pTEXT,
+        debug "data:string" pSTRING,
+        debug "data:int" pINT,
+        debug "data:float" pFLOAT,
+        debug "data:hex" pHEX,
+        debug "data:char" pCHAR,
+        debug "data:regex" pREGEX
       ]
   p2 <- getPos
-  let ans = Node Data [d] p1 p2 
+  let ans = Node Data [d] p1 p2
   leave "data" ans
   return ans
 
@@ -666,7 +682,7 @@ pCOMMENT = do
   _ <- string cHASH
   content <- pack <$> many printChar
   p2 <- getPos
-  let ans = Node (COMMENT content) [] p1 p2 
+  let ans = Node (COMMENT content) [] p1 p2
   leave "comment" ans
   return ans
 
@@ -675,8 +691,8 @@ pMETA = do
   p1 <- getPos
   enter "comment"
   _ <- string cPLUS
-  name <- {-debug "meta:name"-} pNAME
-  suffix <- {-debug "meta:suffix"-} (optionalNode $ textNode $ pack <$> (string cSPACE *> some printChar))
+  name <- debug "meta:name" pNAME
+  suffix <- debug "meta:suffix" (optionalNode $ textNode $ pack <$> (string cSPACE *> some printChar))
   p2 <- getPos
   let ans = Node META [name, suffix] p1 p2
   leave "comment" ans
@@ -699,11 +715,11 @@ pEOL :: Parser Node
 pEOL = do
   p1 <- getPos
   enter "eol"
-  _ <- {-debug "eol_indent:eol"-} (some eol)
+  _ <- debug "eol:eol" (eol *> optional eol)
   indents <- T.concat <$> many (string cINDENT)
   p2 <- getPos
   let nIndents = T.length indents `div` 2
-  let ans = Node (INDENT nIndents) [] p1 p2 
+  let ans = Node (INDENT nIndents) [] p1 p2
   leave "eol" ans
   return ans
 
@@ -713,7 +729,7 @@ pBYTE = do
   enter "byte"
   b <- hexToInt <$> count 2 pHexDigitUpper
   p2 <- getPos
-  let ans = Node (BYTE b) [] p1 p2 
+  let ans = Node (BYTE b) [] p1 p2
   leave "byte" ans
   return ans
 
@@ -721,8 +737,8 @@ pLINE_BYTES :: Parser Node
 pLINE_BYTES = do
   p1 <- getPos
   enter "line bytes"
-  byte <- {-debug "line_bytes:byte"-} pBYTE
-  bytes <- {-debug "line_bytes:bytes"-} (someTry (string cMINUS *> pBYTE))
+  byte <- debug "line_bytes:byte" pBYTE
+  bytes <- debug "line_bytes:bytes" (someTry (string cMINUS *> pBYTE))
   p2 <- getPos
   let ans = Node LINE_BYTES (byte : bytes) p1 p2
   leave "line bytes" ans
@@ -739,7 +755,7 @@ pBYTES = do
         parser2
       ]
   p2 <- getPos
-  let ans = Node BYTES bytes p1 p2 
+  let ans = Node BYTES bytes p1 p2
   leave "bytes" ans
   return ans
   where
@@ -770,7 +786,7 @@ pBOOL = do
         BOOL False <$ string cFALSE
       ]
   p2 <- getPos
-  let ans = Node b [] p1 p2 
+  let ans = Node b [] p1 p2
   leave "bool" ans
   return ans
 
@@ -781,7 +797,7 @@ pCHAR = do
   -- enter "char"
   c <- char '\'' *> charLiteral <* char '\''
   p2 <- getPos
-  let ans = Node (CHAR c) [] p1 p2 
+  let ans = Node (CHAR c) [] p1 p2
   -- leave "char" ans
   return ans
 
@@ -802,7 +818,7 @@ pINT = do
   enter "int"
   s <- signed pEmpty decimal
   p2 <- getPos
-  let ans = Node (INT s) [] p1 p2 
+  let ans = Node (INT s) [] p1 p2
   leave "int" ans
   return ans
 
@@ -812,7 +828,7 @@ pFLOAT = do
   enter "float"
   f <- signed pEmpty scientific
   p2 <- getPos
-  let ans = Node (FLOAT f) [] p1 p2 
+  let ans = Node (FLOAT f) [] p1 p2
   leave "float" ans
   return ans
 
@@ -822,7 +838,7 @@ pHEX = do
   enter "hex"
   s <- hexToInt <$> (string "0x" *> someTry pHexDigitLower)
   p2 <- getPos
-  let ans = Node (HEX s) [] p1 p2 
+  let ans = Node (HEX s) [] p1 p2
   leave "hex" ans
   return ans
 
@@ -830,11 +846,11 @@ pNAME :: Parser Node
 pNAME = do
   p1 <- getPos
   enter "name"
-  l1 <- {-debug "name: first letter"-} lowerChar
-  l2 <- {-debug "name: other letters"-} (manyTry (letterChar <|> numberChar <|> char '_' <|> char '-'))
+  l1 <- debug "name: first letter" lowerChar
+  l2 <- debug "name: other letters" (manyTry (letterChar <|> numberChar <|> char '_' <|> char '-'))
   p2 <- getPos
   let ans = Node (NAME (pack (l1 : l2))) [] p1 p2
-  leave "name" ans 
+  leave "name" ans
   return ans
 
 -- IDK maybe need to allow indentation after eol
@@ -855,4 +871,4 @@ main = do
   code <- pack <$> readFile file
   putStrLn "\n"
   -- parseTest manyABandAc "ababac"
-  parseTest ({-debug "program"-} pProgram) code
+  parseTest (debug "program" pProgram) code

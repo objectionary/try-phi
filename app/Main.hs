@@ -870,7 +870,7 @@ pTEXT = do
 
 main :: IO ()
 main = do
-  let file = "./app/code.eo"
+  let file = "./app/full-syntax.eo"
   code <- pack <$> readFile file
   putStrLn "\n"
   -- parseTest pProgram code

@@ -4,10 +4,7 @@ tokens { TAB, UNTAB }
 
 program
   :
-  (
-    license
-    EOL
-  )?
+  license?
   metas?
   objects
   EOF
@@ -179,7 +176,7 @@ application1
     |
     suffix
   )
-  application
+  application1
   |
   ''
   ;

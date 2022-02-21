@@ -17,7 +17,7 @@ EAttribute. Attribute ::= Label ;
 
 ELabel. Label ::= AT | NAME DOTS? ;
 
-ETail. Tail ::= EOL TAB ( Object EOL)+ UNTAB ;
+ETail. Tail ::= EOL ( Object EOL)+ ;
 
 ESuffix. Suffix ::= SPACE ARROW SPACE Label CONST? ;
 
@@ -35,8 +35,8 @@ EHas. Has ::= COLON NAME ;
 
 Edata. data ::= BYTES | BOOL | TEXT | STRING | INT | FLOAT | HEX | CHAR | REGEX ;
 
-ECOMMENT. COMMENT ::= HASH ~[\r\n]*;
-EMETA. META ::= PLUS NAME ( SPACE ~[\r\n]+)?;
+ECOMMENT. COMMENT ::= HASH Char*;
+EMETA. META ::= PLUS NAME ( SPACE ~["\r\n"]+)?;
 
 EREGEX. REGEX ::= SLASH ~[\r\n]+ SLASH [a-z]*;
 
@@ -78,7 +78,7 @@ EBOOL. BOOL ::= 'TRUE' | 'FALSE';
 ECHAR. CHAR ::= '\'' (~['\\\r\n] | ESCAPE_SEQUENCE) '\'';
 ESTRING. STRING ::= '"' (~["\\\r\n] | ESCAPE_SEQUENCE)* '"';
 
-EESCAPE_SEQUENCE. ESCAPE_SEQUENCE ::= '\\' [btnfr"'\\] | '\\' ([0-3]? [0-7])? [0-7] | '\\' 'u'+ BYTE BYTE ;
+EESCAPE_SEQUENCE. ESCAPE_SEQUENCE ::= '\\' ["btnfr\"\'\\"] | '\\' ([0-3]? [0-7])? [0-7] | '\\' 'u'+ BYTE BYTE ;
 EINT. INT ::= ( PLUS | MINUS)? [0-9]+;
 
 EEXPONENT. EXPONENT ::= ('e'|'E') ( PLUS | MINUS)? ('0'..'9')+;

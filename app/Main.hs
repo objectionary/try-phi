@@ -165,7 +165,6 @@ data TokenType
   | DOTS
   | EMPTY_BYTES
   | EOF
-  | EOL Text
   | ESCAPE_SEQUENCE Text
   | EXPONENT Text
   | FLOAT Scientific
@@ -199,6 +198,7 @@ data TokenType
   | UNTAB
   | VERTEX
   | XI
+  -- Helper nodes
   | NONE
   | ListNode
   | JustNode

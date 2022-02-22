@@ -1,4 +1,4 @@
-grammar eo1;
+grammar eo_fixed;
 
 tokens { TAB, UNTAB }
 
@@ -168,7 +168,7 @@ application
   ;
 
 application1
-  : 
+  :
   (
     method
     |
@@ -178,7 +178,6 @@ application1
   )
   application1
   |
-  ''
   ;
     
 

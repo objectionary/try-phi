@@ -31,7 +31,28 @@ custom-setup
 
 library
   exposed-modules:
+      Eo.Abs
+      Eo.ErrM
+      Eo.Lex
+      Eo.Par
+      Eo.Print
+      Eo.Skel
+      Eo.Test
       ParseEO
+      Sum.Abs
+      Sum.ErrM
+      Sum.Lex
+      Sum.Par
+      Sum.Print
+      Sum.Skel
+      Sum.Test
+      TryEo.Abs
+      TryEo.ErrM
+      TryEo.Lex
+      TryEo.Par
+      TryEo.Print
+      TryEo.Skel
+      TryEo.Test
   other-modules:
       Paths_eo_parser
   hs-source-dirs:

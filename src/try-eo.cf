@@ -1,0 +1,3 @@
+EHash. Hash ::= "#";
+-- token COMMENT ( (char - ["\r\n"])*);
+token COMMENT HASH HASH?;

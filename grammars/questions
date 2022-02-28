@@ -1,0 +1,16 @@
+# (t' 22) r:t 8.54 "yes".< 'e'
+# how do arguments associate
+# is it possible that r:t consumes 8.54 "yes".< or they are arguments of t' 22?
+# Apparently, no
+[x y] > p
+    ......
+p 2 3.mul 4 > k
+p 2 (3.mul 4) > k
+(p 2 3.mul) 4 > k
+
+# what happens if argument names are given only for some names
+[x y] > p
+    ......
+p 2:y 4:x > k
+
+maybe can add notFollowedBy to int, float, hex parsers?

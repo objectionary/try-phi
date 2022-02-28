@@ -36,6 +36,7 @@
           ...z
   oops
 
+
 [] > obj
   "some" > @
   [] > foo

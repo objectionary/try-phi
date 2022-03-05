@@ -8,19 +8,16 @@ import Control.Monad (void)
 import Data.Text (Text)
 import Data.Void
 import Text.Megaparsec
-import Text.Megaparsec.Char
+import Text.Megaparsec.Char ( alphaNumChar, char, space1 )
 import qualified Text.Megaparsec.Char.Lexer as L
 
 type Parser = Parsec Void Text
 
-lineComment :: Parser ()
-lineComment = L.skipLineComment "#"
-
 scn :: Parser ()
-scn = L.space space1 lineComment empty
+scn = L.space space1 empty empty
 
 sc :: Parser ()
-sc = L.space (void $ some (char ' ' <|> char '\t')) lineComment empty
+sc = L.space (void $ some (char ' ')) empty empty
 
 lexeme :: Parser a -> Parser a
 lexeme = L.lexeme sc
@@ -34,6 +31,3 @@ pItemList = L.nonIndented scn (L.indentBlock scn p)
 
 pItem :: Parser String
 pItem = lexeme (some (alphaNumChar <|> char '-')) <?> "list item"
-
--- main :: IO ()
--- main = print "ok"

@@ -747,8 +747,8 @@ pREGEX = do
 --   (ParsecT Void Text Identity)
 --   [Text.Megaparsec.Stream.Tokens Text]
 -- pEOL :: ParsecT Void Text Identity [Text.Megaparsec.Stream.Tokens Text]
-pEOL :: Parser (Maybe (Text.Megaparsec.Stream.Tokens Text))
-pEOL = try (eol *> optional eol)
+-- pEOL :: Parser (Maybe (Text.Megaparsec.Stream.Tokens Text))
+-- pEOL = try (eol *> optional eol)
   -- many eol
 
 -- pEOL_SOME_TABS :: Parser Node

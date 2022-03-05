@@ -14,3 +14,6 @@ p 2 (3.mul 4) > k
 p 2:y 4:x > k
 
 maybe can add notFollowedBy to int, float, hex parsers?
+
+
+если objects -> идем по списку. Для каждого элемента игнорим коммент

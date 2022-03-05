@@ -79,9 +79,9 @@ label
 tail
   :
   EOL
-  TAB
+  // TAB
   (object EOL)+
-  UNTAB
+  // UNTAB
   ;
 
 suffix

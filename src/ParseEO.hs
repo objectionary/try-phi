@@ -7,7 +7,7 @@
 
 {-# HLINT ignore "Use <$>" #-}
 
-module ParseEO (pProgram, Position(..)) where
+module ParseEO (pProgram, Position(..), Node (..), TokenType ) where
 
 import           Control.Applicative        (Alternative ((<|>)), optional)
 import           Control.Monad.Identity
@@ -24,8 +24,8 @@ import           Text.Megaparsec            (MonadParsec (takeWhile1P), Parsec,
                                              unPos, (<?>))
 import           Text.Megaparsec.Char       (alphaNumChar, char, eol,
                                              hexDigitChar, letterChar,
-                                             lowerChar, numberChar, printChar,
-                                             string)
+                                             lowerChar, newline, numberChar,
+                                             printChar, string)
 import           Text.Megaparsec.Char.Lexer (charLiteral, decimal, scientific,
                                              signed)
 import           Text.Megaparsec.Debug      (dbg)
@@ -33,8 +33,12 @@ import qualified Text.Megaparsec.Error
 import           Text.Megaparsec.Internal   (ParsecT)
 import qualified Text.Megaparsec.Stream
 import           Text.Printf                (printf)
-
+import qualified Control.Monad.State.Strict as MS( StateT )
 type Parser = Parsec Void Text
+
+-- data MyState = MyState {tabs::Int}
+
+-- type Parser = MS.StateT MyState (ParsecT Void Text Identity)
 
 cARROW :: Text
 cARROW = ">"
@@ -261,7 +265,9 @@ pHexDigitUpper = toInteger <$> pHexDigit 'A' 'F'
 pHexDigitLower :: Parser Integer
 pHexDigitLower = toInteger <$> pHexDigit 'a' 'f'
 
-pEmpty :: Parser ()
+-- pEmpty :: ParsecT Void Text Identity (Text.Megaparsec.Stream.Tokens Text)
+-- pEmpty :: MS.StateT MyState (ParsecT Void Text Identity) ()
+pEmpty :: ParsecT Void Text Identity ()
 pEmpty = return ()
 
 hexToInt :: [Integer] -> Integer
@@ -319,10 +325,12 @@ debugFlag = True
 
 data DebugMode = On | Off
 
-debug :: (Text.Megaparsec.Stream.VisualStream s, Text.Megaparsec.Error.ShowErrorComponent e, Show a) => String -> ParsecT e s m a -> ParsecT e s m a
-debug label parser
-  | debugFlag = dbg label parser
-  | otherwise = parser <?> label
+-- debug :: (Text.Megaparsec.Stream.VisualStream s, Text.Megaparsec.Error.ShowErrorComponent e, Show a) => String -> ParsecT e s m a -> ParsecT e s m a
+-- debug :: (Show a, Text.Megaparsec.Error.ShowErrorComponent e, Text.Megaparsec.Stream.VisualStream s) => String -> ParsecT e s m a -> ParsecT e s m a
+-- debug :: (Show a, Text.Megaparsec.Error.ShowErrorComponent e, Text.Megaparsec.Stream.VisualStream s) => String -> ParsecT e s m a -> ParsecT e s m a
+-- debug label parser
+--   | debugFlag = dbg label parser
+--   | otherwise = parser <?> label
 
 manyTry :: MonadParsec e s m => m a -> m [a]
 manyTry p = many (try p)
@@ -360,7 +368,7 @@ pLicense = do
     someTry
       ( listNode $ do
           c <- {-debug "license:comment"-} pCOMMENT
-          e <- pEOL
+          e <- pEOL_SOME_TABS
           return [c, e]
       )
   p2 <- getPos
@@ -376,7 +384,7 @@ pMetas = do
     someTry
       ( listNode $ do
           c <- {-debug "metas:meta"-} pMETA
-          e <- pEOL
+          e <- pEOL_SOME_TABS
           return [c, e]
       )
   p2 <- getPos
@@ -388,41 +396,46 @@ pObjects :: Parser Node
 pObjects = do
   p1 <- getPos
   {-enter "objects"-}
-  os <-
+  os <- 
+  -- someTry (pObject <* pEOL)
     someTry
       ( listNode $ do
-          c <- {-debug "objects:object"-} pObject
-          e <- pEOL
-          return [c, e]
+          cs <- listNode $ manyTry (pCOMMENT <* pEOL)
+          o <- {-debug "objects:object"-} pObject
+          _ <- pEOL
+          return [cs, o]
       )
   p2 <- getPos
   let ans = Node Objects os p1 p2
   {-leave "objects" ans-}
   return ans
 
-enter :: Show a => a -> ParsecT Void Text Identity ()
+-- enter :: a -> MS.StateT MyState (ParsecT Void Text Identity) ()
+enter :: a -> Parser ()
 enter name = do
   pos <- getPos
   debug (show pos <> ": Enter " <> show name) pEmpty
   return ()
 
-leave :: (Show a1, Show a2) => a1 -> a2 -> ParsecT Void Text Identity ()
+-- leave :: (Show a1, Show a2) => a1 -> a2 -> ParsecT Void Text Identity ()
+-- leave :: a -> p -> MS.StateT MyState (ParsecT Void Text Identity) ()
+leave :: a -> p -> Parser ()
 leave name node = do
   pos <- getPos
   let l = printf "%s: Leave %s" (show pos) (show name)
   debug l pEmpty
   return ()
 
+
 pObject :: Parser Node
 pObject = do
   p1 <- getPos
   {-enter "object"-}
-  comments <-
-    listNode $
-      manyTry
+  comments <- listNode $ manyTry 
+  -- (pCOMMENT <* pEOL_MANY_TABS)
         ( listNode $ do
             c <- {-debug "object:comment"-} pCOMMENT
-            e <- pEOL
+            e <- pEOL_MANY_TABS
             return [c, e]
         )
   a <-
@@ -432,7 +445,7 @@ pObject = do
       ]
   t <- optionalNode ({-debug "object:tail"-} pTail)
   let g = try $ do
-        e <- pEOL
+        e <- pEOL_SOME_TABS
         method <- {-debug "object:method"-} pMethod
         h <- optionalNode ({-debug "object:htail"-} pHtail)
         suffix <- optionalNode ({-debug "object:suffix"-} pSuffix)
@@ -513,13 +526,13 @@ pTail :: Parser Node
 pTail = do
   p1 <- getPos
   {-enter "tail"-}
-  e <- {-debug "tail:eol"-} pEOL
+  e <- {-debug "tail:eol"-} pEOL_SOME_TABS
   objects <-
     listNode $
       someTry
         ( listNode $ do
             o <- {-debug "tail:object"-} pObject
-            -- e1 <- pEOL
+            -- e1 <- pEOL_SOME_TABS
             -- return [o, e1])
             return [o]
         )
@@ -706,7 +719,7 @@ pMETA = do
   p1 <- getPos
   {-enter "comment"-}
   _ <- string cPLUS
-  nameNode <- {-debug "meta:name"-} pNAME
+  name <- {-debug "meta:name"-} pNAME
   suffix <- {-debug "meta:suffix"-} (optionalNode $ textNode $ pack <$> (string cSPACE *> some printChar))
   p2 <- getPos
   let ans = Node META [name, suffix] p1 p2
@@ -726,8 +739,28 @@ pREGEX = do
   {-leave "regex" ans-}
   return ans
 
-pEOL :: Parser Node
-pEOL = do
+-- pEOL :: ParsecT Void Text Identity [Text.Megaparsec.Stream.Tokens Text]
+-- pEOL :: MS.StateT
+--   MyState
+--   (ParsecT Void Text Identity)
+--   [Text.Megaparsec.Stream.Tokens Text]
+pEOL :: ParsecT Void Text Identity [Text.Megaparsec.Stream.Tokens Text]
+pEOL = many eol
+
+pEOL_SOME_TABS :: Parser Node
+pEOL_SOME_TABS = do
+  p1 <- getPos
+  {-enter "eol"-}
+  _ <- {-debug "eol:eol"-} (try (eol *> optional eol))
+  indents <- T.concat <$> some (string cINDENT)
+  p2 <- getPos
+  let nIndents = T.length indents `div` 2
+  let ans = Node (INDENT nIndents) [] p1 p2
+  {-leave "eol" ans-}
+  return ans
+
+pEOL_MANY_TABS :: Parser Node
+pEOL_MANY_TABS = do
   p1 <- getPos
   {-enter "eol"-}
   _ <- {-debug "eol:eol"-} (try (eol *> optional eol))
@@ -783,7 +816,7 @@ pBYTES = do
       return [byte]
     parser4 = do
       _ <- string cMINUS
-      e <- pEOL
+      e <- pEOL_SOME_TABS
       lb <- pLINE_BYTES
       return [e, lb]
     parser3 = do
@@ -881,10 +914,11 @@ pTEXT = do
 
 main :: IO ()
 main = do
-  let file = "./app/full-syntax.eo"
+  let file = "./grammars/code_simplified.eo"
   code <- pack <$> readFile file
   putStrLn "\n"
+
   -- parseTest pProgram code
   -- out <- runParser pProgram "code" code
   -- putStrLn $ show out
-  parseTest pProgram code
+  -- parseTest pProgram code

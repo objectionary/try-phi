@@ -325,12 +325,10 @@ debugFlag = True
 
 data DebugMode = On | Off
 
--- debug :: (Text.Megaparsec.Stream.VisualStream s, Text.Megaparsec.Error.ShowErrorComponent e, Show a) => String -> ParsecT e s m a -> ParsecT e s m a
--- debug :: (Show a, Text.Megaparsec.Error.ShowErrorComponent e, Text.Megaparsec.Stream.VisualStream s) => String -> ParsecT e s m a -> ParsecT e s m a
--- debug :: (Show a, Text.Megaparsec.Error.ShowErrorComponent e, Text.Megaparsec.Stream.VisualStream s) => String -> ParsecT e s m a -> ParsecT e s m a
--- debug label parser
---   | debugFlag = dbg label parser
---   | otherwise = parser <?> label
+debug :: (Show a, Text.Megaparsec.Error.ShowErrorComponent e, Text.Megaparsec.Stream.VisualStream s) =>String -> ParsecT e s m a -> ParsecT e s m a
+debug label parser
+  | debugFlag = dbg label parser
+  | otherwise = parser <?> label
 
 manyTry :: MonadParsec e s m => m a -> m [a]
 manyTry p = many (try p)
@@ -410,16 +408,13 @@ pObjects = do
   {-leave "objects" ans-}
   return ans
 
--- enter :: a -> MS.StateT MyState (ParsecT Void Text Identity) ()
-enter :: a -> Parser ()
+enter :: Show a => a -> ParsecT Void Text Identity ()
 enter name = do
   pos <- getPos
   debug (show pos <> ": Enter " <> show name) pEmpty
   return ()
 
--- leave :: (Show a1, Show a2) => a1 -> a2 -> ParsecT Void Text Identity ()
--- leave :: a -> p -> MS.StateT MyState (ParsecT Void Text Identity) ()
-leave :: a -> p -> Parser ()
+leave :: Show a => a -> p -> ParsecT Void Text Identity ()
 leave name node = do
   pos <- getPos
   let l = printf "%s: Leave %s" (show pos) (show name)

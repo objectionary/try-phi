@@ -14,6 +14,7 @@ import Data.Text (pack)
 main :: IO ()
 main = do
   let file = "./grammars/full-syntax.eo"
+  -- let file = "./grammars/code.eo"
   code <- pack <$> readFile file
   print "\n"
   parseTest pProgram code

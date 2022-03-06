@@ -7,7 +7,7 @@
 
 {-# HLINT ignore "Use <$>" #-}
 
-module ParseEO (pProgram) where
+module ParseEO (pProgram, Node (..), Position(..), TokenType (..)) where
 
 import           Control.Applicative        (Alternative ((<|>)), optional)
 import           Control.Monad.Identity
@@ -335,12 +335,17 @@ someTry p = try $ some (try p)
 choiceTry :: MonadParsec e s m => [m a] -> m a
 choiceTry p = try $ choice (map try p)
 
-
 enter :: Show a => a -> ParsecT Void Text Identity ()
 enter name = do
   pos <- getPos
   debug (show pos <> ": Enter " <> show name) pEmpty
   return ()
+
+pEOL :: Parser ()
+pEOL = try $ do 
+  _ <- eol *> optional (try eol)
+  return ()
+
 leave :: (Show a1, Show a2) => a1 -> a2 -> ParsecT Void Text Identity ()
 leave name node = do
   pos <- getPos
@@ -354,18 +359,17 @@ noIndent = 0
 indentAdd :: Int
 indentAdd = 1
 
-
 dec :: Show a1 =>
   a1
   -> ParsecT Void Text Identity (TokenType, [Node])
   -> ParsecT Void Text Identity Node
 dec name p = do
   p1 <- getPos
-  enter name
+  -- enter name
   (t,l) <- p
   p2 <- getPos
   let ans = Node t l p1 p2
-  leave name ans
+  -- leave name ans
   return ans
 
 getIndent :: Node -> Int
@@ -389,25 +393,27 @@ pProgram = dec "Program" $ do
 
 pLicense :: Parser Node
 pLicense = dec "License" $ do
-  cs <- someTry (pCOMMENT <* pEOL_TAB_MANY)
+  cs <- someTry (pCOMMENT <* pEOL)
   return (License, cs)
 
 pMetas :: Parser Node
 pMetas = dec "Metas" $ do
-  ms <- someTry (pMETA <* pEOL_TAB_MANY)
+  ms <- someTry (pMETA <* pEOL)
   return (Metas, ms)
 
 pObjects :: Parser Node
 pObjects = dec "Objects" $ do
-  os <- someTry $ pObject noIndent <* pEOL_TAB_MANY
+  -- os <- someTry $ pObject noIndent <* pEOL_TAB_MANY
+  os <- someTry $ pObject noIndent <* pEOL
   return (Objects, os)
 
 pObject :: Int -> Parser Node
 pObject ind = dec "Object" $ do
-  comments <- listNode $ manyTry (listNode $ do
+  comments <- listNode $ manyTry $ do
     c <- {-debug "object:comment"-} pCOMMENT
     e <- pEOL_TAB_MANY
-    return [c, e])
+    guard $ getIndent e == ind
+    return c
   a <-
     choiceTry
       [ {-debug "object:abstraction"-} pAbstraction,
@@ -415,8 +421,12 @@ pObject ind = dec "Object" $ do
       ]
   let newIndent = ind + indentAdd
   t <- optionalNode ({-debug "object:tail"-} pTail newIndent)
+  
+  
+  -- TODO specify indentation and guard
   let g = try $ do
         e <- pEOL_TAB_MANY
+        guard $ getIndent e == ind
         method <- {-debug "object:method"-} pMethod
         h <- optionalNode ({-debug "object:htail"-} pHtail)
         suffix <- optionalNode ({-debug "object:suffix"-} pSuffix)
@@ -469,6 +479,7 @@ pLabel = dec "Label" $ do
       [ (: []) <$> {-debug "label:@"-} (pTerminal cAT AT),
         do
           name <- {-debug "label:name"-} pNAME
+          -- TODO move dots to abstraction end (before csq)
           dots <- optionalNode ({-debug "label:..."-} (pTerminal cDOTS DOTS))
           return [name, dots]
       ]

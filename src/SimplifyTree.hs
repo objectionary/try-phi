@@ -1,26 +1,29 @@
-{-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE DeriveFoldable #-}
-{-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE DeriveAnyClass        #-}
+{-# LANGUAGE DeriveFoldable        #-}
+{-# LANGUAGE DeriveFunctor         #-}
+{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE DeriveTraversable     #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE RecordWildCards       #-}
 
 module SimplifyTree where
 
-import qualified ParseEO as P(pProgram, Position(..), Node(..), TokenType (..))
-import Data.Text ( Text )
-import qualified          Data.HashMap.Strict.InsOrd as M(InsOrdHashMap, empty, insert)
-import Data.Scientific (Scientific)
-import GHC.Exts (IsList)
-import GHC.Base (undefined)
-import Control.Monad.State.Strict (get, State(..), runState, evalState, execState, put)
-import GHC.Generics (Generic)
-import Data.Hashable ( Hashable )
+import           Control.Monad.State.Strict (State (..), evalState, execState,
+                                             get, put, runState)
+import           Data.Hashable              (Hashable)
+import qualified Data.HashMap.Strict.InsOrd as M (InsOrdHashMap, empty, insert)
+import           Data.Scientific            (Scientific)
+import           Data.Text                  (Text)
+import           GHC.Base                   (undefined)
+import           GHC.Exts                   (IsList)
+import           GHC.Generics               (Generic)
+import qualified ParseEO                    as P (Node (..), Position (..),
+                                                  TokenType (..), pProgram)
+import Data.HashMap.Strict.InsOrd (InsOrdHashMap)
 
 type Id = Int
 
-data AttrName = 
+data AttrName =
     Name Text
   | At
   | Rho
@@ -79,7 +82,7 @@ emptyObject = Obj {obj = Object M.empty, vararg = False, idNum = 0}
 -- unnamed objects will be called after their indices
 -- On objects with the same name will arise an error
 
--- toTermObject :: 
+-- toTermObject ::
 
 {-
 Object includes both Obj and Dot (via Method)
@@ -87,14 +90,14 @@ Object includes both Obj and Dot (via Method)
 
 Object
   create current empty object
-  foldl with it while passing nothing as current term to 
+  foldl with it while passing nothing as current term to
   insert new folded objects into it on each step
-  
+
   next fold list in the end of an object
-  
+
   is this only dot accesses?
 
-  this object will be put into 
+  this object will be put into
 
 
 What do I need on each stage
@@ -104,26 +107,51 @@ if we need to pass the state intact, we'll see
 
 -}
 
--- topObj = "Phi"
--- ids map terms to concrete syntax tree nodes
--- either map CST nodes to ids - better
--- or do it while converting to a term
+data MyNode = MyNode
+  { nodeId    :: Id,
+    nodeToken :: P.TokenType,
+    nodes     :: [MyNode],
+    start     :: P.Position,
+    end       :: P.Position
+  }
 
-newtype PreO = PreO P.Node
+enumerateNodes :: P.Node -> MyNode
+enumerateNodes tr = evalState (enumerateNodesStep tr) 0
+
+enumerateNodesStep :: P.Node -> State Int MyNode
+enumerateNodesStep n@P.Node {..} = do
+  c <- get
+  put (c+1)
+  ns <- mapM enumerateNodesStep nodes
+  return $ MyNode {nodeId = c, nodeToken = nodeToken, nodes = ns, start = start, end = end}
+
+type IdNodeMap = InsOrdHashMap Int MyNode
+
+getIdNodes :: MyNode -> IdNodeMap
+getIdNodes n = execState (getIdNodesStep n) M.empty
+
+getIdNodesStep :: MyNode -> State IdNodeMap ()
+getIdNodesStep n@MyNode {..} = do
+  mp <- get
+  put (M.insert nodeId n mp)
+  mapM_ getIdNodesStep nodes
+
+idNodes :: P.Node -> IdNodeMap
+idNodes = getIdNodes . enumerateNodes
 
 
 newtype MyState = MyState {getId :: Id}
 
-toTerm :: P.Node -> Maybe Term -> State MyState (Maybe Term)
+toTerm :: MyNode -> Maybe Term -> State MyState (Maybe Term)
 toTerm node t1 = do
   -- reserve id
-  let P.Node tok l p1 p2 = node
+  let MyNode {nodeId = i, nodeToken = tok, nodes = ns} = node
   case tok of
     P.Program -> do
       case l of
         [_, _, os@P.Node {nodeToken = P.Objects}] -> do
           toTerm os Nothing
-    
+
     P.Objects -> do
       st <- get
       let combine (val, st) o = (a,obj')
@@ -133,7 +161,7 @@ toTerm node t1 = do
       let (Just ob@Obj {..}, st2) = foldl combine st1 l
       return Nothing
 
-    P.Object -> do 
+    P.Object -> do
       -- if we enter an object, there should be an object term
       -- we save it for now to insert the current object into
       -- need to return this object as an attached attribute via state
@@ -145,40 +173,40 @@ toTerm node t1 = do
       -- create an object, put free attributes as void into it, save object name if present
       -- Application is inline except for bytes?
       return Nothing
-        
+
     -- P.Program -> do
     --   return ()
-    -- P.Object -> do 
-    --   return ()
-    -- P.Program -> do
-    --   return ()
-    -- P.Object -> do 
+    -- P.Object -> do
     --   return ()
     -- P.Program -> do
     --   return ()
-    -- P.Object -> do 
+    -- P.Object -> do
     --   return ()
     -- P.Program -> do
     --   return ()
-    -- P.Object -> do 
+    -- P.Object -> do
     --   return ()
     -- P.Program -> do
     --   return ()
-    -- P.Object -> do 
+    -- P.Object -> do
     --   return ()
     -- P.Program -> do
     --   return ()
-    -- P.Object -> do 
+    -- P.Object -> do
     --   return ()
     -- P.Program -> do
     --   return ()
-    -- P.Object -> do 
+    -- P.Object -> do
+    --   return ()
+    -- P.Program -> do
+    --   return ()
+    -- P.Object -> do
     --   return ()
   return Nothing
 
 -- f = P.Node P.AT [] (P.Position 3 4) (P.Position 3 4)
 -- g :: IO ()
--- g = do 
+-- g = do
 --   let k = execState (toTerm f) (MyState 0 M.empty Nothing)
 --   print ""
 {-

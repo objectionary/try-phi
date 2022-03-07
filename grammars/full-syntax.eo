@@ -21,7 +21,7 @@
     $.add.@ 5.< > i
     third:foo > x...!
       f 12 false
-        (((t' 22) r:t 8.54 "yes".< 'e').print 88 0x1f):hey TRUE.< FALSE > a!
+        (((((t' 22) r):t 8.54 "yes").< 'e').print 88 0x1f):hey TRUE.< FALSE > a!
           # This object is also very good
           []
             Q.x.f.d Q Q
@@ -62,5 +62,7 @@ test
 [] > o2
 
 -2.4E3 > x
+
+[x] (x.add 1 > succ) (x.sub 1 > prev)
 
 7.33e-10 > y

@@ -4,6 +4,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module SimplifyTree where
 
@@ -60,19 +61,20 @@ newtype Object a = Object
 
 data Term
   = App {a1::AttrName, a2::AttrName, t::Term, idNum::Id}
-  | Obj {obj::Object Term, vararg::Bool, idNum::Id}
+  | Obj {obj::Object Term, args::[AttrName], vararg::Bool, idNum::Id}
   | Dot {t::Term, a::AttrName, idNum::Id}
   | DataTerm {v::DataValue, idNum::Id}
-  -- helper term
-  | NamedTerm {key::AttrName, value::AttrValue Term}
+-- helper term
+-- | NamedTerm {key::AttrName, value::AttrValue Term}
 
-emptyObj = Obj (Object M.empty) False 0
+emptyObject :: Term
+emptyObject = Obj {obj = Object M.empty, vararg = False, idNum = 0}
 -- emptyAttrTerm = AttrTerm {a = "", isConst = False, imported = Nothing, isVarArg = False, id = 0}
 -- for each term, we need to remember where from code it comes
 -- but can we?
 -- for now, we can ignore it, I think
 
-type MapIdTerm = M.InsOrdHashMap Id Term
+-- type MapIdTerm = M.InsOrdHashMap Id Term
 
 -- unnamed objects will be called after their indices
 -- On objects with the same name will arise an error
@@ -102,37 +104,47 @@ if we need to pass the state intact, we'll see
 
 -}
 
-data MyState = MyState {idNum :: Id, idTerm :: MapIdTerm, term :: Maybe Term}
+-- topObj = "Phi"
+-- ids map terms to concrete syntax tree nodes
+-- either map CST nodes to ids - better
+-- or do it while converting to a term
 
-toTerm :: P.Node -> State MyState ()
-toTerm node = do
-  MyState i mp t <- get
+newtype PreO = PreO P.Node
+
+
+newtype MyState = MyState {getId :: Id}
+
+toTerm :: P.Node -> Maybe Term -> State MyState (Maybe Term)
+toTerm node t1 = do
   -- reserve id
-  let st1 = MyState (i+1) mp t
-  put st1
   let P.Node tok l p1 p2 = node
   case tok of
     P.Program -> do
       case l of
         [_, _, os@P.Node {nodeToken = P.Objects}] -> do
-          toTerm os
+          toTerm os Nothing
+    
     P.Objects -> do
-      let insertInto obj o = obj3
-            where
-              -- after insertion, State should contain Object term
-              -- get name and converted object as an attached attribute
-              MyState{term = Just (NamedTerm k at@(Attached v props))} = execState (toTerm o) obj
-              -- take map from current state
-              MyState{term = Just obj2@Obj {obj = Object obj1}} = obj
-              -- update current state by inserting a new object as an attribute
-              obj3 = obj {term = Just obj2 {obj = Object $ M.insert k at obj1}}
       st <- get
-      let i = (idNum::MyState -> Id) st
-      let st1 = st {term = Just Obj {obj = Object M.empty, vararg = False, idNum=i}}
-      let obs = foldl insertInto st1 l
-      put obs
-      return ()
-    -- P.Object -> 
+      let combine (val, st) o = (a,obj')
+            where
+              (a,obj') = runState (toTerm o val) st
+      let st1 = (Just emptyObject, st)
+      let (Just ob@Obj {..}, st2) = foldl combine st1 l
+      return Nothing
+
+    P.Object -> do 
+      -- if we enter an object, there should be an object term
+      -- we save it for now to insert the current object into
+      -- need to return this object as an attached attribute via state
+      let Just Obj {obj = Object parent} = t1
+      -- build an object and then put into parent
+      let objCurrent = emptyObject
+      let [_, a, t, s] = l
+      -- What can abstraction turn into?
+      -- create an object, put free attributes as void into it, save object name if present
+      -- Application is inline except for bytes?
+      return Nothing
         
     -- P.Program -> do
     --   return ()
@@ -162,13 +174,13 @@ toTerm node = do
     --   return ()
     -- P.Object -> do 
     --   return ()
-  return ()
+  return Nothing
 
-f = P.Node P.AT [] (P.Position 3 4) (P.Position 3 4)
-g :: IO ()
-g = do 
-  let k = execState (toTerm f) (MyState 0 M.empty Nothing)
-  print ""
+-- f = P.Node P.AT [] (P.Position 3 4) (P.Position 3 4)
+-- g :: IO ()
+-- g = do 
+--   let k = execState (toTerm f) (MyState 0 M.empty Nothing)
+--   print ""
 {-
 Object [10:1..10:15]
 |  ListNode

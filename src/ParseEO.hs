@@ -359,10 +359,8 @@ noIndent = 0
 indentAdd :: Int
 indentAdd = 1
 
-dec :: Show a1 =>
-  a1
-  -> ParsecT Void Text Identity (TokenType, [Node])
-  -> ParsecT Void Text Identity Node
+-- | decorator with common for all nodes actions
+dec :: Show a1 => a1 -> Parser (TokenType, [Node]) -> Parser Node
 dec name p = do
   p1 <- getPos
   -- enter name
@@ -537,8 +535,8 @@ pApplication1 = dec "Application1" $ do
                 ]
             ht <- optionalNode ({-debug "application1:htail"-} pHtail)
             a <- {-debug "application1:application1"-} pApplication1
-            return [c1, ht, a],
-          [] <$ pEmpty
+            return [c1, ht, a]
+          , [] <$ pEmpty
         ]
   return (Application1, [c])
 

@@ -287,11 +287,11 @@ listNode p = do
     }
 
 maybeToNode :: Maybe Node -> Node
-maybeToNode (Just n) =
-  initNode
-    { nodeToken = JustNode,
-      nodes = [n]
-    }
+maybeToNode (Just n) = n
+  -- initNode
+  --   { nodeToken = JustNode,
+  --     nodes = [n]
+    -- }
 maybeToNode Nothing =
   initNode
     { nodeToken = NothingNode
@@ -547,15 +547,16 @@ pHtail = dec "Htail" $ do
             [ do
                 h <- {-debug "htail:head"-} pHead
                 return [h],
-              do
-                app <- {-debug "htail:application"-} pApplication
-                m <-
-                  choiceTry
-                    [ {-debug "htail:method"-} pMethod,
-                      {-debug "htail:has"-} pHas,
-                      {-debug "htail:suffix"-} pSuffix
-                    ]
-                return [app, m],
+              -- IDK why it doesn't use this parser
+              -- do
+              --   app <- {-debug "htail:application"-} pApplication
+              --   m <-
+              --     choiceTry
+              --       [ {-debug "htail:method"-} pMethod,
+              --         {-debug "htail:has"-} pHas,
+              --         {-debug "htail:suffix"-} pSuffix
+              --       ]
+              --   return [app, m],
               do
                 app <- string cLB *> {-debug "htail:application1"-} pApplication <* string cRB
                 return [app],
@@ -585,7 +586,7 @@ pHead = dec "Head" $ do
                 , pTerminal cDOT DOT
                 ]
             return [name,c]),
-        {-debug "head:data"-} ((:[]) <$> pDATA)
+         ((:[]) <$> {-debug "head:data"-} pDATA)
       ]
   return (Head, [dots, t])
 

@@ -66,3 +66,25 @@ test
 [x] (x.add 1 > succ) (x.sub 1 > prev)
 
 7.33e-10 > y
+
+a a a a.a > x
+
+a a (a):t a:t > a
+
+a > a
+  (a)
+
+a
+  a
+
+a a.a > a
+
+a > a:t
+
+[x y] > diff
+  x.minus y > @
+
+diff > a
+  4:y
+  5
+

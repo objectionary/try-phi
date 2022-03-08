@@ -11,6 +11,7 @@ module SimplifyTree where
 import           Control.Monad.State.Strict (State (..), evalState, execState,
                                              get, put, runState)
 import           Data.Hashable              (Hashable)
+import           Data.HashMap.Strict.InsOrd (InsOrdHashMap)
 import qualified Data.HashMap.Strict.InsOrd as M (InsOrdHashMap, empty, insert)
 import           Data.Scientific            (Scientific)
 import           Data.Text                  (Text)
@@ -19,7 +20,8 @@ import           GHC.Exts                   (IsList)
 import           GHC.Generics               (Generic)
 import qualified ParseEO                    as P (Node (..), Position (..),
                                                   TokenType (..), pProgram)
-import Data.HashMap.Strict.InsOrd (InsOrdHashMap)
+import qualified Data.List                  as DL
+import Text.Printf (printf)
 
 type Id = Int
 
@@ -32,11 +34,17 @@ data AttrName =
   | Star
   | Vertex
   | Xi
+  -- ...s
+  | Dots AttrName
+  -- s'
+  | Copy Text
+  | InverseDot Text
   deriving (Eq, Ord, Generic)
 
 instance Hashable AttrName
 
-data Props = AttrProps {isConst::Bool, imported::Maybe Text, isVarArg::Bool, id::Id} deriving (Eq)
+-- need for returning named applications
+data Props = Props {isConst::Bool, imported::Maybe Text} deriving (Eq)
 
 data AttrValue a
   = VoidAttr
@@ -62,16 +70,20 @@ newtype Object a = Object
   { getObject :: M.InsOrdHashMap AttrName (AttrValue a)}
   deriving (Eq, Functor, Foldable, Traversable)
 
+
 data Term
-  = App {a1::AttrName, a2::AttrName, t::Term, idNum::Id}
-  | Obj {obj::Object Term, args::[AttrName], vararg::Bool, idNum::Id}
+  = App {a1::AttrName, a2::Maybe AttrName, t::Term, idNum::Id}
+  | Obj {obj::Object Term, hasVarArg::Bool, idNum::Id}
   | Dot {t::Term, a::AttrName, idNum::Id}
   | DataTerm {v::DataValue, idNum::Id}
--- helper term
--- | NamedTerm {key::AttrName, value::AttrValue Term}
+  | Attr {a::AttrName, idNum::Id}
+  | Locator {n::Int, idNum::Id}
+  | NamedTerm {a::AttrName, t::Term}
+
+
 
 emptyObject :: Term
-emptyObject = Obj {obj = Object M.empty, vararg = False, idNum = 0}
+emptyObject = Obj {obj = Object M.empty, hasVarArg = False, idNum = 0}
 -- emptyAttrTerm = AttrTerm {a = "", isConst = False, imported = Nothing, isVarArg = False, id = 0}
 -- for each term, we need to remember where from code it comes
 -- but can we?
@@ -107,31 +119,55 @@ if we need to pass the state intact, we'll see
 
 -}
 
-data MyNode = MyNode
+data Node = Node
   { nodeId    :: Id,
-    nodeToken :: P.TokenType,
-    nodes     :: [MyNode],
+    tag :: P.TokenType,
+    nodes     :: [Node],
     start     :: P.Position,
     end       :: P.Position
   }
 
-enumerateNodes :: P.Node -> MyNode
+err :: Show a1 => a1 -> a2
+err i = error $ printf "problem at node\n%s" (show i)
+
+tab :: String
+tab = "|  "
+
+type TabNumber = Int
+
+printTree :: TabNumber -> Node -> String
+printTree n Node {..} =
+  DL.intercalate "" (replicate n tab)
+  <>
+  printf "%d " nodeId
+  <>
+  case tag of
+    P.JustNode -> printf "%s\n" (show tag)
+    P.ListNode -> printf "%s\n" (show tag)
+    P.NothingNode -> printf "%s\n" (show tag)
+    _ -> printf "%s [%s..%s]\n" (show tag) (show start) (show end)
+    <> foldl (\s a -> s <> printTree (n + 1) a) "" nodes
+
+instance Show Node where
+  show n = printTree 0 n
+
+enumerateNodes :: P.Node -> Node
 enumerateNodes tr = evalState (enumerateNodesStep tr) 0
 
-enumerateNodesStep :: P.Node -> State Int MyNode
+enumerateNodesStep :: P.Node -> State Int Node
 enumerateNodesStep n@P.Node {..} = do
   c <- get
   put (c+1)
   ns <- mapM enumerateNodesStep nodes
-  return $ MyNode {nodeId = c, nodeToken = nodeToken, nodes = ns, start = start, end = end}
+  return $ Node {nodeId = c, tag = nodeToken, nodes = ns, start = start, end = end}
 
-type IdNodeMap = InsOrdHashMap Int MyNode
+type IdNodeMap = InsOrdHashMap Int Node
 
-getIdNodes :: MyNode -> IdNodeMap
+getIdNodes :: Node -> IdNodeMap
 getIdNodes n = execState (getIdNodesStep n) M.empty
 
-getIdNodesStep :: MyNode -> State IdNodeMap ()
-getIdNodesStep n@MyNode {..} = do
+getIdNodesStep :: Node -> State IdNodeMap ()
+getIdNodesStep n@Node {..} = do
   mp <- get
   put (M.insert nodeId n mp)
   mapM_ getIdNodesStep nodes
@@ -139,70 +175,164 @@ getIdNodesStep n@MyNode {..} = do
 idNodes :: P.Node -> IdNodeMap
 idNodes = getIdNodes . enumerateNodes
 
+-- | get term from term and node
+-- getTerm1 :: Maybe Term -> Node -> (Maybe AttrName, Maybe Props, Maybe Term)
+getTerm1 :: Maybe Term -> Node -> Value
+getTerm1 t n = evalState (toTerm t n) ()
 
-newtype MyState = MyState {getId :: Id}
+-- | get term from no term and node
+-- getTerm2 :: Node -> (Maybe AttrName, Maybe Props, Maybe Term)
+getTerm2 :: Node -> Value
+getTerm2 = getTerm1 Nothing
 
-toTerm :: MyNode -> Maybe Term -> State MyState (Maybe Term)
-toTerm node t1 = do
-  -- reserve id
-  let MyNode {nodeId = i, nodeToken = tok, nodes = ns} = node
+data Value = Value {attr::Maybe AttrName, props::Maybe Props, term::Maybe Term}
+initValue = Value Nothing Nothing Nothing
+
+-- if it's an optional node
+-- it's either NothingNode or actual node
+
+toTerm :: Maybe Term -> Node -> State () Value
+toTerm term node = do
+  let Node {nodeId = i, tag = tok, nodes = l} = node
+
   case tok of
     P.Program -> do
       case l of
-        [_, _, os@P.Node {nodeToken = P.Objects}] -> do
-          toTerm os Nothing
+        [_, _, os@Node {tag = P.Objects}] -> toTerm Nothing os
+        _ -> err l
 
     P.Objects -> do
-      st <- get
-      let combine (val, st) o = (a,obj')
-            where
-              (a,obj') = runState (toTerm o val) st
-      let st1 = (Just emptyObject, st)
-      let (Just ob@Obj {..}, st2) = foldl combine st1 l
-      return Nothing
+      os <- mapM (toTerm Nothing) l
+      let combine obj Value {attr = Just name, props = Just props, term = Just o} =
+            M.insert name (Attached o props) obj
+          combine _ _ =
+            err node
+      let top = foldl combine M.empty os
+      return initValue {term = Just emptyObject {obj = Object top}}
 
     P.Object -> do
-      -- if we enter an object, there should be an object term
-      -- we save it for now to insert the current object into
-      -- need to return this object as an attached attribute via state
-      let Just Obj {obj = Object parent} = t1
-      -- build an object and then put into parent
+      -- if we enter an object, we should produce a named term possibly with props
       let objCurrent = emptyObject
       let [_, a, t, s] = l
-      -- What can abstraction turn into?
+      return initValue
+
+    P.Abstraction -> do
+      return initValue
+
+    P.Attributes -> do
+      let [as] = l
+
+      let (attrs, hasVarArg') =
+            case as of
+              Node {tag = P.NothingNode} -> (M.empty, False)
+              Node {tag = P.Label, nodes = ns} ->
+                foldl f (M.empty, False) ns
+                    where
+                      f (mp, hv) Node {nodes = Node {tag = P.NAME name}:ns1} =
+                        case ns1 of
+                          [] -> (mp', hv)
+                          -- if a name is followed by dots
+                          [Node {tag = P.DOTS}] ->
+                            (mp', True)
+                          _ -> err as
+                        where
+                          mp' = M.insert (Name name) VoidAttr mp
+                      f _ _ = err as
+              _ -> err as
+
+      let obj = Obj {obj = Object attrs, hasVarArg = hasVarArg', idNum = i}
+      return initValue {term = Just obj}
+
+    -- need toTerm for head
+
+    P.Application -> do
+      let [s, h, a1] = l
+      -- if state contains a term, we need to combine it with current application
+      -- if we meet a dot inside head, we need to return a term
+      -- we can only return a term if we make Dot with folded rest of application
+      -- let n1 = nodeId node
+      -- let cont = toTerm rest of application
+      -- or save as inverse dot and then transform terms
+
+      -- deal with head or application
+      -- there is no name for current application here
+      -- so we can take just term
+      let Value {term = s'} =
+            case s of
+              Node {tag = tok1, nodes = n:ns, nodeId = n1} ->
+                case tok1 of
+                  P.Head ->
+                    initValue {term = Just Attr {a = f1, idNum = n1}}
+                    where
+                      f1 =
+                        case n of
+                          Node {tag = P.NothingNode} -> f
+                          Node {tag = P.DOTS } -> Dots f
+                          _ -> err n
+                        where
+                            f =
+                              case ns of
+                                [n2@Node {tag = t2}] ->
+                                  case t2 of
+                                    P.ROOT -> Root
+                                    P.AT -> At
+                                    P.RHO -> Rho
+                                    P.XI -> Xi
+                                    P.SIGMA -> Sigma
+                                    P.STAR -> Star
+                                    P.NAME name -> Name name
+                                    _ -> err n2
+                                [Node {tag = t2}, Node {tag = t3}] ->
+                                  case (t2, t3) of
+                                    (P.NAME name, P.COPY) -> Copy name
+                                  -- TODO add support for inverse dot application
+                                    (P.NAME name, P.DOT) -> InverseDot name
+                                    _ -> err ns
+                                _ -> err ns
+                  P.Application ->
+                    -- it's (application)
+                    -- it may be named, but we don't care about name 
+                    -- and handle it as an ordinary term
+                    -- it doesn't contain a name for current top application
+                    getTerm2 s
+                  _ -> err s
+              _ -> err s
+      -- deal with htail
+      -- in htail, there are just application arguments
+      -- we will do application there
+      -- so we don't care about name and props coming from there 
+      let Value {term = h'} = getTerm1 s' h
+      -- finally, we put current application inside app1 
+      -- and pass the result up
+      return $ getTerm1 h' a1 {nodeId = i}
+
+    P.Htail -> do
+      -- here, we need to make applications with arguments
+      let f t x =
+            case x of
+              Node {tag = P.ListNode, nodes = x:xs} ->
+                case x of
+                  Node {tag = P.Head, nodes = [h]} ->
+                    getTerm2 h
+              _ -> err x
+
+      -- we can fold term with getTerm
+      -- let args = mapM ( -> f) (t a)
+      return initValue
+
+    _ -> return initValue
+
+
+
+
+      -- return (Nothing, Nothing, Nothing)
+      -- abstraction returns
+      -- object name or name generated from id
+
+      -- as a term an object with free attributes added
       -- create an object, put free attributes as void into it, save object name if present
       -- Application is inline except for bytes?
-      return Nothing
-
-    -- P.Program -> do
-    --   return ()
-    -- P.Object -> do
-    --   return ()
-    -- P.Program -> do
-    --   return ()
-    -- P.Object -> do
-    --   return ()
-    -- P.Program -> do
-    --   return ()
-    -- P.Object -> do
-    --   return ()
-    -- P.Program -> do
-    --   return ()
-    -- P.Object -> do
-    --   return ()
-    -- P.Program -> do
-    --   return ()
-    -- P.Object -> do
-    --   return ()
-    -- P.Program -> do
-    --   return ()
-    -- P.Object -> do
-    --   return ()
-    -- P.Program -> do
-    --   return ()
-    -- P.Object -> do
-    --   return ()
-  return Nothing
+      -- return Nothing
 
 -- f = P.Node P.AT [] (P.Position 3 4) (P.Position 3 4)
 -- g :: IO ()
@@ -353,5 +483,80 @@ Object [34:7..36:15]
 z'
   z 5
     ...z
+
+Object [66:1..66:38]
+|  ListNode
+|  Abstraction [66:1..66:38]
+|  |  Attributes [66:1..66:4]
+|  |  |  JustNode
+|  |  |  |  ListNode
+|  |  |  |  |  Label [66:2..66:3]
+|  |  |  |  |  |  NAME "x" [66:2..66:3]
+|  |  |  |  |  |  NothingNode
+|  |  JustNode
+|  |  |  ListNode
+|  |  |  |  Htail [66:4..66:38]
+|  |  |  |  |  ListNode
+|  |  |  |  |  |  Application [66:6..66:20]
+|  |  |  |  |  |  |  Head [66:6..66:7]
+|  |  |  |  |  |  |  |  NothingNode
+|  |  |  |  |  |  |  |  ListNode
+|  |  |  |  |  |  |  |  |  NAME "x" [66:6..66:7]
+|  |  |  |  |  |  |  |  |  NothingNode
+|  |  |  |  |  |  |  NothingNode
+|  |  |  |  |  |  |  Application1 [66:7..66:20]
+|  |  |  |  |  |  |  |  ListNode
+|  |  |  |  |  |  |  |  |  Method [66:7..66:11]
+|  |  |  |  |  |  |  |  |  |  NAME "add" [66:8..66:11]
+|  |  |  |  |  |  |  |  |  JustNode
+|  |  |  |  |  |  |  |  |  |  Htail [66:11..66:13]
+|  |  |  |  |  |  |  |  |  |  |  ListNode
+|  |  |  |  |  |  |  |  |  |  |  |  Head [66:12..66:13]
+|  |  |  |  |  |  |  |  |  |  |  |  |  NothingNode
+|  |  |  |  |  |  |  |  |  |  |  |  |  ListNode
+|  |  |  |  |  |  |  |  |  |  |  |  |  |  Data [66:12..66:13]
+|  |  |  |  |  |  |  |  |  |  |  |  |  |  |  FLOAT 1.0 [66:12..66:13]
+|  |  |  |  |  |  |  |  |  Application1 [66:13..66:20]
+|  |  |  |  |  |  |  |  |  |  ListNode
+|  |  |  |  |  |  |  |  |  |  |  Suffix [66:13..66:20]
+|  |  |  |  |  |  |  |  |  |  |  |  Label [66:16..66:20]
+|  |  |  |  |  |  |  |  |  |  |  |  |  NAME "succ" [66:16..66:20]
+|  |  |  |  |  |  |  |  |  |  |  |  |  NothingNode
+|  |  |  |  |  |  |  |  |  |  |  |  NothingNode
+|  |  |  |  |  |  |  |  |  |  |  NothingNode
+|  |  |  |  |  |  |  |  |  |  |  Application1 [66:20..66:20]
+|  |  |  |  |  |  |  |  |  |  |  |  ListNode
+|  |  |  |  |  ListNode
+|  |  |  |  |  |  Application [66:23..66:37]
+|  |  |  |  |  |  |  Head [66:23..66:24]
+|  |  |  |  |  |  |  |  NothingNode
+|  |  |  |  |  |  |  |  ListNode
+|  |  |  |  |  |  |  |  |  NAME "x" [66:23..66:24]
+|  |  |  |  |  |  |  |  |  NothingNode
+|  |  |  |  |  |  |  NothingNode
+|  |  |  |  |  |  |  Application1 [66:24..66:37]
+|  |  |  |  |  |  |  |  ListNode
+|  |  |  |  |  |  |  |  |  Method [66:24..66:28]
+|  |  |  |  |  |  |  |  |  |  NAME "sub" [66:25..66:28]
+|  |  |  |  |  |  |  |  |  JustNode
+|  |  |  |  |  |  |  |  |  |  Htail [66:28..66:30]
+|  |  |  |  |  |  |  |  |  |  |  ListNode
+|  |  |  |  |  |  |  |  |  |  |  |  Head [66:29..66:30]
+|  |  |  |  |  |  |  |  |  |  |  |  |  NothingNode
+|  |  |  |  |  |  |  |  |  |  |  |  |  ListNode
+|  |  |  |  |  |  |  |  |  |  |  |  |  |  Data [66:29..66:30]
+|  |  |  |  |  |  |  |  |  |  |  |  |  |  |  FLOAT 1.0 [66:29..66:30]
+|  |  |  |  |  |  |  |  |  Application1 [66:30..66:37]
+|  |  |  |  |  |  |  |  |  |  ListNode
+|  |  |  |  |  |  |  |  |  |  |  Suffix [66:30..66:37]
+|  |  |  |  |  |  |  |  |  |  |  |  Label [66:33..66:37]
+|  |  |  |  |  |  |  |  |  |  |  |  |  NAME "prev" [66:33..66:37]
+|  |  |  |  |  |  |  |  |  |  |  |  |  NothingNode
+|  |  |  |  |  |  |  |  |  |  |  |  NothingNode
+|  |  |  |  |  |  |  |  |  |  |  NothingNode
+|  |  |  |  |  |  |  |  |  |  |  Application1 [66:37..66:37]
+|  |  |  |  |  |  |  |  |  |  |  |  ListNode
+
+[x] (x.add 1 > succ) (x.sub 1 > prev)
 
 -}

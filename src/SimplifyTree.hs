@@ -243,7 +243,31 @@ toTerm term node = do
       let obj = Obj {obj = Object attrs, hasVarArg = hasVarArg', idNum = i}
       return initValue {term = Just obj}
 
-    -- need toTerm for head
+    P.Head -> do
+      let [dots@Node {tag = dotsTag}, name1@Node {nodes = Node {tag = name'}:xs}] = l
+      let dots' =
+            case dotsTag of 
+              P.NothingNode -> id
+              P.DOTS -> Dots
+              _ -> err dots
+      let t' = 
+            case name' of
+              P.ROOT -> Root
+              P.AT -> At
+              P.RHO -> Rho
+              P.XI -> Xi
+              P.SIGMA -> Sigma
+              P.STAR -> Star
+              P.NAME name ->
+                let f =
+                      case xs of
+                        [] -> Name
+                        [Node {tag = P.COPY}] -> Copy
+                        [Node {tag = P.DOT }] -> InverseDot
+                        _ -> err xs
+                in f name
+              _ -> err name1
+      return initValue {term = Just Attr {a = dots' t', idNum = i}}
 
     P.Application -> do
       let [s, h, a1] = l
@@ -256,47 +280,9 @@ toTerm term node = do
 
       -- deal with head or application
       -- there is no name for current application here
+      -- whether there is Head or Application inside
       -- so we can take just term
-      let Value {term = s'} =
-            case s of
-              Node {tag = tok1, nodes = n:ns, nodeId = n1} ->
-                case tok1 of
-                  P.Head ->
-                    initValue {term = Just Attr {a = f1, idNum = n1}}
-                    where
-                      f1 =
-                        case n of
-                          Node {tag = P.NothingNode} -> f
-                          Node {tag = P.DOTS } -> Dots f
-                          _ -> err n
-                        where
-                            f =
-                              case ns of
-                                [n2@Node {tag = t2}] ->
-                                  case t2 of
-                                    P.ROOT -> Root
-                                    P.AT -> At
-                                    P.RHO -> Rho
-                                    P.XI -> Xi
-                                    P.SIGMA -> Sigma
-                                    P.STAR -> Star
-                                    P.NAME name -> Name name
-                                    _ -> err n2
-                                [Node {tag = t2}, Node {tag = t3}] ->
-                                  case (t2, t3) of
-                                    (P.NAME name, P.COPY) -> Copy name
-                                  -- TODO add support for inverse dot application
-                                    (P.NAME name, P.DOT) -> InverseDot name
-                                    _ -> err ns
-                                _ -> err ns
-                  P.Application ->
-                    -- it's (application)
-                    -- it may be named, but we don't care about name 
-                    -- and handle it as an ordinary term
-                    -- it doesn't contain a name for current top application
-                    getTerm2 s
-                  _ -> err s
-              _ -> err s
+      let Value {term = s'} = getTerm2 s
       -- deal with htail
       -- in htail, there are just application arguments
       -- we will do application there

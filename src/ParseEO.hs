@@ -542,27 +542,10 @@ pApplication1 = dec "Application1" $ do
 
 pHtail :: Parser Node
 pHtail = dec "Htail" $ do
-  let op =
-        listNode $ choiceTry
-            [ do
-                h <- {-debug "htail:head"-} pHead
-                return [h],
-              -- IDK why it doesn't use this parser
-              -- do
-              --   app <- {-debug "htail:application"-} pApplication
-              --   m <-
-              --     choiceTry
-              --       [ {-debug "htail:method"-} pMethod,
-              --         {-debug "htail:has"-} pHas,
-              --         {-debug "htail:suffix"-} pSuffix
-              --       ]
-              --   return [app, m],
-              do
-                app <- string cLB *> {-debug "htail:application1"-} pApplication <* string cRB
-                return [app],
-              do
-                abstr <- {-debug "htail:abstraction"-} pAbstraction
-                return [abstr]
+  let op = choiceTry
+            [ {-debug "htail:head"-} pHead,
+              string cLB *> {-debug "htail:application1"-} pApplication <* string cRB,
+              {-debug "htail:abstraction"-} pAbstraction
             ]
   t <- someTry (string cSPACE *> op)
   return (Htail, t)

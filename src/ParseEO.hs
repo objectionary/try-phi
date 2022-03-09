@@ -422,7 +422,7 @@ pObject ind = dec "Object" $ do
   
   
   -- TODO specify indentation and guard
-  let g = try $ do
+  let g = do
         e <- pEOL_TAB_MANY
         guard $ getIndent e == ind
         method <- {-debug "object:method"-} pMethod
@@ -456,16 +456,21 @@ pAbstraction = dec "Abstraction" $ do
           ]
   return (Abstraction, [attrs, t])
 
+-- | contains list of arguments
+-- 
+-- if no arguments are provided, the list is empty
 pAttributes :: Parser Node
 pAttributes = dec "Attributes" $ do
   _ <- string cLSQ
-  let attrs = do
-        a <- {-debug "attributes:attribute1"-} pAttribute
-        as <- manyTry (string cSPACE *> {-debug "attributes:attribute2"-} pAttribute)
-        return (a : as)
-  attrs' <- optionalNode $ listNode attrs
+  attrs <- choiceTry 
+        [ do
+            a <- {-debug "attributes:attribute1"-} pAttribute
+            as <- manyTry (string cSPACE *> {-debug "attributes:attribute2"-} pAttribute)
+            return (a : as),
+          [] <$ pEmpty
+        ]
   _ <- string cRSQ
-  return (Attributes, [attrs'])
+  return (Attributes, attrs)
 
 pAttribute :: Parser Node
 pAttribute = pLabel
@@ -524,8 +529,7 @@ pApplication = dec "Application" $ do
 
 pApplication1 :: Parser Node
 pApplication1 = dec "Application1" $ do
-  c <-
-    listNode $ choiceTry
+  c <- choiceTry
         [ do
             c1 <-
               choiceTry
@@ -538,7 +542,7 @@ pApplication1 = dec "Application1" $ do
             return [c1, ht, a]
           , [] <$ pEmpty
         ]
-  return (Application1, [c])
+  return (Application1, c)
 
 pHtail :: Parser Node
 pHtail = dec "Htail" $ do
@@ -550,26 +554,28 @@ pHtail = dec "Htail" $ do
   t <- someTry (string cSPACE *> op)
   return (Htail, t)
 
+-- | second element of list contains either a reseved symbol
+-- or a name with modifiers
 pHead :: Parser Node
 pHead = dec "Head" $ do
   dots <- optionalNode $ pTerminal cDOTS DOTS
-  t <- listNode $
-    choiceTry
-      [ {-debug "head:root"-} ((:[]) <$> pTerminal cROOT ROOT),
-        {-debug "head:at"-} ((:[]) <$> pTerminal cAT AT),
-        {-debug "head:rho"-} ((:[]) <$> pTerminal cRHO RHO),
-        {-debug "head:xi"-}  ((:[]) <$> pTerminal cXI XI),
-        {-debug "head:sigma"-}  ((:[]) <$> pTerminal cSIGMA SIGMA),
-        {-debug "head:star"-}  ((:[]) <$> pTerminal cSTAR STAR),
+  t <- choiceTry
+      [ {-debug "head:root"-}  (pTerminal cROOT ROOT),
+        {-debug "head:at"-}  (pTerminal cAT AT),
+        {-debug "head:rho"-}  (pTerminal cRHO RHO),
+        {-debug "head:xi"-}   (pTerminal cXI XI),
+        {-debug "head:sigma"-}   (pTerminal cSIGMA SIGMA),
+        {-debug "head:star"-}   (pTerminal cSTAR STAR),
         {-debug "head:copy"-} (
-          do
-            name <- pNAME
-            c <- choiceTry [
-                  optionalNode $ pTerminal cCOPY COPY
-                , pTerminal cDOT DOT
-                ]
-            return [name,c]),
-         ((:[]) <$> {-debug "head:data"-} pDATA)
+          listNode $ 
+            do 
+              name <- pNAME
+              c <- choiceTry [
+                    optionalNode $ pTerminal cCOPY COPY
+                  , pTerminal cDOT DOT
+                  ]
+              return [name, c]),
+         ({-debug "head:data"-} pDATA)
       ]
   return (Head, [dots, t])
 

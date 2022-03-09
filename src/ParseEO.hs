@@ -458,7 +458,8 @@ pAbstraction = dec "Abstraction" $ do
 
 -- | contains list of arguments
 -- 
--- if no arguments are provided, the list is empty
+-- If no arguments are provided, the list is empty
+-- This is the same as making the part between [] optional
 pAttributes :: Parser Node
 pAttributes = dec "Attributes" $ do
   _ <- string cLSQ

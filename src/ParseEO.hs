@@ -17,10 +17,11 @@ import           Data.Scientific            (Scientific)
 import           Data.Text                  (Text, pack)
 import qualified Data.Text                  as T
 import           Data.Void                  (Void)
-import           Text.Megaparsec            (MonadParsec (takeWhile1P), Parsec,
-                                             SourcePos (SourcePos), choice,
-                                             count, getSourcePos, many,
-                                             manyTill, some, try, unPos, (<?>))
+import           Text.Megaparsec            (MonadParsec (lookAhead, takeWhile1P),
+                                             Parsec, SourcePos (SourcePos),
+                                             choice, count, getSourcePos, many,
+                                             manyTill, notFollowedBy, some, try,
+                                             unPos, (<?>))
 import           Text.Megaparsec.Char       (alphaNumChar, char, eol,
                                              hexDigitChar, letterChar,
                                              lowerChar, numberChar, printChar,
@@ -294,10 +295,10 @@ maybeToNode Nothing =
     }
 
 -- | keeps parser if it succeeds
--- 
+--
 -- otherwise, produces a parser with `NothingNode` tag
 optionalNode :: Parser Node -> Parser Node
-optionalNode p = do
+optionalNode p = try $ do
   p1 <- getPos
   n <- maybeToNode <$> optional (try p)
   p2 <- getPos
@@ -341,7 +342,7 @@ enter name = do
   return ()
 
 pEOL :: Parser ()
-pEOL = try $ do 
+pEOL = try $ do
   _ <- eol *> optional (try eol)
   return ()
 
@@ -418,8 +419,8 @@ pObject ind = dec "Object" $ do
       ]
   let newIndent = ind + indentAdd
   t <- optionalNode ({-debug "object:tail"-} pTail newIndent)
-  
-  
+
+
   -- TODO specify indentation and guard
   let g = do
         e <- pEOL_TAB_MANY
@@ -456,13 +457,13 @@ pAbstraction = dec "Abstraction" $ do
   return (Abstraction, [attrs, t])
 
 -- | contains list of arguments
--- 
+--
 -- If no arguments are provided, the list is empty
 -- This is the same as making the part between [] optional
 pAttributes :: Parser Node
 pAttributes = dec "Attributes" $ do
   _ <- string cLSQ
-  attrs <- choiceTry 
+  attrs <- choiceTry
         [ do
             a <- {-debug "attributes:attribute1"-} pAttribute
             as <- manyTry (string cSPACE *> {-debug "attributes:attribute2"-} pAttribute)
@@ -556,7 +557,8 @@ pHtail = dec "Htail" $ do
 
 -- | second element of list contains either a reseved symbol
 -- or a name with modifiers
--- TODO inverse dot is not really supported during parsing
+-- TODO inverse dot parser cannot be accessed
+-- during parsing
 pHead :: Parser Node
 pHead = dec "Head" $ do
   dots <- optionalNode $ pTerminal cDOTS DOTS
@@ -572,8 +574,8 @@ pHead = dec "Head" $ do
             do
               name <- pNAME
               c <- choiceTry [
-                    optionalNode $ pTerminal cCOPY COPY
-                  , pTerminal cDOT DOT
+                    pTerminal cDOT DOT <* lookAhead (string cSPACE)
+                  , optionalNode $ pTerminal cCOPY COPY
                   ]
               return [name, c]),
          ({-debug "head:data"-} pDATA)

@@ -8,18 +8,16 @@
 
 module SimplifyTree where
 
-import           Control.Monad.State.Strict (State (..), evalState, execState,
-                                             get, put, runState)
+import           Control.Monad.State.Strict (State (), evalState, execState,
+                                             get, put)
 import           Data.Hashable              (Hashable)
 import           Data.HashMap.Strict.InsOrd (InsOrdHashMap)
 import qualified Data.HashMap.Strict.InsOrd as M (InsOrdHashMap, empty, insert)
 import           Data.Scientific            (Scientific)
 import           Data.Text                  (Text)
-import           GHC.Base                   (undefined)
-import           GHC.Exts                   (IsList)
 import           GHC.Generics               (Generic)
 import qualified ParseEO                    as P (Node (..), Position (..),
-                                                  TokenType (..), pProgram)
+                                                  TokenType (..))
 import qualified Data.List                  as DL
 import Text.Printf (printf)
 
@@ -36,18 +34,23 @@ data AttrName =
   | Star
   | Vertex
   | Xi
-
-  -- may be applied to @ or $
-
-  -- ...s
-  | Unpack AttrName
   -- s...
   | VarArg AttrName
+  deriving (Eq, Ord, Generic)
+
+-- may be applied to @ or $
+data NameModified =
+  -- ...s
+    Unpack AttrName
   -- s'
   | Copy AttrName
   -- s.
-  | InverseDot Text
+  | InverseDot AttrName
+  -- s
+  | Same AttrName
   deriving (Eq, Ord, Generic)
+
+   
 
 instance Hashable AttrName
 
@@ -57,16 +60,16 @@ newtype AttrValue a = Attached a
   deriving (Eq, Functor, Foldable, Traversable)
 
 data DataValue
-  = Bool Bool
-  | Byte Integer
-  | Bytes [Integer]
-  | Char Char
-  | Float Scientific
-  | Hex Integer
-  | Int Integer
-  | Regex Text Text
-  | String Text
-  | Text Text
+  = DBool Bool
+  | DByte Integer
+  | DBytes [Integer]
+  | DChar Char
+  | DFloat Scientific
+  | DHex Integer
+  | DInt Integer
+  | DRegex Text Text
+  | DString Text
+  | DText Text
   deriving (Eq, Ord)
 
 -- meta, comments, license?
@@ -100,7 +103,8 @@ data Term
   -- properties of attribute name should come with it
   | AttrBound {a::AttrName, isConst::Bool, imported::Maybe Text, idNum::Id}
   | Locator {n::Int, idNum::Id}
-  | AttrHead {a::AttrName, idNum::Id}
+  -- Used to store inverse  
+  | AttrHead {aHead::NameModified, idNum::Id}
   -- for a > a! /bool
   -- as an argument of application
   -- use Attr for name
@@ -193,6 +197,10 @@ data Value = Value {attr::Maybe Term, term::Maybe Term}
 initValue::Value
 initValue = Value Nothing Nothing
 
+-- tProgram :: Maybe Term -> [Node] -> Id -> State () Value
+-- tProgram l i = do 
+
+
 toTerm :: Maybe Term -> Node -> State () Value
 toTerm term node = do
   let Node {nodeId = i, tag = tok, nodes = l} = node
@@ -225,9 +233,11 @@ toTerm term node = do
       -- if we enter an object, we should produce a named term possibly with props
       let objCurrent = emptyObject
       let [_, a, t, s] = l
+      -- TODO
       return initValue
 
     P.Abstraction -> do
+      -- TODO 
       return initValue
 
     P.Attributes -> do
@@ -248,35 +258,64 @@ toTerm term node = do
       let obj = Obj {obj = Object M.empty, freeAttrs = attrs, idNum = i}
       return initValue {term = Just obj}
 
+    -- should return a term
     P.Head -> do
-      let [dots@Node {tag = dotsTag}, name1@Node {tag = name2, nodes = ns1}] = l
+      let [dots@Node {tag = dotsTag}, name1@Node {tag = name2, nodes = x1:x1s}] = l
+      
       let unpacks
             | dotsTag == P.DOTS = Unpack
-            | dotsTag == P.NothingNode = id
+            | dotsTag == P.NothingNode = Same
             | otherwise = err dots
 
+      let f1 x = AttrHead {aHead = unpacks x, idNum = i}
+      let f2 x = DataTerm {v = x, idNum = i}
       let t' =
             case name2 of
-              P.ROOT -> Root
-              P.AT -> At
-              P.RHO -> Rho
-              P.XI -> Xi
-              P.SIGMA -> Sigma
-              P.STAR -> Star
+              P.ROOT -> f1 Root
+              P.AT -> f1 At
+              P.RHO -> f1 Rho
+              P.XI -> f1 Xi
+              P.SIGMA -> f1 Sigma
+              P.STAR -> f1 Star
               P.ListNode ->
-                case ns1 of
-                  [Node {tag = P.NAME name3}, n4@Node {tag = c1}] ->
-                    case c1 of
-                      P.COPY -> Copy (Name name3)
-                      P.DOT  -> InverseDot name3
-                      _ -> err n4
-                  _ -> err ns1
+                case x1 of
+                  -- can be only name
+                  Node {tag = P.NAME name3} -> 
+                    AttrHead {aHead = t1, idNum = i}
+                    where
+                      t1 = 
+                        (
+                          case x1s of
+                            [n4@Node {tag = c1}] ->
+                              case c1 of
+                                P.COPY -> Copy
+                                P.DOT  -> InverseDot
+                                _ -> err n4
+                            [] -> Same
+                            _ -> err x1s
+                        ) (Name name3)
+                  _ -> err x1
+              P.Data -> 
+                case x1 of
+                  Node {tag = t2} -> 
+                    f2 $
+                      case t2 of
+                        P.BOOL x -> DBool x
+                        P.TEXT x -> DText x
+                        P.HEX x ->  DHex x
+                        P.STRING x -> DString x
+                        P.FLOAT x -> DFloat x
+                        P.INT x -> DInt x
+                        P.CHAR x -> DChar x
+                        P.REGEX x y -> DRegex x y
+                        P.BYTES -> error "Bytes not implemented yet"
+                        _ -> err x1
               _ -> err name1
-      return initValue {term = Just AttrHead {a = unpacks t', idNum = i}}
+      return initValue {term = Just t'}
 
     P.Application -> do
       let [s, h, a1] = l
-      -- in the first node
+      -- in first node, there is just a term to apply to
       -- there is no name for current application here
       -- whether there is Head or Application inside
       -- so we can take just term
@@ -297,7 +336,6 @@ toTerm term node = do
     P.Htail -> do
       -- here, we need to make applications with inline arguments
       -- some of them may be named, like:
-      -- where 
       -- t (a:a)
       let f x@Node {tag = t1, nodes = n1} =
             case t1 of

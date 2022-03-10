@@ -34,6 +34,7 @@ data AttrName =
   | Star
   | Vertex
   | Xi
+  | Question
   -- s...
   | VarArg AttrName
   deriving (Eq, Ord, Generic)
@@ -86,6 +87,7 @@ data Props = Props {isConst::Bool, imported::Maybe Text} deriving (Eq)
 emptyProps :: Props
 emptyProps = Props False Nothing
 
+-- | use free attr to store optional name
 data ApplicationArgument = AppArg {optionalName::Maybe Term, value::Maybe Term} deriving (Eq)
 
 data Term
@@ -97,18 +99,20 @@ data Term
   -- need to keep position of attribute, so use Attr
   | Dot {t::Term, attr::Term, idNum::Id}
   | DataTerm {v::DataValue, idNum::Id}
+  -- used to keep import information
+  | Imported {nTerm::Maybe Term, imported::AttrName, idNum :: Id}
   -- used to store attribute names and their properties
   -- for attributes of objects
   -- for arguments of vararg applications
   -- properties of attribute name should come with it
-  | AttrBound {a::AttrName, isConst::Bool, imported::Maybe Text, idNum::Id}
+  | AttrBound {a::AttrName, isConst::Bool, idNum::Id}
   | Locator {n::Int, idNum::Id}
   -- Used to store inverse  
   | AttrHead {aHead::NameModified, idNum::Id}
   -- for a > a! /bool
   -- as an argument of application
   -- use Attr for name
-  | NamedTerm {t::Term, name::Maybe Term, idNum::Id}
+  | NamedTerm {nTerm::Maybe Term, name::Maybe Term, idNum::Id}
   deriving (Eq)
 
 -- TODO assign a name to unnamed attributes of objects? 
@@ -175,12 +179,10 @@ idNodes :: P.Node -> IdNodeMap
 idNodes = getIdNodes . enumerateNodes
 
 -- | get term from term and node
--- getTerm1 :: Maybe Term -> Node -> (Maybe AttrName, Maybe Props, Maybe Term)
 getTerm1 :: Maybe Term -> Node -> Maybe Term
 getTerm1 t n = term $ evalState (toTerm t n) ()
 
 -- | get term from no term and node
--- getTerm2 :: Node -> (Maybe AttrName, Maybe Props, Maybe Term)
 getTerm2 :: Node -> Maybe Term
 getTerm2 = getTerm1 Nothing
 
@@ -234,11 +236,35 @@ toTerm term node = do
       let objCurrent = emptyObject
       let [_, a, t, s] = l
       -- TODO
+      
       return initValue
 
     P.Abstraction -> do
-      -- TODO 
-      return initValue
+      -- TODO return named term
+
+      let [attrs, t@Node {tag = t1, nodes = n1:n1s, nodeId = i1}] = l
+      -- attributes don't produce term name
+      let obj1 = getTerm2 attrs
+      
+      let name1 = 
+            case t1 of
+              P.NothingNode -> Just NamedTerm {nTerm = obj1, name = Nothing, idNum = i}
+              P.ListNode -> s2
+                where
+                  obj2 = getTerm1 obj1 n1
+                  -- we can do that both for suffix and htail
+                  s2 =
+                    case n1s of
+                      [Node {tag = t2, nodeId = i2}] ->
+                        case t2 of
+                          P.NothingNode -> Nothing
+                          P.NAME t3 -> Just Imported {nTerm = obj2, imported = Name t3, idNum = i2}
+                          _ -> err n1s
+                      [] ->  Nothing
+                      _ -> err n1s
+              _ -> err node
+
+      return initValue {term = name1}
 
     P.Attributes -> do
       let f Node {
@@ -258,6 +284,9 @@ toTerm term node = do
       let obj = Obj {obj = Object M.empty, freeAttrs = attrs, idNum = i}
       return initValue {term = Just obj}
 
+    P.Suffix -> do
+      -- should return namedterm with attrbound
+      return initValue
     -- should return a term
     P.Head -> do
       let [dots@Node {tag = dotsTag}, name1@Node {tag = name2, nodes = x1:x1s}] = l
@@ -313,6 +342,9 @@ toTerm term node = do
               _ -> err name1
       return initValue {term = Just t'}
 
+    -- P.NAME -> do
+      
+
     P.Application -> do
       let [s, h, a1] = l
       -- in first node, there is just a term to apply to
@@ -328,10 +360,14 @@ toTerm term node = do
 
       -- finally, we put current application inside app1 
       -- and pass the result up
-      let Value {attr = at, term = Just obj} = evalToTerm1 h' a1
+      let Value {attr = at, term = obj} = evalToTerm1 h' a1
       -- if no name was provided, need to create
       -- TODO check
-      return $ Value {attr = at, term = Just NamedTerm {t = obj, name = at, idNum = i}}
+      return $ Value {attr = at, term = Just NamedTerm {nTerm = obj, name = at, idNum = i}}
+
+    P.Application1 -> do
+      -- TODO
+      return initValue
 
     P.Htail -> do
       -- here, we need to make applications with inline arguments

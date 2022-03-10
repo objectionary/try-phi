@@ -203,7 +203,7 @@ data TokenType
   | JustNode
   | NothingNode
   | TextNode Text
-  deriving (Show)
+  deriving (Show, Eq)
 
 data Position = Position
   { row    :: Int,
@@ -288,15 +288,14 @@ listNode p = do
 
 maybeToNode :: Maybe Node -> Node
 maybeToNode (Just n) = n
-  -- initNode
-  --   { nodeToken = JustNode,
-  --     nodes = [n]
-    -- }
 maybeToNode Nothing =
   initNode
     { nodeToken = NothingNode
     }
 
+-- | keeps parser if it succeeds
+-- 
+-- otherwise, produces a parser with `NothingNode` tag
 optionalNode :: Parser Node -> Parser Node
 optionalNode p = do
   p1 <- getPos
@@ -557,6 +556,7 @@ pHtail = dec "Htail" $ do
 
 -- | second element of list contains either a reseved symbol
 -- or a name with modifiers
+-- TODO inverse dot is not really supported during parsing
 pHead :: Parser Node
 pHead = dec "Head" $ do
   dots <- optionalNode $ pTerminal cDOTS DOTS
@@ -568,8 +568,8 @@ pHead = dec "Head" $ do
         {-debug "head:sigma"-}   (pTerminal cSIGMA SIGMA),
         {-debug "head:star"-}   (pTerminal cSTAR STAR),
         {-debug "head:copy"-} (
-          listNode $ 
-            do 
+          listNode $
+            do
               name <- pNAME
               c <- choiceTry [
                     optionalNode $ pTerminal cCOPY COPY

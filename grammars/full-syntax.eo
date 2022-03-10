@@ -82,6 +82,10 @@ a a.a > a
 
 a > a:t
 
+t [a] (a a) > a
+
+t (a:a)
+
 [x y] > diff
   x.minus y > @
 

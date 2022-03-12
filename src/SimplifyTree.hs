@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE DeriveAnyClass        #-}
 {-# LANGUAGE DeriveFoldable        #-}
 {-# LANGUAGE DeriveFunctor         #-}
@@ -6,7 +7,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE RecordWildCards       #-}
 
-module SimplifyTree where
+module SimplifyTree (simplifyCST, enumerateNodes) where
 
 import           Control.Monad.State.Strict (State (), evalState, execState,
                                              get, put)
@@ -21,138 +22,7 @@ import qualified ParseEO                    as P (Node (..), Position (..),
 import qualified Data.List                  as DL
 import Text.Printf (printf)
 
-type Id = Int
 
-data AttrName =
-  -- s
-    Name Text
-  | IdName Id
-  | At
-  | Rho
-  | Root
-  | Sigma
-  | Star
-  | Vertex
-  | Xi
-  | Question
-  -- s...
-  | VarArg AttrName
-  deriving (Eq, Ord, Generic)
-
--- may be applied to @ or $
-data NameModified =
-  -- ...s
-    Unpack AttrName
-  -- s'
-  | Copy AttrName
-  -- s.
-  | InverseDot AttrName
-  -- s
-  | Same AttrName
-  deriving (Eq, Ord, Generic)
-
-   
-
-instance Hashable AttrName
-
--- need for returning named applications
-
-newtype AttrValue a = Attached a
-  deriving (Eq, Functor, Foldable, Traversable)
-
-data DataValue
-  = DBool Bool
-  | DByte Integer
-  | DBytes [Integer]
-  | DChar Char
-  | DFloat Scientific
-  | DHex Integer
-  | DInt Integer
-  | DRegex Text Text
-  | DString Text
-  | DText Text
-  deriving (Eq, Ord)
-
--- meta, comments, license?
-
-newtype Object a = Object
-  { getObject :: M.InsOrdHashMap AttrName (AttrValue a)}
-  deriving (Eq, Functor, Foldable, Traversable)
-
--- TODO somehow pass problems with node conversion upwards
--- probably need to use exceptions or Either Id Term
-
-data Props = Props {isConst::Bool, imported::Maybe Text} deriving (Eq)
-
-emptyProps :: Props
-emptyProps = Props False Nothing
-
--- | use free attr to store optional name
-data ApplicationArgument = AppArg {optionalName::Maybe Term, value::Maybe Term} deriving (Eq)
-
-data Term
-  -- app may be to an unnamed term, so we keep a term
-  -- arguments may be with an optional name, so we keep such names and terms
-  = App {t1::Term, a1::[ApplicationArgument], idNum::Id}
-  | Obj {freeAttrs::[Term], obj::Object Term, idNum::Id}
-  | FreeAttr {a::AttrName, idNum::Id}
-  -- need to keep position of attribute, so use Attr
-  | Dot {t::Term, attr::Term, idNum::Id}
-  | DataTerm {v::DataValue, idNum::Id}
-  -- used to keep import information
-  | Imported {nTerm::Maybe Term, imported::AttrName, idNum :: Id}
-  -- used to store attribute names and their properties
-  -- for attributes of objects
-  -- for arguments of vararg applications
-  -- properties of attribute name should come with it
-  | AttrBound {a::AttrName, isConst::Bool, idNum::Id}
-  | Locator {n::Int, idNum::Id}
-  -- Used to store inverse  
-  | AttrHead {aHead::NameModified, idNum::Id}
-  -- for a > a! /bool
-  -- as an argument of application
-  -- use Attr for name
-  | NamedTerm {nTerm::Maybe Term, name::Maybe Term, idNum::Id}
-  deriving (Eq)
-
--- TODO assign a name to unnamed attributes of objects? 
--- Only to top objects, probably
--- it will hinder the analysis
-
-emptyObject :: Term
-emptyObject = Obj {obj = Object M.empty, freeAttrs = [], idNum = 0}
-
-data Node = Node
-  { nodeId    :: Id,
-    tag :: P.TokenType,
-    nodes     :: [Node],
-    start     :: P.Position,
-    end       :: P.Position
-  }
-
-err :: Show a1 => a1 -> a2
-err i = error $ printf "problem at node\n%s" (show i)
-
-tab :: String
-tab = "|  "
-
-type TabNumber = Int
-
-printTree :: TabNumber -> Node -> String
-printTree n Node {..} =
-  DL.intercalate "" (replicate n tab)
-  <>
-  printf "%d " nodeId
-  <>
-  case tag of
-    P.JustNode -> printf "%s\n" (show tag)
-    P.ListNode -> printf "%s\n" (show tag)
-    P.NothingNode -> printf "%s\n" (show tag)
-    _ -> printf "%s [%s..%s]\n" (show tag) (show start) (show end)
-    <> foldl (\s a -> s <> printTree (n + 1) a) "" nodes
-
-instance Show Node where
-  show n = printTree 0 n
 
 enumerateNodes :: P.Node -> Node
 enumerateNodes tr = evalState (enumerateNodesStep tr) 0
@@ -193,6 +63,144 @@ evalToTerm1 t n = evalState (toTerm t n) ()
 evalToTerm2 = evalToTerm1 Nothing
 
 
+
+-- TODO assign a name to unnamed attributes of objects? 
+-- Only to top objects, probably
+-- it will hinder the analysis
+
+emptyObject :: Term
+emptyObject = Obj {obj = Object M.empty, freeAttrs = [], idNum = 0}
+
+data Node = Node
+  { nodeId    :: Id,
+    tag :: P.TokenType,
+    nodes     :: [Node],
+    start     :: P.Position,
+    end       :: P.Position
+  }
+
+err :: Show a1 => a1 -> a2
+err i = error $ printf "problem at node\n%s" (show i)
+
+tab :: String
+tab = "|  "
+
+type TabNumber = Int
+
+printTree :: TabNumber -> Node -> String
+printTree n Node {..} =
+  DL.intercalate "" (replicate n tab)
+  <>
+  case tag of
+    P.JustNode -> printf "%s\n" (show tag)
+    P.ListNode -> printf "%s\n" (show tag)
+    P.NothingNode -> printf "%s\n" (show tag)
+    _ -> printf "%s [%s..%s] (%s)\n" (show tag) (show start) (show end) (show nodeId)
+  <> foldl (\s a -> s <> printTree (n + 1) a) "" nodes
+
+instance Show Node where
+  show n = printTree 0 n
+
+-- Transform from parsed node to term
+simplifyCST :: P.Node -> Maybe Term
+simplifyCST n = term $ evalState (toTerm Nothing (enumerateNodes n)) ()
+
+
+type Id = Int
+
+data AttrName =
+  -- s
+    Name Text
+  | IdName Id
+  | At
+  | Rho
+  | Root
+  | Sigma
+  | Star
+  | Vertex
+  | Xi
+  | Question
+  -- s...
+  | VarArg AttrName
+  deriving (Eq, Ord, Generic, Show)
+
+
+-- may be applied to @ or $
+data NameModified =
+  -- ...s
+    Unpack AttrName
+  -- s'
+  | Copy AttrName
+  -- s.
+  | InverseDot AttrName
+  -- s
+  | Same AttrName
+  deriving (Eq, Ord, Generic, Show)
+
+   
+
+instance Hashable AttrName
+
+-- need for returning named applications
+
+newtype AttrValue a = Attached a
+  deriving (Eq, Functor, Foldable, Traversable, Show)
+
+data DataValue
+  = DBool Bool
+  | DByte Integer
+  | DBytes [Integer]
+  | DChar Char
+  | DFloat Scientific
+  | DHex Integer
+  | DInt Integer
+  | DRegex Text Text
+  | DString Text
+  | DText Text
+  deriving (Eq, Ord, Show)
+
+-- meta, comments, license?
+
+newtype Object a = Object
+  { getObject :: M.InsOrdHashMap AttrName (AttrValue a)}
+  deriving (Eq, Functor, Foldable, Traversable, Show)
+
+-- TODO somehow pass problems with node conversion upwards
+-- probably need to use exceptions or Either Id Term
+
+data Props = Props {isConst::Bool, iName::Maybe Text} deriving (Eq)
+
+emptyProps :: Props
+emptyProps = Props False Nothing
+
+-- | use free attr to store optional name
+data ApplicationArgument = AppArg {optionalName::Maybe Term, value::Maybe Term} deriving (Eq, Show)
+
+data Term
+  -- app may be to an unnamed term, so we keep a term
+  -- arguments may be with an optional name, so we keep such names and terms
+  = App {t1::Term, a1::[ApplicationArgument], idNum::Id}
+  | Obj {freeAttrs::[Term], obj::Object Term, idNum::Id}
+  -- need to keep position of attribute, so use Attr
+  | Dot {t::Term, attr::Term, idNum::Id}
+  | DataTerm {v::DataValue, idNum::Id}
+  | Locator {n::Int, idNum::Id}
+  -- optional argument names
+  | FreeAttr {a::AttrName, idNum::Id}
+  -- for strange head names
+  | HeadAttr {hAttr::NameModified, idNum::Id}
+  -- attribute names and their constancy property
+  -- for attributes of objects
+  -- for arguments of vararg applications
+  | BoundName {a::AttrName, isConst::Bool, imported::Maybe Term, idNum::Id}
+  -- put into bound attribute to add import information
+  -- for a > a! /bool
+  | Imported {iTerm::Maybe Term, iName::AttrName, idNum :: Id}
+  -- name contains full info about name
+  | BoundTerm {bTerm::Maybe Term, bName::Maybe Term, idNum::Id}
+  deriving (Eq, Show)
+
+
 -- | contains optional free argument name
 -- and corresponding term
 data Value = Value {attr::Maybe Term, term::Maybe Term}
@@ -201,7 +209,6 @@ initValue = Value Nothing Nothing
 
 -- tProgram :: Maybe Term -> [Node] -> Id -> State () Value
 -- tProgram l i = do 
-
 
 toTerm :: Maybe Term -> Node -> State () Value
 toTerm term node = do
@@ -226,47 +233,72 @@ toTerm term node = do
                       Nothing -> IdName (idNum term2)
                       _ -> err l
                   ) term2 obj
-              _ -> err l
+              _ -> err node
 
       let top = Attached <$> foldl combine M.empty os
       return initValue {term = Just emptyObject {obj = Object top}}
 
     P.Object -> do
-      -- if we enter an object, we should produce a named term possibly with props
+      -- should produce a possibly bound term
       let objCurrent = emptyObject
       let [_, a, t, s] = l
-      -- TODO
-      
-      return initValue
+      let Value {attr = a1, term = t1} = evalToTerm2 a
+      -- there are different strategies for constructing an application
+      -- and an object
+      -- case a of
+      --   Node {tag = a2} -> 
+      -- if it's an application
+      -- we need to keep its arguments 
+      return initValue {attr = Nothing, term = Just FreeAttr {a = Name "ok", idNum = 1}}
 
     P.Abstraction -> do
-      -- TODO return named term
-
-      let [attrs, t@Node {tag = t1, nodes = n1:n1s, nodeId = i1}] = l
+      -- adds free attributes to an object
+      -- returns name and such object
+      let [attrs, t@Node {tag = t1, nodes = n1:n1s}] = l
       -- attributes don't produce term name
-      let obj1 = getTerm2 attrs
+      let obj1 = 
+            case attrs of 
+              Node {tag = P.Attributes} -> getTerm2 attrs
+              _ -> err attrs
       
-      let name1 = 
+      -- here we get a bound name and a possibly modified term
+      let v =
             case t1 of
-              P.NothingNode -> Just NamedTerm {nTerm = obj1, name = Nothing, idNum = i}
-              P.ListNode -> s2
+              P.NothingNode -> initValue
+              P.ListNode -> Value {attr = s2, term = obj2}
                 where
-                  obj2 = getTerm1 obj1 n1
+                  -- there is suffix (name) and import info
+                  -- or htail
+                  -- suffix returns a bound name
+                  -- htail returns a bound name and changed term
+                  v@Value {attr = name2, term = obj2} = evalToTerm1 obj1 n1
                   -- we can do that both for suffix and htail
+                  -- modify name if there is import
                   s2 =
                     case n1s of
-                      [Node {tag = t2, nodeId = i2}] ->
-                        case t2 of
-                          P.NothingNode -> Nothing
-                          P.NAME t3 -> Just Imported {nTerm = obj2, imported = Name t3, idNum = i2}
-                          _ -> err n1s
-                      [] ->  Nothing
+                      [Node {tag = t3, nodeId = i2}] ->
+                        case name2 of
+                          Just name3@BoundName {} ->
+                            case t3 of
+                              -- if no imports
+                              P.NothingNode -> name2
+                              P.NAME t4 -> Just name3 {imported = Just Imported {iTerm = name2, iName = Name t4, idNum = i2}}
+                              _ -> err n1s
+                          _ -> name2
+                      [] ->  name2
                       _ -> err n1s
               _ -> err node
 
-      return initValue {term = name1}
+      return v
+      
+    P.Htail -> do
+      -- TODO htail after abstraction?
+      -- like [] a (b > c)? 
+ 
+      return Value {attr = Nothing, term = term}
 
     P.Attributes -> do
+      -- returns an object
       let f Node {
               tag = P.Label,
               nodes = [Node {tag = P.NAME name}, Node {tag = dots}],
@@ -285,9 +317,9 @@ toTerm term node = do
       return initValue {term = Just obj}
 
     P.Suffix -> do
-      -- should return namedterm with attrbound
+      -- TODO return namedterm with attrbound
+      -- should return freeattr name also
       return initValue
-    -- should return a term
     P.Head -> do
       let [dots@Node {tag = dotsTag}, name1@Node {tag = name2, nodes = x1:x1s}] = l
       
@@ -296,7 +328,7 @@ toTerm term node = do
             | dotsTag == P.NothingNode = Same
             | otherwise = err dots
 
-      let f1 x = AttrHead {aHead = unpacks x, idNum = i}
+      let f1 x = HeadAttr {hAttr = unpacks x, idNum = i}
       let f2 x = DataTerm {v = x, idNum = i}
       let t' =
             case name2 of
@@ -310,7 +342,7 @@ toTerm term node = do
                 case x1 of
                   -- can be only name
                   Node {tag = P.NAME name3} -> 
-                    AttrHead {aHead = t1, idNum = i}
+                    HeadAttr {hAttr = t1, idNum = i}
                     where
                       t1 = 
                         (
@@ -342,18 +374,13 @@ toTerm term node = do
               _ -> err name1
       return initValue {term = Just t'}
 
-    -- P.NAME -> do
-      
-
     P.Application -> do
       let [s, h, a1] = l
-      -- in first node, there is just a term to apply to
-      -- there is no name for current application here
-      -- whether there is Head or Application inside
-      -- so we can take just term
+      -- first node is head or application
       let s' = getTerm2 s
 
-      -- in htail, there are just application arguments
+      -- next is htail
+      -- there are just application arguments
       -- we will do application there
       -- so we can take just term
       let h' = getTerm1 s' h
@@ -363,7 +390,7 @@ toTerm term node = do
       let Value {attr = at, term = obj} = evalToTerm1 h' a1
       -- if no name was provided, need to create
       -- TODO check
-      return $ Value {attr = at, term = Just NamedTerm {nTerm = obj, name = at, idNum = i}}
+      return $ Value {attr = at, term = Just BoundTerm {bTerm = obj, bName = at, idNum = i}}
 
     P.Application1 -> do
       -- TODO

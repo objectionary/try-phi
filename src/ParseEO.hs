@@ -20,7 +20,7 @@ import           Data.Void                  (Void)
 import           Text.Megaparsec            (MonadParsec (lookAhead, takeWhile1P),
                                              Parsec, SourcePos (SourcePos),
                                              choice, count, getSourcePos, many,
-                                             manyTill, notFollowedBy, some, try,
+                                             manyTill, some, try,
                                              unPos, (<?>))
 import           Text.Megaparsec.Char       (alphaNumChar, char, eol,
                                              hexDigitChar, letterChar,
@@ -418,10 +418,10 @@ pObject ind = dec "Object" $ do
         {-debug "object:application"-} pApplication
       ]
   let newIndent = ind + indentAdd
+  -- list of attributes
   t <- optionalNode ({-debug "object:tail"-} pTail newIndent)
 
-
-  -- TODO specify indentation and guard
+  -- TODO ban suffix 
   let g = do
         e <- pEOL_TAB_MANY
         guard $ getIndent e == ind
@@ -429,7 +429,7 @@ pObject ind = dec "Object" $ do
         h <- optionalNode ({-debug "object:htail"-} pHtail)
         suffix <- optionalNode ({-debug "object:suffix"-} pSuffix)
         p <- optionalNode ({-debug "object:tail"-} pTail (ind + indentAdd))
-        return [e, method, h, suffix, p]
+        return [method, h, suffix, p]
   s <- listNode $ manyTry $ listNode ({-debug "object:after tail"-} g)
   return (Object, [comments, a, t, s])
 

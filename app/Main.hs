@@ -8,8 +8,10 @@
 module Main where
 
 import ParseEO as P (pProgram)
-import Text.Megaparsec (parseTest)
-import Data.Text (pack)
+import Text.Megaparsec (parseTest, parseMaybe)
+import SimplifyTree(simplifyCST, enumerateNodes)
+import Data.Text as DT (pack, replicate, Text(..))
+import Text.Printf (printf)
 
 main :: IO ()
 main = do
@@ -17,4 +19,9 @@ main = do
   -- let file = "./grammars/code.eo"
   code <- pack <$> readFile file
   print "\n"
-  parseTest pProgram code
+  let tr = parseMaybe pProgram code
+  -- let l = printf "\n%s\n%s\n%s\n" ((DT.replicate 10 "*")::Text) ("\nRESULT\n") ((DT.replicate 10 "*")::Text)
+  let l = putStrLn "*****************" *> putStrLn "RESULT" *> putStrLn "*********************\n"
+  case tr of
+    Just a -> print (enumerateNodes a) *> l *> print (simplifyCST a)
+    Nothing -> print "No tree"

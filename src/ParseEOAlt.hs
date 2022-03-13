@@ -207,6 +207,18 @@ printLeaf :: (Show t, Data a) =>
 printLeaf n i d = showHead n i <>  " " <> (show d) <> "\n"
 
 
+
+
+
+-- Transformation
+
+-- /-- data LProgram = 
+type K a b = b -> Node a b
+
+data PLicense = PLicense {cs::[I PComment]} deriving (Data)
+data PComment = PComment {c::Text} deriving (Data)
+
+
 -- Node printers
 
 printProgram :: TabNumber -> I TProgram -> String
@@ -237,7 +249,6 @@ printMeta n i@Node {node = TMeta {..}} = printNonLeaf n i [name']
   where
     name' k = printName k name
     suff' = maybe nothing (printNothing n) suff
-
 
 printName :: Int -> I TName -> String
 printName m i@Node {node = TName {..}} = printLeaf m i n

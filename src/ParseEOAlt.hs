@@ -160,7 +160,7 @@ instance Show Segment where
 data Node a b = Node {pos::Segment, node::a, load::b} deriving (Data)
 type I a = Node a Load
 
-data Load = Load {id :: Int} deriving (Data)
+data Load = Load {id :: Int} | AnotherLoad {k::String, o::Int} deriving (Data)
 initLoad = Load {id = 0}
 
 instance Show Load where

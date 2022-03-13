@@ -160,6 +160,11 @@ instance Show Segment where
 data Node a b = Node {pos::Segment, node::a, load::b} deriving (Data)
 type I a = Node a Load
 
+data Load = Load {id :: Int} deriving (Data)
+initLoad = Load {id = 0}
+
+instance Show Load where
+  show Load {..} = "(" <> show id <> ")"
 
 
 
@@ -177,8 +182,10 @@ tabs n = DL.intercalate "" (replicate n tab)
 cName :: Data a => a -> String
 cName n = show $ toConstr n
 
+
 showHead :: (PrintfType t, Data a) => Int -> I a -> t
-showHead n Node {..} = printf "%s%s %s" (tabs n) (cName node) (show pos)
+showHead n Node {..} = printf "%s%s %s %s" (tabs n) (cName node) (show pos) (show load)
+
 nothing :: String
 nothing = "Nothing"
 
@@ -195,7 +202,6 @@ printLeaf :: (Show t, Data a) =>
   Int -> I a -> t -> [Char]
 printLeaf n i d = showHead n i <>  " " <> (show d) <> "\n"
 
--- printMaybe :: (a -> String) -> Maybe a -> String
 printMaybe :: (Int -> a -> String) -> Int -> Maybe a -> String
 printMaybe f k a = maybe (printNothing k) (f k) a
 
@@ -720,9 +726,6 @@ tAbstractionTail = dec "Abstraction tail" $ do
   let b = tHtail
   e <- choiceTry [Opt2A <$> a, Opt2B <$> b]
   return TAbstractionTail {e = e}
-
-data Load = Load {id :: Int} deriving (Data)
-initLoad = Load {id = 0}
 
 -- | contains list of arguments
 --

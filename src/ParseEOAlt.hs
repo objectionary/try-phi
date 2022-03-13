@@ -244,13 +244,13 @@ tabs n = DL.intercalate "" (replicate n tab)
 cName :: Data a => a -> String
 cName n = show $ toConstr n
 
-instance Show Load where
-  show Load {..} = printf "[%s..%s]" (show start) (show end)
+-- instance Show Load where
+--   show Load {..} = printf "[%s..%s]" (show start) (show end)
 
 
 -- showHead :: (Text.Printf.PrintfType t, Data a) => Int -> I a -> t
 showHead :: (PrintfType t, Data a) => Int -> I a -> t
-showHead n Info {..} = printf "%s%s %s" (tabs n) (cName node) (show l)
+showHead n Node {..} = printf "%s%s %s" (tabs n) (cName node) (show pos)
 nothing :: String
 nothing = "Nothing"
 
@@ -269,53 +269,53 @@ printLeaf :: (Show t, Data a) =>
 printLeaf n i d = showHead n i <>  " " <> (show d) <> "\n"
 
 printProgram :: TabNumber -> I TProgram -> String
-printProgram n i@Info {node = TProgram {..}} = printNonLeaf n i [l', m', o']
+printProgram n i@Node {node = TProgram {..}} = printNonLeaf n i [l', m', o']
   where
     l' k = maybe nothing (printLicense k) l
     m' k = maybe nothing (printMetas k) m
     o' k = printObjects k o
 
 printLicense :: Int -> I TLicense -> String
-printLicense n i@Info {node = TLicense {..}} = printNonLeaf n i [cs']
+printLicense n i@Node {node = TLicense {..}} = printNonLeaf n i [cs']
   where
     cs' k = foldl (<>) [] (printComment k <$> cs)
 
 printComment :: Int -> I TComment -> String
-printComment n i@Info {node = TComment {..}} = printLeaf n i c
+printComment n i@Node {node = TComment {..}} = printLeaf n i c
 
 printMetas :: Int -> I TMetas -> String
--- printMetas n i@Info {node = TMetas {..}} = printLeaf n i c
-printMetas n i@Info {node = TMetas {..}} = printNonLeaf n i [cs']
+-- printMetas n i@Node {node = TMetas {..}} = printLeaf n i c
+printMetas n i@Node {node = TMetas {..}} = printNonLeaf n i [cs']
   where
     cs' k = foldl (<>) [] (printMeta k <$> ms)
 
 printNothing n d = tabs n <> nothing
 
 printMeta :: Int -> I TMeta -> String
--- printMetas n i@Info {node = TMetas {..}} = printLeaf n i c
-printMeta n i@Info {node = TMeta {..}} = printNonLeaf n i [name']
+-- printMetas n i@Node {node = TMetas {..}} = printLeaf n i c
+printMeta n i@Node {node = TMeta {..}} = printNonLeaf n i [name']
   where
     name' k = printName k name
     suff' = maybe nothing (printNothing n) suff
 
 
 printName :: Int -> I TName -> String
-printName m i@Info {node = TName {..}} = printLeaf m i n
+printName m i@Node {node = TName {..}} = printLeaf m i n
 
 printObjects :: Int -> I TObjects -> String
-printObjects n i@Info {node = TObjects {..}} = printNonLeaf n i [os']
-  where 
+printObjects n i@Node {node = TObjects {..}} = printNonLeaf n i [os']
+  where
     os' k = foldl (<>) [] (printObject k <$> os)
 
 printObject :: Int -> I TObject -> String
 printObject n i = printNothing n i <> "\n"
--- printObject n i@Info {node = TObject {..}} = printNonLeaf n i [os']
+-- printObject n i@Node {node = TObject {..}} = printNonLeaf n i [os']
 --   where 
 --     os' k = foldl (<>) [] (printObject k <$> os)
 
 
 -- printLi :: TabNumber -> I TProgram -> String
--- printProgram n i@Info {node = TProgram {..}} =
+-- printProgram n i@Node {node = TProgram {..}} =
 --   showHead k i <> l' <> m' <> o'
 --   where
 --     k = n + 1
@@ -470,7 +470,7 @@ indentAdd = 1
 --   return ans
 
 getIndent :: I TIndent -> Int
-getIndent (Info l TIndent {..}) = n
+getIndent Node {node = TIndent {..}} = n
 -- getIndent :: Node -> Int
 -- getIndent n =
 --   case n of
@@ -482,19 +482,26 @@ dec1 t p = do
   p1 <- getPos
   p' <- p
   p2 <- getPos
-  let ans = Info (Load p1 p2) p'
+  let ans = Node (Segment p1 p2) p' ()
   return ans
 
-class Loadable a where
-  getLoad :: a -> Load
-  putLoad :: Load -> a -> a
+-- class Loadable a where
+--   getLoad :: a -> Load
+--   putLoad :: Load -> a -> a
 
 -- can be used to combine positions of child nodes
-data I a = Info {l::Load, node::a} deriving (Data)
+-- data I a = Node {l::Load, node::a} deriving (Data)
 
-instance Loadable (I a) where
-  getLoad Info {..} = l
-  putLoad l x = x {l = l}
+-- instance Loadable (I a) where
+--   getLoad Node {..} = l
+--   putLoad l x = x {l = l}
+
+data Segment = Segment {start::Position, end::Position} deriving (Data)
+instance Show Segment where
+  show Segment {..} = printf "[%s..%s]" (show start) (show end)
+
+data Node a b = Node {pos::Segment, node::a, load::b} deriving (Data)
+type I a = Node a ()
 
 -- data N =
 

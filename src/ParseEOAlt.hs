@@ -158,8 +158,18 @@ data Node a b = Node {pos::Segment, node::a, load::b} deriving (Data)
 type I a = Node a ()
 
 
+-- node traversal
+
+-- loadProgram :: b -> I TProgram -> Node TProgram b
+-- loadProgram x n@Node{pos=p1, node = TProgram {..}} = Node {pos=p1, load = x, node=TProgram l' m' o'}
+--   where 
+--     l' = loadLicense n <$> l
+--     m' = loadMetas n <$> m
+--     o' = loadObjects n o
 
 
+-- loadLicense :: b -> I TLicense -> Node TLicense b
+-- loadLicense x n@Node{..} = Node {pos=pos, node = node, load = x}
 
 
 -- Node printing

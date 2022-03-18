@@ -31,9 +31,11 @@ custom-setup
 
 library
   exposed-modules:
+      EnumerateNodes
       ParseEO
       ParseEOAlt
       ParseIndents
+      PrettyPrint
       SimplifyTree
   other-modules:
       Paths_eo_parser

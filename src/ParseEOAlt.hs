@@ -14,7 +14,7 @@
 {-# LANGUAGE DerivingVia #-}
 
 
-module ParseEOAlt (tProgram, Load (..)
+module ParseEOAlt (tProgram, Load (..),
 I,
 Node(..), 
 Position(..), 
@@ -304,7 +304,6 @@ dec t p = do
 -- Parsers | Parsers | Parsers | Parsers | Parsers
 
 -- ***************************************************
-
 
 
 data Options2 a b = Opt2A a | Opt2B b deriving (Data.Data.Data)

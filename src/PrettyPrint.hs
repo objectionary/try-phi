@@ -5,7 +5,7 @@
 
 module PrettyPrint where
 
-import ParseEOAlt
+import ParseEO
 
 import qualified Data.List as DL(intercalate)
 import           Text.Printf                (printf, PrintfType)

@@ -1,18 +1,69 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE RecordWildCards       #-}
-{-# HLINT ignore "Use camelCase" #-}
+
+-- {-# HLINT ignore "Use camelCase" #-}
 {-# OPTIONS_GHC -Wno-deferred-out-of-scope-variables #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
-{-# HLINT ignore "Use <$>" #-}
+-- {-# HLINT ignore "Use <$>" #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# HLINT ignore "Use newtype instead of data" #-}
+{-# LANGUAGE DerivingVia #-}
 
-module ParseEO (pProgram, Node (..), Position(..), TokenType (..)) where
+
+module ParseEO (tProgram, Load (..),
+I,
+Node(..), 
+Position(..), 
+TProgram(..),
+TLicense(..),
+TComment(..),
+TMetas(..),
+TMeta(..),
+TMetaSuffix(..),
+TName(..),
+TObjects(..),
+TObject(..),
+TAbstraction(..),
+TTail(..),
+TApplication(..),
+TApplication1(..),
+TApplication1Elem(..),
+TMethod(..),
+THas(..),
+TAttributes(..),
+TAbstractionTail(..),
+THtail(..),
+TLabel(..),
+TSuffix(..),
+TTerminal(..),
+THead(..),
+THeadName(..),
+TData(..),
+TBool(..),
+TText(..),
+THex(..),
+TString(..),
+TFloat(..),
+TInt(..),
+TBytes(..),
+TChar(..),
+TRegex(..),
+TLineBytes(..),
+TByte(..),
+TIndent(..),
+Options2(..),
+Options3(..),
+Options8(..),
+Options9(..),
+) where
 
 import           Control.Applicative        (Alternative ((<|>)), optional)
-import           Control.Monad.Identity
+import Control.Monad.Identity ( guard, void, Identity )
 import           Data.Char                  (digitToInt)
-import qualified Data.List                  as DL
 import           Data.Scientific            (Scientific)
 import           Data.Text                  (Text, pack)
 import qualified Data.Text                  as T
@@ -33,8 +84,12 @@ import qualified Text.Megaparsec.Error
 import           Text.Megaparsec.Internal   (ParsecT)
 import qualified Text.Megaparsec.Stream
 import           Text.Printf                (printf)
+import Data.Data (Data(toConstr))
+
 
 type Parser = Parsec Void Text
+
+-- constant symbols
 
 cARROW :: Text
 cARROW = ">"
@@ -129,192 +184,64 @@ cTRUE = "TRUE"
 cFALSE :: Text
 cFALSE = "FALSE"
 
-data TokenType
-  = -- Non-terminals
-    Abstraction
-  | Application
-  | Application1
-  | Attribute
-  | Attributes
-  | Comment
-  | Data
-  | Has
-  | Head
-  | Htail
-  | Label
-  | License
-  | Metas
-  | Method
-  | Object
-  | Objects
-  | Program
-  | Suffix
-  | Tail
-  | -- Terminals (regex-recognizable)
-    ARROW
-  | AT
-  | BOOL Bool
-  | BYTE Integer
-  | BYTES
-  | CHAR Char
-  | COLON
-  | COMMENT Text
-  | CONST
-  | COPY
-  | DOT
-  | DOTS
-  | EMPTY_BYTES
-  | EOF
-  | EOL Text
-  | ESCAPE_SEQUENCE Text
-  | EXPONENT Text
-  | FLOAT Scientific
-  | HASH
-  | HEX Integer
-  | INDENT Int
-  | INT Integer
-  | LB
-  | LINEBREAK Text
-  | LINE_BYTES
-  | LSQ
-  | META
-  | MINUS
-  | NAME Text
-  | NEWLINE
-  | PLUS
-  | QUESTION
-  | RB
-  | REGEX Text Text
-  | RHO
-  | ROOT
-  | RSQ
-  | SIGMA
-  | SLASH
-  | SPACE
-  | STAR
-  | STRING Text
-  | TAB
-  | TEXT Text
-  | TEXT_MARK
-  | UNTAB
-  | VERTEX
-  | XI
-  | NONE
-  | ListNode
-  | JustNode
-  | NothingNode
-  | TextNode Text
-  deriving (Show, Eq)
+
+
+
+-- Node definition
 
 data Position = Position
   { row    :: Int,
     column :: Int
-  }
+  } deriving (Data)
+
+data Segment = Segment {start::Position, end::Position} deriving (Data)
+
+type I a = Node a Load
+
+data Load = Load {num :: Int} | AnotherLoad {k::String, o::Int} deriving (Data)
+initLoad = Load {num = 0}
+
+data Node a b = Node {pos::Segment, node::a, load::b} deriving (Data)
+
+defaultNode = Node {pos = Segment (Position 3 4) (Position 3 4), node = Nothing, load = initLoad}
+g l@Load{..} = l{num = 2}
 
 instance Show Position where
   show (Position r c) = printf "%d:%d" r c
 
-data Node = Node
-  { nodeToken :: TokenType,
-    nodes     :: [Node],
-    start     :: Position,
-    end       :: Position
-  }
+instance Show Segment where
+  show Segment {..} = printf "[%s..%s]" (show start) (show end)
 
-tab :: String
-tab = "|  "
 
-type TabNumber = Int
+instance Show Load where
+  show Load {..} = "(" <> show num <> ")"
 
-printTree :: TabNumber -> Node -> String
-printTree n Node {..} =
-  DL.intercalate "" (replicate n tab)
-    <> case nodeToken of
-      JustNode -> printf "%s\n" (show nodeToken)
-      ListNode -> printf "%s\n" (show nodeToken)
-      NothingNode -> printf "%s\n" (show nodeToken)
-      _ -> printf "%s [%s..%s]\n" (show nodeToken) (show start) (show end)
-    <> foldl (\s a -> s <> printTree (n + 1) a) "" nodes
 
-instance Show Node where
-  show n = printTree 0 n
-
-initNode :: Node
-initNode =
-  Node
-    { nodeToken = NONE,
-      nodes = [],
-      start = Position 0 0,
-      end = Position 0 0
-    }
+-- Parsing helpers
 
 getPos :: Parser Position
 getPos = do
   SourcePos _ r c <- getSourcePos
   return (Position (unPos r) (unPos c))
 
-pHexDigit :: Char -> Char -> Parser Int
-pHexDigit l1 l2 = do
+tHexDigit :: Char -> Char -> Parser Int
+tHexDigit l1 l2 = do
   c <- hexDigitChar
   guard (c `elem` ['0' .. '9'] <> [l1 .. l2])
   let c' = digitToInt c
   return c'
 
 pHexDigitUpper :: Parser Integer
-pHexDigitUpper = toInteger <$> pHexDigit 'A' 'F'
+pHexDigitUpper = toInteger <$> tHexDigit 'A' 'F'
 
 pHexDigitLower :: Parser Integer
-pHexDigitLower = toInteger <$> pHexDigit 'a' 'f'
+pHexDigitLower = toInteger <$> tHexDigit 'a' 'f'
 
 pEmpty :: Parser ()
 pEmpty = return ()
 
 hexToInt :: [Integer] -> Integer
 hexToInt = foldl (\x acc -> (acc * 16) + x) 0
-
-pTerminal :: Text -> TokenType -> Parser Node
-pTerminal s t = do
-  p1 <- getPos
-  void (string s)
-  p2 <- getPos
-  return $ Node t [] p1 p2
-
-listNode :: Parser [Node] -> Parser Node
-listNode p = do
-  ns <- try p
-  return initNode
-    { nodeToken = ListNode,
-      nodes = ns
-    }
-
-maybeToNode :: Maybe Node -> Node
-maybeToNode (Just n) = n
-maybeToNode Nothing =
-  initNode
-    { nodeToken = NothingNode
-    }
-
--- | keeps parser if it succeeds
---
--- otherwise, produces a parser with `NothingNode` tag
-optionalNode :: Parser Node -> Parser Node
-optionalNode p = try $ do
-  p1 <- getPos
-  n <- maybeToNode <$> optional (try p)
-  p2 <- getPos
-  return n {start = p1, end = p2}
-
-textNode :: Parser Text -> Parser Node
-textNode txt = do
-  p1 <- getPos
-  t <- try txt
-  p2 <- getPos
-  return
-    initNode
-      { nodeToken = TextNode t,
-        start = p1,
-        end = p2
-      }
 
 debugFlag :: Bool
 debugFlag = True
@@ -341,8 +268,8 @@ enter name = do
   debug (show pos <> ": Enter " <> show name) pEmpty
   return ()
 
-pEOL :: Parser ()
-pEOL = try $ do
+tEOL :: Parser ()
+tEOL = try $ do
   _ <- eol *> optional (try eol)
   return ()
 
@@ -359,22 +286,18 @@ noIndent = 0
 indentAdd :: Int
 indentAdd = 1
 
--- | decorator with common for all nodes actions
-dec :: Show a1 => a1 -> Parser (TokenType, [Node]) -> Parser Node
-dec name p = do
+getIndent :: I TIndent -> Int
+getIndent Node {node = TIndent {..}} = n
+
+-- | does common actions for all nodes
+dec::Text -> Parser a -> Parser (I a)
+dec t p = do
   p1 <- getPos
-  -- enter name
-  (t,l) <- p
+  p' <- p
   p2 <- getPos
-  let ans = Node t l p1 p2
-  -- leave name ans
+  let ans = Node (Segment p1 p2) p' initLoad
   return ans
 
-getIndent :: Node -> Int
-getIndent n =
-  case n of
-    Node {nodeToken = INDENT ind} -> ind
-    _                             -> 0
 
 -- ***************************************************
 
@@ -382,339 +305,437 @@ getIndent n =
 
 -- ***************************************************
 
-pProgram :: Parser Node
-pProgram = dec "Program" $ do
-  l <- optionalNode ({-debug "program:license"-} pLicense)
-  m <- optionalNode ({-debug "program:metas"-} pMetas)
-  o <- {-debug "program:objects"-} pObjects
-  return (Program, [l, m, o])
 
-pLicense :: Parser Node
-pLicense = dec "License" $ do
-  cs <- someTry (pCOMMENT <* pEOL)
-  return (License, cs)
+data Options2 a b = Opt2A a | Opt2B b deriving (Data)
+data Options3 a b c = Opt3A a | Opt3B b | Opt3C c deriving (Data)
 
-pMetas :: Parser Node
-pMetas = dec "Metas" $ do
-  ms <- someTry (pMETA <* pEOL)
-  return (Metas, ms)
+data TProgram = TProgram {l::Maybe (I TLicense), m::Maybe (I TMetas), o::I TObjects} deriving (Data)
+tProgram :: Parser (I TProgram)
+tProgram = dec "Program" $ do
+  l <- optional $ try ({-debug "program:license"-} tLicense)
+  m <- optional $ try ({-debug "program:metas"-} tMetas)
+  o <- {-debug "program:objects"-} tObjects
+  return TProgram {l = l, m = m, o = o}
 
-pObjects :: Parser Node
-pObjects = dec "Objects" $ do
-  -- os <- someTry $ pObject noIndent <* pEOL_TAB_MANY
-  os <- someTry $ pObject noIndent <* pEOL
-  return (Objects, os)
+data TLicense = TLicense {cs::[I TComment]} deriving (Data)
+tLicense :: Parser (I TLicense)
+tLicense = dec "License" $ do
+  cs <- someTry (tComment <* tEOL)
+  return TLicense {cs = cs}
 
-pObject :: Int -> Parser Node
-pObject ind = dec "Object" $ do
-  comments <- listNode $ manyTry $ do
-    c <- {-debug "object:comment"-} pCOMMENT
-    e <- pEOL_TAB_MANY
+data TMetas = TMetas {ms::[I TMeta]} deriving (Data)
+tMetas :: Parser (I TMetas)
+tMetas = dec "Metas" $ do
+  ms <- someTry (tMeta <* tEOL)
+  return TMetas {ms = ms}
+
+data TObjects = TObjects {os::[I TObject]} deriving (Data)
+tObjects :: Parser (I TObjects)
+tObjects = dec "Objects" $ do
+  os <- someTry $ tObject noIndent <* tEOL
+  return TObjects {os = os}
+
+
+data TObject = TObject {
+  cs::[I TComment],
+  a::Options2 (I TAbstraction) (I TApplication),
+  t::Maybe (I TTail),
+  s::[(I TMethod, Maybe (I THtail), Maybe (I TSuffix), Maybe (I TTail))]} deriving (Data)
+
+tObject :: Int -> Parser (I TObject)
+tObject ind = dec "Object" $ do
+  comments <- manyTry $ do
+    c <- {-debug "object:comment"-} tComment
+    e <- tEOLTabMany
     guard $ getIndent e == ind
     return c
   a <-
     choiceTry
-      [ {-debug "object:abstraction"-} pAbstraction,
-        {-debug "object:application"-} pApplication
+      [ Opt2A <$>{-debug "object:abstraction"-} tAbstraction,
+        Opt2B <$> {-debug "object:application"-} tApplication
       ]
   let newIndent = ind + indentAdd
   -- list of attributes
-  t <- optionalNode ({-debug "object:tail"-} pTail newIndent)
-
-  -- TODO ban suffix 
+  t <- optional $ try ({-debug "object:tail"-} tTail newIndent)
   let g = do
-        e <- pEOL_TAB_MANY
+        e <- tEOLTabMany
         guard $ getIndent e == ind
-        method <- {-debug "object:method"-} pMethod
-        h <- optionalNode ({-debug "object:htail"-} pHtail)
-        suffix <- optionalNode ({-debug "object:suffix"-} pSuffix)
-        p <- optionalNode ({-debug "object:tail"-} pTail (ind + indentAdd))
-        return [method, h, suffix, p]
-  s <- listNode $ manyTry $ listNode ({-debug "object:after tail"-} g)
-  return (Object, [comments, a, t, s])
+        method <- {-debug "object:method"-} tMethod
+        h <- optional $ try ({-debug "object:htail"-} tHtail)
+        suffix <- optional $ try ({-debug "object:suffix"-} tSuffix)
+        p <- optional $ try ({-debug "object:tail"-} tTail (ind + indentAdd))
+        return (method, h, suffix, p)
+  s <- manyTry $ ({-debug "object:after tail"-} g)
+  return TObject {cs = comments, a = a, t = t, s = s}
 
-pAbstraction :: Parser Node
-pAbstraction = dec "Abstraction" $ do
-  attrs <- {-debug "abstraction:attributes"-} pAttributes
-  t <-
-    optionalNode $
-      listNode $ choiceTry
-          [ do
-              suff <- {-debug "abstraction:suffix"-} pSuffix
-              o <-
-                optionalNode $
-                  string cSPACE
-                    *> string cSLASH
-                    *> choiceTry
-                      [ {-debug "abstraction:name"-} pNAME,
-                        pTerminal cQUESTION QUESTION
-                      ]
-              return [suff, o],
-            do
-              htail <- {-debug "abstraction:htail"-} pHtail
-              return [htail]
-          ]
-  return (Abstraction, [attrs, t])
+
+data TAbstraction = TAbstraction {as::I TAttributes, t::Maybe (I TAbstractionTail)} deriving (Data)
+tAbstraction ::Parser (I TAbstraction)
+tAbstraction = dec "Abstraction" $ do
+  attrs <- tAttributes
+  t <- optional $ try tAbstractionTail
+  return TAbstraction {as = attrs, t = t}
+
+data TAbstractionTail = TAbstractionTail {e::Options2 (I TSuffix, Maybe (Options2 (I TName) (I TTerminal))) (I THtail)} deriving (Data)
+tAbstractionTail :: Parser (I TAbstractionTail)
+tAbstractionTail = dec "Abstraction tail" $ do
+  let a = do
+      suff <- tSuffix
+      o <- optional $ try (
+        string cSPACE
+        *> string cSLASH
+        *> choiceTry
+          [ Opt2A <$> {-debug "abstraction:name"-} tName,
+            Opt2B <$> tTerminal cQUESTION Question
+          ])
+      return (suff, o)
+  let b = tHtail
+  e <- choiceTry [Opt2A <$> a, Opt2B <$> b]
+  return TAbstractionTail {e = e}
 
 -- | contains list of arguments
 --
 -- If no arguments are provided, the list is empty
 -- This is the same as making the part between [] optional
-pAttributes :: Parser Node
-pAttributes = dec "Attributes" $ do
+data TAttributes = TAttributes {as::[I TLabel]} deriving (Data)
+tAttributes :: Parser (I TAttributes)
+tAttributes = dec "Attributes" $ do
   _ <- string cLSQ
   attrs <- choiceTry
         [ do
-            a <- {-debug "attributes:attribute1"-} pAttribute
-            as <- manyTry (string cSPACE *> {-debug "attributes:attribute2"-} pAttribute)
+            a <- {-debug "attributes:attribute1"-} tLabel
+            as <- manyTry (string cSPACE *> {-debug "attributes:attribute2"-} tLabel)
             return (a : as),
           [] <$ pEmpty
         ]
   _ <- string cRSQ
-  return (Attributes, attrs)
+  return TAttributes {as = attrs}
 
-pAttribute :: Parser Node
-pAttribute = pLabel
-
-pLabel :: Parser Node
-pLabel = dec "Label" $ do
+data TLabel = TLabel {l::Options2 (I TTerminal) (I TName, Maybe (I TTerminal))} deriving (Data)
+tLabel :: Parser (I TLabel)
+tLabel = dec "Label" $ do
   l <-
     choiceTry
-      [ (: []) <$> {-debug "label:@"-} (pTerminal cAT AT),
-        do
-          name <- {-debug "label:name"-} pNAME
+      [ Opt2A <$> {-debug "label:@"-} (tTerminal cAT At),
+        Opt2B <$> (do
+          name <- {-debug "label:name"-} tName
           -- TODO move dots to abstraction end (before csq)
-          dots <- optionalNode ({-debug "label:..."-} (pTerminal cDOTS DOTS))
-          return [name, dots]
+          dots <- optional ({-debug "label:..."-} (tTerminal cDOTS Dots))
+          return (name, dots))
       ]
-  return (Label, l)
+  return TLabel {l = l}
 
-pTail :: Int -> Parser Node
-pTail ind = dec "Tail" $ do
-  let pObj = do
-        e <- {-debug "tail:eol"-} pEOL_TAB_MANY
+data TTail = TTail {os::[I TObject]} deriving (Data)
+tTail :: Int -> Parser (I TTail)
+tTail ind = dec "Tail" $ do
+  let tObj = do
+        e <- {-debug "tail:eol"-} tEOLTabMany
         let ind1 = getIndent e
         guard $ ind1 == ind
-        pObject ind1
-  objects <- someTry pObj
-  return (Tail, objects)
+        tObject ind1
+  objects <- someTry tObj
+  return TTail {os = objects}
 
-pSuffix :: Parser Node
-pSuffix = dec "Suffix" $ do
-  label <- string cSPACE *> string cARROW *> string cSPACE *> {-debug "suffix:label"-} pLabel
-  c <- optionalNode ({-debug "suffix:const"-} (pTerminal cCONST CONST))
-  return (Suffix, [label, c])
+data TSuffix = TSuffix {l::I TLabel, c::Maybe (I TTerminal)} deriving (Data)
+tSuffix :: Parser (I TSuffix)
+tSuffix = dec "Suffix" $ do
+  label <- string cSPACE *> string cARROW *> string cSPACE *> {-debug "suffix:label"-} tLabel
+  c <- optional ({-debug "suffix:const"-} (tTerminal cCONST Const))
+  return TSuffix {l = label, c = c}
 
-pMethod :: Parser Node
-pMethod = dec "Method" $ do
+data TMethod = TMethod {m::Options2 (I TName) (I TTerminal)} deriving (Data)
+tMethod :: Parser (I TMethod)
+tMethod = dec "Method" $ do
   method <-
     string cDOT
       *> choiceTry
-        [ {-debug "method:name"-} pNAME,
-          {-debug "method:^"-} (pTerminal cRHO RHO),
-          {-debug "method:@"-} (pTerminal cAT AT),
-          {-debug "method:<"-} (pTerminal cVERTEX VERTEX)
+        [ Opt2A <$> {-debug "method:name"-} tName,
+          Opt2B <$> {-debug "method:^"-} (tTerminal cRHO Rho),
+          Opt2B <$> {-debug "method:@"-} (tTerminal cAT At),
+          Opt2B <$> {-debug "method:<"-} (tTerminal cVERTEX Vertex)
         ]
-  return (Method, [method])
+  return TMethod {m = method}
 
-pApplication :: Parser Node
-pApplication = dec "Application" $ do
+data TApplication = TApplication {s::Options2 (I THead) (I TApplication), h::Maybe (I THtail), a1::I TApplication1} deriving (Data)
+tApplication :: Parser (I TApplication)
+tApplication = dec "Application" $ do
   s <-
     choiceTry
-      [ {-debug "application:head"-} pHead,
-        string cLB *> {-debug "application:application"-} pApplication <* string cRB
+      [ Opt2A <$>{-debug "application:head"-} tHead,
+        Opt2B <$> (string cLB *> {-debug "application:application"-} tApplication <* string cRB)
       ]
-  h <- optionalNode ({-debug "application:htail"-} pHtail)
-  a1 <- {-debug "application:application1"-} pApplication1
-  return (Application, [s, h, a1])
+  h <- optional $ try ({-debug "application:htail"-} tHtail)
+  a1 <- {-debug "application:application1"-} tApplication1
+  return TApplication {s = s, h = h, a1 = a1}
 
-pApplication1 :: Parser Node
-pApplication1 = dec "Application1" $ do
-  c <- choiceTry
-        [ do
-            c1 <-
-              choiceTry
-                [ {-debug "application1:method"-} pMethod,
-                  {-debug "application1:has"-} pHas,
-                  {-debug "application1:suffix"-} pSuffix
-                ]
-            ht <- optionalNode ({-debug "application1:htail"-} pHtail)
-            a <- {-debug "application1:application1"-} pApplication1
-            return [c1, ht, a]
-          , [] <$ pEmpty
-        ]
-  return (Application1, c)
+data TApplication1 = TApplication1 {c::Maybe (I TApplication1Elem)} deriving (Data)
+tApplication1 :: Parser (I TApplication1)
+tApplication1 = dec "Application1" $ do
+  c <- optional $ try tApplication1Elem
+  return TApplication1 {c = c}
 
-pHtail :: Parser Node
-pHtail = dec "Htail" $ do
+data TApplication1Elem = TApplication1Elem {c1::Options3 (I TMethod) (I THas) (I TSuffix), ht::Maybe (I THtail), a::I TApplication1} deriving (Data)
+tApplication1Elem :: Parser (I TApplication1Elem)
+tApplication1Elem = dec "Application1 Element" $ do
+  c1 <-
+    choiceTry
+      [ Opt3A <$> {-debug "application1:method"-} tMethod,
+        Opt3B <$> {-debug "application1:has"-} tHas,
+        Opt3C <$> {-debug "application1:suffix"-} tSuffix
+      ]
+  ht <- optional $ try ({-debug "application1:htail"-} tHtail)
+  a <- {-debug "application1:application1"-} tApplication1
+  return TApplication1Elem {c1 = c1, ht = ht, a = a}
+
+
+data THtail = THtail {t::[Options3 (I THead) (I TApplication) (I TAbstraction)]} deriving (Data)
+tHtail :: Parser (I THtail)
+tHtail = dec "Htail" $ do
   let op = choiceTry
-            [ {-debug "htail:head"-} pHead,
-              string cLB *> {-debug "htail:application1"-} pApplication <* string cRB,
-              {-debug "htail:abstraction"-} pAbstraction
+            [ Opt3A <$> {-debug "htail:head"-} tHead,
+              Opt3B <$> (string cLB *> {-debug "htail:application1"-} tApplication <* string cRB),
+              Opt3C <$> {-debug "htail:abstraction"-} tAbstraction
             ]
   t <- someTry (string cSPACE *> op)
-  return (Htail, t)
+  return THtail {t = t}
 
--- | second element of list contains either a reseved symbol
--- or a name with modifiers
--- TODO inverse dot parser cannot be accessed
--- during parsing
-pHead :: Parser Node
-pHead = dec "Head" $ do
-  dots <- optionalNode $ pTerminal cDOTS DOTS
+data Options8 a b c d e f g h =
+    Options8A a
+  | Options8B b
+  | Options8C c
+  | Options8D d
+  | Options8E e
+  | Options8F f
+  | Options8G g
+  | Options8H h
+  deriving (Data)
+
+data TTerminal =
+    Root
+  | Xi
+  | Sigma
+  | Dot
+  | Copy
+  | Star
+  | At
+  | Rho
+  | Vertex
+  | EmptyBytes
+  | Question
+  | Dots
+  | Const
+  deriving (Data, Show)
+
+tTerminal :: Text -> TTerminal -> Parser (I TTerminal)
+tTerminal s t = dec s $ do
+  p1 <- getPos
+  void (string s)
+  p2 <- getPos
+  return t
+
+data THead = THead {dots::Maybe (I TTerminal), t::Options3 (I TTerminal) (I THeadName) (I TData)} deriving (Data)
+tHead :: Parser (I THead)
+tHead = dec "Head" $ do
+  dots <- optional $ tTerminal cDOTS Dots
   t <- choiceTry
-      [ {-debug "head:root"-}  (pTerminal cROOT ROOT),
-        {-debug "head:at"-}  (pTerminal cAT AT),
-        {-debug "head:rho"-}  (pTerminal cRHO RHO),
-        {-debug "head:xi"-}   (pTerminal cXI XI),
-        {-debug "head:sigma"-}   (pTerminal cSIGMA SIGMA),
-        {-debug "head:star"-}   (pTerminal cSTAR STAR),
-        {-debug "head:copy"-} (
-          listNode $
-            do
-              name <- pNAME
-              c <- choiceTry [
-                    pTerminal cDOT DOT <* lookAhead (string cSPACE)
-                  , optionalNode $ pTerminal cCOPY COPY
-                  ]
-              return [name, c]),
-         ({-debug "head:data"-} pDATA)
+      [ Opt3A <$>{-debug "head:root"-}  (tTerminal cROOT Root),
+        Opt3A <$>{-debug "head:at"-}  (tTerminal cAT At),
+        Opt3A <$>{-debug "head:rho"-}  (tTerminal cRHO Rho),
+        Opt3A <$>{-debug "head:xi"-}   (tTerminal cXI Xi),
+        Opt3A <$>{-debug "head:sigma"-}   (tTerminal cSIGMA Sigma),
+        Opt3A <$>{-debug "head:star"-}   (tTerminal cSTAR Star),
+        Opt3B <$> tHeadName,
+        Opt3C <$>{-debug "head:data"-} (tData)
       ]
-  return (Head, [dots, t])
+  return THead {dots = dots, t = t}
 
-pHas :: Parser Node
-pHas = dec "Has" $ do
+-- TODO lookahead EOL
+data THeadName = THeadName {name::I TName, c::Options2 (I TTerminal) (Maybe (I TTerminal))} deriving (Data)
+tHeadName :: Parser (I THeadName)
+tHeadName = dec "Head name" $ do
+  name <- tName
+  c <- choiceTry [
+        Opt2A <$> tTerminal cDOT Dot <* lookAhead (string cSPACE)
+      , Opt2B <$> optional (tTerminal cCOPY Copy)
+      ]
+  return THeadName {name = name, c = c}
+
+
+data THas = THas {n::I TName} deriving (Data)
+tHas :: Parser (I THas)
+tHas = dec "Has" $ do
   _ <- string cCOLON
-  n <- {-debug "has:name"-} pNAME
-  return (Has, [n])
+  n <- {-debug "has:name"-} tName
+  return THas {n = n}
 
 
-pDATA :: Parser Node
-pDATA = dec "DATA" $ do
+data Options9 a b c d e f g h i =
+    Opt9A a
+  | Opt9B b
+  | Opt9C c
+  | Opt9D d
+  | Opt9E e
+  | Opt9F f
+  | Opt9G g
+  | Opt9H h
+  | Opt9I i
+  deriving (Data)
+
+data TData = TData {d::Options9 (I TBool) (I TText) (I THex) (I TString) (I TFloat) (I TInt) (I TBytes) (I TChar) (I TRegex)} deriving (Data)
+tData :: Parser (I TData)
+tData = dec "DATA" $ do
   d <-
     choiceTry
-      [ {-debug "data:bool"-} pBOOL,
-        {-debug "data:text"-} pTEXT,
-        {-debug "data:hex"-} pHEX,
-        {-debug "data:string"-} pSTRING,
-        {-debug "data:float"-} pFLOAT,
-        {-debug "data:int"-} pINT,
-        {-debug "data:bytes"-} pBYTES,
-        {-debug "data:char"-} pCHAR,
-        {-debug "data:regex"-} pREGEX
+      [ {-debug "data:bool"-}Opt9A <$> tBool,
+        {-debug "data:text"-} Opt9B <$>tText,
+        {-debug "data:hex"-} Opt9C <$>tHex,
+        {-debug "data:string"-} Opt9D <$>tString,
+        {-debug "data:float"-} Opt9E <$>tFloat,
+        {-debug "data:int"-} Opt9F <$>tInt,
+        {-debug "data:bytes"-} Opt9G <$>tBytes,
+        {-debug "data:char"-} Opt9H <$>tChar,
+        {-debug "data:regex"-} Opt9I <$>tRegex
       ]
-  return (Data, [d])
+  return TData {d = d}
 
-pCOMMENT :: Parser Node
-pCOMMENT = dec "COMMENT" $ do
+data TComment = TComment {c::Text} deriving (Data)
+tComment :: Parser (I TComment)
+tComment = dec "COMMENT" $ do
   _ <- string cHASH
   content <- pack <$> many printChar
-  return (COMMENT content, [])
+  return TComment {c = content}
 
-pMETA :: Parser Node
-pMETA = dec "META" $ do
+
+data TMeta = TMeta {name::I TName, suff::Maybe (I TMetaSuffix)} deriving (Data)
+tMeta :: Parser (I TMeta)
+tMeta = dec "META" $ do
   _ <- string cPLUS
-  name <- {-debug "meta:name"-} pNAME
-  suffix <- {-debug "meta:suffix"-} (optionalNode $ textNode $ pack <$> (string cSPACE *> some printChar))
-  return (META, [name, suffix])
+  name <- {-debug "meta:name"-} tName
+  suffix <- {-debug "meta:suffix"-} (optional $ try tMetaSuffix)
+  return TMeta {name = name, suff = suffix}
 
-pREGEX :: Parser Node
-pREGEX = dec "REGEX" $ do
+data TMetaSuffix = TMetaSuffix {s::Text} deriving (Data)
+tMetaSuffix :: Parser (I TMetaSuffix)
+tMetaSuffix = dec "Meta Suffix" $ do
+  suffix <- {-debug "meta:suffix"-} (pack <$> (string cSPACE *> some printChar))
+  return TMetaSuffix {s = suffix}
+
+
+data TRegex = TRegex {r :: Text, suff :: Text} deriving (Data)
+tRegex :: Parser (I TRegex)
+tRegex = dec "REGEX" $ do
   _ <- string cSLASH
   r <- takeWhile1P (Just "regex expression") (`notElem` map T.head [cSLASH, cNEWLINE, cCARET_RETURN])
   _ <- string cSLASH
   suffix <- pack <$> many alphaNumChar
-  return (REGEX r suffix, [])
+  return (TRegex {r = r, suff = suffix})
 
-pEOL_TAB_MANY :: Parser Node
-pEOL_TAB_MANY = dec "EOL_TAB_MANY" $ do
+
+data TIndent = TIndent {n::Int} deriving (Data)
+tEOLTabMany :: Parser (I TIndent)
+tEOLTabMany = dec "EOL_TAB_MANY" $ do
   _ <- {-debug "eol:eol"-} (try (eol *> optional eol))
   indents <- T.concat <$> many (string cINDENT)
   let nIndents = T.length indents `div` 2
-  return (INDENT nIndents, [])
+  return TIndent {n = nIndents}
 
-pBYTE :: Parser Node
-pBYTE = dec "BYTE" $ do
+data TByte = TByte {b :: Integer} deriving (Data)
+tByte :: Parser (I TByte)
+tByte = dec "BYTE" $ do
   b <- hexToInt <$> count 2 pHexDigitUpper
-  return (BYTE b, [])
+  return TByte {b = b}
 
-pLINE_BYTES :: Parser Node
-pLINE_BYTES = dec "LINE_BYTES" $ do
-  byte <- {-debug "line_bytes:byte"-} pBYTE
-  bytes <- {-debug "line_bytes:bytes"-} (someTry (string cMINUS *> pBYTE))
-  return (LINE_BYTES, byte : bytes)
+data TLineBytes = TLineBytes {bs::[I TByte]} deriving (Data)
+tLineBytes :: Parser (I TLineBytes)
+tLineBytes = dec "LINE_BYTES" $ do
+  byte <- {-debug "line_bytes:byte"-} tByte
+  bytes <- {-debug "line_bytes:bytes"-} (someTry (string cMINUS *> tByte))
+  return TLineBytes {bs = byte : bytes}
 
-pBYTES :: Parser Node
-pBYTES = dec "BYTES" $ do
+data TBytes = TBytes {bs::Options3 (I TTerminal) (I TByte) [I TLineBytes]} deriving (Data)
+tBytes :: Parser (I TBytes)
+tBytes = dec "BYTES" $ do
   bytes <-
     choiceTry
       [ parser1,
         parser3,
         parser2
       ]
-  return (BYTES, bytes)
+  return TBytes {bs = bytes}
   where
     parser1 = do
-      _ <- string cEMPTY_BYTES
-      return []
+      s <- tTerminal cEMPTY_BYTES EmptyBytes
+      return (Opt3A s)
     parser2 = do
-      byte <- pBYTE
+      byte <- tByte
       _ <- string cMINUS
-      return [byte]
+      return (Opt3B byte)
     parser4 = do
       _ <- string cMINUS
-      e <- pEOL_TAB_MANY
-      lb <- pLINE_BYTES
-      return [e, lb]
+      -- TODO guard indentation
+      e <- tEOLTabMany
+      lb <- tLineBytes
+      return lb
     parser3 = do
-      lb <- pLINE_BYTES
-      lbs <- concat <$> manyTry parser4
-      return (lb : lbs)
+      lb <- tLineBytes
+      lbs <- manyTry parser4
+      return (Opt3C (lb : lbs))
 
-pBOOL :: Parser Node
-pBOOL = dec "BOOL" $ do
+data TBool = TBool {b::Bool} deriving (Data)
+tBool :: Parser (I TBool)
+tBool = dec "BOOL" $ do
   b <-
     choiceTry
-      [ BOOL True <$ string cTRUE,
-        BOOL False <$ string cFALSE
+      [ True <$ string cTRUE,
+        False <$ string cFALSE
       ]
-  return (b, [])
+  return TBool {b = b}
 
+data TChar = TChar {c::Char} deriving (Data)
 -- | slightly differs from grammar: doesn't allow u Byte Byte
-pCHAR :: Parser Node
-pCHAR = dec "CHAR" $ do
+tChar :: Parser (I TChar)
+tChar = dec "CHAR" $ do
   c <- char '\'' *> charLiteral <* char '\''
-  return (CHAR c, [])
+  return TChar {c = c}
 
+data TString = TString {s::Text} deriving (Data)
 -- | slightly differs from grammar: doesn't allow u Byte Byte
-pSTRING :: Parser Node
-pSTRING = dec "STRING" $ do
+tString :: Parser (I TString)
+tString = dec "STRING" $ do
   s <- pack <$> (char '\"' *> manyTill charLiteral (char '\"'))
-  return (STRING s, [])
+  return TString {s = s}
 
-pINT :: Parser Node
-pINT = dec "INT" $ do
+data TInt = TInt {s::Integer} deriving (Data)
+tInt :: Parser (I TInt)
+tInt = dec "INT" $ do
   s <- signed pEmpty decimal
-  return (INT s, [])
+  return TInt {s = s}
 
-pFLOAT :: Parser Node
-pFLOAT = dec "FLOAT" $ do
+data TFloat = TFloat {f::Scientific} deriving (Data)
+tFloat :: Parser (I TFloat)
+tFloat = dec "FLOAT" $ do
   f <- signed pEmpty scientific
-  return (FLOAT f, [])
+  return (TFloat {f = f})
 
-pHEX :: Parser Node
-pHEX = dec "HEX" $ do
+data THex = THex {h::Integer} deriving (Data)
+tHex :: Parser (I THex)
+tHex = dec "HEX" $ do
   s <- hexToInt <$> (string "0x" *> someTry pHexDigitLower)
-  return (HEX s, [])
+  return THex {h = s}
 
-pNAME :: Parser Node
-pNAME = dec "NAME" $ do
+
+data TName = TName {n::Text} deriving (Data)
+tName :: Parser (I TName)
+tName = dec "NAME" $ do
   l1 <- {-debug "name: first letter"-} lowerChar
   l2 <- {-debug "name: other letters"-} (manyTry (letterChar <|> numberChar <|> char '_' <|> char '-'))
-  return (NAME (pack (l1 : l2)), [])
+  return TName {n = pack (l1:l2)}
 
 -- IDK maybe need to allow indentation after eol
-pTEXT :: Parser Node
-pTEXT = dec "TEXT" $ do
+newtype TText = TText {t::Text} deriving (Data, Show)
+tText :: Parser (I TText)
+tText = dec "TEXT" $ do
   t <- try $ pack <$> (string cTEXT_MARK *> eol *> manyTill charLiteral (string cTEXT_MARK))
-  return (TEXT t, [])
+  return TText {t = t}
+
+-- TODO function to combine pos

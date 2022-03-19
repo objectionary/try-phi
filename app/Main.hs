@@ -7,13 +7,13 @@
 
 module Main where
 
-import ParseEO as P (pProgram)
-import ParseEOAlt as A (tProgram)
+import ParseEO as A (tProgram)
 import PrettyPrint as PP
 import Text.Megaparsec (parseTest, parseMaybe)
-import SimplifyTree(simplifyCST, enumerateNodes)
+-- import SimplifyTree(simplifyCST, enumerateNodes)
 import Data.Text as DT (pack, replicate, Text(..))
 import Text.Printf (printf)
+import EnumerateNodes (enumInsertProgram)
 
 main :: IO ()
 main = do
@@ -23,8 +23,8 @@ main = do
   let tr1 = parseMaybe tProgram code
   putStr "\n\n"
   case tr1 of
-    -- Just t -> print "Tree"
-    Just t -> putStr $ show t
+    Just t -> print "Tree"
+    -- Just t -> putStr $ show (fst $ enumInsertProgram t)
     _ -> print "Not ok"
   -- let tr = parseMaybe pProgram code
   -- -- let l = printf "\n%s\n%s\n%s\n" ((DT.replicate 10 "*")::Text) ("\nRESULT\n") ((DT.replicate 10 "*")::Text)

@@ -7,13 +7,13 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE RecordWildCards       #-}
 
-module SimplifyTree (simplifyCST, enumerateNodes) where
+module SimplifyTree (simplifyCST) where
 
 import           Control.Monad.State.Strict (State (), evalState, execState,
                                              get, put)
 import           Data.Hashable              (Hashable)
 import           Data.HashMap.Strict.InsOrd (InsOrdHashMap)
-import qualified Data.HashMap.Strict.InsOrd as M (InsOrdHashMap, empty, insert)
+import qualified Data.HashMap.Strict.InsOrd as M (InsOrdHashMap, empty, insert) 
 import           Data.Scientific            (Scientific)
 import           Data.Text                  (Text)
 import           GHC.Generics               (Generic)

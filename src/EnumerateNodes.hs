@@ -3,7 +3,7 @@ module EnumerateNodes where
 
 import           Control.Monad.State.Strict (State, get, put, runState)
 import qualified Data.HashMap.Strict.InsOrd as M (InsOrdHashMap, empty, insert)
-import           ParseEOAlt
+import           ParseEO
 
 data MapElement =
      MProgram (I TProgram)

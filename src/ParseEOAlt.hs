@@ -192,16 +192,16 @@ cFALSE = "FALSE"
 data Position = Position
   { row    :: Int,
     column :: Int
-  } deriving (Data.Data.Data)
+  } deriving (Data)
 
-data Segment = Segment {start::Position, end::Position} deriving (Data.Data.Data)
+data Segment = Segment {start::Position, end::Position} deriving (Data)
 
 type I a = Node a Load
 
-data Load = Load {num :: Int} | AnotherLoad {k::String, o::Int} deriving (Data.Data.Data)
+data Load = Load {num :: Int} | AnotherLoad {k::String, o::Int} deriving (Data)
 initLoad = Load {num = 0}
 
-data Node a b = Node {pos::Segment, node::a, load::b} deriving (Data.Data.Data)
+data Node a b = Node {pos::Segment, node::a, load::b} deriving (Data)
 
 defaultNode = Node {pos = Segment (Position 3 4) (Position 3 4), node = Nothing, load = initLoad}
 g l@Load{..} = l{num = 2}
@@ -306,10 +306,10 @@ dec t p = do
 -- ***************************************************
 
 
-data Options2 a b = Opt2A a | Opt2B b deriving (Data.Data.Data)
-data Options3 a b c = Opt3A a | Opt3B b | Opt3C c deriving (Data.Data.Data)
+data Options2 a b = Opt2A a | Opt2B b deriving (Data)
+data Options3 a b c = Opt3A a | Opt3B b | Opt3C c deriving (Data)
 
-data TProgram = TProgram {l::Maybe (I TLicense), m::Maybe (I TMetas), o::I TObjects} deriving (Data.Data.Data)
+data TProgram = TProgram {l::Maybe (I TLicense), m::Maybe (I TMetas), o::I TObjects} deriving (Data)
 tProgram :: Parser (I TProgram)
 tProgram = dec "Program" $ do
   l <- optional $ try ({-debug "program:license"-} tLicense)
@@ -317,20 +317,19 @@ tProgram = dec "Program" $ do
   o <- {-debug "program:objects"-} tObjects
   return TProgram {l = l, m = m, o = o}
 
-
-data TLicense = TLicense {cs::[I TComment]} deriving (Data.Data.Data)
+data TLicense = TLicense {cs::[I TComment]} deriving (Data)
 tLicense :: Parser (I TLicense)
 tLicense = dec "License" $ do
   cs <- someTry (tComment <* tEOL)
   return TLicense {cs = cs}
 
-data TMetas = TMetas {ms::[I TMeta]} deriving (Data.Data.Data)
+data TMetas = TMetas {ms::[I TMeta]} deriving (Data)
 tMetas :: Parser (I TMetas)
 tMetas = dec "Metas" $ do
   ms <- someTry (tMeta <* tEOL)
   return TMetas {ms = ms}
 
-data TObjects = TObjects {os::[I TObject]} deriving (Data.Data.Data)
+data TObjects = TObjects {os::[I TObject]} deriving (Data)
 tObjects :: Parser (I TObjects)
 tObjects = dec "Objects" $ do
   os <- someTry $ tObject noIndent <* tEOL
@@ -341,7 +340,7 @@ data TObject = TObject {
   cs::[I TComment],
   a::Options2 (I TAbstraction) (I TApplication),
   t::Maybe (I TTail),
-  s::[(I TMethod, Maybe (I THtail), Maybe (I TSuffix), Maybe (I TTail))]} deriving (Data.Data.Data)
+  s::[(I TMethod, Maybe (I THtail), Maybe (I TSuffix), Maybe (I TTail))]} deriving (Data)
 
 tObject :: Int -> Parser (I TObject)
 tObject ind = dec "Object" $ do
@@ -370,14 +369,14 @@ tObject ind = dec "Object" $ do
   return TObject {cs = comments, a = a, t = t, s = s}
 
 
-data TAbstraction = TAbstraction {as::I TAttributes, t::Maybe (I TAbstractionTail)} deriving (Data.Data.Data)
+data TAbstraction = TAbstraction {as::I TAttributes, t::Maybe (I TAbstractionTail)} deriving (Data)
 tAbstraction ::Parser (I TAbstraction)
 tAbstraction = dec "Abstraction" $ do
   attrs <- tAttributes
   t <- optional $ try tAbstractionTail
   return TAbstraction {as = attrs, t = t}
 
-data TAbstractionTail = TAbstractionTail {e::Options2 (I TSuffix, Maybe (Options2 (I TName) (I TTerminal))) (I THtail)} deriving (Data.Data.Data)
+data TAbstractionTail = TAbstractionTail {e::Options2 (I TSuffix, Maybe (Options2 (I TName) (I TTerminal))) (I THtail)} deriving (Data)
 tAbstractionTail :: Parser (I TAbstractionTail)
 tAbstractionTail = dec "Abstraction tail" $ do
   let a = do
@@ -398,7 +397,7 @@ tAbstractionTail = dec "Abstraction tail" $ do
 --
 -- If no arguments are provided, the list is empty
 -- This is the same as making the part between [] optional
-data TAttributes = TAttributes {as::[I TLabel]} deriving (Data.Data.Data)
+data TAttributes = TAttributes {as::[I TLabel]} deriving (Data)
 tAttributes :: Parser (I TAttributes)
 tAttributes = dec "Attributes" $ do
   _ <- string cLSQ
@@ -412,7 +411,7 @@ tAttributes = dec "Attributes" $ do
   _ <- string cRSQ
   return TAttributes {as = attrs}
 
-data TLabel = TLabel {l::Options2 (I TTerminal) (I TName, Maybe (I TTerminal))} deriving (Data.Data.Data)
+data TLabel = TLabel {l::Options2 (I TTerminal) (I TName, Maybe (I TTerminal))} deriving (Data)
 tLabel :: Parser (I TLabel)
 tLabel = dec "Label" $ do
   l <-
@@ -426,7 +425,7 @@ tLabel = dec "Label" $ do
       ]
   return TLabel {l = l}
 
-data TTail = TTail {os::[I TObject]} deriving (Data.Data.Data)
+data TTail = TTail {os::[I TObject]} deriving (Data)
 tTail :: Int -> Parser (I TTail)
 tTail ind = dec "Tail" $ do
   let tObj = do
@@ -437,14 +436,14 @@ tTail ind = dec "Tail" $ do
   objects <- someTry tObj
   return TTail {os = objects}
 
-data TSuffix = TSuffix {l::I TLabel, c::Maybe (I TTerminal)} deriving (Data.Data.Data)
+data TSuffix = TSuffix {l::I TLabel, c::Maybe (I TTerminal)} deriving (Data)
 tSuffix :: Parser (I TSuffix)
 tSuffix = dec "Suffix" $ do
   label <- string cSPACE *> string cARROW *> string cSPACE *> {-debug "suffix:label"-} tLabel
   c <- optional ({-debug "suffix:const"-} (tTerminal cCONST Const))
   return TSuffix {l = label, c = c}
 
-data TMethod = TMethod {m::Options2 (I TName) (I TTerminal)} deriving (Data.Data.Data)
+data TMethod = TMethod {m::Options2 (I TName) (I TTerminal)} deriving (Data)
 tMethod :: Parser (I TMethod)
 tMethod = dec "Method" $ do
   method <-
@@ -457,7 +456,7 @@ tMethod = dec "Method" $ do
         ]
   return TMethod {m = method}
 
-data TApplication = TApplication {s::Options2 (I THead) (I TApplication), h::Maybe (I THtail), a1::I TApplication1} deriving (Data.Data.Data)
+data TApplication = TApplication {s::Options2 (I THead) (I TApplication), h::Maybe (I THtail), a1::I TApplication1} deriving (Data)
 tApplication :: Parser (I TApplication)
 tApplication = dec "Application" $ do
   s <-
@@ -469,13 +468,13 @@ tApplication = dec "Application" $ do
   a1 <- {-debug "application:application1"-} tApplication1
   return TApplication {s = s, h = h, a1 = a1}
 
-data TApplication1 = TApplication1 {c::Maybe (I TApplication1Elem)} deriving (Data.Data.Data)
+data TApplication1 = TApplication1 {c::Maybe (I TApplication1Elem)} deriving (Data)
 tApplication1 :: Parser (I TApplication1)
 tApplication1 = dec "Application1" $ do
   c <- optional $ try tApplication1Elem
   return TApplication1 {c = c}
 
-data TApplication1Elem = TApplication1Elem {c1::Options3 (I TMethod) (I THas) (I TSuffix), ht::Maybe (I THtail), a::I TApplication1} deriving (Data.Data.Data)
+data TApplication1Elem = TApplication1Elem {c1::Options3 (I TMethod) (I THas) (I TSuffix), ht::Maybe (I THtail), a::I TApplication1} deriving (Data)
 tApplication1Elem :: Parser (I TApplication1Elem)
 tApplication1Elem = dec "Application1 Element" $ do
   c1 <-
@@ -489,7 +488,7 @@ tApplication1Elem = dec "Application1 Element" $ do
   return TApplication1Elem {c1 = c1, ht = ht, a = a}
 
 
-data THtail = THtail {t::[Options3 (I THead) (I TApplication) (I TAbstraction)]} deriving (Data.Data.Data)
+data THtail = THtail {t::[Options3 (I THead) (I TApplication) (I TAbstraction)]} deriving (Data)
 tHtail :: Parser (I THtail)
 tHtail = dec "Htail" $ do
   let op = choiceTry
@@ -509,7 +508,7 @@ data Options8 a b c d e f g h =
   | Options8F f
   | Options8G g
   | Options8H h
-  deriving (Data.Data.Data)
+  deriving (Data)
 
 data TTerminal =
     Root
@@ -525,7 +524,7 @@ data TTerminal =
   | Question
   | Dots
   | Const
-  deriving (Data.Data.Data, Show)
+  deriving (Data, Show)
 
 tTerminal :: Text -> TTerminal -> Parser (I TTerminal)
 tTerminal s t = dec s $ do
@@ -534,7 +533,7 @@ tTerminal s t = dec s $ do
   p2 <- getPos
   return t
 
-data THead = THead {dots::Maybe (I TTerminal), t::Options3 (I TTerminal) (I THeadName) (I TData)} deriving (Data.Data.Data)
+data THead = THead {dots::Maybe (I TTerminal), t::Options3 (I TTerminal) (I THeadName) (I TData)} deriving (Data)
 tHead :: Parser (I THead)
 tHead = dec "Head" $ do
   dots <- optional $ tTerminal cDOTS Dots
@@ -551,7 +550,7 @@ tHead = dec "Head" $ do
   return THead {dots = dots, t = t}
 
 -- TODO lookahead EOL
-data THeadName = THeadName {name::I TName, c::Options2 (I TTerminal) (Maybe (I TTerminal))} deriving (Data.Data.Data)
+data THeadName = THeadName {name::I TName, c::Options2 (I TTerminal) (Maybe (I TTerminal))} deriving (Data)
 tHeadName :: Parser (I THeadName)
 tHeadName = dec "Head name" $ do
   name <- tName
@@ -562,7 +561,7 @@ tHeadName = dec "Head name" $ do
   return THeadName {name = name, c = c}
 
 
-data THas = THas {n::I TName} deriving (Data.Data.Data)
+data THas = THas {n::I TName} deriving (Data)
 tHas :: Parser (I THas)
 tHas = dec "Has" $ do
   _ <- string cCOLON
@@ -580,9 +579,9 @@ data Options9 a b c d e f g h i =
   | Opt9G g
   | Opt9H h
   | Opt9I i
-  deriving (Data.Data.Data)
+  deriving (Data)
 
-data TData = TData {d::Options9 (I TBool) (I TText) (I THex) (I TString) (I TFloat) (I TInt) (I TBytes) (I TChar) (I TRegex)} deriving (Data.Data.Data)
+data TData = TData {d::Options9 (I TBool) (I TText) (I THex) (I TString) (I TFloat) (I TInt) (I TBytes) (I TChar) (I TRegex)} deriving (Data)
 tData :: Parser (I TData)
 tData = dec "DATA" $ do
   d <-
@@ -599,7 +598,7 @@ tData = dec "DATA" $ do
       ]
   return TData {d = d}
 
-data TComment = TComment {c::Text} deriving (Data.Data.Data)
+data TComment = TComment {c::Text} deriving (Data)
 tComment :: Parser (I TComment)
 tComment = dec "COMMENT" $ do
   _ <- string cHASH
@@ -607,7 +606,7 @@ tComment = dec "COMMENT" $ do
   return TComment {c = content}
 
 
-data TMeta = TMeta {name::I TName, suff::Maybe (I TMetaSuffix)} deriving (Data.Data.Data)
+data TMeta = TMeta {name::I TName, suff::Maybe (I TMetaSuffix)} deriving (Data)
 tMeta :: Parser (I TMeta)
 tMeta = dec "META" $ do
   _ <- string cPLUS
@@ -615,14 +614,14 @@ tMeta = dec "META" $ do
   suffix <- {-debug "meta:suffix"-} (optional $ try tMetaSuffix)
   return TMeta {name = name, suff = suffix}
 
-data TMetaSuffix = TMetaSuffix {s::Text} deriving (Data.Data.Data)
+data TMetaSuffix = TMetaSuffix {s::Text} deriving (Data)
 tMetaSuffix :: Parser (I TMetaSuffix)
 tMetaSuffix = dec "Meta Suffix" $ do
   suffix <- {-debug "meta:suffix"-} (pack <$> (string cSPACE *> some printChar))
   return TMetaSuffix {s = suffix}
 
 
-data TRegex = TRegex {r :: Text, suff :: Text} deriving (Data.Data.Data)
+data TRegex = TRegex {r :: Text, suff :: Text} deriving (Data)
 tRegex :: Parser (I TRegex)
 tRegex = dec "REGEX" $ do
   _ <- string cSLASH
@@ -632,7 +631,7 @@ tRegex = dec "REGEX" $ do
   return (TRegex {r = r, suff = suffix})
 
 
-data TIndent = TIndent {n::Int} deriving (Data.Data.Data)
+data TIndent = TIndent {n::Int} deriving (Data)
 tEOLTabMany :: Parser (I TIndent)
 tEOLTabMany = dec "EOL_TAB_MANY" $ do
   _ <- {-debug "eol:eol"-} (try (eol *> optional eol))
@@ -640,20 +639,20 @@ tEOLTabMany = dec "EOL_TAB_MANY" $ do
   let nIndents = T.length indents `div` 2
   return TIndent {n = nIndents}
 
-data TByte = TByte {b :: Integer} deriving (Data.Data.Data)
+data TByte = TByte {b :: Integer} deriving (Data)
 tByte :: Parser (I TByte)
 tByte = dec "BYTE" $ do
   b <- hexToInt <$> count 2 pHexDigitUpper
   return TByte {b = b}
 
-data TLineBytes = TLineBytes {bs::[I TByte]} deriving (Data.Data.Data)
+data TLineBytes = TLineBytes {bs::[I TByte]} deriving (Data)
 tLineBytes :: Parser (I TLineBytes)
 tLineBytes = dec "LINE_BYTES" $ do
   byte <- {-debug "line_bytes:byte"-} tByte
   bytes <- {-debug "line_bytes:bytes"-} (someTry (string cMINUS *> tByte))
   return TLineBytes {bs = byte : bytes}
 
-data TBytes = TBytes {bs::Options3 (I TTerminal) (I TByte) [I TLineBytes]} deriving (Data.Data.Data)
+data TBytes = TBytes {bs::Options3 (I TTerminal) (I TByte) [I TLineBytes]} deriving (Data)
 tBytes :: Parser (I TBytes)
 tBytes = dec "BYTES" $ do
   bytes <-
@@ -682,7 +681,7 @@ tBytes = dec "BYTES" $ do
       lbs <- manyTry parser4
       return (Opt3C (lb : lbs))
 
-data TBool = TBool {b::Bool} deriving (Data.Data.Data)
+data TBool = TBool {b::Bool} deriving (Data)
 tBool :: Parser (I TBool)
 tBool = dec "BOOL" $ do
   b <-
@@ -692,40 +691,40 @@ tBool = dec "BOOL" $ do
       ]
   return TBool {b = b}
 
-data TChar = TChar {c::Char} deriving (Data.Data.Data)
+data TChar = TChar {c::Char} deriving (Data)
 -- | slightly differs from grammar: doesn't allow u Byte Byte
 tChar :: Parser (I TChar)
 tChar = dec "CHAR" $ do
   c <- char '\'' *> charLiteral <* char '\''
   return TChar {c = c}
 
-data TString = TString {s::Text} deriving (Data.Data.Data)
+data TString = TString {s::Text} deriving (Data)
 -- | slightly differs from grammar: doesn't allow u Byte Byte
 tString :: Parser (I TString)
 tString = dec "STRING" $ do
   s <- pack <$> (char '\"' *> manyTill charLiteral (char '\"'))
   return TString {s = s}
 
-data TInt = TInt {s::Integer} deriving (Data.Data.Data)
+data TInt = TInt {s::Integer} deriving (Data)
 tInt :: Parser (I TInt)
 tInt = dec "INT" $ do
   s <- signed pEmpty decimal
   return TInt {s = s}
 
-data TFloat = TFloat {f::Scientific} deriving (Data.Data.Data)
+data TFloat = TFloat {f::Scientific} deriving (Data)
 tFloat :: Parser (I TFloat)
 tFloat = dec "FLOAT" $ do
   f <- signed pEmpty scientific
   return (TFloat {f = f})
 
-data THex = THex {h::Integer} deriving (Data.Data.Data)
+data THex = THex {h::Integer} deriving (Data)
 tHex :: Parser (I THex)
 tHex = dec "HEX" $ do
   s <- hexToInt <$> (string "0x" *> someTry pHexDigitLower)
   return THex {h = s}
 
 
-data TName = TName {n::Text} deriving (Data.Data.Data)
+data TName = TName {n::Text} deriving (Data)
 tName :: Parser (I TName)
 tName = dec "NAME" $ do
   l1 <- {-debug "name: first letter"-} lowerChar
@@ -733,7 +732,7 @@ tName = dec "NAME" $ do
   return TName {n = pack (l1:l2)}
 
 -- IDK maybe need to allow indentation after eol
-newtype TText = TText {t::Text} deriving (Data.Data.Data, Show)
+newtype TText = TText {t::Text} deriving (Data, Show)
 tText :: Parser (I TText)
 tText = dec "TEXT" $ do
   t <- try $ pack <$> (string cTEXT_MARK *> eol *> manyTill charLiteral (string cTEXT_MARK))

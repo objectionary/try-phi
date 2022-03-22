@@ -520,7 +520,6 @@ data TTerminal =
   | At
   | Rho
   | Vertex
-  | EmptyBytes
   | Question
   | Dots
   | Const
@@ -532,6 +531,8 @@ tTerminal s t = dec s $ do
   void (string s)
   p2 <- getPos
   return t
+
+
 
 data THead = THead {dots::Maybe (I TTerminal), t::Options3 (I TTerminal) (I THeadName) (I TData)} deriving (Data)
 tHead :: Parser (I THead)
@@ -639,7 +640,7 @@ tEOLTabMany = dec "EOL_TAB_MANY" $ do
   let nIndents = T.length indents `div` 2
   return TIndent {n = nIndents}
 
-data TByte = TByte {b :: Integer} deriving (Data)
+data TByte = TByte {b :: Integer} | EmptyBytes deriving (Data)
 tByte :: Parser (I TByte)
 tByte = dec "BYTE" $ do
   b <- hexToInt <$> count 2 pHexDigitUpper
@@ -652,7 +653,7 @@ tLineBytes = dec "LINE_BYTES" $ do
   bytes <- {-debug "line_bytes:bytes"-} (someTry (string cMINUS *> tByte))
   return TLineBytes {bs = byte : bytes}
 
-data TBytes = TBytes {bs::Options3 (I TTerminal) (I TByte) [I TLineBytes]} deriving (Data)
+data TBytes = TBytes {bs::Options2 (I TByte) [I TLineBytes]} deriving (Data)
 tBytes :: Parser (I TBytes)
 tBytes = dec "BYTES" $ do
   bytes <-
@@ -664,12 +665,13 @@ tBytes = dec "BYTES" $ do
   return TBytes {bs = bytes}
   where
     parser1 = do
-      s <- tTerminal cEMPTY_BYTES EmptyBytes
-      return (Opt3A s)
+      _ <- string cEMPTY_BYTES
+      emp <- dec "EMPTY_BYTES" (EmptyBytes <$ string cEMPTY_BYTES)
+      return (Opt2A emp)
     parser2 = do
       byte <- tByte
       _ <- string cMINUS
-      return (Opt3B byte)
+      return (Opt2A byte)
     parser4 = do
       _ <- string cMINUS
       -- TODO guard indentation
@@ -679,7 +681,7 @@ tBytes = dec "BYTES" $ do
     parser3 = do
       lb <- tLineBytes
       lbs <- manyTry parser4
-      return (Opt3C (lb : lbs))
+      return (Opt2B (lb : lbs))
 
 data TBool = TBool {b::Bool} deriving (Data)
 tBool :: Parser (I TBool)

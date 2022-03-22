@@ -352,9 +352,8 @@ printBytes m i@Node {node = TBytes {..}} = printNonLeaf m i [bs']
   where
     bs' k =
       case bs of
-        Opt3A t -> printTerminal k t
-        Opt3B t -> printByte k t
-        Opt3C t -> printList (printLineBytes k) t
+        Opt2A t -> printByte k t
+        Opt2B t -> printList (printLineBytes k) t
 
 instance Show (I TChar) where
   show t = printChar1 0 t

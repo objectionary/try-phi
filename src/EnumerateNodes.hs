@@ -1,5 +1,5 @@
 {-# LANGUAGE RecordWildCards #-}
-module EnumerateNodes where
+module EnumerateNodes(enumInsertProgram) where
 
 import           Control.Monad.State.Strict (State, get, put, runState)
 import qualified Data.HashMap.Strict.InsOrd as M (InsOrdHashMap, empty, insert)
@@ -307,9 +307,8 @@ enumBytes :: I TBytes -> State MyState (I TBytes)
 enumBytes n@Node {node = TBytes {..}} = dec n MBytes $ do
     bs' <-
             case bs of
-                Opt3A t -> Opt3A <$> enumTerminal t
-                Opt3B t -> Opt3B <$> enumByte t
-                Opt3C t -> Opt3C <$> mapM enumLineBytes t
+                Opt2A t -> Opt2A <$> enumByte t
+                Opt2B t -> Opt2B <$> mapM enumLineBytes t
     return $ TBytes bs'
 
 

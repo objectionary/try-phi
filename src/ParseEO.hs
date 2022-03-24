@@ -16,8 +16,8 @@
 
 module ParseEO (tProgram, Load (..),
 I,
-Node(..), 
-Position(..), 
+Node(..),
+Position(..),
 TProgram(..),
 TLicense(..),
 TComment(..),
@@ -368,7 +368,7 @@ tObject ind = dec "Object" $ do
   s <- manyTry $ ({-debug "object:after tail"-} g)
   return TObject {cs = comments, a = a, t = t, s = s}
 
-
+-- TODO use separate parser for free attributes
 data TAbstraction = TAbstraction {as::I TAttributes, t::Maybe (I TAbstractionTail)} deriving (Data)
 tAbstraction ::Parser (I TAbstraction)
 tAbstraction = dec "Abstraction" $ do
@@ -397,19 +397,41 @@ tAbstractionTail = dec "Abstraction tail" $ do
 --
 -- If no arguments are provided, the list is empty
 -- This is the same as making the part between [] optional
+
 data TAttributes = TAttributes {as::[I TLabel]} deriving (Data)
 tAttributes :: Parser (I TAttributes)
 tAttributes = dec "Attributes" $ do
   _ <- string cLSQ
   attrs <- choiceTry
         [ do
-            a <- {-debug "attributes:attribute1"-} tLabel
-            as <- manyTry (string cSPACE *> {-debug "attributes:attribute2"-} tLabel)
-            return (a : as),
+            a <- {-debug "attributes:attribute1"-} tFreeAttribute
+            as <- manyTry (string cSPACE *> {-debug "attributes:attribute2"-} tFreeAttribute)
+            
+            -- last argument may be vararg
+            d <- optional $ try (tTerminal cDOTS Dots)
+            let as' = a:as
+            let p@Node{node = TLabel {..}} = last as'
+            let l' = 
+                  case d of
+                    Just _ -> 
+                      case l of
+                        Opt2A _ -> error "decoratee cannot be vararg"
+                        Opt2B (n,_) -> Opt2B (n, d)
+                    _ -> l
+            return (init as' ++ [p{node = TLabel l'}]),
           [] <$ pEmpty
         ]
   _ <- string cRSQ
   return TAttributes {as = attrs}
+
+tFreeAttribute :: Parser (I TLabel)
+tFreeAttribute = dec "Free Attribute" $ do
+  l <-
+    choiceTry
+      [ Opt2A <$> {-debug "label:@"-} (tTerminal cAT At),
+        Opt2B . flip (,) Nothing <$> {-debug "label:name"-} (tName)
+      ]
+  return TLabel {l = l}
 
 data TLabel = TLabel {l::Options2 (I TTerminal) (I TName, Maybe (I TTerminal))} deriving (Data)
 tLabel :: Parser (I TLabel)
@@ -533,7 +555,7 @@ tTerminal s t = dec s $ do
   return t
 
 
-
+-- TODO prohibit dots before data
 data THead = THead {dots::Maybe (I TTerminal), t::Options3 (I TTerminal) (I THeadName) (I TData)} deriving (Data)
 tHead :: Parser (I THead)
 tHead = dec "Head" $ do

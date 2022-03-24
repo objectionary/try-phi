@@ -105,6 +105,9 @@ instance Show (I TName) where
 printName :: Int -> I TName -> String
 printName m i@Node {node = TName {..}} = printLeaf m i n
 
+printVarArg :: Int -> I TVarArg -> String
+printVarArg m i@Node {node = TVarArg {..}} = printLeaf m i n
+
 instance Show (I TObjects) where
   show t = printObjects 0 t
 
@@ -202,7 +205,9 @@ instance Show (I TAttributes) where
 printAttributes :: Int -> I TAttributes -> String
 printAttributes m i@Node {node = TAttributes {..}} = printNonLeaf m i [as']
   where
-    as' k = foldl (<>) [] (printLabel k <$> as)
+    as' k = foldl (<>) [] (printFreeAttribute k <$> as)
+
+
 
 instance Show (I TAbstractionTail) where
   show t = printAbstractionTail 0 t
@@ -248,6 +253,31 @@ printLabel m i@Node {node = TLabel {..}} = printNonLeaf m i [l']
         Opt2B (n, t) ->
           printName k n <> printMaybe printTerminal k t
 
+
+printFreeAttribute :: Int -> I TFreeAttribute -> String
+printFreeAttribute m i@Node {node = TFreeAttribute {..}} = printNonLeaf m i [l']
+  where
+    l' k =
+      case l of
+        Opt3A t -> printTerminal k t
+        Opt3B t -> printName k t
+        Opt3C t -> printVarArg k t
+
+instance Show (I TVarArg) where
+  show t = printVarArg 0 t
+
+instance Show TDots where
+  show t = "Dots"
+
+instance Show (I TDots) where
+  show t = printTerminal 0 t
+
+instance Show TConst where
+  show t = "Const"
+
+instance Show (I TConst) where
+  show t = printTerminal 0 t
+
 instance Show (I TSuffix) where
   show t = printSuffix 0 t
 
@@ -260,12 +290,12 @@ printSuffix m i@Node {node = TSuffix {..}} = printNonLeaf m i [l', c']
 
 -- showHead n Node {..} = printf "%s%s %s %s" (tabs n) (cName node) (show pos) (show load)
 -- TODO
-printTerminal :: Int -> I TTerminal -> String
+printTerminal :: (Show a) => Int -> I a -> String
 printTerminal m i@Node {..} = printf "%s%s %s %s\n" (tabs m) (show node) (show pos) (show load)
--- printLeaf m i t
 
 instance Show (I THead) where
   show t = printHead 0 t
+
 
 printHead :: Int -> I THead -> String
 printHead m i@Node {node = THead {..}} = printNonLeaf m i [dots', t']

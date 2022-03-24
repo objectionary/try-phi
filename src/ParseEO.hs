@@ -59,6 +59,10 @@ Options2(..),
 Options3(..),
 Options8(..),
 Options9(..),
+TDots(..),
+TConst(..),
+TFreeAttribute(..),
+TVarArg(..)
 ) where
 
 import           Control.Applicative        (Alternative ((<|>)), optional)
@@ -398,7 +402,7 @@ tAbstractionTail = dec "Abstraction tail" $ do
 -- If no arguments are provided, the list is empty
 -- This is the same as making the part between [] optional
 
-data TAttributes = TAttributes {as::[I TLabel]} deriving (Data)
+data TAttributes = TAttributes {as::[I TFreeAttribute]} deriving (Data)
 tAttributes :: Parser (I TAttributes)
 tAttributes = dec "Attributes" $ do
   _ <- string cLSQ
@@ -406,34 +410,39 @@ tAttributes = dec "Attributes" $ do
         [ do
             a <- {-debug "attributes:attribute1"-} tFreeAttribute
             as <- manyTry (string cSPACE *> {-debug "attributes:attribute2"-} tFreeAttribute)
-            
+
             -- last argument may be vararg
-            d <- optional $ try (tTerminal cDOTS Dots)
+            d <- optional $ try (tTerminal cDOTS TDots)
             let as' = a:as
-            let p@Node{node = TLabel {..}} = last as'
-            let l' = 
+            let p@Node{node = TFreeAttribute {..}} = last as'
+            let l' =
                   case d of
-                    Just _ -> 
+                    Just _ ->
                       case l of
-                        Opt2A _ -> error "decoratee cannot be vararg"
-                        Opt2B (n,_) -> Opt2B (n, d)
+                        Opt3A _ -> error "decoratee cannot be vararg"
+                        Opt3B n1@Node {node=TName{..}} -> Opt3C n1 {node = TVarArg n}
+                        _ -> error "couldn't have parsed dots in free attributes"
                     _ -> l
-            return (init as' ++ [p{node = TLabel l'}]),
+            return (init as' ++ [p{node = TFreeAttribute l'}]),
           [] <$ pEmpty
         ]
   _ <- string cRSQ
   return TAttributes {as = attrs}
 
-tFreeAttribute :: Parser (I TLabel)
+data TVarArg = TVarArg {n::Text} deriving (Data)
+
+data TFreeAttribute = TFreeAttribute {l::Options3 (I TTerminal) (I TName) (I TVarArg)} deriving (Data)
+
+tFreeAttribute :: Parser (I TFreeAttribute)
 tFreeAttribute = dec "Free Attribute" $ do
   l <-
     choiceTry
-      [ Opt2A <$> {-debug "label:@"-} (tTerminal cAT At),
-        Opt2B . flip (,) Nothing <$> {-debug "label:name"-} (tName)
+      [ Opt3A <$> {-debug "label:@"-} (tTerminal cAT At),
+        Opt3B <$> {-debug "label:name"-} (tName)
       ]
-  return TLabel {l = l}
+  return TFreeAttribute {l = l}
 
-data TLabel = TLabel {l::Options2 (I TTerminal) (I TName, Maybe (I TTerminal))} deriving (Data)
+data TLabel = TLabel {l::Options2 (I TTerminal) (I TName, Maybe (I TDots))} deriving (Data)
 tLabel :: Parser (I TLabel)
 tLabel = dec "Label" $ do
   l <-
@@ -442,7 +451,7 @@ tLabel = dec "Label" $ do
         Opt2B <$> (do
           name <- {-debug "label:name"-} tName
           -- TODO move dots to abstraction end (before csq)
-          dots <- optional ({-debug "label:..."-} (tTerminal cDOTS Dots))
+          dots <- optional ({-debug "label:..."-} (tTerminal cDOTS TDots))
           return (name, dots))
       ]
   return TLabel {l = l}
@@ -458,11 +467,11 @@ tTail ind = dec "Tail" $ do
   objects <- someTry tObj
   return TTail {os = objects}
 
-data TSuffix = TSuffix {l::I TLabel, c::Maybe (I TTerminal)} deriving (Data)
+data TSuffix = TSuffix {l::I TLabel, c::Maybe (I TConst)} deriving (Data)
 tSuffix :: Parser (I TSuffix)
 tSuffix = dec "Suffix" $ do
   label <- string cSPACE *> string cARROW *> string cSPACE *> {-debug "suffix:label"-} tLabel
-  c <- optional ({-debug "suffix:const"-} (tTerminal cCONST Const))
+  c <- optional ({-debug "suffix:const"-} (tTerminal cCONST TConst))
   return TSuffix {l = label, c = c}
 
 data TMethod = TMethod {m::Options2 (I TName) (I TTerminal)} deriving (Data)
@@ -543,11 +552,14 @@ data TTerminal =
   | Rho
   | Vertex
   | Question
-  | Dots
-  | Const
   deriving (Data, Show)
 
-tTerminal :: Text -> TTerminal -> Parser (I TTerminal)
+data TDots = TDots deriving (Data)
+
+data TConst = TConst deriving (Data)
+
+
+tTerminal :: Text -> a -> Parser (I a)
 tTerminal s t = dec s $ do
   p1 <- getPos
   void (string s)
@@ -556,10 +568,10 @@ tTerminal s t = dec s $ do
 
 
 -- TODO prohibit dots before data
-data THead = THead {dots::Maybe (I TTerminal), t::Options3 (I TTerminal) (I THeadName) (I TData)} deriving (Data)
+data THead = THead {dots::Maybe (I TDots), t::Options3 (I TTerminal) (I THeadName) (I TData)} deriving (Data)
 tHead :: Parser (I THead)
 tHead = dec "Head" $ do
-  dots <- optional $ tTerminal cDOTS Dots
+  dots <- optional $ tTerminal cDOTS TDots
   t <- choiceTry
       [ Opt3A <$>{-debug "head:root"-}  (tTerminal cROOT Root),
         Opt3A <$>{-debug "head:at"-}  (tTerminal cAT At),

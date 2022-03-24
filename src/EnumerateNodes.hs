@@ -42,6 +42,10 @@ data MapElement =
     | MRegex (I TRegex)
     | MLineBytes (I TLineBytes)
     | MByte (I TByte)
+    | MDots (I TDots)
+    | MConst (I TConst)
+    | MFreeAttribute (I TFreeAttribute)
+    | MVarArg (I TVarArg)
 
 data MyState = MyState {i::Int, m::M.InsOrdHashMap Int MapElement}
 
@@ -183,7 +187,7 @@ enumHas m@Node {node = THas {..}} = dec m MHas $ do
 
 enumAttributes :: I TAttributes -> State MyState (I TAttributes)
 enumAttributes n@Node {node = TAttributes {..}} = dec n MAttributes $ do
-    as' <- mapM enumLabel as
+    as' <- mapM enumFreeAttribute as
     return $ TAttributes as'
 
 enumAbstractionTail :: I TAbstractionTail -> State MyState (I TAbstractionTail)
@@ -225,26 +229,42 @@ enumLabel n@Node {node = TLabel {..}} = dec n MLabel $ do
             Opt2B (n1, t) ->
                 do
                     n1' <- enumName n1
-                    t' <- enumMaybe enumTerminal t
+                    t' <- enumMaybe enumDots t
                     return $ Opt2B (n1', t')
     return $ TLabel l'
+
+enumFreeAttribute :: I TFreeAttribute -> State MyState (I TFreeAttribute)
+enumFreeAttribute n@Node {node = TFreeAttribute {..}} = dec n MFreeAttribute $ do
+    l' <-
+        case l of
+            Opt3A t -> Opt3A <$> enumTerminal t
+            Opt3B t -> Opt3B <$> enumName t
+            Opt3C t -> Opt3C <$> enumVarArg t
+    return $ TFreeAttribute l'
 
 
 enumSuffix :: I TSuffix -> State MyState (I TSuffix)
 enumSuffix n@Node {node = TSuffix {..}} = dec n MSuffix $ do
     l' <- enumLabel l
-    c' <- enumMaybe enumTerminal c
+    c' <- enumMaybe enumConst c
     return $ TSuffix l' c'
 
+enumVarArg :: I TVarArg -> State MyState (I TVarArg)
+enumVarArg n@Node {..} = dec n MVarArg $ return node
 
--- TODO
+
+enumConst :: I TConst -> State MyState (I TConst)
+enumConst n@Node {..} = dec n MConst $ return node
+
 enumTerminal :: I TTerminal -> State MyState (I TTerminal)
 enumTerminal n@Node {..} = dec n MTerminal $ return node
 
+enumDots :: I TDots -> State MyState (I TDots)
+enumDots n@Node {..} = dec n MDots $ return node
 
 enumHead :: I THead -> State MyState (I THead)
 enumHead n@Node {node = THead {..}} = dec n MHead $ do
-    dots' <- enumMaybe enumTerminal dots
+    dots' <- enumMaybe enumDots dots
     t' <-
         case t of
             Opt3A a -> Opt3A <$> enumTerminal a
@@ -274,7 +294,7 @@ enumData n@Node {node = TData {..}} = dec n MData $ do
             Opt9E a -> Opt9E <$> enumFloat a
             Opt9F a -> Opt9F <$> enumInt a
             Opt9G a -> Opt9G <$> enumBytes a
-            Opt9H a -> Opt9H <$> enumChar1 a
+            Opt9H a -> Opt9H <$> enumChar a
             Opt9I a -> Opt9I <$> enumRegex a
     return $ TData d'
 
@@ -312,8 +332,8 @@ enumBytes n@Node {node = TBytes {..}} = dec n MBytes $ do
     return $ TBytes bs'
 
 
-enumChar1 :: I TChar -> State MyState (I TChar)
-enumChar1 n = dec n MChar $ return $ node n
+enumChar :: I TChar -> State MyState (I TChar)
+enumChar n = dec n MChar $ return $ node n
 
 
 enumRegex :: I TRegex -> State MyState (I TRegex)

@@ -222,7 +222,7 @@ head
     |
     STAR
     |
-    NAME
+    NAME  
     COPY?
     |
     NAME

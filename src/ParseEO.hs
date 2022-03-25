@@ -380,6 +380,7 @@ tAbstraction = dec "Abstraction" $ do
   t <- optional $ try tAbstractionTail
   return TAbstraction {as = attrs, t = t}
 
+-- TODO Use separate terminal for question
 data TAbstractionTail = TAbstractionTail {e::Options2 (I TSuffix, Maybe (Options2 (I TName) (I TTerminal))) (I THtail)} deriving (Data)
 tAbstractionTail :: Parser (I TAbstractionTail)
 tAbstractionTail = dec "Abstraction tail" $ do
@@ -467,6 +468,7 @@ tTail ind = dec "Tail" $ do
   objects <- someTry tObj
   return TTail {os = objects}
 
+
 data TSuffix = TSuffix {l::I TLabel, c::Maybe (I TConst)} deriving (Data)
 tSuffix :: Parser (I TSuffix)
 tSuffix = dec "Suffix" $ do
@@ -474,6 +476,7 @@ tSuffix = dec "Suffix" $ do
   c <- optional ({-debug "suffix:const"-} (tTerminal cCONST TConst))
   return TSuffix {l = label, c = c}
 
+-- TODO separate set of terminals for Method
 data TMethod = TMethod {m::Options2 (I TName) (I TTerminal)} deriving (Data)
 tMethod :: Parser (I TMethod)
 tMethod = dec "Method" $ do

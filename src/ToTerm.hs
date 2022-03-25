@@ -3,70 +3,65 @@
 {-# LANGUAGE DeriveTraversable          #-}
 {-# LANGUAGE DuplicateRecordFields      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE RecordWildCards            #-}
 
 module ToTerm where
 
 
+import           Control.Monad.Identity     (Identity)
+import           Control.Monad.State        (get, put)
+import           Control.Monad.State.Strict (State)
 import           Data.Hashable              (Hashable)
 import qualified Data.HashMap.Strict.InsOrd as M
 import           Data.Scientific            (Scientific)
 import           Data.Text                  (Text)
 import           GHC.Generics               (Generic)
 import           ParseEO                    as PEO
-import Control.Monad.Identity (Identity)
-import Control.Monad.State.Strict (State)
-import Control.Monad.State (get, put)
+import qualified Data.Maybe
 
 
 type Id = Int
-data Ann a b = Ann {treeId::Id, term::a, ann::b}
-newtype Annotation = A {termId::Id}
+data Ann a b = Ann {term::a, ann::b}
+data Annotation = IDs {treeId::Maybe Id, runtimeId::Maybe Id}
 type K a = Ann a Annotation
 
 
 -- Attribute names
 
 -- if a constructor includes composite types, these types should be declared separately
-    
-data FreeAttrName = 
+
+data Label =
       FName Text
     | FAt
+    | FVarArg Text
     deriving (Eq, Ord, Generic, Show, Hashable)
 
-data HeadName =
-    HName Text
-    -- auto-named via term id
-  | HUnnamed Id
-  | HAt 
-  | HRho
-  -- | HRoot
-  -- &
-  | HSigma
-  | HStar
-  -- | HVertex
-  | HXi
-  | HInverseDot FreeAttrName
-  | HCopy (K HeadName)
---   | Question
+type ReservedName = TTerminal
 
-data MethodName = 
+newtype LetterName = LetterName Text
+data Modifier = MCopy | MInverseDot
+data HeadName = HeadName {n::K LetterName, m::Maybe Modifier}
+
+-- TODO Question is not a terminal
+
+data MethodName =
     MName Text
   | MRoot
   | MAt
   | MVertex
   deriving (Eq, Ord, Generic, Show, Hashable)
 
-
+-- Attached
 -- Unpacked can be ^.x, not necessarily a name
-newtype Unpacked = Unpacked (Options2 (K HeadName) (K DataValue))
+
+data Head = Head {h::Options3 (K ReservedName) (K HeadName) (K DataValue), unpacked::Bool}
 
 newtype DByte = DByte {byte::Integer}
 newtype DLineBytes = DLineBytes {bs :: [K DByte]}
 
 data DataValue
   = DBool Bool
-  | DBytes [K DLineBytes]
+  | DBytes (Options2  (K DByte) [K DLineBytes])
   | DChar Char
   | DFloat Scientific
   | DHex Integer
@@ -80,19 +75,33 @@ data DataValue
 -- TODO somehow pass problems with node conversion upwards
 -- probably need to use exceptions or Either Id Term
 
-data Attached = Attached {a::K FreeAttrName, t::K Term, isConst::Bool, imported::Maybe (K Text)}
+-- data AbstrName = AbstrName {a::SuffixName, imported::Maybe (K Text)}
+-- data AbstractionNamed = AbstractionNamed {a::Maybe AbstrName, t::K Term}
 
-newtype VarArg = VarArg FreeAttrName
+data AbstractionName = AbstractionName {a::SuffixName, imported::Maybe (K Text)}
+data Attached = Attached {t::K Term, a::Options2 AbstractionName SuffixName}
 
-data NamedApp = NamedApp {name::Maybe (K FreeAttrName), t::K Term}
+-- TODO it's application attribute's name. It cannot be head like data
+-- data NamedApp = NamedApp {name::Maybe (K Head), t::K Term}
+
+-- TODO type
+-- runtime ids needed for each object
+-- except for locators
+
+-- term ids may be present in each term except for locators
+
+data HasName = HName Text | HAt
+
+type ArgName = Options2 SuffixName (K HasName)
+data AppNamed = AppNamed {a :: Maybe ArgName, t::K Term}
 
 data Term
-  = App {t::K Term, apps::[NamedApp]}
-  | Obj {freeAttrs::[Options2 (K FreeAttrName) (K VarArg)], obj::M.InsOrdHashMap FreeAttrName Attached}
+  = App {t::K Term, apps::[AppNamed]}
+  | Obj {freeAttrs::[K Label], obj::M.InsOrdHashMap Label Attached}
   | Dot {t::K Term, attr::K MethodName}
-  | Locator {n::K Int}
-  | DataTerm {v::K DataValue}
-  | HeadTerm {h::K HeadName}
+  | Locator {n::Int}
+  | HeadTerm {v::K Head}
+  | AppNamedTerm AppNamed
 
 
 -- dec::I a -> (I a -> MapElement) -> ReturnValue
@@ -103,302 +112,364 @@ data Term
     -- return n {load = Load {num = i1}, node = t}
 
 
-dec = id
+-- dec = id
 -- toTermInsertProgram :: I TProgram -> (I TProgram, MyState)
 -- toTermInsertProgram t = runState (toTermProgram t) (MyState {i=0, m=M.empty})
 
 data ReturnValue = ReturnValue {t::K Term}
 
--- enumInsertProgram :: I TProgram -> (I TProgram, MyState)
--- enumInsertProgram t = runState (enumProgram t) (MyState {i=0, m=M.empty})
+getId :: Node a Load -> Int
+getId Node{..} =
+  case load of
+    Load i -> i
+    _      -> error "wrong load"
 
--- enumProgram :: I TProgram -> State MyState (I TProgram)
--- enumProgram n@Node {node = TProgram {..}} = dec n MProgram $ do
---     l' <- enumMaybe enumLicense l
---     m' <- enumMaybe enumMetas m
---     o' <- enumObjects o
+data MyState = MyState {termId :: Int}
+
+-- | annotate a node with term id and CST node id
+dec :: I a -> State MyState b -> State MyState (K b)
+dec n t = do
+  t1 <- t
+  MyState tId <- get
+  put (MyState (tId + 1))
+  return Ann {term = t1, ann = IDs {runtimeId = Just tId, treeId = Just (getId n)}}
+
+
+-- toTermInsertProgram :: I TProgram -> (I TProgram, MyState)
+-- toTermInsertProgram t = runState (toTermProgram t) (MyState {i=0, m=M.empty})
+
+-- toTermProgram :: I TProgram -> State MyState (K TProgram)
+-- toTermProgram n@Node {node = TProgram {..}} = dec n $ do
+--     l' <- toTermMaybe toTermLicense l
+--     m' <- toTermMaybe toTermMetas m
+--     o' <- toTermObjects o
 --     return $ TProgram l' m' o'
 
 
--- enumLicense :: I TLicense -> State MyState (I TLicense)
--- enumLicense n@Node {node = TLicense {..}} = dec n MLicense $ do
---     cs' <- mapM enumComment cs
+-- toTermLicense :: I TLicense -> State MyState (K TLicense)
+-- toTermLicense n@Node {node = TLicense {..}} = dec n $ do
+--     cs' <- mapM toTermComment cs
 --     return $ TLicense cs'
 
 
--- enumComment :: I TComment -> State MyState (I TComment)
--- enumComment n@Node {..} = dec n MComment $ return node
+-- toTermComment :: I TComment -> State MyState (K TComment)
+-- toTermComment n@Node {..} = dec n $ return node
 
 
--- enumMetas :: I TMetas -> State MyState (I TMetas)
--- enumMetas n@Node {node = TMetas {..}} = dec n MMetas $ do
---     cs' <- mapM enumMeta ms
+-- toTermMetas :: I TMetas -> State MyState (K TMetas)
+-- toTermMetas n@Node {node = TMetas {..}} = dec n $ do
+--     cs' <- mapM toTermMeta ms
 --     return $ TMetas cs'
 
 
--- enumMeta :: I TMeta -> State MyState (I TMeta)
--- enumMeta n@Node {node = TMeta {..}} = dec n MMeta $ do
---     name' <- enumName name
---     suff' <- enumMaybe enumMetaSuffix suff
+-- toTermMeta :: I TMeta -> State MyState (K TMeta)
+-- toTermMeta n@Node {node = TMeta {..}} = dec n $ do
+--     name' <- toTermName name
+--     suff' <- toTermMaybe toTermMetaSuffix suff
 --     return $ TMeta name' suff'
 
 
--- enumMetaSuffix :: I TMetaSuffix -> State MyState (I TMetaSuffix)
--- enumMetaSuffix n@Node {..} = dec n MMetaSuffix $ return node
+-- toTermMetaSuffix :: I TMetaSuffix -> State MyState (K TMetaSuffix)
+-- toTermMetaSuffix n@Node {..} = dec n $ return node
 
 
--- enumName :: I TName -> State MyState (I TName)
--- enumName m@Node {..} = dec m MName $ return node
+toTermName :: I TName -> State MyState (K LetterName)
+toTermName m@Node {node = TName t1} = dec m $ return (LetterName t1)
 
--- enumObjects :: I TObjects -> State MyState (I TObjects)
--- enumObjects n@Node {node = TObjects {..}} = dec n MObjects $ do
---     os' <- mapM enumObject os
+-- toTermObjects :: I TObjects -> State MyState (K TObjects)
+-- toTermObjects n@Node {node = TObjects {..}} = dec n $ do
+--     os' <- mapM toTermObject os
 --     return $ TObjects os'
 
--- enumObject :: I TObject -> State MyState (I TObject)
--- enumObject n@Node {node = TObject {..}} = dec n MObject $ do
---     cs' <- mapM enumComment cs
+-- toTermObject :: I TObject -> State MyState (K TObject)
+-- toTermObject n@Node {node = TObject {..}} = dec n $ do
+--     cs' <- mapM toTermComment cs
 --     a' <-
 --         case a of
---             Opt2A p -> Opt2A <$> enumAbstraction p
---             Opt2B p -> Opt2B <$> enumApplication p
---     t' <- enumMaybe enumTail t
+--             Opt2A p -> Opt2A <$> toTermAbstraction p
+--             Opt2B p -> Opt2B <$> toTermApplication p
+--     t' <- toTermMaybe toTermTail t
 --     -- TODO
 --     let
 --         g (m,h,suff,t1) =
 --             do
---                 m1 <- enumMethod m
---                 h1 <- enumMaybe enumHtail h
---                 s1 <- enumMaybe enumSuffix suff
---                 t2 <- enumMaybe enumTail t1
+--                 m1 <- toTermMethod m
+--                 h1 <- toTermMaybe toTermHtail h
+--                 s1 <- toTermMaybe toTermSuffix suff
+--                 t2 <- toTermMaybe toTermTail t1
 --                 return (m1,h1,s1,t2)
 --     s' <- mapM g s
 --     return $ TObject cs' a' t' s'
 
--- enumAbstraction :: I TAbstraction -> State MyState (I TAbstraction)
--- enumAbstraction n@Node {node = TAbstraction {..}} = dec n MAbstraction $ do
---     as' <- enumAttributes as
---     t' <- enumMaybe enumAbstractionTail t
+-- toTermAbstraction :: I TAbstraction -> State MyState (K TAbstraction)
+-- toTermAbstraction n@Node {node = TAbstraction {..}} = dec n $ do
+--     as' <- toTermAttributes as
+--     t' <- toTermMaybe toTermAbstractionTail t
 --     return $ TAbstraction as' t'
 
--- enumTail :: I TTail -> State MyState (I TTail)
--- enumTail n@Node {node = TTail {..}} = dec n MTail $ do
---     os' <- mapM enumObject os
+-- toTermTail :: I TTail -> State MyState (K TTail)
+-- toTermTail n@Node {node = TTail {..}} = dec n $ do
+--     os' <- mapM toTermObject os
 --     return $ TTail os'
 
--- enumMaybe :: Monad f => (a -> f a) -> Maybe a -> f (Maybe a)
--- enumMaybe f x =
+-- toTermMaybe :: Monad f => (a -> f a) -> Maybe a -> f (Maybe a)
+-- toTermMaybe f x =
 --     case x of
 --         Just x' -> Just <$> f x'
 --         Nothing -> return x
 
--- enumApplication :: I TApplication -> State MyState (I TApplication)
--- enumApplication n@Node {node = TApplication {..}} = dec n MApplication $ do
---     s' <-
---         case s of
---             Opt2A a -> Opt2A <$> enumHead a
---             Opt2B a -> Opt2B <$> enumApplication a
---     h' <- enumMaybe enumHtail h
---     a1' <- enumApplication1 a1
---     return $ TApplication s' h' a1'
+-- TODO
+-- head with arguments becomes a term
+-- should head become a term first?
+
+-- application with arguments becomes a term
+
+toTermApplication :: I TApplication -> State MyState AppNamed
+toTermApplication n@Node {node = TApplication {..}} = do
+  -- if an application is right 
+  let filterSuffix AppNamed {..} =
+        case a of
+          Just _ -> error "this application shouldn't have a suffix"
+          Nothing -> t
+  s' <-
+      case s of
+          Opt2A a -> dec a $ HeadTerm <$> toTermHead a
+          Opt2B a -> filterSuffix <$> toTermApplication a
+  h' <- maybe (return []) toTermHtail h
+  t1 <- dec n $ return App {t = s', apps = h'}
+  toTermApplication1 t1 a1
 
 
--- enumApplication1 :: I TApplication1 -> State MyState (I TApplication1)
--- enumApplication1 n@Node {node = TApplication1 {..}} = dec n MApplication1 $ do
---     c' <-
---         case c of
---             Just x  -> Just <$> enumApplication1Elem x
---             Nothing -> return c
---     return $ TApplication1 c'
+toTermApplication1 :: K Term -> I TApplication1 -> State MyState AppNamed
+toTermApplication1 t Node {node = TApplication1 {..}} =  do
+  case c of
+      Just x  -> toTermApplication1Elem t x
+      Nothing -> return AppNamed {a = Nothing, t = t}
 
 
--- enumApplication1Elem :: I TApplication1Elem -> State MyState (I TApplication1Elem)
--- enumApplication1Elem n@Node {node = TApplication1Elem {..}} = dec n MApplication1Elem $ do
---     c1' <-
---         case c1 of
---             Opt3A t -> Opt3A <$> enumMethod t
---             Opt3B t -> Opt3B <$> enumHas t
---             Opt3C t -> Opt3C <$> enumSuffix t
---     ht' <- enumMaybe enumHtail ht
---     a' <- enumApplication1 a
---     return $ TApplication1Elem c1' ht' a'
+-- TODO fix annotations
+toTermApplication1Elem :: K Term -> I TApplication1Elem -> State MyState AppNamed
+toTermApplication1Elem t n@Node {node = TApplication1Elem {..}} = do
+    c1' <- 
+        case c1 of
+            Opt3A b -> AppNamed Nothing <$> dec b (ToTerm.Dot t <$> toTermMethod b)
+            Opt3B b -> toTermHas t b
+            Opt3C b -> flip AppNamed t <$> Just <$> Opt2A <$> toTermSuffix b
+    let 
+        c2::K Term
+        c2 = Ann {term = AppNamedTerm c1', ann = IDs Nothing Nothing}
+    ht' <- maybe (return []) toTermHtail ht
+    let 
+        a1::K Term
+        a1 = Ann {term = App {t = c2, apps = ht'}, ann = IDs Nothing Nothing}
+    toTermApplication1 a1 a
 
 
--- enumMethod :: I TMethod -> State MyState (I TMethod)
--- enumMethod n@Node {node = TMethod {..}} = dec n MMethod $ do
---     m' <- case m of
---         Opt2A t -> Opt2A <$> enumName t
---         Opt2B t -> Opt2B <$> enumTerminal t
---     return $ TMethod m'
+toTermMethod :: I TMethod -> State MyState (K MethodName)
+toTermMethod n@Node {node = TMethod {..}} = dec n $ do
+    let m' = 
+          case m of
+            Opt2A Node{node=TName t1} -> MName t1
+            Opt2B Node{node=t1} -> 
+              case t1 of
+                PEO.Root -> MRoot
+                PEO.Vertex -> MVertex
+                PEO.At -> MAt
+                _ -> error "wrong terminal as method name"
+    return m'
+
+toTermHas :: K Term -> I THas -> State MyState AppNamed
+toTermHas t m@Node {node = THas {..}} = do
+    let Node {node = TName t1} = n
+    h <- dec m $ return (HName t1)
+    return $ AppNamed {a = Just (Opt2B h), t = t}
 
 
--- enumHas :: I THas -> State MyState (I THas)
--- enumHas m@Node {node = THas {..}} = dec m MHas $ do
---     n' <- enumName n
---     return $ THas n'
+toTermAttributes :: I TAttributes -> State MyState [K Label]
+toTermAttributes Node {node = TAttributes {..}} = do
+    mapM toTermFreeAttribute as
+
+toTermFreeAttribute :: I TFreeAttribute -> State MyState (K Label)
+toTermFreeAttribute n@Node {node = TFreeAttribute {..}} = dec n $ do
+    let l' =
+          case l of
+            Opt3A Node{..} ->
+                  case node of
+                    PEO.At -> FAt
+                    _ -> error "wrong terminal in label"
+            Opt3B Node{node = TName t1} -> FName t1
+            Opt3C Node{node = TVarArg t1} -> FVarArg t1
+    return l'
 
 
--- enumAttributes :: I TAttributes -> State MyState (I TAttributes)
--- enumAttributes n@Node {node = TAttributes {..}} = dec n MAttributes $ do
---     as' <- mapM enumLabel as
---     return $ TAttributes as'
-
--- enumAbstractionTail :: I TAbstractionTail -> State MyState (I TAbstractionTail)
--- enumAbstractionTail n@Node {node = TAbstractionTail {..}} = dec n MAbstractionTail $ do
---     e' <-
---         case e of
---             Opt2A (a,b) -> Opt2A <$> do
---                 a1 <- enumSuffix a
---                 b1 <- (
---                     case b of
---                         Just b' -> Just <$>
---                             case b' of
---                                 Opt2A name -> Opt2A <$> enumName name
---                                 Opt2B t    -> Opt2B <$> enumTerminal t
---                         Nothing -> return b
---                     )
---                 return (a1,b1)
---             Opt2B h -> Opt2B <$> enumHtail h
---     return $ TAbstractionTail e'
+toTermAbstractionTail :: I TAbstractionTail -> State MyState (K TAbstractionTail)
+toTermAbstractionTail n@Node {node = TAbstractionTail {..}} = dec n $ do
+    e' <-
+        case e of
+            Opt2A (a,b) -> Opt2A <$> do
+                a1 <- toTermSuffix a
+                b1 <- (
+                    case b of
+                        Just b' -> Just <$>
+                            case b' of
+                                Opt2A c -> Opt2A <$> toTermName c
+                                Opt2B c -> Opt2B <$> toTermTerminal c
+                        Nothing -> return b
+                    )
+                return (a1,b1)
+            Opt2B h -> error "RLY, htail after abstraction?"
+    return $ TAbstractionTail e'
 
 
--- enumHtail :: I THtail -> State MyState (I THtail)
--- enumHtail n@Node {node = THtail {..}} = dec n MHtail $ do
---     let f e =
---             case e of
---                 Opt3A h -> Opt3A <$> enumHead h
---                 Opt3B a -> Opt3B <$> enumApplication a
---                 Opt3C a -> Opt3C <$> enumAbstraction a
---     t' <- mapM f t
---     return $ THtail t'
+
+-- type ApplicationArgument = Options3 (K Head) (K TApplication) (K TAbstraction)
+
+toTermHtail :: I THtail -> State MyState [AppNamed]
+toTermHtail Node {node = THtail {..}} = do
+    let f e =
+            case e of
+                Opt3A a -> AppNamed Nothing <$> dec a (HeadTerm <$> toTermHead a)
+                -- it's an application in parentheses
+                Opt3B a -> toTermApplication a
+                Opt3C _ -> error "cannot convert abstraction without body to term"
+    mapM f t
 
 
--- enumLabel :: I TLabel -> State MyState (I TLabel)
--- enumLabel n@Node {node = TLabel {..}} = dec n MLabel $ do
---     l' <-
---         case l of
---             Opt2A t -> Opt2A <$> enumTerminal t
---             -- TODO
---             Opt2B (n1, t) ->
---                 do
---                     n1' <- enumName n1
---                     t' <- enumMaybe enumTerminal t
---                     return $ Opt2B (n1', t')
---     return $ TLabel l'
+toTermLabel :: I TLabel -> State MyState (K Label)
+toTermLabel n@Node {node = TLabel {..}} = dec n $ do
+    let l' =
+          case l of
+            Opt2A Node{..} ->
+                  case node of
+                    PEO.At -> FAt
+                    _ -> error "wrong terminal in label"
+            Opt2B (Node{node=TName n1}, t) ->
+                  case t of
+                    Just _ -> FVarArg n1
+                    Nothing -> FName n1
+    return l'
 
 
--- enumSuffix :: I TSuffix -> State MyState (I TSuffix)
--- enumSuffix n@Node {node = TSuffix {..}} = dec n MSuffix $ do
---     l' <- enumLabel l
---     c' <- enumMaybe enumTerminal c
---     return $ TSuffix l' c'
+data SuffixName = SuffixName {n::K Label, isConst::Bool}
+toTermSuffix :: I TSuffix -> State MyState SuffixName
+toTermSuffix n@Node {node = TSuffix {..}} = do
+    l' <- toTermLabel l
+    let c' = Data.Maybe.isJust c
+    let s = SuffixName l' c'
+    return s
 
 
--- -- TODO
--- enumTerminal :: I TTerminal -> State MyState (I TTerminal)
--- enumTerminal n@Node {..} = dec n MTerminal $ return node
+toTermTerminal :: I TTerminal -> State MyState (K TTerminal)
+toTermTerminal n@Node {..} = dec n $ return node
+
+-- what is it?
+-- ...3
+-- ...s'
+-- ...s
+-- ...s.
 
 
--- enumHead :: I THead -> State MyState (I THead)
--- enumHead n@Node {node = THead {..}} = dec n MHead $ do
---     dots' <- enumMaybe enumTerminal dots
---     t' <-
---         case t of
---             Opt3A a -> Opt3A <$> enumTerminal a
---             Opt3B a -> Opt3B <$> enumHeadName a
---             Opt3C a -> Opt3C <$> enumData a
---     return $ THead dots' t'
+toTermHead :: I THead -> State MyState (K Head)
+toTermHead n@Node {node = THead {..}} = dec n $ do
+    t' <-
+        case t of
+            Opt3A a -> Opt3A <$> toTermTerminal a
+            Opt3B a -> Opt3B <$> toTermHeadName a
+            Opt3C a -> Opt3C <$> toTermData a
+    let d = Data.Maybe.isJust dots
+    return Head {h = t', unpacked = d}
+
+toTermHeadName :: I THeadName -> State MyState (K HeadName)
+toTermHeadName n@Node {node = THeadName {..}} = dec n $ do
+  let Node {node = TName t} = name
+  hn <- dec name $ return (LetterName t)
+  let c' =
+        case c of
+            Opt2A Node {node = PEO.Dot} -> Just MInverseDot
+            Opt2B p ->
+              case p of
+                Just Node {node = PEO.Copy} -> Just MCopy
+                Nothing -> Nothing
+                _ -> error "wrong terminal after head name (not a copy)"
+            _ -> error "wrong terminal after head name (not a dot)"
+  return HeadName {n = hn, m = c'}
 
 
--- enumHeadName :: I THeadName -> State MyState (I THeadName)
--- enumHeadName n@Node {node = THeadName {..}} = dec n MHeadName $ do
---     name' <- enumName name
---     c' <-
---         case c of
---             Opt2A t -> Opt2A <$> enumTerminal t
---             Opt2B t -> Opt2B <$> enumMaybe enumTerminal t
---     return $ THeadName name' c'
+toTermData :: I TData -> State MyState (K DataValue)
+toTermData n@Node {node = TData {..}} = dec n $ do
+  case d of
+      Opt9A a -> toTermBool a
+      Opt9B a -> toTermText a
+      Opt9C a -> toTermHex a
+      Opt9D a -> toTermString a
+      Opt9E a -> toTermFloat a
+      Opt9F a -> toTermInt a
+      Opt9G a -> toTermBytes a
+      Opt9H a -> toTermChar a
+      Opt9I a -> toTermRegex a
 
 
--- enumData :: I TData -> State MyState (I TData)
--- enumData n@Node {node = TData {..}} = dec n MData $ do
---     d' <-
---         case d of
---             Opt9A a -> Opt9A <$> enumBool a
---             Opt9B a -> Opt9B <$> enumText a
---             Opt9C a -> Opt9C <$> enumHex a
---             Opt9D a -> Opt9D <$> enumString a
---             Opt9E a -> Opt9E <$> enumFloat a
---             Opt9F a -> Opt9F <$> enumInt a
---             Opt9G a -> Opt9G <$> enumBytes a
---             Opt9H a -> Opt9H <$> enumChar1 a
---             Opt9I a -> Opt9I <$> enumRegex a
---     return $ TData d'
+toTermBool :: I TBool -> State MyState DataValue
+toTermBool n@Node {..} = do
+  let TBool i = node
+  return (DBool i)
 
 
--- enumBool :: I TBool -> State MyState (I TBool)
--- enumBool n@Node {..} = dec n MBool $ return node
+toTermText :: I TText -> State MyState DataValue
+toTermText n@Node {..} = do
+  let TText i = node
+  return (DText i)
 
 
--- enumText :: I TText -> State MyState (I TText)
--- enumText n@Node {..} = dec n MText $ return node
+toTermHex :: I THex -> State MyState DataValue
+toTermHex n@Node {..} = do
+  let THex i = node
+  return (DHex i)
 
 
--- enumHex :: I THex -> State MyState (I THex)
--- enumHex n@Node {..} = dec n MHex $ return node
+toTermString :: I TString -> State MyState DataValue
+toTermString n@Node {..} = do
+  let TString i = node
+  return (DString i)
 
 
--- enumString :: I TString -> State MyState (I TString)
--- enumString n@Node {..} = dec n MString $ return node
+toTermFloat :: I TFloat -> State MyState DataValue
+toTermFloat n@Node {..} = do
+  let TFloat i = node
+  return (DFloat i)
 
 
--- enumFloat :: I TFloat -> State MyState (I TFloat)
--- enumFloat n@Node {..} = dec n MFloat $ return  node
+toTermInt :: I TInt -> State MyState DataValue
+toTermInt n@Node {..} = do
+  let TInt i = node
+  return (DInt i)
 
 
--- enumInt :: I TInt -> State MyState (I TInt)
--- enumInt n@Node {..} = dec n MInt $ return node
+toTermBytes :: I TBytes -> State MyState DataValue
+toTermBytes Node {node = TBytes {..}} = do
+    bs' <-
+            case bs of
+                Opt2A t -> Opt2A <$> toTermByte t
+                Opt2B t -> Opt2B <$> mapM toTermLineBytes t
+    return (DBytes bs')
 
 
--- enumBytes :: I TBytes -> State MyState (I TBytes)
--- enumBytes n@Node {node = TBytes {..}} = dec n MBytes $ do
---     bs' <-
---             case bs of
---                 Opt3A t -> Opt3A <$> enumTerminal t
---                 Opt3B t -> Opt3B <$> enumByte t
---                 Opt3C t -> Opt3C <$> mapM enumLineBytes t
---     return $ TBytes bs'
+toTermChar :: I TChar -> State MyState DataValue
+toTermChar n@Node{..} = do
+  let TChar c = node
+  return (DChar c)
 
+toTermRegex :: I TRegex -> State MyState DataValue
+toTermRegex n@Node{..} = do
+  let TRegex t1 t2 = node
+  return (DRegex t1 t2)
 
--- enumChar1 :: I TChar -> State MyState (I TChar)
--- enumChar1 n = dec n MChar $ return $ node n
-
-
--- enumRegex :: I TRegex -> State MyState (I TRegex)
--- enumRegex n = dec n MRegex $ return $ node n
-
-enumRegex :: I TRegex -> State MyState (I TRegex)
-enumRegex n@Node{..} = 
-
-enumLineBytes :: I TLineBytes -> State MyState (K DLineBytes)
-enumLineBytes n@Node {node = TLineBytes {..}} = do
+toTermLineBytes :: I TLineBytes -> State MyState (K DLineBytes)
+toTermLineBytes n@Node {node = TLineBytes {..}} = dec n $ do
   bs' <- mapM toTermByte bs
-  annotate n (DLineBytes bs')
-
-getId Node{..} =
-  case load of
-    Load i -> i
-
-data MyState = MyState {termId :: Int}
-
--- | annotate a node with term id and 
-annotate :: I a -> b -> State MyState (K b)
-annotate n t = do 
-  MyState tId <- get
-  put (MyState (tId + 1))
-  return Ann {treeId = getId n, term = t, ann = A {termId = tId}}
+  return (DLineBytes bs')
 
 toTermByte :: Node TByte Load -> State MyState (K DByte)
-toTermByte n@Node{..} = do
+toTermByte n@Node{..} = dec n $ do
   let TByte b = node
-  annotate n (DByte b)
+  return (DByte b)

@@ -23,8 +23,8 @@ main = do
   let tr1 = parseMaybe tProgram code
   putStr "\n\n"
   case tr1 of
-    Just t -> print "Tree"
-    -- Just t -> putStr $ show (fst $ enumInsertProgram t)
+    -- Just t -> print "Tree"
+    Just t -> putStr $ show (fst $ enumInsertProgram t)
     _ -> print "Not ok"
   -- let tr = parseMaybe pProgram code
   -- -- let l = printf "\n%s\n%s\n%s\n" ((DT.replicate 10 "*")::Text) ("\nRESULT\n") ((DT.replicate 10 "*")::Text)

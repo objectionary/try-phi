@@ -7,7 +7,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE RecordWildCards       #-}
 
-module SimplifyTree (simplifyCST) where
+module SimplifyTree (simplifyTree) where
 
 import           Control.Monad.State.Strict (State (), evalState, execState,
                                              get, put)
@@ -17,12 +17,14 @@ import qualified Data.HashMap.Strict.InsOrd as M (InsOrdHashMap, empty, insert)
 import           Data.Scientific            (Scientific)
 import           Data.Text                  (Text)
 import           GHC.Generics               (Generic)
-import qualified ParseEO                    as P (Node (..), Position (..),
-                                                  TokenType (..))
+import ParseEO as P
 import qualified Data.List                  as DL
 import Text.Printf (printf)
 
 
+newtype Annotation = A {runtimeId::Id}
+data Ann a b = Ann {treeId::Id, term::a, ann::b}
+type K a = Ann a Annotation
 
 enumerateNodes :: P.Node -> Node
 enumerateNodes tr = evalState (enumerateNodesStep tr) 0
@@ -84,6 +86,7 @@ err i = error $ printf "problem at node\n%s" (show i)
 
 tab :: String
 tab = "|  "
+
 
 type TabNumber = Int
 

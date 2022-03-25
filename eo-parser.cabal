@@ -33,10 +33,10 @@ library
   exposed-modules:
       EnumerateNodes
       ParseEO
-      ParseEOAlt
       ParseIndents
       PrettyPrint
       SimplifyTree
+      ToTerm
   other-modules:
       Paths_eo_parser
   hs-source-dirs:

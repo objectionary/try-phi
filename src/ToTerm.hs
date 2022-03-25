@@ -78,8 +78,8 @@ data DataValue
 -- data AbstrName = AbstrName {a::SuffixName, imported::Maybe (K Text)}
 -- data AbstractionNamed = AbstractionNamed {a::Maybe AbstrName, t::K Term}
 
-data AbstractionName = AbstractionName {a::SuffixName, imported::Maybe (K Text)}
-data Attached = Attached {t::K Term, a::Options2 AbstractionName SuffixName}
+data AbstractionName = AbstractionName {a::SuffixName, imported::Maybe (Options2 (K LetterName) (K TTerminal))}
+data Attached = Attached {t::K Term, a::Options2 (K AbstractionName) SuffixName}
 
 -- TODO it's application attribute's name. It cannot be head like data
 -- data NamedApp = NamedApp {name::Maybe (K Head), t::K Term}
@@ -201,11 +201,16 @@ toTermName m@Node {node = TName t1} = dec m $ return (LetterName t1)
 --     s' <- mapM g s
 --     return $ TObject cs' a' t' s'
 
--- toTermAbstraction :: I TAbstraction -> State MyState (K TAbstraction)
--- toTermAbstraction n@Node {node = TAbstraction {..}} = dec n $ do
---     as' <- toTermAttributes as
---     t' <- toTermMaybe toTermAbstractionTail t
---     return $ TAbstraction as' t'
+data Abstraction = Abstraction {attrs :: [K Label], name::Maybe (K AbstractionName)}
+
+toTermAbstraction :: I TAbstraction -> State MyState Abstraction
+toTermAbstraction Node {node = TAbstraction {..}} = do
+    as' <- toTermAttributes as
+    t' <- 
+        case t of 
+          Just t1 -> Just <$> toTermAbstractionTail t1
+          Nothing -> return Nothing
+    return Abstraction {attrs = as', name = t'}
 
 -- toTermTail :: I TTail -> State MyState (K TTail)
 -- toTermTail n@Node {node = TTail {..}} = dec n $ do
@@ -250,16 +255,16 @@ toTermApplication1 t Node {node = TApplication1 {..}} =  do
 -- TODO fix annotations
 toTermApplication1Elem :: K Term -> I TApplication1Elem -> State MyState AppNamed
 toTermApplication1Elem t n@Node {node = TApplication1Elem {..}} = do
-    c1' <- 
+    c1' <-
         case c1 of
             Opt3A b -> AppNamed Nothing <$> dec b (ToTerm.Dot t <$> toTermMethod b)
             Opt3B b -> toTermHas t b
             Opt3C b -> flip AppNamed t <$> Just <$> Opt2A <$> toTermSuffix b
-    let 
+    let
         c2::K Term
         c2 = Ann {term = AppNamedTerm c1', ann = IDs Nothing Nothing}
     ht' <- maybe (return []) toTermHtail ht
-    let 
+    let
         a1::K Term
         a1 = Ann {term = App {t = c2, apps = ht'}, ann = IDs Nothing Nothing}
     toTermApplication1 a1 a
@@ -267,10 +272,10 @@ toTermApplication1Elem t n@Node {node = TApplication1Elem {..}} = do
 
 toTermMethod :: I TMethod -> State MyState (K MethodName)
 toTermMethod n@Node {node = TMethod {..}} = dec n $ do
-    let m' = 
+    let m' =
           case m of
             Opt2A Node{node=TName t1} -> MName t1
-            Opt2B Node{node=t1} -> 
+            Opt2B Node{node=t1} ->
               case t1 of
                 PEO.Root -> MRoot
                 PEO.Vertex -> MVertex
@@ -302,27 +307,22 @@ toTermFreeAttribute n@Node {node = TFreeAttribute {..}} = dec n $ do
     return l'
 
 
-toTermAbstractionTail :: I TAbstractionTail -> State MyState (K TAbstractionTail)
+toTermAbstractionTail :: I TAbstractionTail -> State MyState (K AbstractionName)
 toTermAbstractionTail n@Node {node = TAbstractionTail {..}} = dec n $ do
-    e' <-
-        case e of
-            Opt2A (a,b) -> Opt2A <$> do
-                a1 <- toTermSuffix a
-                b1 <- (
-                    case b of
-                        Just b' -> Just <$>
-                            case b' of
-                                Opt2A c -> Opt2A <$> toTermName c
-                                Opt2B c -> Opt2B <$> toTermTerminal c
-                        Nothing -> return b
-                    )
-                return (a1,b1)
-            Opt2B h -> error "RLY, htail after abstraction?"
-    return $ TAbstractionTail e'
+    case e of
+        Opt2A (a,b) -> do
+            a1 <- toTermSuffix a
+            b1 <- (
+                case b of
+                    Just b' -> Just <$>
+                        case b' of
+                            Opt2A c -> Opt2A <$> toTermName c
+                            Opt2B c -> Opt2B <$> toTermTerminal c
+                    Nothing -> return Nothing
+                )
+            return AbstractionName {a = a1, imported = b1}
+        Opt2B h -> error "RLY, htail after abstraction?"
 
-
-
--- type ApplicationArgument = Options3 (K Head) (K TApplication) (K TAbstraction)
 
 toTermHtail :: I THtail -> State MyState [AppNamed]
 toTermHtail Node {node = THtail {..}} = do

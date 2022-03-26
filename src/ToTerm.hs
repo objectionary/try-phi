@@ -8,7 +8,7 @@
 module ToTerm where
 
 
-import           Control.Monad.Identity     (Identity)
+import           Control.Monad.Identity     (Identity, guard)
 import           Control.Monad.State        (get, put)
 import           Control.Monad.State.Strict (State)
 import           Data.Hashable              (Hashable)
@@ -78,8 +78,12 @@ data DataValue
 -- data AbstrName = AbstrName {a::SuffixName, imported::Maybe (K Text)}
 -- data AbstractionNamed = AbstractionNamed {a::Maybe AbstrName, t::K Term}
 
-data AbstractionName = AbstractionName {a::SuffixName, imported::Maybe (Options2 (K LetterName) (K TTerminal))}
-data Attached = Attached {t::K Term, a::Options2 (K AbstractionName) SuffixName}
+data AttachedName = AttachedName {a::SuffixName, imported::Maybe (Options2 (K LetterName) (K TTerminal))}
+
+-- In Object After abstraction, we expect that all attributes in tail have some form of suffix name
+-- they can be appnamed, but shouldn't be constructed with an optional argument name
+-- application name is in the subset of abstraction names, just doesn't have imported part
+data Attached = Attached {t::K Term, a::Maybe AttachedName}
 
 -- TODO it's application attribute's name. It cannot be head like data
 -- data NamedApp = NamedApp {name::Maybe (K Head), t::K Term}
@@ -92,12 +96,14 @@ data Attached = Attached {t::K Term, a::Options2 (K AbstractionName) SuffixName}
 
 data HasName = HName Text | HAt
 
+-- in Object after application, we expect that neither attribute has abstraction name (with imported part)
+-- so each attribute in tail should be only appnamed
 type ArgName = Options2 SuffixName (K HasName)
 data AppNamed = AppNamed {a :: Maybe ArgName, t::K Term}
 
 data Term
-  = App {t::K Term, apps::[AppNamed]}
-  | Obj {freeAttrs::[K Label], obj::M.InsOrdHashMap Label Attached}
+  = App {t::K Term, apps::[AbstrOrApp]}
+  | Obj {freeAttrs::[K Label], attached::[Attached]}
   | Dot {t::K Term, attr::K MethodName}
   | Locator {n::Int}
   | HeadTerm {v::K Head}
@@ -111,6 +117,8 @@ data Term
     -- put MyState {i=i1+1, m=M.insert i1 (m n) m1}
     -- return n {load = Load {num = i1}, node = t}
 
+-- IDK Object with attributes is a term
+-- application with attributes is a term
 
 -- dec = id
 -- toTermInsertProgram :: I TProgram -> (I TProgram, MyState)
@@ -134,32 +142,18 @@ dec n t = do
   put (MyState (tId + 1))
   return Ann {term = t1, ann = IDs {runtimeId = Just tId, treeId = Just (getId n)}}
 
-
--- toTermInsertProgram :: I TProgram -> (I TProgram, MyState)
--- toTermInsertProgram t = runState (toTermProgram t) (MyState {i=0, m=M.empty})
-
--- toTermProgram :: I TProgram -> State MyState (K TProgram)
--- toTermProgram n@Node {node = TProgram {..}} = dec n $ do
---     l' <- toTermMaybe toTermLicense l
---     m' <- toTermMaybe toTermMetas m
---     o' <- toTermObjects o
---     return $ TProgram l' m' o'
-
-
--- toTermLicense :: I TLicense -> State MyState (K TLicense)
--- toTermLicense n@Node {node = TLicense {..}} = dec n $ do
---     cs' <- mapM toTermComment cs
---     return $ TLicense cs'
-
-
--- toTermComment :: I TComment -> State MyState (K TComment)
--- toTermComment n@Node {..} = dec n $ return node
+toTermProgram :: I TProgram -> State MyState (K Term)
+toTermProgram n@Node {node = TProgram {..}} = do
+    -- l' <- toTermMaybe toTermLicense l
+    -- m' <- toTermMaybe toTermMetas m
+    toTermObjects o
 
 
 -- toTermMetas :: I TMetas -> State MyState (K TMetas)
 -- toTermMetas n@Node {node = TMetas {..}} = dec n $ do
 --     cs' <- mapM toTermMeta ms
 --     return $ TMetas cs'
+
 
 
 -- toTermMeta :: I TMeta -> State MyState (K TMeta)
@@ -176,62 +170,110 @@ dec n t = do
 toTermName :: I TName -> State MyState (K LetterName)
 toTermName m@Node {node = TName t1} = dec m $ return (LetterName t1)
 
--- toTermObjects :: I TObjects -> State MyState (K TObjects)
--- toTermObjects n@Node {node = TObjects {..}} = dec n $ do
---     os' <- mapM toTermObject os
---     return $ TObjects os'
+-- should produce an object
+toTermObjects :: I TObjects -> State MyState (K Term)
+toTermObjects n@Node {node = TObjects {..}} = do
+    os' <- mapM toTermObject os
+    let q = Abstraction {attrs = [], name = Nothing}
+    Attached {t=t1} <- composeObject n q os'
+    return t1
 
--- toTermObject :: I TObject -> State MyState (K TObject)
--- toTermObject n@Node {node = TObject {..}} = dec n $ do
---     cs' <- mapM toTermComment cs
---     a' <-
---         case a of
---             Opt2A p -> Opt2A <$> toTermAbstraction p
---             Opt2B p -> Opt2B <$> toTermApplication p
---     t' <- toTermMaybe toTermTail t
---     -- TODO
---     let
---         g (m,h,suff,t1) =
---             do
---                 m1 <- toTermMethod m
---                 h1 <- toTermMaybe toTermHtail h
---                 s1 <- toTermMaybe toTermSuffix suff
---                 t2 <- toTermMaybe toTermTail t1
---                 return (m1,h1,s1,t2)
---     s' <- mapM g s
---     return $ TObject cs' a' t' s'
+-- TODO use better naming
+type AbstrOrApp = Options2 Attached AppNamed
 
-data Abstraction = Abstraction {attrs :: [K Label], name::Maybe (K AbstractionName)}
+-- if there is an object context, attributes that are attached to some names should become
+-- attached attributes of such object
+composeObject :: I a -> Abstraction -> [AbstrOrApp] -> State MyState Attached
+composeObject n a t = do
+    let makeAttached e =
+          case e of
+            Opt2A p -> p
+            Opt2B AppNamed {a=a1, t=t1} ->
+              case a1 of
+                Just a2 ->
+                  case a2 of
+                    Opt2A a3 -> Attached {t = t1, a = Just AttachedName {a = a3, imported = Nothing}}
+                    Opt2B _ -> error "no attribute name for this abstraction attribute"
+                Nothing ->
+                  Attached {t = t1, a = Nothing}
+    let t1 = makeAttached <$> t
+    let Abstraction {..} = a
+    t2 <- dec n $ return Obj {freeAttrs = attrs, attached = t1}
+    return Attached {t = t2, a = name}
+
+-- includes expressions like
+-- x:a
+--   b
+composeApp :: I TObject -> AppNamed -> [AbstrOrApp] -> State MyState AppNamed
+composeApp n a t = do
+    let AppNamed {a=a1, t=t1} = a
+    t2 <- dec n $ return App {t = t1, apps = t}
+    return AppNamed {t = t2, a = a1}
+
+
+-- doesn't produce an object
+-- can produce really weird things
+toTermObject :: I TObject -> State MyState AbstrOrApp
+toTermObject n@Node {node = TObject {..}} = do
+    a' <-
+        case a of
+            Opt2A p -> Opt2A <$> toTermAbstraction p
+            Opt2B p -> Opt2B <$> toTermApplication p
+    t' <- maybe (return []) toTermTail t
+    case a' of
+      Opt2A b -> Opt2A <$> composeObject n b t'
+      Opt2B b -> Opt2B <$> composeApp n b t'
+
+    -- TODO Here, we should have a ready named term
+
+    -- Suppose there is no this object's tail
+
+    -- let
+    --     g (m, h, suff, t1) =
+    --         do
+    --             m1 <- toTermMethod m
+    --             h1 <- toTermMaybe toTermHtail h
+    --             s1 <- toTermMaybe toTermSuffix suff
+    --             t2 <- toTermMaybe toTermTail t1
+    --             return (m1,h1,s1,t2)
+    -- s' <- mapM g s
+
+
+-- | Abstraction is a name, not a term
+data Abstraction = Abstraction {attrs :: [K Label], name::Maybe AttachedName}
 
 toTermAbstraction :: I TAbstraction -> State MyState Abstraction
 toTermAbstraction Node {node = TAbstraction {..}} = do
     as' <- toTermAttributes as
-    t' <- 
-        case t of 
+    t' <-
+        case t of
           Just t1 -> Just <$> toTermAbstractionTail t1
           Nothing -> return Nothing
     return Abstraction {attrs = as', name = t'}
 
--- toTermTail :: I TTail -> State MyState (K TTail)
--- toTermTail n@Node {node = TTail {..}} = dec n $ do
---     os' <- mapM toTermObject os
---     return $ TTail os'
+toTermTail :: I TTail -> State MyState [AbstrOrApp]
+toTermTail n@Node {node = TTail {..}} = undefined {-dec n $ do
+    os' <- mapM toTermObject os
+    return $ TTail os'-}
 
 -- toTermMaybe :: Monad f => (a -> f a) -> Maybe a -> f (Maybe a)
--- toTermMaybe f x =
---     case x of
---         Just x' -> Just <$> f x'
---         Nothing -> return x
+toTermMaybe :: Monad f => (a -> f b) -> Maybe a -> f (Maybe b)
+toTermMaybe f x =
+    case x of
+        Just x' -> Just <$> f x'
+        Nothing -> return Nothing
+
+-- toTermMaybeList :: State a Maybe [b] -> State a
+-- toTermMaybeList l = maybe (return []) l
 
 -- TODO
 -- head with arguments becomes a term
 -- should head become a term first?
-
 -- application with arguments becomes a term
 
 toTermApplication :: I TApplication -> State MyState AppNamed
 toTermApplication n@Node {node = TApplication {..}} = do
-  -- if an application is right 
+  -- if an application is right
   let filterSuffix AppNamed {..} =
         case a of
           Just _ -> error "this application shouldn't have a suffix"
@@ -241,7 +283,8 @@ toTermApplication n@Node {node = TApplication {..}} = do
           Opt2A a -> dec a $ HeadTerm <$> toTermHead a
           Opt2B a -> filterSuffix <$> toTermApplication a
   h' <- maybe (return []) toTermHtail h
-  t1 <- dec n $ return App {t = s', apps = h'}
+  let h1 = Opt2B <$> h'
+  t1 <- dec n $ return App {t = s', apps = h1}
   toTermApplication1 t1 a1
 
 
@@ -264,9 +307,8 @@ toTermApplication1Elem t n@Node {node = TApplication1Elem {..}} = do
         c2::K Term
         c2 = Ann {term = AppNamedTerm c1', ann = IDs Nothing Nothing}
     ht' <- maybe (return []) toTermHtail ht
-    let
-        a1::K Term
-        a1 = Ann {term = App {t = c2, apps = ht'}, ann = IDs Nothing Nothing}
+    let h1 = Opt2B <$> ht'
+    let a1 = Ann {term = App {t = c2, apps = h1}, ann = IDs Nothing Nothing}
     toTermApplication1 a1 a
 
 
@@ -307,8 +349,8 @@ toTermFreeAttribute n@Node {node = TFreeAttribute {..}} = dec n $ do
     return l'
 
 
-toTermAbstractionTail :: I TAbstractionTail -> State MyState (K AbstractionName)
-toTermAbstractionTail n@Node {node = TAbstractionTail {..}} = dec n $ do
+toTermAbstractionTail :: I TAbstractionTail -> State MyState AttachedName
+toTermAbstractionTail n@Node {node = TAbstractionTail {..}} = do
     case e of
         Opt2A (a,b) -> do
             a1 <- toTermSuffix a
@@ -320,7 +362,8 @@ toTermAbstractionTail n@Node {node = TAbstractionTail {..}} = dec n $ do
                             Opt2B c -> Opt2B <$> toTermTerminal c
                     Nothing -> return Nothing
                 )
-            return AbstractionName {a = a1, imported = b1}
+            return AttachedName {a = a1, imported = b1}
+        -- TODO correctly process htail
         Opt2B h -> error "RLY, htail after abstraction?"
 
 

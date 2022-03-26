@@ -361,7 +361,7 @@ tObject ind = dec "Object" $ do
   let newIndent = ind + indentAdd
   -- list of attributes
   t <- optional $ try ({-debug "object:tail"-} tTail newIndent)
-  let g = do
+  let g1 = do
         e <- tEOLTabMany
         guard $ getIndent e == ind
         method <- {-debug "object:method"-} tMethod
@@ -369,7 +369,7 @@ tObject ind = dec "Object" $ do
         suffix <- optional $ try ({-debug "object:suffix"-} tSuffix)
         p <- optional $ try ({-debug "object:tail"-} tTail (ind + indentAdd))
         return (method, h, suffix, p)
-  s <- manyTry $ ({-debug "object:after tail"-} g)
+  s <- manyTry $ ({-debug "object:after tail"-} g1)
   return TObject {cs = comments, a = a, t = t, s = s}
 
 -- TODO use separate parser for free attributes

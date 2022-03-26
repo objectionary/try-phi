@@ -112,3 +112,8 @@ a [] b > c c
 ((a > a) > a) > a
 
 a (a > a) > a
+
+a > a
+  (a)
+  a:a
+  a > a

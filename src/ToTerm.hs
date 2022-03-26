@@ -5,12 +5,12 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE RecordWildCards            #-}
 
-module ToTerm where
+module ToTerm(toTermProgram, getTermProgram) where
 
 
 import           Control.Monad.Identity     (Identity, guard)
 import           Control.Monad.State        (get, put)
-import           Control.Monad.State.Strict (State)
+import           Control.Monad.State.Strict (State, evalState)
 import           Data.Hashable              (Hashable)
 import qualified Data.HashMap.Strict.InsOrd as M
 import           Data.Scientific            (Scientific)
@@ -21,8 +21,8 @@ import qualified Data.Maybe
 
 
 type Id = Int
-data Ann a b = Ann {term::a, ann::b}
-data Annotation = IDs {treeId::Maybe Id, runtimeId::Maybe Id}
+data Ann a b = Ann {term::a, ann::b} deriving (Show)
+data Annotation = IDs {treeId::Maybe Id, runtimeId::Maybe Id}  deriving (Show)
 type K a = Ann a Annotation
 
 
@@ -38,9 +38,9 @@ data Label =
 
 type ReservedName = TTerminal
 
-newtype LetterName = LetterName Text
-data Modifier = MCopy | MInverseDot
-data HeadName = HeadName {n::K LetterName, m::Maybe Modifier}
+newtype LetterName = LetterName Text  deriving (Show)
+data Modifier = MCopy | MInverseDot  deriving (Show)
+data HeadName = HeadName {n::K LetterName, m::Maybe Modifier}  deriving (Show)
 
 -- TODO Question is not a terminal
 
@@ -54,10 +54,20 @@ data MethodName =
 -- Attached
 -- Unpacked can be ^.x, not necessarily a name
 
-data Head = Head {h::Options3 (K ReservedName) (K HeadName) (K DataValue), unpacked::Bool}
+instance (Show a, Show b, Show c) => Show (Options3 a b c) where
+  show (Opt3A a) = show a
+  show (Opt3B a) = show a
+  show (Opt3C a) = show a
 
-newtype DByte = DByte {byte::Integer}
-newtype DLineBytes = DLineBytes {bs :: [K DByte]}
+instance (Show a, Show b) => Show (Options2 a b) where
+  show (Opt2A a) = show a
+  show (Opt2B a) = show a
+
+
+data Head = Head {h::Options3 (K ReservedName) (K HeadName) (K DataValue), unpacked::Bool}  deriving (Show)
+
+newtype DByte = DByte {byte::Integer}  deriving (Show)
+newtype DLineBytes = DLineBytes {bs :: [K DByte]}  deriving (Show)
 
 data DataValue
   = DBool Bool
@@ -69,7 +79,7 @@ data DataValue
   | DRegex Text Text
   | DString Text
   | DText Text
-
+ deriving (Show)
 
 -- TODO define when to throw exceptions
 -- TODO somehow pass problems with node conversion upwards
@@ -78,12 +88,12 @@ data DataValue
 -- data AbstrName = AbstrName {a::SuffixName, imported::Maybe (K Text)}
 -- data AbstractionNamed = AbstractionNamed {a::Maybe AbstrName, t::K Term}
 
-data AttachedName = AttachedName {a::SuffixName, imported::Maybe (Options2 (K LetterName) (K TTerminal))}
+data AttachedName = AttachedName {a::SuffixName, imported::Maybe (Options2 (K LetterName) (K TTerminal))}  deriving (Show)
 
 -- In Object After abstraction, we expect that all attributes in tail have some form of suffix name
 -- they can be appnamed, but shouldn't be constructed with an optional argument name
 -- application name is in the subset of abstraction names, just doesn't have imported part
-data Attached = Attached {t::K Term, a::Maybe AttachedName}
+data Attached = Attached {t::K Term, a::Maybe AttachedName}  deriving (Show)
 
 -- TODO it's application attribute's name. It cannot be head like data
 -- data NamedApp = NamedApp {name::Maybe (K Head), t::K Term}
@@ -94,12 +104,12 @@ data Attached = Attached {t::K Term, a::Maybe AttachedName}
 
 -- term ids may be present in each term except for locators
 
-data HasName = HName Text | HAt
+data HasName = HName Text | HAt  deriving (Show)
 
 -- in Object after application, we expect that neither attribute has abstraction name (with imported part)
 -- so each attribute in tail should be only appnamed
 type ArgName = Options2 SuffixName (K HasName)
-data AppNamed = AppNamed {a :: Maybe ArgName, t::K Term}
+data AppNamed = AppNamed {a :: Maybe ArgName, t::K Term}  deriving (Show)
 
 data Term
   = App {t::K Term, apps::[AbstrOrApp]}
@@ -108,7 +118,7 @@ data Term
   | Locator {n::Int}
   | HeadTerm {v::K Head}
   | AppNamedTerm AppNamed
-
+  deriving (Show)
 
 -- dec::I a -> (I a -> MapElement) -> ReturnValue
 -- dec n m p = do
@@ -124,7 +134,7 @@ data Term
 -- toTermInsertProgram :: I TProgram -> (I TProgram, MyState)
 -- toTermInsertProgram t = runState (toTermProgram t) (MyState {i=0, m=M.empty})
 
-data ReturnValue = ReturnValue {t::K Term}
+data ReturnValue = ReturnValue {t::K Term}  deriving (Show)
 
 getId :: Node a Load -> Int
 getId Node{..} =
@@ -132,7 +142,7 @@ getId Node{..} =
     Load i -> i
     _      -> error "wrong load"
 
-data MyState = MyState {termId :: Int}
+data MyState = MyState {termId :: Int}  deriving (Show)
 
 -- | annotate a node with term id and CST node id
 dec :: I a -> State MyState b -> State MyState (K b)
@@ -141,6 +151,9 @@ dec n t = do
   MyState tId <- get
   put (MyState (tId + 1))
   return Ann {term = t1, ann = IDs {runtimeId = Just tId, treeId = Just (getId n)}}
+
+getTermProgram :: I TProgram -> K Term
+getTermProgram p = evalState (toTermProgram p) MyState {termId = 0}
 
 toTermProgram :: I TProgram -> State MyState (K Term)
 toTermProgram n@Node {node = TProgram {..}} = do
@@ -240,7 +253,7 @@ toTermObject n@Node {node = TObject {..}} = do
 
 
 -- | Abstraction is a name, not a term
-data Abstraction = Abstraction {attrs :: [K Label], name::Maybe AttachedName}
+data Abstraction = Abstraction {attrs :: [K Label], name::Maybe AttachedName}  deriving (Show)
 
 toTermAbstraction :: I TAbstraction -> State MyState Abstraction
 toTermAbstraction Node {node = TAbstraction {..}} = do
@@ -252,7 +265,7 @@ toTermAbstraction Node {node = TAbstraction {..}} = do
     return Abstraction {attrs = as', name = t'}
 
 toTermTail :: I TTail -> State MyState [AbstrOrApp]
-toTermTail n@Node {node = TTail {..}} = undefined {-dec n $ do
+toTermTail n@Node {node = TTail {..}} = return [] {-dec n $ do
     os' <- mapM toTermObject os
     return $ TTail os'-}
 
@@ -364,7 +377,9 @@ toTermAbstractionTail n@Node {node = TAbstractionTail {..}} = do
                 )
             return AttachedName {a = a1, imported = b1}
         -- TODO correctly process htail
-        Opt2B h -> error "RLY, htail after abstraction?"
+        Opt2B h -> return AttachedName {a = SuffixName {n = Ann {term = FAt, ann = IDs {treeId = Just 1, runtimeId = Just 2}}, isConst = False}, imported = Nothing}
+
+        -- Opt2B h -> error "RLY, htail after abstraction?"
 
 
 toTermHtail :: I THtail -> State MyState [AppNamed]
@@ -374,7 +389,9 @@ toTermHtail Node {node = THtail {..}} = do
                 Opt3A a -> AppNamed Nothing <$> dec a (HeadTerm <$> toTermHead a)
                 -- it's an application in parentheses
                 Opt3B a -> toTermApplication a
-                Opt3C _ -> error "cannot convert abstraction without body to term"
+                -- TODO correctly handle no body abstraction
+                Opt3C a -> AppNamed Nothing <$> dec a (return (Locator 3))
+                -- Opt3C _ -> error "cannot convert abstraction without body to term"
     mapM f t
 
 
@@ -393,7 +410,7 @@ toTermLabel n@Node {node = TLabel {..}} = dec n $ do
     return l'
 
 
-data SuffixName = SuffixName {n::K Label, isConst::Bool}
+data SuffixName = SuffixName {n::K Label, isConst::Bool}  deriving (Show)
 toTermSuffix :: I TSuffix -> State MyState SuffixName
 toTermSuffix n@Node {node = TSuffix {..}} = do
     l' <- toTermLabel l

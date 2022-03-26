@@ -34,8 +34,7 @@ library
       EnumerateNodes
       ParseEO
       ParseIndents
-      PrettyPrint
-      SimplifyTree
+      PrettyPrintTree
       ToTerm
   other-modules:
       Paths_eo_parser

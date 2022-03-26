@@ -3,7 +3,7 @@
 {-# LANGUAGE OverloadedStrings     #-}
 
 
-module PrettyPrint where
+module PrettyPrintTree where
 
 import ParseEO
 

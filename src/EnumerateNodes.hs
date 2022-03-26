@@ -1,5 +1,5 @@
 {-# LANGUAGE RecordWildCards #-}
-module EnumerateNodes(enumInsertProgram) where
+module EnumerateNodes (enumInsertProgram) where
 
 import           Control.Monad.State.Strict (State, get, put, runState)
 import qualified Data.HashMap.Strict.InsOrd as M (InsOrdHashMap, empty, insert)

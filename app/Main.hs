@@ -8,12 +8,13 @@
 module Main where
 
 import ParseEO as A (tProgram)
-import PrettyPrint as PP
+import PrettyPrintTree as PP
 import Text.Megaparsec (parseTest, parseMaybe)
 -- import SimplifyTree(simplifyCST, enumerateNodes)
 import Data.Text as DT (pack, replicate, Text(..))
 import Text.Printf (printf)
 import EnumerateNodes (enumInsertProgram)
+import ToTerm (getTermProgram)
 
 main :: IO ()
 main = do
@@ -21,11 +22,13 @@ main = do
   -- let file = "./grammars/code.eo"
   code <- pack <$> readFile file
   let tr1 = parseMaybe tProgram code
+  let t1 = 
+        case tr1 of 
+          Just t -> fst $ enumInsertProgram t
+          _ -> error "Not ok"
+  let t2 = getTermProgram t1
   putStr "\n\n"
-  case tr1 of
-    -- Just t -> print "Tree"
-    Just t -> putStr $ show (fst $ enumInsertProgram t)
-    _ -> print "Not ok"
+  print t2
   -- let tr = parseMaybe pProgram code
   -- -- let l = printf "\n%s\n%s\n%s\n" ((DT.replicate 10 "*")::Text) ("\nRESULT\n") ((DT.replicate 10 "*")::Text)
   -- let l = putStrLn "*****************" *> putStrLn "RESULT" *> putStrLn "*********************\n"

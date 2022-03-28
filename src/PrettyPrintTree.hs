@@ -31,11 +31,11 @@ tab = "|  "
 tabs :: Int -> String
 tabs n = DL.intercalate "" (replicate n tab)
 
-cName :: Data a => a -> String
-cName n = show $ toConstr n
+constructorName :: Data a => a -> String
+constructorName n = show $ toConstr n
 
 showHead :: (PrintfType t, Data a) => Int -> I a -> t
-showHead n Node {..} = printf "%s%s %s %s" (tabs n) (tail $ cName node) (show pos) (show load)
+showHead n Node {..} = printf "%s%s %s %s" (tabs n) (tail $ constructorName node) (show pos) (show load)
 
 nothing :: String
 nothing = "Nothing"
@@ -56,14 +56,18 @@ printList f t = foldl (<>) [] (f <$> t)
 
 -- Node printers
 
+instance ShowIndented a => ShowIndented (Maybe a) where
+  showIndented m (Just a) = showIndented m a
+  showIndented m Nothing = printNothing m
+
 class ShowIndented a where
   showIndented :: Int -> a -> String
 
 instance ShowIndented (I TProgram) where
   showIndented n i@Node {node = TProgram {..}} = printNonLeaf n i [l', m', o']
     where
-      l' k = printMaybe showIndented k l
-      m' k = printMaybe showIndented k m
+      l' k = showIndented k l
+      m' k = showIndented k m
       o' k = showIndented k o
 
 instance ShowIndented (I TLicense) where
@@ -86,15 +90,15 @@ instance ShowIndented (I TMeta) where
   showIndented n i@Node {node = TMeta {..}} = printNonLeaf n i [name', suff']
     where
       name' k = showIndented k name
-      suff' k = printMaybe showIndented k suff
+      suff' k = showIndented k suff
 
 instance ShowIndented (I TMetaSuffix) where
   showIndented n i@Node {node = TMetaSuffix {..}} = printLeaf n i s
 
 instance ShowIndented (I TName) where
   showIndented m i@Node {node = TName {..}} = printLeaf m i n
-instance ShowIndented (I TVarArg) where
 
+instance ShowIndented (I TVarArg) where
   showIndented m i@Node {node = TVarArg {..}} = printLeaf m i n
 
 instance ShowIndented (I TObjects) where
@@ -110,15 +114,15 @@ instance ShowIndented (I TObject) where
         case a of
           Opt2A p -> showIndented k p
           Opt2B p -> showIndented k p
-      t' k = printMaybe showIndented k t
-      -- TODO
+      t' k = showIndented k t
+      -- TODO print s
       s' = undefined 
 
 instance ShowIndented (I TAbstraction) where
   showIndented m i@Node {node = TAbstraction {..}} = printNonLeaf m i [as', t']
     where
       as' k = showIndented k as
-      t' k = printMaybe showIndented k t
+      t' k = showIndented k t
 
 instance ShowIndented (I TTail) where
   showIndented m i@Node {node = TTail {..}} = printNonLeaf m i [os']
@@ -131,13 +135,13 @@ instance ShowIndented (I TApplication) where
       s' k = case s of
         Opt2A a -> showIndented k a
         Opt2B a -> showIndented k a
-      h' k = printMaybe showIndented k h
+      h' k = showIndented k h
       a1' k = showIndented k a1
 
 instance ShowIndented (I TApplication1) where
   showIndented m i@Node {node = TApplication1 {..}} = printNonLeaf m i [c']
     where
-      c' k = printMaybe showIndented k c
+      c' k = showIndented k c
 
 instance ShowIndented (I TApplication1Elem) where
   showIndented m i@Node {node = TApplication1Elem {..}} = printNonLeaf m i [c1', ht', a']
@@ -146,7 +150,7 @@ instance ShowIndented (I TApplication1Elem) where
         Opt3A t -> showIndented k t
         Opt3B t -> showIndented k t
         Opt3C t -> showIndented k t
-      ht' k = printMaybe showIndented k ht
+      ht' k = showIndented k ht
       a' k = showIndented k a
 
 instance ShowIndented (I TMethod) where
@@ -155,6 +159,7 @@ instance ShowIndented (I TMethod) where
       m' k = case m of
         Opt2A t -> showIndented k t
         Opt2B t -> printTerminal k t
+
 instance ShowIndented (I THas) where
   showIndented m i@Node {node = THas {..}} = printNonLeaf m i [n']
     where
@@ -201,7 +206,7 @@ instance ShowIndented (I TLabel) where
         case l of
           Opt2A t -> printTerminal k t
           Opt2B (n, t) ->
-            showIndented k n <> printMaybe showIndented k t
+            showIndented k n <> showIndented k t
 
 instance ShowIndented (I TFreeAttribute) where
   showIndented m i@Node {node = TFreeAttribute {..}} = printNonLeaf m i [l']
@@ -216,10 +221,10 @@ instance ShowIndented (I TDots) where
   showIndented m t = printTerminal m t
 
 instance Show TDots where
-  show t = cName t
+  show t = constructorName t
 
 instance Show TConst where
-  show t = cName t
+  show t = constructorName t
 
 instance ShowIndented (I TConst) where
   showIndented m t = printTerminal m t
@@ -230,7 +235,7 @@ instance ShowIndented (I TSuffix) where
       c' k = printMaybe printTerminal k c
 
 printTerminal :: (Show a) => Int -> I a -> String
-printTerminal m i@Node {..} = printf "%s%s %s %s\n" (tabs m) (show node) (show pos) (show load)
+printTerminal m Node {..} = printf "%s%s %s %s\n" (tabs m) (show node) (show pos) (show load)
 
 instance ShowIndented (I THead) where
   showIndented m i@Node {node = THead {..}} = printNonLeaf m i [dots', t']

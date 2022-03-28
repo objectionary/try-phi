@@ -217,6 +217,7 @@ composeObject n a t = do
 -- includes expressions like
 -- x:a
 --   b
+
 composeApp :: I TObject -> AppNamed -> [AbstrOrApp] -> State MyState AppNamed
 composeApp n a t = do
     let AppNamed {a=a1, t=t1} = a

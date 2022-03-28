@@ -310,8 +310,17 @@ instance ShowIndented (I TBytes) where
 instance ShowIndented (I TChar) where
   showIndented m i@Node {node = TChar {..}} = printLeaf m i c
 
+instance ShowIndented (I TRegexBody) where
+  showIndented m i@Node {node = TRegexBody  {..}} = printLeaf m i b
+
+instance ShowIndented (I TRegexSuffix ) where
+  showIndented m i@Node {node = TRegexSuffix  {..}} = printLeaf m i s
+
 instance ShowIndented (I TRegex) where
-  showIndented m i@Node {node = TRegex {..}} = printLeaf m i (r <> " " <> suff)
+  showIndented m n@Node {node = TRegex {..}} = printNonLeaf m n [r', s']
+    where
+      r' i = showIndented i r
+      s' i = showIndented i suff
 
 instance ShowIndented (I TLineBytes) where
   showIndented m i@Node {node = TLineBytes {..}} = printNonLeaf m i [bs']

@@ -64,7 +64,9 @@ module ParseEO
     TMethodTerminal(..),
     TLabelTerminal(..),
     THeadModifier(..),
-    TAbstrQuestion(..)
+    TAbstrQuestion(..),
+    TRegexBody(..),
+    TRegexSuffix(..)
   )
 where
 
@@ -715,14 +717,18 @@ tMetaSuffix = dec "Meta Suffix" $ do
   suffix <- {-debug "meta:suffix"-} (pack <$> (string cSPACE *> some printChar))
   return TMetaSuffix {s = suffix}
 
-data TRegex = TRegex {r :: Text, suff :: Text} deriving (Data)
+data TRegexBody = TRegexBody {b :: Text} deriving (Data)
+data TRegexSuffix = TRegexSuffix {s:: Text} deriving (Data)
+
+-- TODO Regex nodes
+data TRegex = TRegex {r :: I TRegexBody, suff :: I TRegexSuffix} deriving (Data)
 
 tRegex :: Parser (I TRegex)
 tRegex = dec "REGEX" $ do
   _ <- string cSLASH
-  r <- takeWhile1P (Just "regex expression") (`notElem` map T.head [cSLASH, cNEWLINE, cCARET_RETURN])
+  r <- dec "REGEX:Body" $ TRegexBody <$> takeWhile1P (Just "regex expression") (`notElem` map T.head [cSLASH, cNEWLINE, cCARET_RETURN])
   _ <- string cSLASH
-  suffix <- pack <$> many alphaNumChar
+  suffix <- dec "REGEX:Suffix" $ TRegexSuffix <$> pack <$> many alphaNumChar
   return (TRegex {r = r, suff = suffix})
 
 data TIndent = TIndent {n :: Int} deriving (Data)

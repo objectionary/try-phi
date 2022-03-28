@@ -33,6 +33,7 @@ library
   exposed-modules:
       EnumerateNodes
       ParseEO
+      PrettyPrintTerm
       PrettyPrintTree
       ToTerm
   other-modules:

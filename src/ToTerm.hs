@@ -79,15 +79,15 @@ newtype DByte = DByte {byte::Integer}  deriving (Show)
 newtype DLineBytes = DLineBytes {bs :: [K DByte]}  deriving (Show)
 
 data DataValue
-  = DBool Bool
+  = DBool (K Bool)
   | DBytes (Options2  (K DByte) [K DLineBytes])
-  | DChar Char
-  | DFloat Scientific
-  | DHex Integer
-  | DInt Integer
-  | DRegex Text Text
-  | DString Text
-  | DText Text
+  | DChar (K Char)
+  | DFloat (K Scientific)
+  | DHex (K Integer)
+  | DInt (K Integer)
+  | DRegex (K Text) (K Text)
+  | DString (K Text)
+  | DText (K Text)
  deriving (Show)
 
 -- TODO define when to throw exceptions
@@ -296,6 +296,7 @@ toTermAbstraction Node {node = TAbstraction {..}} = do
           Nothing -> return Nothing
     return Abstraction {attrs = as', name = t'}
 
+
 toTermTail :: I TTail -> State MyState [AbstrOrApp]
 toTermTail n@Node {node = TTail {..}} = return [] {-dec n $ do
     os' <- mapM toTermObject os
@@ -306,7 +307,7 @@ toTermTail n@Node {node = TTail {..}} = return [] {-dec n $ do
 -- toTermMaybe f x =
 --     case x of
 --         Just x' -> Just <$> f x'
---         Nothing -> return Nothing
+--         Nothing -> return Nothing  
 
 -- TODO
 -- head with arguments becomes a term
@@ -367,6 +368,7 @@ toTermMethod n@Node {node = TMethod {..}} = dec n $ do
                 _ -> error "wrong terminal as method name"
     return m'
 
+
 toTermHas :: K Term -> I THas -> State MyState AppNamed
 toTermHas t m@Node {node = THas {..}} = do
     let Node {node = TName t1} = n
@@ -377,6 +379,7 @@ toTermHas t m@Node {node = THas {..}} = do
 toTermAttributes :: I TAttributes -> State MyState [K Label]
 toTermAttributes Node {node = TAttributes {..}} = do
     mapM toTermFreeAttribute as
+
 
 toTermFreeAttribute :: I TFreeAttribute -> State MyState (K Label)
 toTermFreeAttribute n@Node {node = TFreeAttribute {..}} = dec n $ do
@@ -408,6 +411,7 @@ toTermAbstractionTail Node {node = TAbstractionTail {..}} = do
         -- needed for inline anonymous objects
         Opt2B h -> return AttachedName {a = SuffixName {n = Ann {term = FAt, ann = IDs {treeId = Just 1, runtimeId = Just 2}}, isConst = False}, imported = Nothing}
 
+
 toTermHtail :: I THtail -> State MyState [AppNamed]
 toTermHtail Node {node = THtail {..}} = do
     let f e =
@@ -425,9 +429,7 @@ toTermLabel :: I TLabel -> State MyState (K Label)
 toTermLabel n@Node {node = TLabel {..}} = dec n $ do
     let l' =
           case l of
-            Opt2A Node{..} ->
-                  case node of
-                    LabelAt -> FAt
+            Opt2A _ -> FAt
             Opt2B (Node{node=TName n1}, t) ->
                   case t of
                     Just _ -> FVarArg n1
@@ -437,11 +439,10 @@ toTermLabel n@Node {node = TLabel {..}} = dec n $ do
 
 data SuffixName = SuffixName {n::K Label, isConst::Bool}  deriving (Show)
 toTermSuffix :: I TSuffix -> State MyState SuffixName
-toTermSuffix n@Node {node = TSuffix {..}} = do
+toTermSuffix Node {node = TSuffix {..}} = do
     l' <- toTermLabel l
     let c' = Data.Maybe.isJust c
-    let s = SuffixName l' c'
-    return s
+    return $ SuffixName {n = l', isConst = c'}
 
 
 toTermTerminal :: I a -> State MyState (K a)
@@ -453,17 +454,16 @@ toTermTerminal n@Node {..} = dec n $ return node
 -- ...s
 -- ...s.
 
-
-
 toTermHead :: I THead -> State MyState (K Head)
 toTermHead n@Node {node = THead {..}} = dec n $ do
+    let d = Data.Maybe.isJust dots
     t' <-
         case t of
             Opt3A a -> Opt3A <$> toTermTerminal a
             Opt3B a -> Opt3B <$> toTermHeadName a
             Opt3C a -> Opt3C <$> toTermData a
-    let d = Data.Maybe.isJust dots
     return Head {h = t', unpacked = d}
+
 
 toTermHeadName :: I THeadName -> State MyState (K HeadName)
 toTermHeadName n@Node {node = THeadName {..}} = dec n $ do
@@ -492,65 +492,67 @@ toTermData n@Node {node = TData {..}} = dec n $ do
       Opt9H a -> toTermChar a
       Opt9I a -> toTermRegex a
 
+decData :: I a -> b -> State MyState (K b)
+decData n i = dec n $ return i
 
 toTermBool :: I TBool -> State MyState DataValue
 toTermBool n@Node {..} = do
   let TBool i = node
-  return (DBool i)
+  DBool <$> decData n i
 
 
 toTermText :: I TText -> State MyState DataValue
 toTermText n@Node {..} = do
   let TText i = node
-  return (DText i)
+  DText <$> decData n i
 
 
 toTermHex :: I THex -> State MyState DataValue
 toTermHex n@Node {..} = do
   let THex i = node
-  return (DHex i)
-
+  DHex <$> decData n i
 
 toTermString :: I TString -> State MyState DataValue
 toTermString n@Node {..} = do
   let TString i = node
-  return (DString i)
-
+  DString <$> decData n i
 
 toTermFloat :: I TFloat -> State MyState DataValue
 toTermFloat n@Node {..} = do
   let TFloat i = node
-  return (DFloat i)
-
+  DFloat <$> decData n i
 
 toTermInt :: I TInt -> State MyState DataValue
 toTermInt n@Node {..} = do
   let TInt i = node
-  return (DInt i)
-
+  DInt <$> decData n i
 
 toTermBytes :: I TBytes -> State MyState DataValue
-toTermBytes Node {node = TBytes {..}} = do
-    bs' <-
-            case bs of
-                Opt2A t -> Opt2A <$> toTermByte t
-                Opt2B t -> Opt2B <$> mapM toTermLineBytes t
-    return (DBytes bs')
+toTermBytes n@Node {node = TBytes {..}} = do
+    DBytes <$>
+      case bs of
+          Opt2A t -> Opt2A <$> toTermByte t
+          Opt2B t -> Opt2B <$> mapM toTermLineBytes t
 
 toTermChar :: I TChar -> State MyState DataValue
 toTermChar n@Node{..} = do
   let TChar c = node
-  return (DChar c)
+  DChar <$> decData n c
+
 
 toTermRegex :: I TRegex -> State MyState DataValue
 toTermRegex n@Node{..} = do
-  let TRegex t1 t2 = node
-  return (DRegex t1 t2)
+  let TRegex t1@Node{node=TRegexBody t1'} t2@Node{node = TRegexSuffix t2'} = node
+  t3 <- decData t1 t1'
+  t4 <- decData t2 t2' 
+  return (DRegex t3 t4)
+
 
 toTermLineBytes :: I TLineBytes -> State MyState (K DLineBytes)
 toTermLineBytes n@Node {node = TLineBytes {..}} = dec n $ do
   bs' <- mapM toTermByte bs
   return (DLineBytes bs')
+
 
 toTermByte :: Node TByte Load -> State MyState (K DByte)
 toTermByte n@Node{..} = dec n $ do

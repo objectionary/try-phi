@@ -38,7 +38,6 @@ module ParseEO
     THtail (..),
     TLabel (..),
     TSuffix (..),
-    TTerminal (..),
     THead (..),
     THeadName (..),
     TData (..),
@@ -61,6 +60,11 @@ module ParseEO
     TConst (..),
     TFreeAttribute (..),
     TVarArg (..),
+    THeadTerminal(..),
+    TMethodTerminal(..),
+    TLabelTerminal(..),
+    THeadModifier(..),
+    TAbstrQuestion(..)
   )
 where
 
@@ -399,7 +403,13 @@ tAbstraction = dec "Abstraction" $ do
   return TAbstraction {as = attrs, t = t}
 
 -- TODO Use separate terminal for question
-data TAbstractionTail = TAbstractionTail {e :: Options2 (I TSuffix, Maybe (Options2 (I TName) (I TTerminal))) (I THtail)} deriving (Data)
+
+
+data TAbstractionTail = TAbstractionTail {e :: Options2 (I TSuffix, Maybe (Options2 (I TName) (I TAbstrQuestion))) (I THtail)} deriving (Data)
+data TAbstrQuestion = 
+  AbstrQuestion
+  deriving (Data)
+
 
 tAbstractionTail :: Parser (I TAbstractionTail)
 tAbstractionTail = dec "Abstraction tail" $ do
@@ -412,7 +422,7 @@ tAbstractionTail = dec "Abstraction tail" $ do
                   *> string cSLASH
                   *> choiceTry
                     [ Opt2A <$> {-debug "abstraction:name"-} tName,
-                      Opt2B <$> tTerminal cQUESTION Question
+                      Opt2B <$> tTerminal cQUESTION AbstrQuestion
                     ]
               )
         return (suff, o)
@@ -456,24 +466,30 @@ tAttributes = dec "Attributes" $ do
 
 data TVarArg = TVarArg {n :: Text} deriving (Data)
 
-data TFreeAttribute = TFreeAttribute {l :: Options3 (I TTerminal) (I TName) (I TVarArg)} deriving (Data)
+data TFreeAttribute = TFreeAttribute {l :: Options3 (I TLabelTerminal) (I TName) (I TVarArg)} deriving (Data)
 
 tFreeAttribute :: Parser (I TFreeAttribute)
 tFreeAttribute = dec "Free Attribute" $ do
   l <-
     choiceTry
-      [ Opt3A <$> {-debug "label:@"-} (tTerminal cAT At),
+      [ Opt3A <$> {-debug "label:@"-} (tTerminal cAT LabelAt),
         Opt3B <$> {-debug "label:name"-} (tName)
       ]
   return TFreeAttribute {l = l}
 
-data TLabel = TLabel {l :: Options2 (I TTerminal) (I TName, Maybe (I TDots))} deriving (Data)
+
+
+data TLabel = TLabel {l :: Options2 (I TLabelTerminal) (I TName, Maybe (I TDots))} deriving (Data)
+
+data TLabelTerminal = 
+    LabelAt
+  deriving (Data)
 
 tLabel :: Parser (I TLabel)
 tLabel = dec "Label" $ do
   l <-
     choiceTry
-      [ Opt2A <$> {-debug "label:@"-} (tTerminal cAT At),
+      [ Opt2A <$> {-debug "label:@"-} (tTerminal cAT LabelAt),
         Opt2B
           <$> ( do
                   name <- {-debug "label:name"-} tName
@@ -504,8 +520,14 @@ tSuffix = dec "Suffix" $ do
   c <- optional ({-debug "suffix:const"-} (tTerminal cCONST TConst))
   return TSuffix {l = label, c = c}
 
+data TMethodTerminal = 
+    MethodRho
+  | MethodAt
+  | MethodVertex
+  deriving (Data)
+
 -- TODO separate set of terminals for Method
-data TMethod = TMethod {m :: Options2 (I TName) (I TTerminal)} deriving (Data)
+data TMethod = TMethod {m :: Options2 (I TName) (I TMethodTerminal)} deriving (Data)
 
 tMethod :: Parser (I TMethod)
 tMethod = dec "Method" $ do
@@ -513,9 +535,9 @@ tMethod = dec "Method" $ do
     string cDOT
       *> choiceTry
         [ Opt2A <$> {-debug "method:name"-} tName,
-          Opt2B <$> {-debug "method:^"-} (tTerminal cRHO Rho),
-          Opt2B <$> {-debug "method:@"-} (tTerminal cAT At),
-          Opt2B <$> {-debug "method:<"-} (tTerminal cVERTEX Vertex)
+          Opt2B <$> {-debug "method:^"-} (tTerminal cRHO MethodRho),
+          Opt2B <$> {-debug "method:@"-} (tTerminal cAT MethodAt),
+          Opt2B <$> {-debug "method:<"-} (tTerminal cVERTEX MethodVertex)
         ]
   return TMethod {m = method}
 
@@ -566,19 +588,6 @@ tHtail = dec "Htail" $ do
   t <- someTry (string cSPACE *> op)
   return THtail {t = t}
 
-data TTerminal
-  = Root
-  | Xi
-  | Sigma
-  | Dot
-  | Copy
-  | Star
-  | At
-  | Rho
-  | Vertex
-  | Question
-  deriving (Data, Show)
-
 data TDots = TDots deriving (Data)
 
 data TConst = TConst deriving (Data)
@@ -591,34 +600,56 @@ tTerminal s t = dec s $ do
   return t
 
 -- TODO prohibit dots before data
-data THead = THead {dots :: Maybe (I TDots), t :: Options3 (I TTerminal) (I THeadName) (I TData)} deriving (Data)
+data THead = THead {dots :: Maybe (I TDots), t :: Options3 (I THeadTerminal) (I THeadName) (I TData)} deriving (Data)
+
+data THeadTerminal = 
+    HeadRoot
+  | HeadAt
+  | HeadRho
+  | HeadXi
+  | HeadSigma
+  | HeadStar
+  deriving (Data)
 
 tHead :: Parser (I THead)
 tHead = dec "Head" $ do
   dots <- optional $ tTerminal cDOTS TDots
   t <-
     choiceTry
-      [ Opt3A <$> {-debug "head:root"-} (tTerminal cROOT Root),
-        Opt3A <$> {-debug "head:at"-} (tTerminal cAT At),
-        Opt3A <$> {-debug "head:rho"-} (tTerminal cRHO Rho),
-        Opt3A <$> {-debug "head:xi"-} (tTerminal cXI Xi),
-        Opt3A <$> {-debug "head:sigma"-} (tTerminal cSIGMA Sigma),
-        Opt3A <$> {-debug "head:star"-} (tTerminal cSTAR Star),
+      [ Opt3A <$> {-debug "head:root"-} (tTerminal cROOT HeadRoot),
+        Opt3A <$> {-debug "head:at"-} (tTerminal cAT HeadAt),
+        Opt3A <$> {-debug "head:rho"-} (tTerminal cRHO HeadRho),
+        Opt3A <$> {-debug "head:xi"-} (tTerminal cXI HeadXi),
+        Opt3A <$> {-debug "head:sigma"-} (tTerminal cSIGMA HeadSigma),
+        Opt3A <$> {-debug "head:star"-} (tTerminal cSTAR HeadStar),
         Opt3B <$> tHeadName,
         Opt3C <$> {-debug "head:data"-} (tData)
       ]
   return THead {dots = dots, t = t}
 
 -- TODO lookahead EOL
-data THeadName = THeadName {name :: I TName, c :: Options2 (I TTerminal) (Maybe (I TTerminal))} deriving (Data)
+{- | head name with a
+
+dot: a.
+
+copy: a'
+
+-}
+
+data THeadName = THeadName {name :: I TName, c :: Maybe (I THeadModifier)} deriving (Data)
+
+data THeadModifier = 
+    HeadDot
+  | HeadCopy
+  deriving (Data)
 
 tHeadName :: Parser (I THeadName)
 tHeadName = dec "Head name" $ do
   name <- tName
   c <-
     choiceTry
-      [ Opt2A <$> tTerminal cDOT Dot <* lookAhead (string cSPACE),
-        Opt2B <$> optional (tTerminal cCOPY Copy)
+      [ Just <$> tTerminal cDOT HeadDot <* lookAhead (string cSPACE),
+        optional (tTerminal cCOPY HeadCopy)
       ]
   return THeadName {name = name, c = c}
 

@@ -32,7 +32,7 @@ data MapElement =
     | MHtail (I THtail)
     | MLabel (I TLabel)
     | MSuffix (I TSuffix)
-    | MTerminal (I TTerminal)
+    -- | MTerminal (I TTerminal)
     | MHead (I THead)
     | MHeadName (I THeadName)
     | MData (I TData)
@@ -51,6 +51,11 @@ data MapElement =
     | MConst (I TConst)
     | MFreeAttribute (I TFreeAttribute)
     | MVarArg (I TVarArg)
+    | MHeadTerminal (I THeadTerminal)
+    | MMethodTerminal (I TMethodTerminal)
+    | MLabelTerminal (I TLabelTerminal)
+    | MHeadModifier (I THeadModifier )
+    | MAbstrQuestion (I TAbstrQuestion)
 
 data MyState = MyState {i::Int, m::M.InsOrdHashMap Int MapElement}
 dec::I a -> (I a -> MapElement) -> State MyState a -> State MyState (I a)
@@ -160,6 +165,7 @@ instance Enumerable (I TApplication1Elem) where
         a' <- enum a
         return $ TApplication1Elem c1' ht' a'
 
+
 instance Enumerable (I TMethod) where
     enum n@Node {node = TMethod {..}} = dec n MMethod $ do
         m' <- case m of
@@ -176,6 +182,9 @@ instance Enumerable (I TAttributes) where
     enum n@Node {node = TAttributes {..}} = dec n MAttributes $ do
         as' <- mapM enum as
         return $ TAttributes as'
+
+instance Enumerable (I TAbstrQuestion ) where
+    enum n@Node {..} = dec n MAbstrQuestion $ return node
 
 instance Enumerable (I TAbstractionTail) where
     enum n@Node {node = TAbstractionTail {..}} = dec n MAbstractionTail $ do
@@ -197,12 +206,7 @@ instance Enumerable (I TAbstractionTail) where
 
 instance Enumerable (I THtail) where
     enum n@Node {node = THtail {..}} = dec n MHtail $ do
-        let f e =
-                case e of
-                    Opt3A a -> Opt3A <$> enum a
-                    Opt3B a -> Opt3B <$> enum a
-                    Opt3C a -> Opt3C <$> enum a
-        t' <- mapM f t
+        t' <- mapM enum t
         return $ THtail t'
 
 instance Enumerable (I TLabel) where
@@ -240,11 +244,17 @@ instance Enumerable (I TVarArg) where
 instance Enumerable (I TConst) where
     enum n@Node {..} = dec n MConst $ return node
 
-instance Enumerable (I TTerminal) where
-    enum n@Node {..} = dec n MTerminal $ return node
-
 instance Enumerable (I TDots) where
     enum n@Node {..} = dec n MDots $ return node
+
+instance Enumerable (I TMethodTerminal) where
+    enum n@Node {..} = dec n MMethodTerminal $ return node
+
+instance Enumerable (I TLabelTerminal) where
+    enum n@Node {..} = dec n MLabelTerminal $ return node
+
+instance Enumerable (I THeadTerminal) where
+    enum n@Node {..} = dec n MHeadTerminal $ return node
 
 instance Enumerable (I THead) where
     enum n@Node {node = THead {..}} = dec n MHead $ do
@@ -256,13 +266,13 @@ instance Enumerable (I THead) where
                 Opt3C a -> Opt3C <$> enum a
         return $ THead dots' t'
 
+instance Enumerable (I THeadModifier) where
+    enum n@Node {..} = dec n MHeadModifier $ return node
+
 instance Enumerable (I THeadName) where
     enum n@Node {node = THeadName {..}} = dec n MHeadName $ do
         name' <- enum name
-        c' <-
-            case c of
-                Opt2A t -> Opt2A <$> enum t
-                Opt2B t -> Opt2B <$> enum t
+        c' <- enum c
         return $ THeadName name' c'
 
 instance (Enumerable a, Enumerable b,Enumerable c,Enumerable d,Enumerable e,Enumerable f,Enumerable g,Enumerable h,Enumerable i)  => Enumerable (Options9 a b c d e f g h i) where

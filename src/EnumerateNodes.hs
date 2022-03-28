@@ -1,9 +1,14 @@
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE RecordWildCards      #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 module EnumerateNodes (enumInsertProgram) where
 
 import           Control.Monad.State.Strict (State, get, put, runState)
 import qualified Data.HashMap.Strict.InsOrd as M (InsOrdHashMap, empty, insert)
 import           ParseEO
+
+-- enumerate nodes
+-- put their ids as keys and nodes as values into a map
 
 data MapElement =
      MProgram (I TProgram)
@@ -48,7 +53,6 @@ data MapElement =
     | MVarArg (I TVarArg)
 
 data MyState = MyState {i::Int, m::M.InsOrdHashMap Int MapElement}
-
 dec::I a -> (I a -> MapElement) -> State MyState a -> State MyState (I a)
 dec n m p = do
     t <- p
@@ -57,296 +61,262 @@ dec n m p = do
     return n {load = Load {num = i1}, node = t}
 
 enumInsertProgram :: I TProgram -> (I TProgram, MyState)
-enumInsertProgram t = runState (enumProgram t) (MyState {i=0, m=M.empty})
+enumInsertProgram t = runState (enum t) (MyState {i=0, m=M.empty})
 
-enumProgram :: I TProgram -> State MyState (I TProgram)
-enumProgram n@Node {node = TProgram {..}} = dec n MProgram $ do
-    l' <- enumMaybe enumLicense l
-    m' <- enumMaybe enumMetas m
-    o' <- enumObjects o
-    return $ TProgram l' m' o'
+-- enums
 
+class Enumerable a where
+    enum :: a -> State MyState a
 
-enumLicense :: I TLicense -> State MyState (I TLicense)
-enumLicense n@Node {node = TLicense {..}} = dec n MLicense $ do
-    cs' <- mapM enumComment cs
-    return $ TLicense cs'
+instance Enumerable a => Enumerable (Maybe a) where
+    enum (Just x) = Just <$> enum x
+    enum Nothing = return Nothing
 
+instance Enumerable (I TProgram) where
+    enum n@Node {node = TProgram {..}} = dec n MProgram $ do
+        l' <- enum l
+        m' <- enum m
+        o' <- enum o
+        return $ TProgram l' m' o'
 
-enumComment :: I TComment -> State MyState (I TComment)
-enumComment n@Node {..} = dec n MComment $ return node
+instance Enumerable (I TLicense) where
+    enum n@Node {node = TLicense {..}} = dec n MLicense $ do
+        cs' <- mapM enum cs
+        return $ TLicense cs'
 
+instance Enumerable (I TComment) where
+    enum n@Node {..} = dec n MComment $ return node
 
-enumMetas :: I TMetas -> State MyState (I TMetas)
-enumMetas n@Node {node = TMetas {..}} = dec n MMetas $ do
-    cs' <- mapM enumMeta ms
-    return $ TMetas cs'
+instance Enumerable (I TMetas ) where
+    enum n@Node {node = TMetas {..}} = dec n MMetas $ do
+        cs' <- mapM enum ms
+        return $ TMetas cs'
 
+instance Enumerable (I TMeta) where
+    enum n@Node {node = TMeta {..}} = dec n MMeta $ do
+        name' <- enum name
+        suff' <- enum suff
+        return $ TMeta name' suff'
 
-enumMeta :: I TMeta -> State MyState (I TMeta)
-enumMeta n@Node {node = TMeta {..}} = dec n MMeta $ do
-    name' <- enumName name
-    suff' <- enumMaybe enumMetaSuffix suff
-    return $ TMeta name' suff'
+instance Enumerable (I TMetaSuffix) where
+    enum n@Node {..} = dec n MMetaSuffix $ return node
 
+instance Enumerable (I TName ) where
+    enum m@Node {..} = dec m MName $ return node
 
-enumMetaSuffix :: I TMetaSuffix -> State MyState (I TMetaSuffix)
-enumMetaSuffix n@Node {..} = dec n MMetaSuffix $ return node
+instance Enumerable (I TObjects) where
+    enum n@Node {node = TObjects {..}} = dec n MObjects $ do
+        os' <- mapM enum os
+        return $ TObjects os'
 
-
-enumName :: I TName -> State MyState (I TName)
-enumName m@Node {..} = dec m MName $ return node
-
-enumObjects :: I TObjects -> State MyState (I TObjects)
-enumObjects n@Node {node = TObjects {..}} = dec n MObjects $ do
-    os' <- mapM enumObject os
-    return $ TObjects os'
-
-enumObject :: I TObject -> State MyState (I TObject)
-enumObject n@Node {node = TObject {..}} = dec n MObject $ do
-    cs' <- mapM enumComment cs
-    a' <-
-        case a of
-            Opt2A p -> Opt2A <$> enumAbstraction p
-            Opt2B p -> Opt2B <$> enumApplication p
-    t' <- enumMaybe enumTail t
-    -- TODO
-    let
-        g (m,h,suff,t1) =
-            do
-                m1 <- enumMethod m
-                h1 <- enumMaybe enumHtail h
-                s1 <- enumMaybe enumSuffix suff
-                t2 <- enumMaybe enumTail t1
-                return (m1,h1,s1,t2)
-    s' <- mapM g s
-    return $ TObject cs' a' t' s'
-
-enumAbstraction :: I TAbstraction -> State MyState (I TAbstraction)
-enumAbstraction n@Node {node = TAbstraction {..}} = dec n MAbstraction $ do
-    as' <- enumAttributes as
-    t' <- enumMaybe enumAbstractionTail t
-    return $ TAbstraction as' t'
-
-enumTail :: I TTail -> State MyState (I TTail)
-enumTail n@Node {node = TTail {..}} = dec n MTail $ do
-    os' <- mapM enumObject os
-    return $ TTail os'
-
-enumMaybe :: Monad f => (a -> f a) -> Maybe a -> f (Maybe a)
-enumMaybe f x =
-    case x of
-        Just x' -> Just <$> f x'
-        Nothing -> return x
-
-enumApplication :: I TApplication -> State MyState (I TApplication)
-enumApplication n@Node {node = TApplication {..}} = dec n MApplication $ do
-    s' <-
-        case s of
-            Opt2A a -> Opt2A <$> enumHead a
-            Opt2B a -> Opt2B <$> enumApplication a
-    h' <- enumMaybe enumHtail h
-    a1' <- enumApplication1 a1
-    return $ TApplication s' h' a1'
-
-
-enumApplication1 :: I TApplication1 -> State MyState (I TApplication1)
-enumApplication1 n@Node {node = TApplication1 {..}} = dec n MApplication1 $ do
-    c' <-
-        case c of
-            Just x  -> Just <$> enumApplication1Elem x
-            Nothing -> return c
-    return $ TApplication1 c'
-
-
-enumApplication1Elem :: I TApplication1Elem -> State MyState (I TApplication1Elem)
-enumApplication1Elem n@Node {node = TApplication1Elem {..}} = dec n MApplication1Elem $ do
-    c1' <-
-        case c1 of
-            Opt3A t -> Opt3A <$> enumMethod t
-            Opt3B t -> Opt3B <$> enumHas t
-            Opt3C t -> Opt3C <$> enumSuffix t
-    ht' <- enumMaybe enumHtail ht
-    a' <- enumApplication1 a
-    return $ TApplication1Elem c1' ht' a'
-
-
-enumMethod :: I TMethod -> State MyState (I TMethod)
-enumMethod n@Node {node = TMethod {..}} = dec n MMethod $ do
-    m' <- case m of
-        Opt2A t -> Opt2A <$> enumName t
-        Opt2B t -> Opt2B <$> enumTerminal t
-    return $ TMethod m'
-
-
-enumHas :: I THas -> State MyState (I THas)
-enumHas m@Node {node = THas {..}} = dec m MHas $ do
-    n' <- enumName n
-    return $ THas n'
-
-
-enumAttributes :: I TAttributes -> State MyState (I TAttributes)
-enumAttributes n@Node {node = TAttributes {..}} = dec n MAttributes $ do
-    as' <- mapM enumFreeAttribute as
-    return $ TAttributes as'
-
-enumAbstractionTail :: I TAbstractionTail -> State MyState (I TAbstractionTail)
-enumAbstractionTail n@Node {node = TAbstractionTail {..}} = dec n MAbstractionTail $ do
-    e' <-
-        case e of
-            Opt2A (a,b) -> Opt2A <$> do
-                a1 <- enumSuffix a
-                b1 <- (
-                    case b of
-                        Just b' -> Just <$>
-                            case b' of
-                                Opt2A name -> Opt2A <$> enumName name
-                                Opt2B t    -> Opt2B <$> enumTerminal t
-                        Nothing -> return b
-                    )
-                return (a1,b1)
-            Opt2B h -> Opt2B <$> enumHtail h
-    return $ TAbstractionTail e'
-
-
-enumHtail :: I THtail -> State MyState (I THtail)
-enumHtail n@Node {node = THtail {..}} = dec n MHtail $ do
-    let f e =
-            case e of
-                Opt3A h -> Opt3A <$> enumHead h
-                Opt3B a -> Opt3B <$> enumApplication a
-                Opt3C a -> Opt3C <$> enumAbstraction a
-    t' <- mapM f t
-    return $ THtail t'
-
-
-enumLabel :: I TLabel -> State MyState (I TLabel)
-enumLabel n@Node {node = TLabel {..}} = dec n MLabel $ do
-    l' <-
-        case l of
-            Opt2A t -> Opt2A <$> enumTerminal t
-            -- TODO
-            Opt2B (n1, t) ->
+instance Enumerable (I TObject) where
+    enum n@Node {node = TObject {..}} = dec n MObject $ do
+        cs' <- mapM enum cs
+        a' <- enum a
+        t' <- enum t
+        -- TODO
+        let
+            g (m,h,suff,t1) =
                 do
-                    n1' <- enumName n1
-                    t' <- enumMaybe enumDots t
-                    return $ Opt2B (n1', t')
-    return $ TLabel l'
+                    m1 <- enum m
+                    h1 <- enum h
+                    s1 <- enum suff
+                    t2 <- enum t1
+                    return (m1,h1,s1,t2)
+        s' <- mapM g s
+        return $ TObject cs' a' t' s'
 
-enumFreeAttribute :: I TFreeAttribute -> State MyState (I TFreeAttribute)
-enumFreeAttribute n@Node {node = TFreeAttribute {..}} = dec n MFreeAttribute $ do
-    l' <-
-        case l of
-            Opt3A t -> Opt3A <$> enumTerminal t
-            Opt3B t -> Opt3B <$> enumName t
-            Opt3C t -> Opt3C <$> enumVarArg t
-    return $ TFreeAttribute l'
+instance Enumerable (I TAbstraction) where
+    enum n@Node {node = TAbstraction {..}} = dec n MAbstraction $ do
+        as' <- enum as
+        t' <- enum t
+        return $ TAbstraction as' t'
 
+instance Enumerable (I TTail ) where
+    enum n@Node {node = TTail {..}} = dec n MTail $ do
+        os' <- mapM enum os
+        return $ TTail os'
 
-enumSuffix :: I TSuffix -> State MyState (I TSuffix)
-enumSuffix n@Node {node = TSuffix {..}} = dec n MSuffix $ do
-    l' <- enumLabel l
-    c' <- enumMaybe enumConst c
-    return $ TSuffix l' c'
+instance (Enumerable a, Enumerable b) => Enumerable (Options2  a b) where
+    enum (Opt2A a) = Opt2A <$> enum a
+    enum (Opt2B a) = Opt2B <$> enum a
 
-enumVarArg :: I TVarArg -> State MyState (I TVarArg)
-enumVarArg n@Node {..} = dec n MVarArg $ return node
+instance Enumerable (I TApplication) where
+    enum n@Node {node = TApplication {..}} = dec n MApplication $ do
+        s' <- enum s
+        h' <- enum h
+        a1' <- enum a1
+        return $ TApplication s' h' a1'
 
+instance Enumerable (I TApplication1) where
+    enum n@Node {node = TApplication1 {..}} = dec n MApplication1 $ do
+        c' <- enum c
+        return $ TApplication1 c'
 
-enumConst :: I TConst -> State MyState (I TConst)
-enumConst n@Node {..} = dec n MConst $ return node
+instance Enumerable (I TApplication1Elem) where
+    enum n@Node {node = TApplication1Elem {..}} = dec n MApplication1Elem $ do
+        c1' <- enum c1
+        ht' <- enum ht
+        a' <- enum a
+        return $ TApplication1Elem c1' ht' a'
 
-enumTerminal :: I TTerminal -> State MyState (I TTerminal)
-enumTerminal n@Node {..} = dec n MTerminal $ return node
+instance Enumerable (I TMethod) where
+    enum n@Node {node = TMethod {..}} = dec n MMethod $ do
+        m' <- case m of
+            Opt2A t -> Opt2A <$> enum t
+            Opt2B t -> Opt2B <$> enum t
+        return $ TMethod m'
 
-enumDots :: I TDots -> State MyState (I TDots)
-enumDots n@Node {..} = dec n MDots $ return node
+instance Enumerable (I THas) where
+    enum m@Node {node = THas {..}} = dec m MHas $ do
+        n' <- enum n
+        return $ THas n'
 
-enumHead :: I THead -> State MyState (I THead)
-enumHead n@Node {node = THead {..}} = dec n MHead $ do
-    dots' <- enumMaybe enumDots dots
-    t' <-
-        case t of
-            Opt3A a -> Opt3A <$> enumTerminal a
-            Opt3B a -> Opt3B <$> enumHeadName a
-            Opt3C a -> Opt3C <$> enumData a
-    return $ THead dots' t'
+instance Enumerable (I TAttributes) where
+    enum n@Node {node = TAttributes {..}} = dec n MAttributes $ do
+        as' <- mapM enum as
+        return $ TAttributes as'
 
+instance Enumerable (I TAbstractionTail) where
+    enum n@Node {node = TAbstractionTail {..}} = dec n MAbstractionTail $ do
+        e' <-
+            case e of
+                Opt2A (a,b) -> Opt2A <$> do
+                    a1 <- enum a
+                    b1 <- (
+                        case b of
+                            Just b' -> Just <$>
+                                case b' of
+                                    Opt2A name -> Opt2A <$> enum name
+                                    Opt2B t    -> Opt2B <$> enum t
+                            Nothing -> return b
+                        )
+                    return (a1,b1)
+                Opt2B h -> Opt2B <$> enum h
+        return $ TAbstractionTail e'
 
-enumHeadName :: I THeadName -> State MyState (I THeadName)
-enumHeadName n@Node {node = THeadName {..}} = dec n MHeadName $ do
-    name' <- enumName name
-    c' <-
-        case c of
-            Opt2A t -> Opt2A <$> enumTerminal t
-            Opt2B t -> Opt2B <$> enumMaybe enumTerminal t
-    return $ THeadName name' c'
+instance Enumerable (I THtail) where
+    enum n@Node {node = THtail {..}} = dec n MHtail $ do
+        let f e =
+                case e of
+                    Opt3A a -> Opt3A <$> enum a
+                    Opt3B a -> Opt3B <$> enum a
+                    Opt3C a -> Opt3C <$> enum a
+        t' <- mapM f t
+        return $ THtail t'
 
+instance Enumerable (I TLabel) where
+    enum n@Node {node = TLabel {..}} = dec n MLabel $ do
+        l' <-
+            case l of
+                Opt2A t -> Opt2A <$> enum t
+                -- TODO
+                Opt2B (n1, t) ->
+                    do
+                        n1' <- enum n1
+                        t' <- enum t
+                        return $ Opt2B (n1', t')
+        return $ TLabel l'
 
-enumData :: I TData -> State MyState (I TData)
-enumData n@Node {node = TData {..}} = dec n MData $ do
-    d' <-
-        case d of
-            Opt9A a -> Opt9A <$> enumBool a
-            Opt9B a -> Opt9B <$> enumText a
-            Opt9C a -> Opt9C <$> enumHex a
-            Opt9D a -> Opt9D <$> enumString a
-            Opt9E a -> Opt9E <$> enumFloat a
-            Opt9F a -> Opt9F <$> enumInt a
-            Opt9G a -> Opt9G <$> enumBytes a
-            Opt9H a -> Opt9H <$> enumChar a
-            Opt9I a -> Opt9I <$> enumRegex a
-    return $ TData d'
+instance (Enumerable a, Enumerable b, Enumerable c) => Enumerable (Options3 a b c) where
+    enum (Opt3A a) = Opt3A <$> enum a
+    enum (Opt3B a) = Opt3B <$> enum a
+    enum (Opt3C a) = Opt3C <$> enum a
 
+instance Enumerable (I TFreeAttribute) where
+    enum n@Node {node = TFreeAttribute {..}} = dec n MFreeAttribute $ do
+        l' <- enum l
+        return $ TFreeAttribute l'
 
-enumBool :: I TBool -> State MyState (I TBool)
-enumBool n@Node {..} = dec n MBool $ return node
+instance Enumerable (I TSuffix) where
+    enum n@Node {node = TSuffix {..}} = dec n MSuffix $ do
+        l' <- enum l
+        c' <- enum c
+        return $ TSuffix l' c'
 
+instance Enumerable (I TVarArg) where
+    enum n@Node {..} = dec n MVarArg $ return node
 
-enumText :: I TText -> State MyState (I TText)
-enumText n@Node {..} = dec n MText $ return node
+instance Enumerable (I TConst) where
+    enum n@Node {..} = dec n MConst $ return node
 
+instance Enumerable (I TTerminal) where
+    enum n@Node {..} = dec n MTerminal $ return node
 
-enumHex :: I THex -> State MyState (I THex)
-enumHex n@Node {..} = dec n MHex $ return node
+instance Enumerable (I TDots) where
+    enum n@Node {..} = dec n MDots $ return node
 
+instance Enumerable (I THead) where
+    enum n@Node {node = THead {..}} = dec n MHead $ do
+        dots' <- enum dots
+        t' <-
+            case t of
+                Opt3A a -> Opt3A <$> enum a
+                Opt3B a -> Opt3B <$> enum a
+                Opt3C a -> Opt3C <$> enum a
+        return $ THead dots' t'
 
-enumString :: I TString -> State MyState (I TString)
-enumString n@Node {..} = dec n MString $ return node
+instance Enumerable (I THeadName) where
+    enum n@Node {node = THeadName {..}} = dec n MHeadName $ do
+        name' <- enum name
+        c' <-
+            case c of
+                Opt2A t -> Opt2A <$> enum t
+                Opt2B t -> Opt2B <$> enum t
+        return $ THeadName name' c'
 
+instance (Enumerable a, Enumerable b,Enumerable c,Enumerable d,Enumerable e,Enumerable f,Enumerable g,Enumerable h,Enumerable i)  => Enumerable (Options9 a b c d e f g h i) where
+    enum (Opt9A a) = Opt9A <$> enum a
+    enum (Opt9B a) = Opt9B <$> enum a
+    enum (Opt9C a) = Opt9C <$> enum a
+    enum (Opt9D a) = Opt9D <$> enum a
+    enum (Opt9E a) = Opt9E <$> enum a
+    enum (Opt9F a) = Opt9F <$> enum a
+    enum (Opt9G a) = Opt9G <$> enum a
+    enum (Opt9H a) = Opt9H <$> enum a
+    enum (Opt9I a) = Opt9I <$> enum a
 
-enumFloat :: I TFloat -> State MyState (I TFloat)
-enumFloat n@Node {..} = dec n MFloat $ return  node
+instance Enumerable (I TData) where
+    enum n@Node {node = TData {..}} = dec n MData $ do
+        d' <- enum d                
+        return $ TData d'
 
+instance Enumerable (I TBool) where
+    enum n@Node {..} = dec n MBool $ return node
 
-enumInt :: I TInt -> State MyState (I TInt)
-enumInt n@Node {..} = dec n MInt $ return node
+instance Enumerable (I TText) where
+    enum n@Node {..} = dec n MText $ return node
 
+instance Enumerable (I THex) where
+    enum n@Node {..} = dec n MHex $ return node
 
-enumBytes :: I TBytes -> State MyState (I TBytes)
-enumBytes n@Node {node = TBytes {..}} = dec n MBytes $ do
-    bs' <-
-            case bs of
-                Opt2A t -> Opt2A <$> enumByte t
-                Opt2B t -> Opt2B <$> mapM enumLineBytes t
-    return $ TBytes bs'
+instance Enumerable (I TString) where
+    enum n@Node {..} = dec n MString $ return node
 
+instance Enumerable (I TFloat) where
+    enum n@Node {..} = dec n MFloat $ return  node
 
-enumChar :: I TChar -> State MyState (I TChar)
-enumChar n = dec n MChar $ return $ node n
+instance Enumerable (I TInt) where
+    enum n@Node {..} = dec n MInt $ return node
 
+instance Enumerable (I TBytes) where
+    enum n@Node {node = TBytes {..}} = dec n MBytes $ do
+        bs' <-
+                case bs of
+                    Opt2A t -> Opt2A <$> enum t
+                    Opt2B t -> Opt2B <$> mapM enum t
+        return $ TBytes bs'
 
-enumRegex :: I TRegex -> State MyState (I TRegex)
-enumRegex n = dec n MRegex $ return $ node n
+instance Enumerable (I TChar) where
+    enum n = dec n MChar $ return $ node n
 
+instance Enumerable (I TRegex) where
+    enum n = dec n MRegex $ return $ node n
 
-
-enumLineBytes :: I TLineBytes -> State MyState (I TLineBytes)
-enumLineBytes n@Node {node = TLineBytes {..}} = dec n MLineBytes $ do
-    bs' <- mapM enumByte bs
+instance Enumerable (I TLineBytes) where
+    enum n@Node {node = TLineBytes {..}} = dec n MLineBytes $ do
+    bs' <- mapM enum bs
     return $ TLineBytes bs'
 
-
-
-enumByte :: I TByte -> State MyState (I TByte)
-enumByte n = dec n MByte $ return $ node n
+instance Enumerable (I TByte) where
+    enum n = dec n MByte $ return $ node n

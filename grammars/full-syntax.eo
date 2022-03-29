@@ -84,8 +84,6 @@ a a.a > a
 
 a > a:t
 
-t [a] (a a) > a
-
 t (a:a)
 
 [x y] > diff
@@ -104,10 +102,6 @@ a. t.b d > a
 a. > t1
   a
 .a > t2
-
-a > b:x > c
-
-a [] b > c c
 
 ((a > a) > a) > a
 
@@ -128,7 +122,3 @@ a
 a (b:c) (d:e)
 
 a
-
-b a > a a > a
-
-[a] [a] [a] > b

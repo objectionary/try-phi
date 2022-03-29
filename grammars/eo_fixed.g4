@@ -189,20 +189,11 @@ htail
     (
       head
       |
-      application
-      (
-        method
-        |
-        has
-        |
-        suffix
-      )
-      |
       LB
       application
-      RB
       |
       abstraction
+      RB
     )
   )+
   ;

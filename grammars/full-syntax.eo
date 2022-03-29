@@ -119,3 +119,16 @@ a > a
   a > a
 
 /[a-z]+.+/m > c
+
+a (a > a).a a > b
+
+a
+  b:c d:e
+
+a (b:c) (d:e)
+
+a
+
+b a > a a > a
+
+[a] [a] [a] > b

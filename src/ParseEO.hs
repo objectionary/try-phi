@@ -480,7 +480,6 @@ tFreeAttribute = dec "Free Attribute" $ do
   return TFreeAttribute {l = l}
 
 
-
 data TLabel = TLabel {l :: Options2 (I TLabelTerminal) (I TName, Maybe (I TDots))} deriving (Data)
 
 data TLabelTerminal = 
@@ -556,10 +555,13 @@ tApplication = dec "Application" $ do
   a1 <- {-debug "application:application1"-} tApplication1
   return TApplication {s = s, h = h, a1 = a1}
 
+
 data TApplication1 = TApplication1 {c :: Maybe (I TApplication1Elem)} deriving (Data)
 
+-- | appeared after fixing left recursion
 tApplication1 :: Parser (I TApplication1)
 tApplication1 = dec "Application1" $ do
+  -- this rule can read an empty string, that's why here stands 'optional'
   c <- optional $ try tApplication1Elem
   return TApplication1 {c = c}
 
@@ -579,13 +581,20 @@ tApplication1Elem = dec "Application1 Element" $ do
 
 data THtail = THtail {t :: [Options3 (I THead) (I TApplication) (I TAbstraction)]} deriving (Data)
 
+{- | 
+-- TODO
+
+Currently, we don't parse application followed by method, has, or suffix.
+
+This allows for left associative argument lists
+-}
 tHtail :: Parser (I THtail)
 tHtail = dec "Htail" $ do
   let op =
         choiceTry
           [ Opt3A <$> {-debug "htail:head"-} tHead,
             Opt3B <$> (string cLB *> {-debug "htail:application1"-} tApplication <* string cRB),
-            Opt3C <$> {-debug "htail:abstraction"-} tAbstraction
+            Opt3C <$> (string cLB *> {-debug "htail:abstraction"-} tAbstraction <* string cRB)
           ]
   t <- someTry (string cSPACE *> op)
   return THtail {t = t}

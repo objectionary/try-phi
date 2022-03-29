@@ -13,7 +13,7 @@ import Text.Megaparsec (parseTest, parseMaybe)
 import Data.Text as DT (pack, replicate, Text(..))
 import Text.Printf (printf)
 import EnumerateNodes (enumInsertProgram)
-import ToTerm (getTermProgram)
+-- import ToTerm (getTermProgram)
 
 main :: IO ()
 main = do
@@ -25,10 +25,10 @@ main = do
         case tr1 of 
           Just t -> fst $ enumInsertProgram t
           _ -> error "Not ok"
-  let t2 = getTermProgram t1
+  -- let t2 = getTermProgram t1
   case tr1 of
     Just t -> putStrLn $ printTree t
-    _ -> print "ok"
+    _ -> print "not ok"
   putStr "\n\n"
   -- print t2
   -- let tr = parseMaybe pProgram code

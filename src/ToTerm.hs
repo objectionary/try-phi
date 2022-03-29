@@ -127,28 +127,14 @@ otherwise, Abstraction should store AbstractName
 -}
 data Abstraction = Abstraction {attrs :: [K Label], t::Maybe AbstractionTail}  deriving (Show)
 
-
-
-
 type AbstractOrApp = Options2 AbstractNamed AppNamed
-
-{-
-IDK
-how can abstraction be in HTail?
-What does it mean without parentheses?
-
--- TODO prohibit abstraction without parentheses on parser level
--}
-type HTailElement = Options2 Abstraction AppNamed
-
-type HTail = [HTailElement]
 
 {-
 For cases like 
 [a] (3 > b) c
 here, the anonymous abstract object is applied to c
 -}
-type AbstractionTail = Options2 AbstractName HTail
+type AbstractionTail = Options2 AbstractName [AbstractOrApp]
 
 {-
 In context of application tail,
@@ -170,7 +156,7 @@ when an application term is ready, it becomes AppNamed
 data AppNamed = AppNamed {t::K Term, a :: Maybe AppName}  deriving (Show)
 
 data Term
-  = App {t::K Term, apps::HTail}
+  = App {t::K Term, apps::[AbstractOrApp]}
   | Obj {freeAttrs::[K Label], attached::[AbstractOrApp]}
   | Dot {t::K Term, attr::Options2 (K MethodName) (K Head)}
   | Locator {n::Maybe Int}
@@ -234,11 +220,9 @@ toTermName m@Node {node = TName t1} = dec m $ return (LetterName t1)
 
 -- should produce an object
 toTermObjects :: I TObjects -> State MyState (K Term)
-toTermObjects n@Node {node = TObjects {..}} = do
-    composeObject os
-    let q = Abstraction {attrs = [], t = Nothing}
-    AbstractNamed {t=t1} <- composeAbstractAttribute n q os'
-    return t1
+toTermObjects n@Node {node = TObjects {..}} = dec n $ do
+    os' <- mapM composeObject os
+    return Obj {freeAttrs = [], attached = os'}
 
 
 {-
@@ -246,7 +230,7 @@ if there is an object context
 attributes that are attached to some names should become
 attached attributes of such object
 -}
-composeAbstractAttribute :: I a -> Abstraction -> [AbstractOrApp] -> State MyState AbstractNamed
+composeAbstractAttribute :: I a -> AbstractNamed -> [AbstractOrApp] -> State MyState AbstractNamed
 composeAbstractAttribute n a t = do
     let f e =
           case e of
@@ -259,10 +243,10 @@ composeAbstractAttribute n a t = do
                     Opt2B _ -> error "no attribute name for this abstraction attribute"
                 Nothing ->
                   AbstractNamed {t = t1, a = Nothing}
-    -- TODO
+    -- TODO fix
     let t1 = f <$> t
-    let Abstraction {attrs = a1, t = t'} = a
-    t2 <- dec n $ return Obj {freeAttrs = a1, attached = undefined}
+    let AbstractNamed {t = Ann {term  = t2@Obj {..}}} = a
+    t2 <- dec n $ return Obj {freeAttrs = freeAttrs, attached = undefined}
     return AbstractNamed {t = t2, a = undefined}
 
 {- | for expressions like 
@@ -340,9 +324,26 @@ composeAbstraction n@Node {node = TAbstraction {..}} = do
           -- TODO better type
           Just t1 -> Just <$> composeAbstractionTail t1
           Nothing -> return Nothing
-    a <- dec n $ return Obj {freeAttrs = as', attached = []}
+    t1 <- dec n $ return Obj {freeAttrs = as', attached = []}
+    -- TODO check that htail is of a specific form like
+    -- [a] (a > b) ([] > c) d
+    -- or 
+    -- [a] d
+    -- but not of
+    -- [a] d (a > b)
+    -- because we cannot extend objects this way, AFAIK
+    -- TODO full object construction, including htail elements
+    -- in this case, object will be anonymous
+    let n1 = 
+          case t' of
+            Just k -> 
+              case k of
+                Opt2A l -> Just l
+                -- TODO handle htail
+                Opt2B _ -> Nothing
+            _ -> Nothing
 
-    return Abstraction {attrs = as', t = t'}
+    return AbstractNamed {t = t1, a = n1}
 
 
 -- TODO
@@ -427,13 +428,13 @@ composeApplication1Elem t n@Node {node = TApplication1Elem {..}} = do
     ht' <- maybe (return []) composeHtail ht
 
     -- TODO report error instead of taking the term and passing it
-    case c1 of
-      Opt3B _ -> {- error "Nonsense application of form a:b c" -} guard True
-      Opt3C _ ->
-        case ht' of
-          [] -> guard True
-          _ -> {- error "Nonsense application of form a > b c" -} guard True
-      _ -> guard True
+    -- case c1 of
+    --   Opt3B _ -> {- error "Nonsense application of form a:b c" -} guard True
+    --   Opt3C _ ->
+    --     case ht' of
+    --       [] -> guard True
+    --       _ -> {- error "Nonsense application of form a > b c" -} guard True
+    --   _ -> guard True
 
     let AppNamed {t = t'} = c1'
 
@@ -492,13 +493,6 @@ composeAbstractionTail Node {node = TAbstractionTail {..}} =
                     Nothing -> return Nothing
                 )
             return (Opt2A AbstractName {a = a1, imported = b1})
-        -- todo check that htail is of a specific form like
-        -- [a] (a > b) ([] > c) d
-        -- or 
-        -- [a] d
-        -- but not of
-        -- [a] d (a > b)
-        -- because we cannot extend objects this way, AFAIK
         Opt2B h -> Opt2B <$> composeHtail h
 
 initLocator :: K Term
@@ -512,7 +506,7 @@ head
   assume that data is not directly accessible in the program and is located
 
 -}
-composeHtail :: I THtail -> State MyState HTail
+composeHtail :: I THtail -> State MyState [AbstractOrApp]
 composeHtail Node {node = THtail {..}} = do
     let f e =
             case e of

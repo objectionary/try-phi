@@ -8,7 +8,7 @@
 module ToTerm(toTermProgram, getTermProgram, Term(..)) where
 
 
-import           Control.Monad.State        (get, put, guard)
+import           Control.Monad.State        (get, put)
 import           Control.Monad.State.Strict (State, evalState)
 import           Data.Hashable              (Hashable)
 import           Data.Scientific            (Scientific)
@@ -17,6 +17,7 @@ import           GHC.Generics               (Generic)
 import           ParseEO                    as PEO
 import qualified Data.Maybe
 import PrettyPrintTree
+import Data.Maybe (isJust)
 
 
 type Id = Int
@@ -111,6 +112,9 @@ When an object term is ready, it becomes AbstractNamed
 -}
 data AbstractNamed = AbstractNamed {t::K Term, a::Maybe AbstractName}  deriving (Show)
 
+-- data Name = 
+--     OptionalName (K HasName)
+--   | AttachedName ()
 {-
 Not yet a full-fledged abstract attribute
 Might not have a name
@@ -127,6 +131,9 @@ otherwise, Abstraction should store AbstractName
 -}
 data Abstraction = Abstraction {attrs :: [K Label], t::Maybe AbstractionTail}  deriving (Show)
 
+{-
+-- TODO Don't distinguish between them?
+-}
 type AbstractOrApp = Options2 AbstractNamed AppNamed
 
 {-
@@ -229,33 +236,37 @@ toTermObjects n@Node {node = TObjects {..}} = dec n $ do
 if there is an object context
 attributes that are attached to some names should become
 attached attributes of such object
+
+-- TODO span attributes when processing tail
 -}
 composeAbstractAttribute :: I a -> AbstractNamed -> [AbstractOrApp] -> State MyState AbstractNamed
 composeAbstractAttribute n a t = do
+    -- TODO work with a list of (not optionally) named attributes
+    -- TODO ensure list of attrib
     let f e =
           case e of
-            Opt2A p -> p
+            Opt2A p -> Opt2A p
             Opt2B AppNamed {a=a1, t=t1} ->
               case a1 of
                 Just a2 ->
                   case a2 of
-                    Opt2A a3 -> AbstractNamed {t = t1, a = Just AbstractName {a = a3, imported = Nothing}}
-                    Opt2B _ -> error "no attribute name for this abstraction attribute"
+                    Opt2A _ -> e
+                    Opt2B _ -> error "abstraction cannot have attribute names of the form a:a"
                 Nothing ->
-                  AbstractNamed {t = t1, a = Nothing}
-    -- TODO fix
+                  Opt2A AbstractNamed {t = t1, a = Nothing}
+    -- TODO check this list doesn't have expressions with HasName
     let t1 = f <$> t
+    -- IDK do we care about the name?
     let AbstractNamed {t = Ann {term  = t2@Obj {..}}} = a
-    t2 <- dec n $ return Obj {freeAttrs = freeAttrs, attached = undefined}
-    return AbstractNamed {t = t2, a = undefined}
+    t3 <- dec n $ return Obj {freeAttrs = freeAttrs, attached = undefined}
+    return AbstractNamed {t = t3, a = undefined}
 
 {- | for expressions like 
 x:a
   b
 -}
-composeApplicationAttribute :: I TObject -> AppNamed -> [AbstractOrApp] -> State MyState AppNamed
+composeApplicationAttribute :: I a -> AppNamed -> [AbstractOrApp] -> State MyState AppNamed
 composeApplicationAttribute n a t = do
-    -- TODO cast AbstractOrApp to HTail
     let AppNamed {a = a1, t = t1} = a
     t2 <- dec n $ return App {t = t1, apps = t}
     return AppNamed {t = t2, a = a1}
@@ -280,19 +291,18 @@ named application:
     a:b
       c
 
-
 -- TODO also handle cases like
+
   a > b
     .c
   .d > e
-
 -}
 
 composeObject :: I TObject -> State MyState AbstractOrApp
 composeObject n@Node {node = TObject {..}} = do
     a' <-
         case a of
-            Opt2A p -> Opt2A <$> composeAbstraction p
+            Opt2A p -> composeAbstraction p
             Opt2B p -> Opt2B <$> composeApplication p
     -- expressions after EOL
     t' <- maybe (return []) toTermTail t
@@ -316,7 +326,7 @@ composeObject n@Node {node = TObject {..}} = do
 list of free attributes and the name of abstraction
 -}
 
-composeAbstraction :: I TAbstraction -> State MyState AbstractNamed
+composeAbstraction :: I TAbstraction -> State MyState AbstractOrApp
 composeAbstraction n@Node {node = TAbstraction {..}} = do
     as' <- composeFreeAttributes as
     t' <-
@@ -324,9 +334,10 @@ composeAbstraction n@Node {node = TAbstraction {..}} = do
           -- TODO better type
           Just t1 -> Just <$> composeAbstractionTail t1
           Nothing -> return Nothing
-    t1 <- dec n $ return Obj {freeAttrs = as', attached = []}
     -- TODO check that htail is of a specific form like
     -- [a] (a > b) ([] > c) d
+    -- first N named expressions will become attributes of this anonymous object
+    -- the remainding ones - arguments of application of such anonymous object
     -- or 
     -- [a] d
     -- but not of
@@ -334,16 +345,48 @@ composeAbstraction n@Node {node = TAbstraction {..}} = do
     -- because we cannot extend objects this way, AFAIK
     -- TODO full object construction, including htail elements
     -- in this case, object will be anonymous
-    let n1 = 
-          case t' of
-            Just k -> 
-              case k of
-                Opt2A l -> Just l
-                -- TODO handle htail
-                Opt2B _ -> Nothing
-            _ -> Nothing
+    -- 
+    -- [a] (a > b) ([] > c) d
+    -- should become an anonymous AbstractNamed
+    -- applied to `d` -> need to return an `AppNamed`
+    -- Without a `d`, we can return just `AbstractNamed`
+    let isNamed e =
+          case e of
+            Opt2A AbstractNamed {..} -> isJust a
+            Opt2B AppNamed {..} -> isJust a
+    -- we will need an `AbstractNamed` both if we have a suffixname
+    -- and if we have 0+ `AstractionOrApp`
+    let o2 name attrs = (\x -> AbstractNamed {a = name, t = x}) <$> dec n (return Obj {freeAttrs = as', attached = attrs})
+    -- no attributes, only arguments
+    -- [a b] c
+    -- makes no sense, but still
+    let
+        -- TODO add (I Abstraction) for decoration
+        decide :: ([AbstractOrApp], [AbstractOrApp]) -> State MyState AbstractOrApp
+        decide (x,[]) = Opt2A <$> o2 Nothing x
+        decide (x,y) = do
+          p <- o2 Nothing x
+          -- shouldn't have a name
+          p1 <- composeAbstractAttribute n p x
+          let AbstractNamed {t = t2} = p1
+          case y of
+            [] -> return (Opt2A p1)
+            _ -> Opt2B <$> composeApplicationAttribute n (AppNamed {t = t2, a = Nothing}) y
 
-    return AbstractNamed {t = t1, a = n1}
+    case t' of
+      Just k ->
+        case k of
+          -- no attributes
+          Opt2A l -> Opt2A <$> o2 (Just l) []
+          -- TODO handle htail
+          -- first we compose abstract attribute on the fst of span and make a term
+          -- next, if second element is non-empty, 
+          -- we put this term into unnamed `AppNamed`
+          -- and compose appnamed with the remaining arguments
+          Opt2B l -> decide (span isNamed l)
+      -- no tail at all, just free attributes list
+      -- [a b]
+      _ -> Opt2A <$> o2 Nothing []
 
 
 -- TODO
@@ -505,6 +548,21 @@ head
   need a term to later be accessed by a dot
   assume that data is not directly accessible in the program and is located
 
+head can be stored inside `AppNamed` without a name
+  its term can always be extracted
+-- TODO maybe need a separate type for head?
+
+a method `c` can be applied on application like this
+
+a b.c
+
+or on an expression like
+
+a (a:b).c
+
+and on something named also
+
+(a > b).c
 -}
 composeHtail :: I THtail -> State MyState [AbstractOrApp]
 composeHtail Node {node = THtail {..}} = do
@@ -514,7 +572,8 @@ composeHtail Node {node = THtail {..}} = do
                 Opt3A a -> Opt2B . (\y -> AppNamed {t = y, a = Nothing}) <$> dec a ((\x -> Dot {t = initLocator, attr = Opt2B x}) <$> composeHead a)
                 -- it's an application in parentheses
                 Opt3B a -> Opt2B <$> composeApplication a
-                Opt3C a -> Opt2A <$> composeAbstraction a
+                -- TODO add case for explicit construction of Opts
+                Opt3C a -> composeAbstraction a
     mapM f t
 
 composeLabel :: I TLabel -> State MyState (K Label)

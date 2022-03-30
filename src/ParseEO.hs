@@ -285,6 +285,7 @@ someTry p = try $ some (try p)
 choiceTry :: MonadParsec e s m => [m a] -> m a
 choiceTry p = try $ choice (map try p)
 
+-- | print a debug message when enter a node
 enter :: Show a => a -> ParsecT Void Text Identity ()
 enter name = do
   pos <- getPos
@@ -296,7 +297,8 @@ tEOL = try $ do
   _ <- eol *> optional (try eol)
   return ()
 
-leave :: (Show a1, Show a2) => a1 -> a2 -> ParsecT Void Text Identity ()
+-- | print a debug message when leave a node
+leave :: Show a => a -> p -> ParsecT Void Text Identity ()
 leave name node = do
   pos <- getPos
   let l = printf "%s: Leave %s" (show pos) (show name)
@@ -316,9 +318,11 @@ getIndent Node {node = TIndent {..}} = n
 dec :: Text -> Parser a -> Parser (I a)
 dec t p = do
   p1 <- getPos
+  -- enter t
   p' <- p
   p2 <- getPos
   let ans = Node (Segment p1 p2) p' initLoad
+  -- leave t ans
   return ans
 
 -- ***************************************************

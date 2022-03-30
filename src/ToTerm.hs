@@ -104,6 +104,9 @@ data DataValue
 -- TODO somehow pass problems with node conversion upwards
 -- probably need to use exceptions or Either Id Term
 
+{-
+-- stores names of abstract attributes
+-}
 data AbstractName = AbstractName {a::SuffixName, imported::Maybe (Options2 (K LetterName) (K TAbstrQuestion))}  deriving (Show)
 data HasName = HName Text | HAt  deriving (Show)
 
@@ -112,9 +115,13 @@ When an object term is ready, it becomes AbstractNamed
 -}
 data AbstractNamed = AbstractNamed {t::K Term, a::Maybe AbstractName}  deriving (Show)
 
--- data Name = 
---     OptionalName (K HasName)
---   | AttachedName ()
+
+data AttachedName = AttachedName {a::SuffixName, imported::Maybe (Options2 (K LetterName) (K TAbstrQuestion))} deriving (Show)
+data Attached = Attached {t :: K Term, a::AttachedName}
+
+data UnAttached = UnAttached {t :: K Term, a::Maybe (K HasName)}
+
+
 {-
 Not yet a full-fledged abstract attribute
 Might not have a name
@@ -238,6 +245,11 @@ attributes that are attached to some names should become
 attached attributes of such object
 
 -- TODO span attributes when processing tail
+
+for cases like
+
+[a]
+  b
 -}
 composeAbstractAttribute :: I a -> AbstractNamed -> [AbstractOrApp] -> State MyState AbstractNamed
 composeAbstractAttribute n a t = do
@@ -255,6 +267,7 @@ composeAbstractAttribute n a t = do
                 Nothing ->
                   Opt2A AbstractNamed {t = t1, a = Nothing}
     -- TODO check this list doesn't have expressions with HasName
+    -- 0
     let t1 = f <$> t
     -- IDK do we care about the name?
     let AbstractNamed {t = Ann {term  = t2@Obj {..}}} = a
@@ -323,8 +336,20 @@ composeObject n@Node {node = TObject {..}} = do
 
 
 {-
+-- TODO 
+
+Anywhere a new name shows up after the > symbol, 
+it is a declaration of a new attribute in the nearest object abstraction.
+-}
+
+{-
 list of free attributes and the name of abstraction
 -}
+
+
+-- TODO
+-- use instead of AbstractOrApp
+data AttachedOrArg = AttachedOrArg {t::K Term, a :: Options2 AttachedName (Maybe (K HasName))}
 
 composeAbstraction :: I TAbstraction -> State MyState AbstractOrApp
 composeAbstraction n@Node {node = TAbstraction {..}} = do
@@ -350,10 +375,14 @@ composeAbstraction n@Node {node = TAbstraction {..}} = do
     -- should become an anonymous AbstractNamed
     -- applied to `d` -> need to return an `AppNamed`
     -- Without a `d`, we can return just `AbstractNamed`
-    let isNamed e =
+    let isAttached e =
           case e of
-            Opt2A AbstractNamed {..} -> isJust a
-            Opt2B AppNamed {..} -> isJust a
+            Opt2A AbstractNamed {a = a1} -> isJust a1
+            Opt2B AppNamed {a = a1} -> 
+              case a1 of
+                Just (Opt2A SuffixName {}) -> True
+                _ -> False
+
     -- we will need an `AbstractNamed` both if we have a suffixname
     -- and if we have 0+ `AstractionOrApp`
     let o2 name attrs = (\x -> AbstractNamed {a = name, t = x}) <$> dec n (return Obj {freeAttrs = as', attached = attrs})
@@ -373,6 +402,34 @@ composeAbstraction n@Node {node = TAbstraction {..}} = do
             [] -> return (Opt2A p1)
             _ -> Opt2B <$> composeApplicationAttribute n (AppNamed {t = t2, a = Nothing}) y
 
+    -- tail with a list of attributes can be partitioned into two parts
+    -- first go attached attributes. with them, an object is created
+    -- next go some other expressions. the object is applied to them
+    --    there might be attached attributes among such expressions
+    --    these should become object's attributes
+    -- [a b] (a > x) b (c > y)
+    -- can be interpreted as
+    -- ([a b] (a > x) (c > y)) b c
+    
+    -- let classifyCast e = 
+    --       case e of
+    --         (Opt2A AbstractNamed {a = Just AbstractName {a=a1, imported = i1}, t = t3}) = Attached {t = t3, a = AttachedName {a=a1, imported=i1}}
+      
+
+    let span' f l = undefined
+          where
+            -- TODO
+            -- need to convert fst to attached
+            -- snd to unattached
+            (t1, t2) = span isAttached l
+            g (Opt2A AbstractNamed {a = Just AbstractName {a=a1, imported = i1}, t = t3}) = Attached {t = t3, a = AttachedName {a=a1, imported=i1}}
+            g (Opt2A AbstractNamed {a = Nothing}) = error "attributes of an object cannot be unnamed"
+            g (Opt2B AppNamed {a = Just (Opt2A s), t = t3}) = Attached {t = t3, a = AttachedName {a = s, imported = Nothing}}
+            g (Opt2B AppNamed {a = Just (Opt2B _)}) = error "attributes of an object cannot be of form `a:b`"
+            g (Opt2B AppNamed {a = Nothing}) = error "attributes of an object cannot be unnamed"
+
+            t1' = g <$> t1
+
     case t' of
       Just k ->
         case k of
@@ -383,7 +440,7 @@ composeAbstraction n@Node {node = TAbstraction {..}} = do
           -- next, if second element is non-empty, 
           -- we put this term into unnamed `AppNamed`
           -- and compose appnamed with the remaining arguments
-          Opt2B l -> decide (span isNamed l)
+          Opt2B l -> decide (span isAttached l)
       -- no tail at all, just free attributes list
       -- [a b]
       _ -> Opt2A <$> o2 Nothing []

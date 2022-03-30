@@ -124,3 +124,10 @@ a (b:c) (d:e)
 a
 
 [a] (a > b) ([] > c) d
+
+[x] > a
+  sprintf > b
+    stdin.nextLine > d
+  sprintf > e
+    stdin.nextLine > f
+

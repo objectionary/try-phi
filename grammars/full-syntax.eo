@@ -116,8 +116,13 @@ a > a
 
 a (a > a).a a > b
 
-a
-  b:c d:e
+[c e] > a
+  a > p1
+    b:c
+    d:e
+  a > p2
+    b:c d:e
+  a b:c d:e > p2
 
 a (b:c) (d:e)
 
@@ -131,3 +136,5 @@ a
   sprintf > e
     stdin.nextLine > f
 
+[c d] > a
+  a 2:c 3:d > p

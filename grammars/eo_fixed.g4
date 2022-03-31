@@ -180,7 +180,25 @@ application1
   application1
   |
   ;
-    
+
+// application2
+//   :
+//   application3
+//   |
+//   (
+//     method
+//     |
+//     has
+//   )
+//   htail?
+//   application1
+//   |
+//   ;
+
+// application3
+//   :
+//   suffix
+//   ;
 
 htail
   :

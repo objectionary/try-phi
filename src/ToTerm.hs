@@ -22,7 +22,7 @@ module ToTerm(
   Abstraction (..),
   AbstractionTail(..),
   ToTerm.Label(..),
-  MethodName(..)
+  MethodName
   ) where
 
 
@@ -177,8 +177,10 @@ type AbstractionTail = Options2 AttachedName [AttachedOrArg]
 data Term
   = App {t::K Term, args::[AttachedOrArg]}
   | Obj {freeAttrs::[K Label], args::[AttachedOrArg]}
-  | Dot {t::K Term, attr::Options2 (K MethodName) (K Head)}
-  | Locator {n::Maybe Int}
+  | Dot {t::K Term, attr::K MethodName}
+  -- for cases like just `^` or `$`
+  -- it doesn't need body
+  | HeadTerm {n::Maybe Int, a::Maybe (K Head)}
   deriving (Show)
 
 data ReturnValue = ReturnValue {t::K Term}  deriving (Show)
@@ -457,7 +459,10 @@ composeApplication :: I TApplication -> State MyState AttachedOrArg
 composeApplication n@Node {node = TApplication {..}} = do
   s' <-
     case s of
-      Opt2A a -> dec a $ (\x -> Dot {t = initLocator, attr = Opt2B x}) <$> composeHead a
+      -- IDK
+      -- we artificially append a head as a method to get a term
+      -- but head may contain inappropriate data
+      Opt2A a -> dec a $ (\x -> HeadTerm {n = Nothing, a = Just x}) <$> composeHead a
       -- application in parentheses
       -- TODO check doesn't need tail arguments
       Opt2B a -> (\AttachedOrArg {t = t1} -> t1) <$> composeApplication a
@@ -538,7 +543,7 @@ composeApplication1Elem t n@Node {node = TApplication1Elem {..}} = do
   c1' <-
     case c1 of
       -- append method name to an application
-      Opt3A b -> (\x -> AttachedOrArg {a = Opt2B Nothing, t = x}) <$> dec b ((\y -> Dot {t = t, attr = Opt2A y}) <$> composeMethod b)
+      Opt3A b -> (\x -> AttachedOrArg {a = Opt2B Nothing, t = x}) <$> dec b ((\y -> Dot {t = t, attr = y}) <$> composeMethod b)
       Opt3B b -> toTermHas t b
       -- TODO put tail into term
       Opt3C b -> (\x -> AttachedOrArg {t = t, a = Opt2A AttachedName {a = x, imported = Nothing}}) <$> composeSuffix b
@@ -626,8 +631,8 @@ composeAbstractionTail Node {node = TAbstractionTail {..}} =
       return (Opt2A AttachedName {a = a1, imported = b1})
     Opt2B h -> Opt2B <$> composeHtail h
 
-initLocator :: K Term
-initLocator = Ann {term = Locator {n = Nothing}, ann = IDs {treeId = Nothing, runtimeId = Nothing}}
+-- initLocator :: K Term
+-- initLocator = Ann {term = HeadTerm {n = Nothing, a = Nothing}, ann = IDs {treeId = Nothing, runtimeId = Nothing}}
 
 
 {-
@@ -657,7 +662,7 @@ composeHtail Node {node = THtail {..}} = do
     let f e =
             case e of
               -- Return an application attribute. We can always extract a term from it
-              Opt3A a -> (\y -> AttachedOrArg {t = y, a = Opt2B Nothing}) <$> dec a ((\x -> Dot {t = initLocator, attr = Opt2B x}) <$> composeHead a)
+              Opt3A a -> (\y -> AttachedOrArg {t = y, a = Opt2B Nothing}) <$> dec a ((\x -> HeadTerm {n = Nothing, a = Just x}) <$> composeHead a)
               -- it's an application in parentheses
               Opt3B a -> composeApplication a
               -- TODO add case for explicit construction of Opts

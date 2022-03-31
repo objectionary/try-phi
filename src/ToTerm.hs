@@ -22,7 +22,12 @@ module ToTerm(
   Abstraction (..),
   AbstractionTail(..),
   ToTerm.Label(..),
-  MethodName
+  MethodName(..),
+  Head(..),
+  HeadName(..),
+  LetterName(..),
+  Modifier(..),
+  SuffixName(..)
   ) where
 
 

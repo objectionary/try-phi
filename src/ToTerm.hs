@@ -1,23 +1,41 @@
-{-# LANGUAGE DeriveAnyClass             #-}
-{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE DeriveAnyClass        #-}
+{-# LANGUAGE DeriveGeneric         #-}
 
-{-# LANGUAGE DuplicateRecordFields      #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 
-{-# LANGUAGE RecordWildCards            #-}
+{-# LANGUAGE RecordWildCards       #-}
 
-module ToTerm(toTermProgram, getTermProgram, Term(..)) where
+module ToTerm(
+  toTermProgram, 
+  getTermProgram, 
+  Term(..), 
+  K, 
+  DataValue(..), 
+  Ann(..), 
+  DByte(..),
+  DRegexBody(..),
+  DRegexSuffix(..),
+  DLineBytes(..),
+  HasName (..),
+  AttachedName (..),
+  AttachedOrArg (..),
+  Abstraction (..),
+  AbstractionTail(..),
+  ToTerm.Label(..),
+  MethodName(..)
+  ) where
 
 
-import           Control.Monad.State        (get, put)
+import           Control.Monad.State        (get, guard, put, when)
 import           Control.Monad.State.Strict (State, evalState)
 import           Data.Hashable              (Hashable)
+import           Data.Maybe                 (isJust)
+import qualified Data.Maybe
 import           Data.Scientific            (Scientific)
 import           Data.Text                  (Text)
 import           GHC.Generics               (Generic)
 import           ParseEO                    as PEO
-import qualified Data.Maybe
-import PrettyPrintTree
-import Data.Maybe (isJust)
+import           PrettyPrintTree
 
 
 type Id = Int
@@ -37,10 +55,10 @@ type K a = Ann a Annotation
   -- it will be annotated outside
 
 data Label =
-      LName Text
-    | LAt
-    | LVarArg Text
-    deriving (Show)
+    LName Text
+  | LAt
+  | LVarArg Text
+  deriving (Show)
 
 
 newtype LetterName = LetterName Text  deriving (Show)
@@ -56,7 +74,7 @@ data MethodName =
   | MVertex
   deriving (Eq, Ord, Generic, Show, Hashable)
 
--- AbstractNamed
+-- AttachedOrArg
 -- Unpacked can be ^.x, not necessarily a name
 
 instance (Show a, Show b, Show c) => Show (Options3 a b c) where
@@ -97,6 +115,7 @@ data DataValue
   | DInt Integer
   | DRegex (K DRegexBody) (K DRegexSuffix)
   | DString Text
+  -- TODO save indentation of closing quotes
   | DText Text
  deriving (Show)
 
@@ -107,20 +126,23 @@ data DataValue
 {-
 -- stores names of abstract attributes
 -}
-data AbstractName = AbstractName {a::SuffixName, imported::Maybe (Options2 (K LetterName) (K TAbstrQuestion))}  deriving (Show)
-data HasName = HName Text | HAt  deriving (Show)
+-- data AttachedName = AttachedName {a::SuffixName, imported::Maybe (Options2 (K LetterName) (K TAbstrQuestion))}  deriving (Show)
 
 {-
-When an object term is ready, it becomes AbstractNamed
+When an object term is ready, it becomes AttachedOrArg
 -}
-data AbstractNamed = AbstractNamed {t::K Term, a::Maybe AbstractName}  deriving (Show)
+-- data AttachedOrArg = AttachedOrArg {t::K Term, a::Maybe AttachedName}  deriving (Show)
 
+
+-- data Attached = Attached {t :: K Term, a::AttachedName}
+
+-- data UnAttached = UnAttached {t :: K Term, a::Maybe (K HasName)}
+
+data HasName = HName Text | HAt  deriving (Show)
 
 data AttachedName = AttachedName {a::SuffixName, imported::Maybe (Options2 (K LetterName) (K TAbstrQuestion))} deriving (Show)
-data Attached = Attached {t :: K Term, a::AttachedName}
 
-data UnAttached = UnAttached {t :: K Term, a::Maybe (K HasName)}
-
+data AttachedOrArg = AttachedOrArg {t::K Term, a :: Options2 AttachedName (Maybe (K HasName))} deriving (Show)
 
 {-
 Not yet a full-fledged abstract attribute
@@ -130,25 +152,38 @@ or attributes that will come later in the next lines
 -- TODO better type
 
 -- IDK
-should it be different from AbstractNamed?
-If abstractionTail has attributes in parentheses, we can construct an AbstractNamed (inline object)
+should it be different from AttachedOrArg?
+If abstractionTail has attributes in parentheses, we can construct an AttachedOrArg (inline object)
 Probably, such object is always anonymous
 
-otherwise, Abstraction should store AbstractName
+otherwise, Abstraction should store AttachedName
 -}
 data Abstraction = Abstraction {attrs :: [K Label], t::Maybe AbstractionTail}  deriving (Show)
 
 {-
 -- TODO Don't distinguish between them?
 -}
-type AbstractOrApp = Options2 AbstractNamed AppNamed
+-- type AttachedOrArg = Options2 AttachedOrArg AttachedOrArg
 
 {-
-For cases like 
+For cases like
 [a] (3 > b) c
 here, the anonymous abstract object is applied to c
 -}
-type AbstractionTail = Options2 AbstractName [AbstractOrApp]
+type AbstractionTail = Options2 AttachedName [AttachedOrArg]
+
+-- data Method = 
+
+data Term
+  = App {t::K Term, args::[AttachedOrArg]}
+  | Obj {freeAttrs::[K Label], args::[AttachedOrArg]}
+  | Dot {t::K Term, attr::Options2 (K MethodName) (K Head)}
+  | Locator {n::Maybe Int}
+  deriving (Show)
+
+data ReturnValue = ReturnValue {t::K Term}  deriving (Show)
+data MyState = MyState {termId :: Int}  deriving (Show)
+data SuffixName = SuffixName {n::K Label, isConst::Bool}  deriving (Show)
 
 {-
 In context of application tail,
@@ -156,25 +191,18 @@ attributes can have
   no name
   `has` name
   `suffix` name
-  `attached` name
+  `args` name
 
-So, application arguments should have `Maybe (Options2 AbstractName (K HasName))` names
-However, application expressions cannot give `AbstractName`, 
+So, application arguments should have `Maybe (Options2 AttachedName (K HasName))` names
+However, application expressions cannot give `AttachedName`,
 so we use just `AppName`
 -}
-type AppName = Options2 SuffixName (K HasName)
+-- type AppName = Options2 SuffixName (K HasName)
 
 {-
-when an application term is ready, it becomes AppNamed
+when an application term is ready, it becomes AttachedOrArg
 -}
-data AppNamed = AppNamed {t::K Term, a :: Maybe AppName}  deriving (Show)
-
-data Term
-  = App {t::K Term, apps::[AbstractOrApp]}
-  | Obj {freeAttrs::[K Label], attached::[AbstractOrApp]}
-  | Dot {t::K Term, attr::Options2 (K MethodName) (K Head)}
-  | Locator {n::Maybe Int}
-  deriving (Show)
+-- data AttachedOrArg = AttachedOrArg {t::K Term, a :: Maybe AppName}  deriving (Show)
 
 -- dec::I a -> (I a -> MapElement) -> ReturnValue
 -- dec n m p = do
@@ -186,14 +214,12 @@ data Term
 -- IDK Object with attributes is a term
 -- application with attributes is a term
 
-data ReturnValue = ReturnValue {t::K Term}  deriving (Show)
 
 getId :: Node a Load -> Int
 getId Node{..} =
   case load of
     Load i -> i
 
-data MyState = MyState {termId :: Int}  deriving (Show)
 
 -- | annotate a node with term id and CST node id
 dec :: I a -> State MyState b -> State MyState (K b)
@@ -208,7 +234,7 @@ getTermProgram p = evalState (toTermProgram p) MyState {termId = 0}
 
 toTermProgram :: I TProgram -> State MyState (K Term)
 toTermProgram n@Node {node = TProgram {..}} =
-    toTermObjects o
+  toTermObjects o
 
 
 -- toTermMetas :: I TMetas -> State MyState (K TMetas)
@@ -235,14 +261,14 @@ toTermName m@Node {node = TName t1} = dec m $ return (LetterName t1)
 -- should produce an object
 toTermObjects :: I TObjects -> State MyState (K Term)
 toTermObjects n@Node {node = TObjects {..}} = dec n $ do
-    os' <- mapM composeObject os
-    return Obj {freeAttrs = [], attached = os'}
+  os' <- mapM composeObject os
+  return Obj {freeAttrs = [], args = os'}
 
 
 {-
 if there is an object context
-attributes that are attached to some names should become
-attached attributes of such object
+attributes that are args to some names should become
+args attributes of such object
 
 -- TODO span attributes when processing tail
 
@@ -251,39 +277,49 @@ for cases like
 [a]
   b
 -}
-composeAbstractAttribute :: I a -> AbstractNamed -> [AbstractOrApp] -> State MyState AbstractNamed
-composeAbstractAttribute n a t = do
-    -- TODO work with a list of (not optionally) named attributes
-    -- TODO ensure list of attrib
-    let f e =
-          case e of
-            Opt2A p -> Opt2A p
-            Opt2B AppNamed {a=a1, t=t1} ->
-              case a1 of
-                Just a2 ->
-                  case a2 of
-                    Opt2A _ -> e
-                    Opt2B _ -> error "abstraction cannot have attribute names of the form a:a"
-                Nothing ->
-                  Opt2A AbstractNamed {t = t1, a = Nothing}
-    -- TODO check this list doesn't have expressions with HasName
-    -- 0
-    let t1 = f <$> t
-    -- IDK do we care about the name?
-    let AbstractNamed {t = Ann {term  = t2@Obj {..}}} = a
-    t3 <- dec n $ return Obj {freeAttrs = freeAttrs, attached = undefined}
-    return AbstractNamed {t = t3, a = undefined}
+-- composeAbstractAttribute :: I a -> AttachedOrArg -> [AttachedOrArg] -> State MyState AttachedOrArg
+-- composeAbstractAttribute n a t = do
+--     -- TODO work with a list of (not optionally) named attributes
+--     -- TODO ensure list of attrib
+--     -- let f e =
+--     --       case e of
+--     --         Opt2A p -> Opt2A p
+--     --         Opt2B AttachedOrArg {a=a1, t=t1} ->
+--     --           case a1 of
+--     --             Just a2 ->
+--     --               case a2 of
+--     --                 Opt2A _ -> e
+--     --                 Opt2B _ -> error "abstraction cannot have attribute names of the form a:a"
+--     --             Nothing ->
+--     --               Opt2A AttachedOrArg {t = t1, a = Nothing}
+--     -- TODO check this list doesn't have expressions with HasName
+--     -- 0
+--     -- let t1 = f <$> t
+--     -- IDK do we care about the name?
+--     let AttachedOrArg {t = Ann {term  = t2@Obj {..}}} = a
+--     t3 <- dec n $ return Obj {freeAttrs = freeAttrs, args = undefined}
+--     return AttachedOrArg {t = t3, a = undefined}
 
-{- | for expressions like 
+{- | for expressions like
 x:a
   b
 -}
-composeApplicationAttribute :: I a -> AppNamed -> [AbstractOrApp] -> State MyState AppNamed
-composeApplicationAttribute n a t = do
-    let AppNamed {a = a1, t = t1} = a
-    t2 <- dec n $ return App {t = t1, apps = t}
-    return AppNamed {t = t2, a = a1}
+-- composeApplicationAttribute :: I a -> AttachedOrArg -> [AttachedOrArg] -> State MyState AttachedOrArg
+-- composeApplicationAttribute n a t = do
+--     let AttachedOrArg {a = a1, t = t1} = a
+--     t2 <- dec n $ return App {t = t1, args = t}
+--     return AttachedOrArg {t = t2, a = a1}
 
+
+-- addTail :: I a -> AttachedOrArg -> [AttachedOrArg] -> State MyState AttachedOrArg
+-- addTail n AttachedOrArg{..} as = do
+--   let a1@Ann {term = t1} = t
+--   let t2 =
+--         case t1 of
+--           p@Obj {..} -> p {args = as}
+--           p@App {..} -> p {args = as}
+--           _ -> t1
+--   return undefined
 
 {- | produces weird things
 
@@ -293,12 +329,12 @@ named object: if
   [a] > b
     c
 
-named application: 
+named application:
   if
 
     a > b
       c
-  
+
   or
 
     a:b
@@ -311,17 +347,29 @@ named application:
   .d > e
 -}
 
-composeObject :: I TObject -> State MyState AbstractOrApp
+composeObject :: I TObject -> State MyState AttachedOrArg
 composeObject n@Node {node = TObject {..}} = do
-    a' <-
-        case a of
-            Opt2A p -> composeAbstraction p
-            Opt2B p -> Opt2B <$> composeApplication p
-    -- expressions after EOL
-    t' <- maybe (return []) toTermTail t
-    case a' of
-      Opt2A b -> Opt2A <$> composeAbstractAttribute n b t'
-      Opt2B b -> Opt2B <$> composeApplicationAttribute n b t'
+  -- TODO pass this tail into abstraction or application
+  t' <- maybe (return []) toTermTail t
+
+  let addTail p1@AttachedOrArg {t = p2@Ann {term = t1}} =
+        (\x -> p1 {t = p2 {term = x}}::AttachedOrArg) $
+        case t1 of
+          App {args = as} -> t1 {args = as <> t'}
+          Obj {args = as} -> t1 {args = as <> t'}
+          _               -> t1
+
+  a' <- addTail <$>
+    case a of
+      Opt2A p -> composeAbstraction p
+      Opt2B p -> composeApplication p
+  -- expressions after EOL
+  -- at <- addTail n a' t'
+  -- TODO
+  return a'
+    -- case a' of
+    --   Opt2A b -> Opt2A <$> composeAbstractAttribute n b t'
+    --   Opt2B b -> Opt2B <$> composeApplicationAttribute n b t'
 
     -- TODO correctly handle such tail, not ignore it
     -- let
@@ -336,121 +384,63 @@ composeObject n@Node {node = TObject {..}} = do
 
 
 {-
--- TODO 
+-- TODO
 
-Anywhere a new name shows up after the > symbol, 
+Anywhere a new name shows up after the > symbol,
 it is a declaration of a new attribute in the nearest object abstraction.
 -}
 
 {-
 list of free attributes and the name of abstraction
+
+
+can be of form
+
+[a b] (a > b) (c > d)
+  e > g
+  f > h
+
+-- IDK
+is `[a b] (a > b) (c > d)` applied to `e` and `f`
+or they become its attributes?
+
+For now, we just append this tail to the inline list and see what happens to object
+
+if there is no abstraction tail, should become a multiline anonymous object
+
+[a b]
+  c
+  d
+
+-- IDK
+[a b] (a > b) (c > d) e (f > g)
+how to interpret this
+Does it mean that `[a b] (a > b) (c > d)` is applied to `e` and `(f > g)`
 -}
 
 
--- TODO
--- use instead of AbstractOrApp
-data AttachedOrArg = AttachedOrArg {t::K Term, a :: Options2 AttachedName (Maybe (K HasName))}
-
-composeAbstraction :: I TAbstraction -> State MyState AbstractOrApp
+composeAbstraction :: I TAbstraction -> State MyState AttachedOrArg
 composeAbstraction n@Node {node = TAbstraction {..}} = do
-    as' <- composeFreeAttributes as
-    t' <-
-        case t of
-          -- TODO better type
-          Just t1 -> Just <$> composeAbstractionTail t1
-          Nothing -> return Nothing
-    -- TODO check that htail is of a specific form like
-    -- [a] (a > b) ([] > c) d
-    -- first N named expressions will become attributes of this anonymous object
-    -- the remainding ones - arguments of application of such anonymous object
-    -- or 
-    -- [a] d
-    -- but not of
-    -- [a] d (a > b)
-    -- because we cannot extend objects this way, AFAIK
-    -- TODO full object construction, including htail elements
-    -- in this case, object will be anonymous
-    -- 
-    -- [a] (a > b) ([] > c) d
-    -- should become an anonymous AbstractNamed
-    -- applied to `d` -> need to return an `AppNamed`
-    -- Without a `d`, we can return just `AbstractNamed`
-    let isAttached e =
-          case e of
-            Opt2A AbstractNamed {a = a1} -> isJust a1
-            Opt2B AppNamed {a = a1} -> 
-              case a1 of
-                Just (Opt2A SuffixName {}) -> True
-                _ -> False
+  as' <- composeFreeAttributes as
+  t' <-
+    case t of
+      -- TODO better type
+      Just t1 -> Just <$> composeAbstractionTail t1
+      Nothing -> return Nothing
 
-    -- we will need an `AbstractNamed` both if we have a suffixname
-    -- and if we have 0+ `AstractionOrApp`
-    let o2 name attrs = (\x -> AbstractNamed {a = name, t = x}) <$> dec n (return Obj {freeAttrs = as', attached = attrs})
-    -- no attributes, only arguments
-    -- [a b] c
-    -- makes no sense, but still
-    let
-        -- TODO add (I Abstraction) for decoration
-        decide :: ([AbstractOrApp], [AbstractOrApp]) -> State MyState AbstractOrApp
-        decide (x,[]) = Opt2A <$> o2 Nothing x
-        decide (x,y) = do
-          p <- o2 Nothing x
-          -- shouldn't have a name
-          p1 <- composeAbstractAttribute n p x
-          let AbstractNamed {t = t2} = p1
-          case y of
-            [] -> return (Opt2A p1)
-            _ -> Opt2B <$> composeApplicationAttribute n (AppNamed {t = t2, a = Nothing}) y
+  let m name ks = (\t1 -> AttachedOrArg {t = t1, a = name}) <$> dec n (return Obj {freeAttrs = as', args = ks})
 
-    -- tail with a list of attributes can be partitioned into two parts
-    -- first go attached attributes. with them, an object is created
-    -- next go some other expressions. the object is applied to them
-    --    there might be attached attributes among such expressions
-    --    these should become object's attributes
-    -- [a b] (a > x) b (c > y)
-    -- can be interpreted as
-    -- ([a b] (a > x) (c > y)) b c
-    
-    -- let classifyCast e = 
-    --       case e of
-    --         (Opt2A AbstractNamed {a = Just AbstractName {a=a1, imported = i1}, t = t3}) = Attached {t = t3, a = AttachedName {a=a1, imported=i1}}
-      
-
-    let span' f l = undefined
-          where
-            -- TODO
-            -- need to convert fst to attached
-            -- snd to unattached
-            (t1, t2) = span isAttached l
-            g (Opt2A AbstractNamed {a = Just AbstractName {a=a1, imported = i1}, t = t3}) = Attached {t = t3, a = AttachedName {a=a1, imported=i1}}
-            g (Opt2A AbstractNamed {a = Nothing}) = error "attributes of an object cannot be unnamed"
-            g (Opt2B AppNamed {a = Just (Opt2A s), t = t3}) = Attached {t = t3, a = AttachedName {a = s, imported = Nothing}}
-            g (Opt2B AppNamed {a = Just (Opt2B _)}) = error "attributes of an object cannot be of form `a:b`"
-            g (Opt2B AppNamed {a = Nothing}) = error "attributes of an object cannot be unnamed"
-
-            t1' = g <$> t1
-
-    case t' of
-      Just k ->
-        case k of
-          -- no attributes
-          Opt2A l -> Opt2A <$> o2 (Just l) []
-          -- TODO handle htail
-          -- first we compose abstract attribute on the fst of span and make a term
-          -- next, if second element is non-empty, 
-          -- we put this term into unnamed `AppNamed`
-          -- and compose appnamed with the remaining arguments
-          Opt2B l -> decide (span isAttached l)
-      -- no tail at all, just free attributes list
-      -- [a b]
-      _ -> Opt2A <$> o2 Nothing []
-
+  case t' of
+    Just p ->
+      case p of
+        Opt2A a -> m (Opt2A a) []
+        Opt2B b -> m (Opt2B Nothing) b
+    Nothing ->
+      m (Opt2B Nothing) []
 
 -- TODO
-toTermTail :: I TTail -> State MyState [AbstractOrApp]
-toTermTail n@Node {node = TTail {..}} = return [] {-dec n $ do
-    composeObject os
-    return $ TTail os'-}
+toTermTail :: I TTail -> State MyState [AttachedOrArg]
+toTermTail Node {node = TTail {..}} = mapM composeObject os
 
 {-
 What's the meaning of `(a > a).a`?
@@ -463,46 +453,72 @@ a > a
 Should we allow it or let the expressions in parentheses only for grouping?
 (a b c)
 -}
-composeApplication :: I TApplication -> State MyState AppNamed
+composeApplication :: I TApplication -> State MyState AttachedOrArg
 composeApplication n@Node {node = TApplication {..}} = do
   s' <-
-      case s of
-          Opt2A a -> dec a $ (\x -> Dot {t = initLocator, attr = Opt2B x}) <$> composeHead a
-          Opt2B a -> (\AppNamed {t = t1} -> t1) <$> composeApplication a
+    case s of
+      Opt2A a -> dec a $ (\x -> Dot {t = initLocator, attr = Opt2B x}) <$> composeHead a
+      -- application in parentheses
+      -- TODO check doesn't need tail arguments
+      Opt2B a -> (\AttachedOrArg {t = t1} -> t1) <$> composeApplication a
   h' <- maybe (return []) composeHtail h
-  t1 <- dec n $ return App {t = s', apps = h'}
+  t1 <- dec n $ return App {t = s', args = h'}
   toTermApplication1 t1 a1
 
-{- 
+{-
 -- TODO add a separate type for unnamed terms?
-We can return just `AppNamed` without a name
+We can return just `AttachedOrArg` without a name
 instead of a term
 -}
 
-toTermApplication1 :: K Term -> I TApplication1 -> State MyState AppNamed
+toTermApplication1 :: K Term -> I TApplication1 -> State MyState AttachedOrArg
 toTermApplication1 t Node {node = TApplication1 {..}} =
   case c of
-      Just x  -> composeApplication1Elem t x
-      Nothing -> return AppNamed {a = Nothing, t = t}
+    Just x  -> composeApplication1Elem t x
+    Nothing -> return AttachedOrArg {a = Opt2B Nothing, t = t}
 
+
+{-
+-- IDK
+does `c` in `a b:c` refer to `b` or to `a b`?
+Let us make `c` refer to `a b` only
+To make it refer to `b` only, we can write `a (b:c)`
+-}
 
 {-
 We get some term and apply a modifier to it to get
 a.b, a:b, a > b
 
-Next, there can be a htail. 
+Next, there can be a htail.
 The meaning of the final expression depends on the modifier
 
 a.b c
 is an ordinary application
 
-a:b c 
+a:b c
 doesn't make sense since
   if it's an argument list where a has an optional name, it won't have
     a term to apply this list to due to left associativity of modifiers
   if it's an application, why write an optional name
-    if a isn't applied to some term directly?
-      
+    if `a` isn't applied to some term directly?
+
+-- IDK
+I think a `:` modifier refers to the last expression in htail
+
+a:b
+`b` refers to `a`
+
+(a > b):c
+`c` refers to `(a > b)`
+
+a b:c
+`c` refers to `b`?
+
+[c] > a
+
+[c]
+  a b:c
+
 
 a > b c
 doesn't really make sense
@@ -515,85 +531,100 @@ a > b
 
 This means that we reached the end of the application chain
 and can return this named term
+
 -}
-composeApplication1Elem :: K Term -> I TApplication1Elem -> State MyState AppNamed
+composeApplication1Elem :: K Term -> I TApplication1Elem -> State MyState AttachedOrArg
 composeApplication1Elem t n@Node {node = TApplication1Elem {..}} = do
-    c1' <-
-        case c1 of
-            -- append method name to an application
-            Opt3A b -> (\x -> AppNamed {a = Nothing, t = x}) <$> dec b ((\y -> Dot {t = t, attr = Opt2A y}) <$> composeMethod b)
-            Opt3B b -> toTermHas t b
-            Opt3C b -> (\x -> AppNamed {t = t, a = Just x}) . Opt2A <$> composeSuffix b
+  c1' <-
+    case c1 of
+      -- append method name to an application
+      Opt3A b -> (\x -> AttachedOrArg {a = Opt2B Nothing, t = x}) <$> dec b ((\y -> Dot {t = t, attr = Opt2A y}) <$> composeMethod b)
+      Opt3B b -> toTermHas t b
+      -- TODO put tail into term
+      Opt3C b -> (\x -> AttachedOrArg {t = t, a = Opt2A AttachedName {a = x, imported = Nothing}}) <$> composeSuffix b
 
-    ht' <- maybe (return []) composeHtail ht
+  -- TODO during parsing, allow
+  -- ((method | has) htail? application1) | suffix
+  -- IDK
+  -- what means method after suffix
+  -- or
+  -- as well as has after suffix
+  -- or arguments
+  -- third:foo > x...!
+  -- for now, suppose we can return on suffix
+  --
 
-    -- TODO report error instead of taking the term and passing it
-    -- case c1 of
-    --   Opt3B _ -> {- error "Nonsense application of form a:b c" -} guard True
-    --   Opt3C _ ->
-    --     case ht' of
-    --       [] -> guard True
-    --       _ -> {- error "Nonsense application of form a > b c" -} guard True
-    --   _ -> guard True
+  ht' <- maybe (return []) composeHtail ht
 
-    let AppNamed {t = t'} = c1'
+  when ((case c1 of Opt3C _ -> True; _ -> False) && not (null ht')) (error "htail after suffix")
 
-    -- previous checks should not allow the application to be named,
-    -- so we don't care about the name from c1'
-    at <- dec n $ return App {t = t', apps = ht'}
-    toTermApplication1 at a
+  -- TODO report error instead of taking the term and passing it
+  -- case c1 of
+  --   Opt3B _ -> {- error "Nonsense application of form a:b c" -} guard True
+  --   Opt3C _ ->
+  --     case ht' of
+  --       [] -> guard True
+  --       _ -> {- error "Nonsense application of form a > b c" -} guard True
+  --   _ -> guard True
+
+  let AttachedOrArg {t = t'} = c1'
+
+  -- previous checks should not allow the application to be named,
+  -- so we don't care about the name from c1'
+  at <- dec n $ return App {t = t', args = ht'}
+  toTermApplication1 at a
 
 
 composeMethod :: I TMethod -> State MyState (K MethodName)
 composeMethod n@Node {node = TMethod {..}} = dec n $ do
-    let m' =
-          case m of
-            Opt2A Node{node=TName t1} -> MName t1
-            Opt2B Node{node=t1} ->
-              case t1 of
-                MethodRho -> MRho
-                MethodVertex -> MVertex
-                MethodAt -> MAt
-    return m'
+  let m' =
+        case m of
+          Opt2A Node{node=TName t1} -> MName t1
+          Opt2B Node{node=t1} ->
+            case t1 of
+              MethodRho    -> MRho
+              MethodVertex -> MVertex
+              MethodAt     -> MAt
+  return m'
 
 
-toTermHas :: K Term -> I THas -> State MyState AppNamed
+toTermHas :: K Term -> I THas -> State MyState AttachedOrArg
 toTermHas t m@Node {node = THas {..}} = do
-    let Node {node = TName t1} = n
-    h <- dec m $ return (HName t1)
-    return $ AppNamed {a = Just (Opt2B h), t = t}
+  let Node {node = TName t1} = n
+  h <- dec m $ return (HName t1)
+  return $ AttachedOrArg {a = Opt2B (Just h), t = t}
 
 
 composeFreeAttributes :: I TAttributes -> State MyState [K Label]
 composeFreeAttributes Node {node = TAttributes {..}} =
-    mapM composeFreeAttribute as
+  mapM composeFreeAttribute as
 
 
 composeFreeAttribute :: I TFreeAttribute -> State MyState (K Label)
 composeFreeAttribute n@Node {node = TFreeAttribute {..}} = dec n $ do
-    let l' =
-          case l of
-            Opt3A Node{node = LabelAt} -> LAt
-            Opt3B Node{node = TName t1} -> LName t1
-            Opt3C Node{node = TVarArg t1} -> LVarArg t1
-    return l'
+  let l' =
+        case l of
+          Opt3A Node{node = LabelAt}    -> LAt
+          Opt3B Node{node = TName t1}   -> LName t1
+          Opt3C Node{node = TVarArg t1} -> LVarArg t1
+  return l'
 
 
 composeAbstractionTail :: I TAbstractionTail -> State MyState AbstractionTail
 composeAbstractionTail Node {node = TAbstractionTail {..}} =
-    case e of
-        Opt2A (a,b) -> do
-            a1 <- composeSuffix a
-            b1 <- (
-                case b of
-                    Just b' -> Just <$>
-                        case b' of
-                            Opt2A c -> Opt2A <$> toTermName c
-                            Opt2B c -> Opt2B <$> composeTerminal c
-                    Nothing -> return Nothing
-                )
-            return (Opt2A AbstractName {a = a1, imported = b1})
-        Opt2B h -> Opt2B <$> composeHtail h
+  case e of
+    Opt2A (a,b) -> do
+      a1 <- composeSuffix a
+      b1 <- (
+        case b of
+          Just b' -> Just <$>
+            case b' of
+              Opt2A c -> Opt2A <$> toTermName c
+              Opt2B c -> Opt2B <$> composeTerminal c
+          Nothing -> return Nothing
+        )
+      return (Opt2A AttachedName {a = a1, imported = b1})
+    Opt2B h -> Opt2B <$> composeHtail h
 
 initLocator :: K Term
 initLocator = Ann {term = Locator {n = Nothing}, ann = IDs {treeId = Nothing, runtimeId = Nothing}}
@@ -605,7 +636,7 @@ head
   need a term to later be accessed by a dot
   assume that data is not directly accessible in the program and is located
 
-head can be stored inside `AppNamed` without a name
+head can be stored inside `AttachedOrArg` without a name
   its term can always be extracted
 -- TODO maybe need a separate type for head?
 
@@ -621,17 +652,27 @@ and on something named also
 
 (a > b).c
 -}
-composeHtail :: I THtail -> State MyState [AbstractOrApp]
+composeHtail :: I THtail -> State MyState [AttachedOrArg]
 composeHtail Node {node = THtail {..}} = do
     let f e =
             case e of
-                -- Return an application attribute. We can always extract a term from it
-                Opt3A a -> Opt2B . (\y -> AppNamed {t = y, a = Nothing}) <$> dec a ((\x -> Dot {t = initLocator, attr = Opt2B x}) <$> composeHead a)
-                -- it's an application in parentheses
-                Opt3B a -> Opt2B <$> composeApplication a
-                -- TODO add case for explicit construction of Opts
-                Opt3C a -> composeAbstraction a
+              -- Return an application attribute. We can always extract a term from it
+              Opt3A a -> (\y -> AttachedOrArg {t = y, a = Opt2B Nothing}) <$> dec a ((\x -> Dot {t = initLocator, attr = Opt2B x}) <$> composeHead a)
+              -- it's an application in parentheses
+              Opt3B a -> composeApplication a
+              -- TODO add case for explicit construction of Opts
+              Opt3C a -> composeAbstraction a
     mapM f t
+
+{-
+-- TODO 
+[]
+  Q.x.f.d Q Q
+  &.@.< > t
+  ^.@.hey > you...
+varargs can be in label
+
+-}
 
 composeLabel :: I TLabel -> State MyState (K Label)
 composeLabel n@Node {node = TLabel {..}} = dec n $ do
@@ -639,31 +680,29 @@ composeLabel n@Node {node = TLabel {..}} = dec n $ do
           case l of
             Opt2A _ -> LAt
             Opt2B (Node{node=TName n1}, t) ->
-                  case t of
-                    Just _ -> LVarArg n1
-                    Nothing -> LName n1
+              case t of
+                Just _  -> LVarArg n1
+                Nothing -> LName n1
     return l'
-
-data SuffixName = SuffixName {n::K Label, isConst::Bool}  deriving (Show)
 
 composeSuffix :: I TSuffix -> State MyState SuffixName
 composeSuffix Node {node = TSuffix {..}} = do
-    l' <- composeLabel l
-    let c' = Data.Maybe.isJust c
-    return $ SuffixName {n = l', isConst = c'}
+  l' <- composeLabel l
+  let c' = Data.Maybe.isJust c
+  return $ SuffixName {n = l', isConst = c'}
 
 composeTerminal :: I a -> State MyState (K a)
 composeTerminal n@Node {..} = dec n $ return node
 
 composeHead :: I THead -> State MyState (K Head)
 composeHead n@Node {node = THead {..}} = dec n $ do
-    let d = Data.Maybe.isJust dots
-    t' <-
-        case t of
-            Opt3A a -> Opt3A <$> composeTerminal a
-            Opt3B a -> Opt3B <$> composeHeadName a
-            Opt3C a -> Opt3C <$> composeData a
-    return Head {h = t', unpacked = d}
+  let d = Data.Maybe.isJust dots
+  t' <-
+    case t of
+      Opt3A a -> Opt3A <$> composeTerminal a
+      Opt3B a -> Opt3B <$> composeHeadName a
+      Opt3C a -> Opt3C <$> composeData a
+  return Head {h = t', unpacked = d}
 
 
 composeHeadName :: I THeadName -> State MyState (K HeadName)
@@ -672,26 +711,26 @@ composeHeadName n@Node {node = THeadName {..}} = dec n $ do
   hn <- dec name $ return (LetterName t)
   let c' =
         case c of
-            Just Node {node = n1} ->
-              case n1 of
-                PEO.HeadDot -> Just MInverseDot
-                PEO.HeadCopy -> Just MCopy
-            Nothing -> Nothing
+          Just Node {node = n1} ->
+            case n1 of
+              PEO.HeadDot  -> Just MInverseDot
+              PEO.HeadCopy -> Just MCopy
+          Nothing -> Nothing
   return HeadName {n = hn, m = c'}
 
 
 composeData :: I TData -> State MyState (K DataValue)
 composeData n@Node {node = TData {..}} = dec n $
   case d of
-      Opt9A a -> composeBool a
-      Opt9B a -> composeText a
-      Opt9C a -> composeHex a
-      Opt9D a -> composeString a
-      Opt9E a -> composeFloat a
-      Opt9F a -> composeInt a
-      Opt9G a -> composeBytes a
-      Opt9H a -> composeChar a
-      Opt9I a -> composeRegex a
+    Opt9A a -> composeBool a
+    Opt9B a -> composeText a
+    Opt9C a -> composeHex a
+    Opt9D a -> composeString a
+    Opt9E a -> composeFloat a
+    Opt9F a -> composeInt a
+    Opt9G a -> composeBytes a
+    Opt9H a -> composeChar a
+    Opt9I a -> composeRegex a
 
 composeBool :: I TBool -> State MyState DataValue
 composeBool Node {..} = do

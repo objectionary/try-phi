@@ -66,7 +66,19 @@ module ParseEO
     THeadModifier(..),
     TAbstrQuestion(..),
     TRegexBody(..),
-    TRegexSuffix(..)
+    TRegexSuffix(..),
+    cAT,
+    cDOTS,
+    cRHO,
+    cVERTEX,
+    cROOT,
+    cSIGMA,
+    cSTAR,
+    cXI,
+    cCOPY,
+    cDOT,
+    cCONST,
+    cQUESTION
   )
 where
 

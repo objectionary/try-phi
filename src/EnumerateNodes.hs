@@ -1,9 +1,9 @@
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE RecordWildCards      #-}
 {-# LANGUAGE TypeSynonymInstances #-}
-module EnumerateNodes (enumInsertProgram) where
+module EnumerateNodes (enumInsertProgram, getProgram) where
 
-import           Control.Monad.State.Strict (State, get, put, runState)
+import           Control.Monad.State.Strict (State, get, put, runState, evalState)
 import qualified Data.HashMap.Strict.InsOrd as M (InsOrdHashMap, empty, insert)
 import           ParseEO
 
@@ -67,6 +67,9 @@ dec n m p = do
 
 enumInsertProgram :: I TProgram -> (I TProgram, MyState)
 enumInsertProgram t = runState (enum t) (MyState {i=0, m=M.empty})
+
+getProgram :: I TProgram -> I TProgram 
+getProgram t = evalState (enum t) (MyState {i=0, m=M.empty})
 
 -- enums
 
@@ -325,8 +328,8 @@ instance Enumerable (I TRegex) where
 
 instance Enumerable (I TLineBytes) where
     enum n@Node {node = TLineBytes {..}} = dec n MLineBytes $ do
-    bs' <- mapM enum bs
-    return $ TLineBytes bs'
+        bs' <- mapM enum bs
+        return $ TLineBytes bs'
 
 instance Enumerable (I TByte) where
     enum n = dec n MByte $ return $ node n

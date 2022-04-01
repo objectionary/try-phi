@@ -20,27 +20,72 @@ module ToTerm(
   AttachedName (..),
   AttachedOrArg (..),
   Abstraction (..),
-  AbstractionTail(..),
   ToTerm.Label(..),
   MethodName(..),
   Head(..),
   HeadName(..),
   LetterName(..),
   Modifier(..),
-  SuffixName(..)
+  SuffixName(..),
+  AttachedOrArgName
   ) where
 
 
-import           Control.Monad.State        (get, guard, put, when)
+import           Control.Monad.State        (get, put, when)
 import           Control.Monad.State.Strict (State, evalState)
 import           Data.Hashable              (Hashable)
 import           Data.Maybe                 (isJust)
-import qualified Data.Maybe
 import           Data.Scientific            (Scientific)
 import           Data.Text                  (Text)
 import           GHC.Generics               (Generic)
-import           ParseEO                    as PEO
-import           PrettyPrintTree
+import ParseEO as PEO
+    ( TText(TText),
+      TName(TName),
+      THex(THex),
+      TFloat(TFloat),
+      TInt(TInt),
+      TString(TString),
+      TChar(TChar),
+      TBool(TBool),
+      TBytes(..),
+      TLineBytes(..),
+      TByte(TByte),
+      TRegex(..),
+      TRegexSuffix(..),
+      TRegexBody(..),
+      TData(..),
+      Options9(..),
+      THas(..),
+      THeadModifier(HeadCopy, HeadDot),
+      THeadName(..),
+      THeadTerminal,
+      THead(..),
+      THtail(..),
+      TApplication1Elem(..),
+      TApplication1(..),
+      TApplication(..),
+      TMethod(..),
+      TMethodTerminal(MethodAt, MethodRho, MethodVertex),
+      TSuffix(..),
+      TTail(..),
+      TLabelTerminal(LabelAt),
+      TLabel(..),
+      TFreeAttribute(..),
+      TVarArg(TVarArg),
+      TAttributes(..),
+      TAbstrQuestion,
+      TAbstractionTail(..),
+      TAbstraction(..),
+      TObject(..),
+      TObjects(..),
+      TProgram(..),
+      Options3(..),
+      Options2(..),
+      Node(..),
+      Load(Load),
+      I,
+      )
+import PrettyPrintTree ()
 
 
 type Id = Int

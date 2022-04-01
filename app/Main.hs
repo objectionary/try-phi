@@ -9,31 +9,20 @@ module Main where
 
 import ParseEO as A (tProgram)
 import PrettyPrintTree as PP (printTree)
-import Text.Megaparsec (parseTest, parseMaybe)
-import Data.Text as DT (pack, replicate, Text(..))
-import Text.Printf (printf)
-import EnumerateNodes (enumInsertProgram)
--- import ToTerm (getTermProgram)
+import Text.Megaparsec (parseMaybe)
+import Data.Text as DT (pack)
+import EnumerateNodes (enumInsertProgram, getProgram)
+import ToTerm (getTermProgram)
+import PrettyPrintTerm(pprintTop)
 
 main :: IO ()
 main = do
   let file = "./grammars/full-syntax.eo"
-  -- let file = "./grammars/code.eo"
   code <- pack <$> readFile file
-  let tr1 = parseMaybe tProgram code
-  let t1 = 
-        case tr1 of 
-          Just t -> fst $ enumInsertProgram t
-          _ -> error "Not ok"
-  -- let t2 = getTermProgram t1
-  case tr1 of
-    Just t -> putStrLn $ printTree t
-    _ -> print "not ok"
+  let t = parseMaybe tProgram code
+  let t1 = getProgram <$> t
+  let t2 = getTermProgram <$> t1
   putStr "\n\n"
-  -- print t2
-  -- let tr = parseMaybe pProgram code
-  -- -- let l = printf "\n%s\n%s\n%s\n" ((DT.replicate 10 "*")::Text) ("\nRESULT\n") ((DT.replicate 10 "*")::Text)
-  -- let l = putStrLn "*****************" *> putStrLn "RESULT" *> putStrLn "*********************\n"
-  -- case tr of
-  --   Just a -> print (enumerateNodes a) *> l *> print (simplifyCST a)
-  --   Nothing -> print "No tree"
+  putStrLn (maybe "not ok tree" printTree t1)
+  putStrLn (maybe "not ok term" show t2)
+  putStrLn (maybe "not ok EO" pprintTop t2)

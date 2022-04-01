@@ -2,8 +2,9 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE BlockArguments #-}
 
-module PrettyPrintTerm where
+module PrettyPrintTerm (pprint, pprintTop) where
 import Numeric (showHex)
 
 import ToTerm(
@@ -18,23 +19,37 @@ import ToTerm(
   HasName (..),
   AttachedName (..),
   AttachedOrArg (..),
-  Abstraction (..),
-  AbstractionTail(..),
   Label(..),
   MethodName(..),
   Head(..),
   HeadName(..),
   LetterName(..),
   Modifier(..),
-  SuffixName(..)
+  SuffixName(..),
+  AttachedOrArgName
   )
 
-import ParseEO(cRHO, cVERTEX, Options3(..), cROOT, cSIGMA, cSTAR, cXI, cCOPY, cCONST, cQUESTION)
+import ParseEO
+    ( cRHO,
+      cVERTEX,
+      Options3(..),
+      cROOT,
+      cSIGMA,
+      cSTAR,
+      cXI,
+      cCOPY,
+      cCONST,
+      cQUESTION,
+      Options2(..),
+      cAT,
+      cDOTS,
+      THeadTerminal(..),
+      cDOT,
+      TAbstrQuestion )
 
 import Data.Char (toUpper)
 import Data.Text (unpack)
 import Text.Printf (printf)
-import ParseEO (Options2(..), cAT, cDOTS, THeadTerminal(..), cDOT, TAbstrQuestion)
 import Data.List(intercalate)
 
 
@@ -64,18 +79,18 @@ instance PPTermInline (K DataValue) where
   pprint' Ann {term = t1} =
     case t1 of
       DBool a -> show a
-      DChar a -> toUpper <$> show a
+      DChar a -> "\'" <> show a <> "\'"
       DFloat a -> show a
       DHex a -> showHex a ""
       DInt a -> show a
-      DString a -> unpack a
-      DText a -> unpack a
+      DString a -> "\"" <> unpack a <> "\""
+      DText a -> "\"\"\"" <> unpack a <> "\"\"\""
       DRegex a c -> printf "/%s/%s" (pprint' a) (pprint' c)
       DBytes (Opt2A a) -> pprint' a
       DBytes (Opt2B a) -> intercalate "-" $ pprint' <$> a
 
 instance PPTermInline (K HasName) where
-  pprint' Ann {term = t1} = unpack $
+  pprint' Ann {term = t1} = printf ":%s" $ unpack $
     case t1 of
       HName txt -> txt
       HAt -> cAT
@@ -92,7 +107,7 @@ instance PPTermInline [K Label] where
 
 instance PPTermInline SuffixName where
   pprint' SuffixName {..} =
-    printf "%s%s"
+    printf " > %s%s"
     (pprint' n)
     (unpack $ if isConst then cCONST else "")
 
@@ -101,9 +116,9 @@ instance PPTermInline (K TAbstrQuestion) where
 
 instance PPTermInline AttachedName  where
   pprint' AttachedName {..} =
-    printf " %s" (pprint' a) <>
-    maybe "" f imported
+    printf "%s%s" (pprint' a) (maybe "" f imported)
     where
+      f :: Options2 (K LetterName) (K TAbstrQuestion) -> String
       f e = printf " %s" $
         case e of
           Opt2A b -> pprint' b
@@ -115,7 +130,10 @@ tabs :: Int -> [Char]
 tabs m = concat $ replicate m tab
 
 instance PPTermIndented [AttachedOrArg] where
-  pprint m ls = intercalate ("\n" <> tabs m) (pprint m <$> ls)
+  pprint m ls = printTailIndented m ls
+
+instance PPTermInline [AttachedOrArg] where
+  pprint' ls = printTailInline ls
 
 instance PPTermInline (K MethodName) where
   pprint' Ann {term = t1} =  unpack $
@@ -148,48 +166,86 @@ instance PPTermInline (K HeadName) where
   pprint' Ann {term = HeadName {..}} = pprint' n <> maybe "" pprint' m
 
 instance PPTermInline (K Head) where
-  pprint' Ann {term = Head {..}} =
-    case h of
-     Opt3A ann -> pprint' ann
-     Opt3B ann -> pprint' ann
-     Opt3C ann -> pprint' ann
+  pprint' Ann {term = Head {..}} = u' <> h'
+    where
+      h' =
+        case h of
+          Opt3A ann -> pprint' ann
+          Opt3B ann -> pprint' ann
+          Opt3C ann -> pprint' ann
+      u'
+        | unpacked = unpack cDOTS
+        | otherwise = ""
+
+-- TODO print datavalue indented
+
+printHead :: Maybe Int -> Maybe (K Head) -> String
+printHead s t =
+  case (s, t) of
+    (Just a, Just b) -> printf "%s.%s" (show a) (pprint' b)
+    (Just a, Nothing) -> printf (unpack cRHO  <> "%s") (show a)
+    (Nothing, Just b) -> printf "%s" (pprint' b)
+    _ -> ""
 
 
--- TODO
--- some terms should be printed inline
--- like application's term
--- otherwise, we'll have to pass suffixname inside it
+-- TODO print dot before methodname
+
+instance PPTermInline AttachedOrArgName where
+  pprint' (Opt2A a) = pprint' a
+  pprint' (Opt2B a) = maybe "" pprint' a
+
+
+parens :: String -> String
+parens x = "(" <> x <> ")"
+
+
+printTailInline :: PPTermInline a => [a] -> [Char]
+printTailInline bs = if null bs then "" else " " <> unwords (parens . pprint' <$> bs)
+
+
+printTailIndented :: PPTermIndented a => Int -> [a] -> [Char]
+printTailIndented m bs = intercalate "" (zipWith (<>) (repeat ("\n" <> tabs m)) (pprint m <$> bs))
+
+
+pprintTermNamed' :: PPTermInline a => Term -> a -> String
+pprintTermNamed' t a = 
+  case t of
+      App x y -> printf "%s%s%s" (pprint' x) (pprint' a) (printTailInline y)
+      Obj x y -> printf "(%s%s)%s" (pprint' x) (pprint' a) (printTailInline y)
+      Dot x y -> printf "%s.%s (%s)" (pprint' y) (pprint' a) (pprint' x)
+      HeadTerm x y  -> printHead x y
+
+
+instance PPTermInline AttachedOrArg where
+  pprint' AttachedOrArg {t = Ann {term = t1}, a = a1} =
+    pprintTermNamed' t1 a1
+    
+instance PPTermInline String where
+  pprint' = id
+
+instance PPTermInline (K Term) where
+  pprint' Ann {term = t1} = pprintTermNamed' t1 (""::String)
+
+
+pprintTermNamed :: PPTermInline a => Int -> Term -> a -> String
+pprintTermNamed m t a = 
+  case t of
+      App x y -> printf "%s%s%s" (pprint' x) (pprint' a) (printTailIndented (m + 1) y)
+      Obj x y -> printf "%s%s%s" (pprint' x) (pprint' a) (printTailIndented (m + 1) y)
+      Dot x y -> printf "%s.%s\n%s%s" (pprint' y) (pprint' a) (tabs m) (pprint (m + 1) x)
+      HeadTerm x y  -> printHead x y
 
 instance PPTermIndented (K Term) where
-  pprint m Ann {term = t1} = case t1 of
-    -- expr on first line
-    -- args and bindings on the next lines
-    App s t -> pprint m s <> intercalate "\n" (pprint (m + 1) <$> t)
-    Obj s t  -> pprint' s <> intercalate "\n" (pprint (m + 1) <$> t)
-    Dot s t -> pprint m s <> pprint' t
-    HeadTerm s t ->
-      case (s, t) of
-        (Just a, Just b) -> printf "%s.%s" (show a) (pprint' b)
-        (Just a, Nothing) -> printf "%s" (show a)
-        (Nothing, Just b) -> printf "%s" (pprint' b)
-        _ -> ""
+  pprint m Ann {term = t1} = pprintTermNamed m t1 (""::String)
 
 instance PPTermIndented AttachedOrArg where
-  pprint m AttachedOrArg {t = Ann {term = t1}, a = a1} = case t1 of
-    App ann aoas ->
-      printf "%s%s\n%s"
-        (pprint m ann)
-        (case a1 of
-            Opt2A a -> pprint' a
-            Opt2B a -> maybe "" pprint' a
-        )
-        (unwords (printf "(%s)" . pprint m <$> aoas))
-    -- TODO
-    Obj f as ->
-      printf "%s"
-    Dot ann ann' -> ""
-    HeadTerm m_n m_ann -> ""
+  pprint m AttachedOrArg {t = Ann {term = t1}, a = a1} = pprintTermNamed m t1 a1
 
+pprintTop :: K Term -> String
+pprintTop Ann {term = t} =
+    case t of
+      Obj _ b -> intercalate "\n\n" (pprint 0 <$> b)
+      _ -> ""
 {-
 when printing app or obj
 print term of attributes, then suffix,

@@ -58,6 +58,7 @@ class PPTermIndented a where
   pprint :: Int -> a -> String
 
 class PPTermInline a where
+  -- | print inline
   pprint' :: a -> String
 
 instance PPTermInline (K DByte) where
@@ -136,7 +137,7 @@ instance PPTermInline [AttachedOrArg] where
   pprint' ls = printTailInline ls
 
 instance PPTermInline (K MethodName) where
-  pprint' Ann {term = t1} =  unpack $
+  pprint' Ann {term = t1} = unpack $
     case t1 of
       MName txt -> txt
       MRho -> cRHO
@@ -204,22 +205,24 @@ printTailInline bs = if null bs then "" else " " <> unwords (parens . pprint' <$
 
 
 printTailIndented :: PPTermIndented a => Int -> [a] -> [Char]
-printTailIndented m bs = intercalate "" (zipWith (<>) (repeat ("\n" <> tabs m)) (pprint m <$> bs))
+printTailIndented m bs = intercalate "" (map (("\n" <> tabs m) <>) (pprint m <$> bs))
 
+instance PPTermInline [K MethodName] where
+  pprint' xs = concatMap ("." <>) (pprint' <$> xs)
 
 pprintTermNamed' :: PPTermInline a => Term -> a -> String
-pprintTermNamed' t a = 
+pprintTermNamed' t a =
   case t of
       App x y -> printf "%s%s%s" (pprint' x) (pprint' a) (printTailInline y)
       Obj x y -> printf "(%s%s)%s" (pprint' x) (pprint' a) (printTailInline y)
-      Dot x y -> printf "(%s).%s%s" (pprint' x) (pprint' a) (pprint' y)
-      HeadTerm x y  -> printHead x y
+      Dot x y -> printf "(%s)%s%s" (pprint' x) (pprint' a) (pprint' y)
+      HeadTerm x y  -> printf "%s%s" (printHead x y) (pprint' a)
 
 
 instance PPTermInline AttachedOrArg where
   pprint' AttachedOrArg {t = Ann {term = t1}, a = a1} =
     pprintTermNamed' t1 a1
-    
+
 instance PPTermInline String where
   pprint' = id
 
@@ -227,15 +230,22 @@ instance PPTermInline (K Term) where
   pprint' Ann {term = t1} = pprintTermNamed' t1 (""::String)
 
 instance PPTermInline [AttachedOrArgName] where
-  pprint' ls = intercalate "" (pprint' <$> ls)
+  pprint' xs = intercalate "" (pprint' <$> xs)
 
+instance PPTermIndented [K MethodName] where
+  -- a. b.
+  pprint m xs = tabs m <> unwords ((<> ".") <$> (pprint' <$> xs))
+
+
+{-| takes indentation level, term, name of this term and produces a string
+-}
 pprintTermNamed :: PPTermInline a => Int -> Term -> a -> String
-pprintTermNamed m t a = 
+pprintTermNamed m t a =
   case t of
       App x y -> printf "%s%s%s" (pprint' x) (pprint' a) (printTailIndented (m + 1) y)
       Obj x y -> printf "%s%s%s" (pprint' x) (pprint' a) (printTailIndented (m + 1) y)
-      Dot x y -> printf "%s.%s\n%s%s" (pprint' y) (pprint' a) (tabs m) (pprint (m + 1) x)
-      HeadTerm x y  -> printHead x y
+      Dot x y -> printf "%s%s\n%s%s" (pprint' y) (pprint' a) (tabs (m + 1)) (pprint (m + 1) x)
+      HeadTerm x y  -> printf "%s%s" (printHead x y) (pprint' a)
 
 instance PPTermIndented (K Term) where
   pprint m Ann {term = t1} = pprintTermNamed m t1 (""::String)

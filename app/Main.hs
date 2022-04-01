@@ -23,6 +23,6 @@ main = do
   let t1 = getProgram <$> t
   let t2 = getTermProgram <$> t1
   putStr "\n\n"
-  putStrLn (maybe "not ok tree" printTree t1)
-  putStrLn (maybe "not ok term" show t2)
+  -- putStrLn (maybe "not ok tree" printTree t1)
+  -- putStrLn (maybe "not ok term" show t2)
   putStrLn (maybe "not ok EO" pprintTop t2)

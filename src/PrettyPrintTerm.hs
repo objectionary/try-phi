@@ -78,7 +78,7 @@ instance PPTermInline (K DLineBytes) where
 instance PPTermInline (K DataValue) where
   pprint' Ann {term = t1} =
     case t1 of
-      DBool a -> show a
+      DBool a -> toUpper <$> show a
       DChar a -> "\'" <> show a <> "\'"
       DFloat a -> show a
       DHex a -> showHex a ""
@@ -212,7 +212,7 @@ pprintTermNamed' t a =
   case t of
       App x y -> printf "%s%s%s" (pprint' x) (pprint' a) (printTailInline y)
       Obj x y -> printf "(%s%s)%s" (pprint' x) (pprint' a) (printTailInline y)
-      Dot x y -> printf "%s.%s (%s)" (pprint' y) (pprint' a) (pprint' x)
+      Dot x y -> printf "(%s).%s%s" (pprint' x) (pprint' a) (pprint' y)
       HeadTerm x y  -> printHead x y
 
 
@@ -226,6 +226,8 @@ instance PPTermInline String where
 instance PPTermInline (K Term) where
   pprint' Ann {term = t1} = pprintTermNamed' t1 (""::String)
 
+instance PPTermInline [AttachedOrArgName] where
+  pprint' ls = intercalate "" (pprint' <$> ls)
 
 pprintTermNamed :: PPTermInline a => Int -> Term -> a -> String
 pprintTermNamed m t a = 

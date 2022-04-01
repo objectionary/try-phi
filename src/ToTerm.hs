@@ -6,12 +6,12 @@
 {-# LANGUAGE RecordWildCards       #-}
 
 module ToTerm(
-  toTermProgram, 
-  getTermProgram, 
-  Term(..), 
-  K, 
-  DataValue(..), 
-  Ann(..), 
+  toTermProgram,
+  getTermProgram,
+  Term(..),
+  K,
+  DataValue(..),
+  Ann(..),
   DByte(..),
   DRegexBody(..),
   DRegexSuffix(..),
@@ -91,12 +91,11 @@ import PrettyPrintTree ()
 type Id = Int
 data Ann a b = Ann {term::a, ann::b} deriving (Show)
 data Annotation = IDs {treeId::Maybe Id, runtimeId::Maybe Id}  deriving (Show)
--- TODO make annotation optional
 type K a = Ann a Annotation
 
+-- TODO convert inverse dot to dot
 
 -- Attribute names
-
 -- if a constructor is composite
   -- its argument types should be declared separately
   -- its argument types should be annotated
@@ -192,7 +191,9 @@ data HasName = HName Text | HAt  deriving (Show)
 
 data AttachedName = AttachedName {a::SuffixName, imported::Maybe (Options2 (K LetterName) (K TAbstrQuestion))} deriving (Show)
 
-data AttachedOrArg = AttachedOrArg {t::K Term, a :: Options2 AttachedName (Maybe (K HasName))} deriving (Show)
+type AttachedOrArgName = Options2 AttachedName (Maybe (K HasName))
+
+data AttachedOrArg = AttachedOrArg {t::K Term, a :: [AttachedOrArgName]} deriving (Show)
 
 {-
 Not yet a full-fledged abstract attribute
@@ -225,9 +226,9 @@ type AbstractionTail = Options2 AttachedName [AttachedOrArg]
 -- data Method = 
 
 data Term
-  = App {t::K Term, args::[AttachedOrArg]}
+  = App {t::AttachedOrArg, args::[AttachedOrArg]}
   | Obj {freeAttrs::[K Label], args::[AttachedOrArg]}
-  | Dot {t::K Term, attr::K MethodName}
+  | Dot {t::AttachedOrArg, attr::K MethodName}
   -- for cases like just `^` or `$`
   -- it doesn't need body
   | HeadTerm {n::Maybe Int, a::Maybe (K Head)}
@@ -363,8 +364,8 @@ x:a
 --     return AttachedOrArg {t = t2, a = a1}
 
 
--- addTail :: I a -> AttachedOrArg -> [AttachedOrArg] -> State MyState AttachedOrArg
--- addTail n AttachedOrArg{..} as = do
+-- applyTail :: I a -> AttachedOrArg -> [AttachedOrArg] -> State MyState AttachedOrArg
+-- applyTail n AttachedOrArg{..} as = do
 --   let a1@Ann {term = t1} = t
 --   let t2 =
 --         case t1 of
@@ -404,19 +405,19 @@ composeObject n@Node {node = TObject {..}} = do
   -- TODO pass this tail into abstraction or application
   t' <- maybe (return []) toTermTail t
 
-  let addTail p1@AttachedOrArg {t = p2@Ann {term = t1}} =
+  let applyTail p1@AttachedOrArg {t = p2@Ann {term = t1}} =
         (\x -> p1 {t = p2 {term = x}}::AttachedOrArg) $
         case t1 of
           App {args = as} -> t1 {args = as <> t'}
           Obj {args = as} -> t1 {args = as <> t'}
           _               -> t1
 
-  a' <- addTail <$>
+  a' <- applyTail <$>
     case a of
       Opt2A p -> composeAbstraction p
       Opt2B p -> composeApplication p
   -- expressions after EOL
-  -- at <- addTail n a' t'
+  -- at <- applyTail n a' t'
   -- TODO
   return a'
     -- case a' of
@@ -485,10 +486,10 @@ composeAbstraction n@Node {node = TAbstraction {..}} = do
   case t' of
     Just p ->
       case p of
-        Opt2A a -> m (Opt2A a) []
-        Opt2B b -> m (Opt2B Nothing) b
+        Opt2A a -> m [Opt2A a] []
+        Opt2B b -> m [Opt2B Nothing] b
     Nothing ->
-      m (Opt2B Nothing) []
+      m [Opt2B Nothing] []
 
 -- TODO
 toTermTail :: I TTail -> State MyState [AttachedOrArg]
@@ -505,6 +506,9 @@ a > a
 Should we allow it or let the expressions in parentheses only for grouping?
 (a b c)
 -}
+
+
+
 composeApplication :: I TApplication -> State MyState AttachedOrArg
 composeApplication n@Node {node = TApplication {..}} = do
   s' <-
@@ -512,13 +516,15 @@ composeApplication n@Node {node = TApplication {..}} = do
       -- IDK
       -- we artificially append a head as a method to get a term
       -- but head may contain inappropriate data
-      Opt2A a -> dec a $ (\x -> HeadTerm {n = Nothing, a = Just x}) <$> composeHead a
+      Opt2A a -> (\y -> AttachedOrArg {t = y, a = []}) <$> dec a ((\x -> HeadTerm {n = Nothing, a = Just x}) <$> composeHead a)
       -- application in parentheses
       -- TODO check doesn't need tail arguments
-      Opt2B a -> (\AttachedOrArg {t = t1} -> t1) <$> composeApplication a
+      Opt2B a -> composeApplication a
+
+  -- TODO put arguments from htail inside if s' contains application
   h' <- maybe (return []) composeHtail h
-  t1 <- dec n $ return App {t = s', args = h'}
-  toTermApplication1 t1 a1
+  -- t1 <- dec n $ return App {t = s', args = h'}
+  toTermApplication1 (applyTail s' h') a1
 
 {-
 -- TODO add a separate type for unnamed terms?
@@ -526,11 +532,11 @@ We can return just `AttachedOrArg` without a name
 instead of a term
 -}
 
-toTermApplication1 :: K Term -> I TApplication1 -> State MyState AttachedOrArg
-toTermApplication1 t Node {node = TApplication1 {..}} =
+toTermApplication1 :: AttachedOrArg -> I TApplication1 -> State MyState AttachedOrArg
+toTermApplication1 t@AttachedOrArg{a = a1} Node {node = TApplication1 {..}} =
   case c of
     Just x  -> composeApplication1Elem t x
-    Nothing -> return AttachedOrArg {a = Opt2B Nothing, t = t}
+    Nothing -> return (t {a = a1 <> [Opt2B Nothing]} :: AttachedOrArg)
 
 
 {-
@@ -588,15 +594,33 @@ This means that we reached the end of the application chain
 and can return this named term
 
 -}
-composeApplication1Elem :: K Term -> I TApplication1Elem -> State MyState AttachedOrArg
-composeApplication1Elem t n@Node {node = TApplication1Elem {..}} = do
+
+initAnn x = Ann {term = x, ann = IDs {treeId = Nothing, runtimeId = Nothing}}
+
+-- | apply term to a list of arguments
+applyTail :: AttachedOrArg -> [AttachedOrArg] -> AttachedOrArg
+applyTail t@AttachedOrArg{t = t1@Ann {term = t2}} ts = 
+  (\z -> t {t = t1 {term = z}} :: AttachedOrArg) $
+    case t2 of
+      App x y -> App {t = x, args = y <> ts}
+      Obj x y -> Obj {freeAttrs = x, args = y <> ts}
+      Dot _ _ -> App {t = AttachedOrArg { t = initAnn t2, a = []}, args = ts}
+      HeadTerm _ _ -> App {t = AttachedOrArg { t = initAnn t2, a = []}, args = ts}
+        
+
+composeApplication1Elem :: AttachedOrArg -> I TApplication1Elem -> State MyState AttachedOrArg
+composeApplication1Elem t@AttachedOrArg{a = a1} n@Node {node = TApplication1Elem {..}} = do
   c1' <-
     case c1 of
       -- append method name to an application
-      Opt3A b -> (\x -> AttachedOrArg {a = Opt2B Nothing, t = x}) <$> dec b ((\y -> Dot {t = t, attr = y}) <$> composeMethod b)
+      Opt3A b -> 
+        (\x -> AttachedOrArg {a = [Opt2B Nothing], t = x}) <$> 
+        dec b
+          ((\y -> Dot {t = t, attr = y}) <$> composeMethod b)
       Opt3B b -> toTermHas t b
       -- TODO put tail into term
-      Opt3C b -> (\x -> AttachedOrArg {t = t, a = Opt2A AttachedName {a = x, imported = Nothing}}) <$> composeSuffix b
+      -- TODO reuse t
+      Opt3C b -> (\x -> t {a = a1 <> [Opt2A AttachedName {a = x, imported = Nothing}]} :: AttachedOrArg) <$> composeSuffix b
 
   -- TODO during parsing, allow
   -- ((method | has) htail? application1) | suffix
@@ -609,9 +633,11 @@ composeApplication1Elem t n@Node {node = TApplication1Elem {..}} = do
   -- for now, suppose we can return on suffix
   --
 
+  -- TODO add htail inside application
   ht' <- maybe (return []) composeHtail ht
 
-  when ((case c1 of Opt3C _ -> True; _ -> False) && not (null ht')) (error "htail after suffix")
+
+  -- when ((case c1 of Opt3C _ -> True; _ -> False) && not (null ht')) (error "htail after suffix")
 
   -- TODO report error instead of taking the term and passing it
   -- case c1 of
@@ -622,12 +648,10 @@ composeApplication1Elem t n@Node {node = TApplication1Elem {..}} = do
   --       _ -> {- error "Nonsense application of form a > b c" -} guard True
   --   _ -> guard True
 
-  let AttachedOrArg {t = t'} = c1'
-
   -- previous checks should not allow the application to be named,
   -- so we don't care about the name from c1'
-  at <- dec n $ return App {t = t', args = ht'}
-  toTermApplication1 at a
+  -- at <- dec n $ return App {t = c1', args = ht'}
+  toTermApplication1 (applyTail c1' ht') a
 
 
 composeMethod :: I TMethod -> State MyState (K MethodName)
@@ -643,11 +667,11 @@ composeMethod n@Node {node = TMethod {..}} = dec n $ do
   return m'
 
 
-toTermHas :: K Term -> I THas -> State MyState AttachedOrArg
-toTermHas t m@Node {node = THas {..}} = do
+toTermHas :: AttachedOrArg -> I THas -> State MyState AttachedOrArg
+toTermHas t@AttachedOrArg{a = a1} m@Node {node = THas {..}} = do
   let Node {node = TName t1} = n
   h <- dec m $ return (HName t1)
-  return $ AttachedOrArg {a = Opt2B (Just h), t = t}
+  return (t {a = a1 <> [Opt2B (Just h)]} :: AttachedOrArg)
 
 
 composeFreeAttributes :: I TAttributes -> State MyState [K Label]
@@ -712,7 +736,7 @@ composeHtail Node {node = THtail {..}} = do
     let f e =
             case e of
               -- Return an application attribute. We can always extract a term from it
-              Opt3A a -> (\y -> AttachedOrArg {t = y, a = Opt2B Nothing}) <$> dec a ((\x -> HeadTerm {n = Nothing, a = Just x}) <$> composeHead a)
+              Opt3A a -> (\y -> AttachedOrArg {t = y, a = [Opt2B Nothing]}) <$> dec a ((\x -> HeadTerm {n = Nothing, a = Just x}) <$> composeHead a)
               -- it's an application in parentheses
               Opt3B a -> composeApplication a
               -- TODO add case for explicit construction of Opts

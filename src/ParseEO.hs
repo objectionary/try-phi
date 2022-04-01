@@ -91,7 +91,7 @@ import Data.Text (Text, pack)
 import qualified Data.Text as T
 import Data.Void (Void)
 import Text.Megaparsec
-  ( MonadParsec (lookAhead, takeWhile1P),
+  ( MonadParsec (lookAhead, takeWhile1P, notFollowedBy),
     Parsec,
     SourcePos (SourcePos),
     choice,
@@ -710,8 +710,8 @@ tData = dec "DATA" $ do
         {-debug "data:text"-} Opt9B <$> tText,
         {-debug "data:hex"-} Opt9C <$> tHex,
         {-debug "data:string"-} Opt9D <$> tString,
+        {-debug "data:int"-} Opt9F <$> tInt <* notFollowedBy (string cDOT),
         {-debug "data:float"-} Opt9E <$> tFloat,
-        {-debug "data:int"-} Opt9F <$> tInt,
         {-debug "data:bytes"-} Opt9G <$> tBytes,
         {-debug "data:char"-} Opt9H <$> tChar,
         {-debug "data:regex"-} Opt9I <$> tRegex

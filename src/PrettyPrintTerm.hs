@@ -234,7 +234,7 @@ instance PPTermInline [AttachedOrArgName] where
 
 instance PPTermIndented [K MethodName] where
   -- a. b.
-  pprint m xs = tabs m <> unwords ((<> ".") <$> (pprint' <$> xs))
+  pprint m xs = unwords ((<> ".") <$> (pprint' <$> xs))
 
 
 {-| takes indentation level, term, name of this term and produces a string
@@ -244,7 +244,7 @@ pprintTermNamed m t a =
   case t of
       App x y -> printf "%s%s%s" (pprint' x) (pprint' a) (printTailIndented (m + 1) y)
       Obj x y -> printf "%s%s%s" (pprint' x) (pprint' a) (printTailIndented (m + 1) y)
-      Dot x y -> printf "%s%s\n%s%s" (pprint' y) (pprint' a) (tabs (m + 1)) (pprint (m + 1) x)
+      Dot x y -> printf "%s%s\n%s%s" (pprint m y) (pprint' a) (tabs (m + 1)) (pprint (m + 1) x)
       HeadTerm x y  -> printf "%s%s" (printHead x y) (pprint' a)
 
 instance PPTermIndented (K Term) where
@@ -263,4 +263,3 @@ when printing app or obj
 print term of attributes, then suffix,
 then args as a tail
 -}
-

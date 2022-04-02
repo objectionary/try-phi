@@ -21,7 +21,7 @@
     $.add.@ 5.< > i
     third:foo > x...!
       f 12 false
-        (((((t' 22) r):t 8.54 "yes").< 'e').print 88 0x1f):hey TRUE.< FALSE > a!
+        (((((t' 22) r):got 8.54 "yes").< 'e').print 88 0x1f):hey TRUE.< FALSE > a!
           # This object is also very good
           []
             Q.x.f.d Q Q
@@ -69,7 +69,7 @@ test
 
 a a a a.a > x
 
-a a (a):t a:t > a
+a a (a):go1 a:go2 > a
 
 a > a
   (a)
@@ -140,3 +140,7 @@ h129:key129
   a 2:c 3:d > p
 
 a:key
+
+(r:got.< t).m:hey
+
+a.b.c

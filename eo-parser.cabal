@@ -56,6 +56,7 @@ library
     , megaparsec
     , mtl
     , parsers
+    , pretty-simple
     , prettyprinter
     , profunctors
     , scientific
@@ -86,6 +87,7 @@ executable eo-parser
     , megaparsec
     , mtl
     , parsers
+    , pretty-simple
     , prettyprinter
     , profunctors
     , scientific
@@ -124,6 +126,7 @@ test-suite doctests
     , megaparsec
     , mtl
     , parsers
+    , pretty-simple
     , prettyprinter
     , profunctors
     , scientific
@@ -159,6 +162,7 @@ test-suite spec
     , megaparsec
     , mtl
     , parsers
+    , pretty-simple
     , prettyprinter
     , profunctors
     , scientific

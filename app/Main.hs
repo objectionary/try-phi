@@ -14,10 +14,12 @@ import Data.Text as DT (pack)
 import EnumerateNodes (enumInsertProgram, getProgram)
 import ToTerm (getTermProgram)
 import PrettyPrintTerm(pprintTop)
+import Text.Pretty.Simple(pPrint)
 
 main :: IO ()
 main = do
   let file = "./grammars/full-syntax.eo"
+  -- let file = "./grammars/snippet.eo"
   code <- pack <$> readFile file
   let t = parseMaybe tProgram code
   let t1 = getProgram <$> t
@@ -25,4 +27,5 @@ main = do
   putStr "\n\n"
   -- putStrLn (maybe "not ok tree" printTree t1)
   -- putStrLn (maybe "not ok term" show t2)
+  -- pPrint t2
   putStrLn (maybe "not ok EO" pprintTop t2)

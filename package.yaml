@@ -49,6 +49,7 @@ dependencies:
 - profunctors
 - text
 - transformers
+- pretty-simple
 # - trifecta
 - unordered-containers
 - megaparsec

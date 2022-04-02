@@ -32,6 +32,13 @@ packages:
       sha256: 2e5436cd8a2d2fa045aadc7619aa06cf18f4f77d01b70d8c517213b718b69a2b
   original:
     hackage: scientific-0.3.7.0
+- completed:
+    hackage: pretty-simple-4.1.0.0@sha256:2e64bc4de394d88283d259c66931a69d8bcddd50632cf4b4c76a893b1402903f,4113
+    pantry-tree:
+      size: 1229
+      sha256: f4cdacebd7469e04069f5ac8c5a788de2598a48ad0e82bd329addc9f8c41e233
+  original:
+    hackage: pretty-simple-4.1.0.0
 snapshots:
 - completed:
     size: 586120

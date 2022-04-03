@@ -204,21 +204,20 @@ printTailInline :: PPTermInline a => [a] -> [Char]
 printTailInline bs = if null bs then "" else " " <> unwords (lessParens . pprint' <$> bs)
 
 
--- TODO don't parenthesize top level expressions
--- (a) > t
---   b
 printTailIndented :: Int -> [AttachedOrArg] -> [Char]
 printTailIndented m bs = intercalate "" (map (("\n" <> tabs m) <>) (pprint m <$> bs))
 
 instance PPTermInline [K MethodName] where
   pprint' xs = concatMap ("." <>) (pprint' <$> xs)
 
+
 lessParens :: String -> String
-lessParens s = 
+lessParens s =
   case words s of
     [t] -> t
     t -> parens $ unwords t
 
+-- TODO improve performance
 withLessParens' :: (PPTermInline a, PPTermInline x) => x -> a -> String -> String
 withLessParens' x a y = printf "%s" (lessParens (pprint' x <> y <> pprint' a))
 
@@ -227,7 +226,7 @@ pprintTermNamed' t a =
   case t of
       App x y -> withLessParens' x a (printTailInline y)
       Obj x y -> withLessParens' x a (printTailInline y)
-      Dot x y -> withLessParens' x a (pprint' y)
+      Dot x y -> parens $ pprint' x <> pprint' y <> pprint' a
       HeadTerm x y  -> printf "%s%s" (printHead x y) (pprint' a)
 
 
@@ -249,7 +248,7 @@ instance PPTermIndented [K MethodName] where
   pprint m xs = unwords ((<> ".") <$> (pprint' <$> xs))
 
 isInlineContiguous :: String -> Bool
-isInlineContiguous s = 
+isInlineContiguous s =
   case words s of
     [_] -> True
     _ -> False
@@ -276,6 +275,10 @@ lessLines x a = printf "%s" (lessParens (pprint' x <> pprint' a))
 data Context = Tail | Otherwise
 
 {-| takes indentation level, term, name of this term and produces a string
+
+-- TODO don't parenthesize top level expressions
+-- (a) > t
+--   b
 -}
 pprintTermNamed :: PPTermInline a => Int -> Term -> a -> String
 pprintTermNamed m t a =

@@ -52,7 +52,7 @@ printMaybe :: (Int -> a -> String) -> Int -> Maybe a -> String
 printMaybe f k a = maybe (printNothing k) (f k) a
 
 printList :: (Foldable t, Functor t) => (a1 -> [a2]) -> t a1 -> [a2]
-printList f t = foldl (<>) [] (f <$> t)
+printList f t = concat (f <$> t)
 
 -- Node printers
 
@@ -73,7 +73,7 @@ instance ShowIndented (I TProgram) where
 instance ShowIndented (I TLicense) where
   showIndented n i@Node {node = TLicense {..}} = printNonLeaf n i [cs']
     where
-      cs' k = foldl (<>) [] (showIndented k <$> cs)
+      cs' k = concat (showIndented k <$> cs)
 
 instance ShowIndented (I TComment) where
   showIndented n i@Node {node = TComment {..}} = printLeaf n i c
@@ -81,7 +81,7 @@ instance ShowIndented (I TComment) where
 instance ShowIndented (I TMetas) where
   showIndented n i@Node {node = TMetas {..}} = printNonLeaf n i [cs']
     where
-      cs' k = foldl (<>) [] (showIndented k <$> ms)
+      cs' k = concat (showIndented k <$> ms)
 
 printNothing :: Int -> String
 printNothing n = tabs n <> nothing <> "\n"
@@ -104,19 +104,26 @@ instance ShowIndented (I TVarArg) where
 instance ShowIndented (I TObjects) where
   showIndented n i@Node {node = TObjects {..}} = printNonLeaf n i [os']
     where
-      os' k = foldl (<>) [] (showIndented k <$> os)
+      os' k = concat (showIndented k <$> os)
+
+instance ShowIndented (I TObjectTail) where
+  showIndented n i@Node {node = TObjectTail {..}} = printNonLeaf n i [m', h', s', t']
+    where
+      m' k = showIndented k m
+      h' k = showIndented k h
+      s' k = showIndented k s
+      t' k = showIndented k t
 
 instance ShowIndented (I TObject) where
-  showIndented n i@Node {node = TObject {..}} = printNonLeaf n i [cs', a', t']
+  showIndented n i@Node {node = TObject {..}} = printNonLeaf n i [cs', a', t', s']
     where
-      cs' k = foldl (<>) [] (showIndented k <$> cs)
+      cs' k = concat (showIndented k <$> cs)
       a' k =
         case a of
           Opt2A p -> showIndented k p
           Opt2B p -> showIndented k p
       t' k = showIndented k t
-      -- TODO print s
-      s' = undefined 
+      s' k = concatMap (showIndented k) s
 
 instance ShowIndented (I TAbstraction) where
   showIndented m i@Node {node = TAbstraction {..}} = printNonLeaf m i [as', t']
@@ -127,7 +134,7 @@ instance ShowIndented (I TAbstraction) where
 instance ShowIndented (I TTail) where
   showIndented m i@Node {node = TTail {..}} = printNonLeaf m i [os']
     where
-      os' k = foldl (<>) [] (showIndented k <$> os)
+      os' k = concat (showIndented k <$> os)
 
 instance ShowIndented (I TApplication) where
   showIndented m i@Node {node = TApplication {..}} = printNonLeaf m i [s', h', a1']
@@ -168,7 +175,7 @@ instance ShowIndented (I THas) where
 instance ShowIndented (I TAttributes) where
   showIndented m i@Node {node = TAttributes {..}} = printNonLeaf m i [as']
     where
-      as' k = foldl (<>) [] (showIndented k <$> as)
+      as' k = concat (showIndented k <$> as)
 
 instance ShowIndented (I TAbstractionTail) where
   showIndented m i@Node {node = TAbstractionTail {..}} = printNonLeaf m i [e']
@@ -189,7 +196,7 @@ instance ShowIndented (I TAbstractionTail) where
 instance ShowIndented (I THtail) where
   showIndented m i@Node {node = THtail {..}} = printNonLeaf m i [t']
     where
-      t' k = foldl (<>) [] (f k <$> t)
+      t' k = concat (f k <$> t)
       f k e =
         case e of
           Opt3A h -> showIndented k h

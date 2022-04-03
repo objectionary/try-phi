@@ -18,14 +18,13 @@ import Text.Pretty.Simple(pPrint)
 
 main :: IO ()
 main = do
-  let file = "./grammars/full-syntax.eo"
-  -- let file = "./grammars/snippet.eo"
+  -- let file = "./grammars/full-syntax.eo"
+  let file = "./grammars/snippet.eo"
   code <- pack <$> readFile file
   let t = parseMaybe tProgram code
   let t1 = getProgram <$> t
   let t2 = getTermProgram <$> t1
   putStr "\n\n"
-  -- putStrLn (maybe "not ok tree" printTree t1)
-  -- putStrLn (maybe "not ok term" show t2)
-  -- pPrint t2
+  putStrLn (maybe "not ok tree" printTree t1)
+  pPrint t2
   putStrLn (maybe "not ok EO" pprintTop t2)

@@ -56,8 +56,16 @@ data MapElement =
     | MLabelTerminal (I TLabelTerminal)
     | MHeadModifier (I THeadModifier )
     | MAbstrQuestion (I TAbstrQuestion)
+    | MObjectTail (I TObjectTail)
 
 data MyState = MyState {i::Int, m::M.InsOrdHashMap Int MapElement}
+
+{-| conduct common operations on a node
+change annotation of a node by taking 
+    tree id from tree node
+    runtime id from state
+insert a mapping between the tree id and tree node into map
+-}
 dec::I a -> (I a -> MapElement) -> State MyState a -> State MyState (I a)
 dec n m p = do
     t <- p
@@ -117,6 +125,7 @@ instance Enumerable (I TObjects) where
         os' <- mapM enum os
         return $ TObjects os'
 
+
 instance Enumerable (I TObject) where
     enum n@Node {node = TObject {..}} = dec n MObject $ do
         cs' <- mapM enum cs
@@ -124,13 +133,13 @@ instance Enumerable (I TObject) where
         t' <- enum t
         -- TODO
         let
-            g (m,h,suff,t1) =
+            g n1@Node {node = TObjectTail {m = m, h = h, s = suff, t = t1}} = dec n1 MObjectTail $
                 do
                     m1 <- enum m
                     h1 <- enum h
                     s1 <- enum suff
                     t2 <- enum t1
-                    return (m1,h1,s1,t2)
+                    return TObjectTail {m = m1,h = h1, s = s1,t = t2}
         s' <- mapM g s
         return $ TObject cs' a' t' s'
 

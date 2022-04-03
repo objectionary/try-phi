@@ -67,6 +67,8 @@ module ParseEO
     TAbstrQuestion(..),
     TRegexBody(..),
     TRegexSuffix(..),
+    TObjectTail,
+    TObjectTail(..),
     cAT,
     cDOTS,
     cRHO,
@@ -377,11 +379,13 @@ tObjects = dec "Objects" $ do
   os <- someTry $ tObject noIndent <* tEOL
   return TObjects {os = os}
 
+data TObjectTail = TObjectTail {m :: I TMethod, h :: Maybe (I THtail), s :: Maybe (I TSuffix), t :: Maybe (I TTail)} deriving (Data)
+
 data TObject = TObject
   { cs :: [I TComment],
     a :: Options2 (I TAbstraction) (I TApplication),
     t :: Maybe (I TTail),
-    s :: [(I TMethod, Maybe (I THtail), Maybe (I TSuffix), Maybe (I TTail))]
+    s :: [I TObjectTail]
   }
   deriving (Data)
 
@@ -407,7 +411,7 @@ tObject ind = dec "Object" $ do
         h <- optional $ try ({-debug "object:htail"-} tHtail)
         suffix <- optional $ try ({-debug "object:suffix"-} tSuffix)
         p <- optional $ try ({-debug "object:tail"-} tTail (ind + indentAdd))
-        return (method, h, suffix, p)
+        dec "ObjectTail" $ return TObjectTail { m = method, h = h, s = suffix, t = p}
   s <- manyTry $ ({-debug "object:after tail"-} g1)
   return TObject {cs = comments, a = a, t = t, s = s}
 

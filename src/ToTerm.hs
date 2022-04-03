@@ -6,7 +6,7 @@
 {-# LANGUAGE RecordWildCards       #-}
 
 module ToTerm(
-  toTermProgram,
+  composeProgram,
   getTermProgram,
   Term(..),
   K,
@@ -63,17 +63,19 @@ import           ParseEO                    as PEO (I, Load (Load), Node (..),
                                                     TLabelTerminal (LabelAt),
                                                     TLineBytes (..),
                                                     TMethod (..),
-                                                    TMethodTerminal (MethodAt, MethodRho, MethodVertex),
+                                                    TMethodTerminal (..),
                                                     TName (TName), TObject (..),
                                                     TObjects (..),
                                                     TProgram (..), TRegex (..),
                                                     TRegexBody (..),
                                                     TRegexSuffix (..),
-                                                    TString (TString),
+                                                    TString (..),
                                                     TSuffix (..), TTail (..),
-                                                    TText (TText),
-                                                    TVarArg (TVarArg))
+                                                    TText (..),
+                                                    TVarArg (..),
+                                                    TObjectTail (..))
 import           PrettyPrintTree            ()
+import Control.Monad.State.Strict (foldM)
 
 
 type Id = Int
@@ -125,14 +127,12 @@ instance (Show a, Show b) => Show (Options2 a b) where
 
 
 {- | any elementary expressions that can stand in the head, e.g.:
-Reserved name @ in
-  @.c
 
-Name a in
-  a.b
+Reserved name `@` in `@.c`
 
-Number 3 in
-  3.a
+Name `a` in `a.b`
+
+Number `3` in `3.a`
 
 -}
 data Head = Head {h::Options3 (K THeadTerminal) (K HeadName) (K DataValue), unpacked::Bool}  deriving (Show)
@@ -160,20 +160,6 @@ data DataValue
 -- TODO somehow pass problems with node conversion upwards
 -- probably need to use exceptions or Either Id Term
 
-{-
--- stores names of abstract attributes
--}
--- data AttachedName = AttachedName {a::SuffixName, imported::Maybe (Options2 (K LetterName) (K TAbstrQuestion))}  deriving (Show)
-
-{-
-When an object term is ready, it becomes AttachedOrArg
--}
--- data AttachedOrArg = AttachedOrArg {t::K Term, a::Maybe AttachedName}  deriving (Show)
-
-
--- data Attached = Attached {t :: K Term, a::AttachedName}
-
--- data UnAttached = UnAttached {t :: K Term, a::Maybe (K HasName)}
 
 data HasName = HName Text | HAt  deriving (Show)
 
@@ -228,36 +214,6 @@ newtype ReturnValue = ReturnValue {t::K Term}  deriving (Show)
 newtype MyState = MyState {termId :: Int}  deriving (Show)
 data SuffixName = SuffixName {n::K Label, isConst::Bool}  deriving (Show)
 
-{-
-In context of application tail,
-attributes can have
-  no name
-  `has` name
-  `suffix` name
-  `args` name
-
-So, application arguments should have `Maybe (Options2 AttachedName (K HasName))` names
-However, application expressions cannot give `AttachedName`,
-so we use just `AppName`
--}
--- type AppName = Options2 SuffixName (K HasName)
-
-{-
-when an application term is ready, it becomes AttachedOrArg
--}
--- data AttachedOrArg = AttachedOrArg {t::K Term, a :: Maybe AppName}  deriving (Show)
-
--- dec::I a -> (I a -> MapElement) -> ReturnValue
--- dec n m p = do
---     t <- p
-    -- MyState {i=i1, m=m1} <- get
-    -- put MyState {i=i1+1, m=M.insert i1 (m n) m1}
-    -- return n {load = Load {num = i1}, node = t}
-
--- IDK Object with attributes is a term
--- application with attributes is a term
-
-
 getId :: Node a Load -> Int
 getId Node{..} =
   case load of
@@ -273,11 +229,11 @@ dec n t = do
   return Ann {term = t1, ann = IDs {runtimeId = Just tId, treeId = Just (getId n)}}
 
 getTermProgram :: I TProgram -> K Term
-getTermProgram p = evalState (toTermProgram p) MyState {termId = 0}
+getTermProgram p = evalState (composeProgram p) MyState {termId = 0}
 
-toTermProgram :: I TProgram -> State MyState (K Term)
-toTermProgram Node {node = TProgram {..}} =
-  toTermObjects o
+composeProgram :: I TProgram -> State MyState (K Term)
+composeProgram Node {node = TProgram {..}} =
+  composeObjects o
 
 
 -- toTermMetas :: I TMetas -> State MyState (K TMetas)
@@ -302,8 +258,8 @@ composeLetterName :: I TName -> State MyState (K LetterName)
 composeLetterName m@Node {node = TName t1} = dec m $ return (LetterName t1)
 
 -- should produce an object
-toTermObjects :: I TObjects -> State MyState (K Term)
-toTermObjects n@Node {node = TObjects {..}} = dec n $ do
+composeObjects :: I TObjects -> State MyState (K Term)
+composeObjects n@Node {node = TObjects {..}} = dec n $ do
   os' <- mapM composeObject os
   return Obj {freeAttrs = [], args = os'}
 
@@ -315,45 +271,25 @@ toTermObjects n@Node {node = TObjects {..}} = dec n $ do
   .d > e
 -}
 
+appendObjectTail :: AttachedOrArg -> I TObjectTail -> State MyState AttachedOrArg
+appendObjectTail p Node {node = TObjectTail {..}} = do
+  m1 <- applyDot p m
+  m2 <- appendMaybeTail m1 composeHtail h
+  m3 <- appendMaybeSuffix m2 s Nothing
+  appendMaybeTail m3 composeTail t
+
 composeObject :: I TObject -> State MyState AttachedOrArg
 composeObject Node {node = TObject {..}} = do
-  -- TODO pass this tail into abstraction or application
-  t' <- maybe (return []) composeTail t
-  a' <- (\x -> applyTail x t') <$>
+  a' <- 
     case a of
       Opt2A p -> composeAbstraction p
       Opt2B p -> composeApplication p
-  return a'
+  t' <- appendMaybeTail a' composeTail t
+  foldM appendObjectTail t' s
 
     -- TODO correctly handle tail, not ignore it
 
 
-
-{-
--- INFO
-Anywhere a new name shows up after the > symbol,
-it is a declaration of a new attribute in the nearest object abstraction.
--}
-
-{-
-list of free attributes and the name of abstraction can be of form
-
-[a b] (a > b) (c > d)
-  e > g
-  f > h
-
-For now, we just append this tail (with attributes `g` and `h`)
-to the inline list (with attributes `b` and `d`)
-
--- IDK
-[a b] (a > b) (c > d) e (f > g)
-Does it mean that `[a b] (a > b) (c > d)` is applied to `e` and `(f > g)`?
-
--- TODO
-probably need to find the first unattached attribute and suppose that
-it's the first argument of this object
-
--}
 composeAbstraction :: I TAbstraction -> State MyState AttachedOrArg
 composeAbstraction n@Node {node = TAbstraction {..}} = do
   as' <- composeFreeAttributes as
@@ -377,18 +313,6 @@ composeAbstraction n@Node {node = TAbstraction {..}} = do
 composeTail :: I TTail -> State MyState [AttachedOrArg]
 composeTail Node {node = TTail {..}} = mapM composeObject os
 
-{-
--- IDK
-What's the meaning of `(a > a).a`?
-
-Is it the same as
-a > a
-.a
-?
-
-Should we allow it or let the expressions in parentheses only for grouping?
-(a b c)
--}
 
 composeApplication :: I TApplication -> State MyState AttachedOrArg
 composeApplication Node {node = TApplication {..}} = do
@@ -397,14 +321,9 @@ composeApplication Node {node = TApplication {..}} = do
       Opt2A a -> attachHead a
       -- application in parentheses
       Opt2B a -> composeApplication a
-  h' <- maybe (return []) composeHtail h
-  composeApplication1 (applyTail s' h') a1
+  h' <- appendMaybeTail s' composeHtail h
+  composeApplication1 h' a1
 
-{-
--- TODO add a separate type for unnamed terms?
-We can return just `AttachedOrArg` without a name
-instead of a term
--}
 
 composeApplication1 :: AttachedOrArg -> I TApplication1 -> State MyState AttachedOrArg
 composeApplication1 t Node {node = TApplication1 {..}} =
@@ -412,66 +331,8 @@ composeApplication1 t Node {node = TApplication1 {..}} =
     Just x  -> composeApplication1Elem t x
     Nothing -> return t
 
-
-{-
--- IDK
-does `c` in `a b:c` refer to `b` or to `a b`?
-Let us make `c` refer to `a b`
-To make it refer to `b` only, we can write `a (b:c)`
-
-
-
-We get some term and apply a modifier to it to get
-a.b, a:b, a > b
-
-Next, there can be a htail.
-The meaning of the final expression depends on the modifier
-
-a.b c
-is an ordinary application
-
-a:b c
-doesn't make sense since
-  if it's an argument list where a has an optional name, it won't have
-    a term to apply this list to due to left associativity of modifiers
-  if it's an application, why write an optional name
-    if `a` isn't applied to some term directly?
-
-
-
--- IDK
-I think a `:` modifier refers to the last expression in htail
-
-a:b
-`b` refers to `a`
-
-(a > b):c
-`c` refers to `(a > b)`
-
-a b:c
-`c` refers to `b`?
-
-[c] > a
-
-[c]
-  a b:c
-
-
-
-a > b c
-doesn't really make sense
-  for the aforementioned reasons
-
-However, if htail is empty in the last expression, e.g.
-a > b
-
-This means that we reached the end of the application chain
-and can return this named term
-
--- IDK what means method after suffix
-
--}
-
+-- TODO use runtime ids from state, not Nothing?
+initAnn :: a -> K a
 initAnn x = Ann {term = x, ann = IDs {treeId = Nothing, runtimeId = Nothing}}
 
 {- | apply term to a list of arguments
@@ -484,7 +345,7 @@ otherwise, produce a new term applied to this list
 -}
 applyTail :: AttachedOrArg -> [AttachedOrArg] -> AttachedOrArg
 applyTail t@AttachedOrArg{t = t1@Ann {term = t2}} ts =
-  case ts of 
+  case ts of
     [] -> t
     _ ->
         (\z -> t {t = t1 {term = z}} :: AttachedOrArg) $
@@ -495,12 +356,12 @@ applyTail t@AttachedOrArg{t = t1@Ann {term = t2}} ts =
             HeadTerm _ _ -> App {t = AttachedOrArg { t = initAnn t2, a = []}, args = ts}
 
 applyDot :: AttachedOrArg -> I TMethod -> State MyState AttachedOrArg
-applyDot t@AttachedOrArg{t = t1@Ann {term = t2}} b = do
+applyDot t@AttachedOrArg{t = t1@Ann {term = t2}, a = a1} b = do
   m <- composeMethod b
   return $
-          case t2 of
-            -- if dot term, put new method name inside
-            Dot x y -> (\z -> t {t = t1 {term = z}} :: AttachedOrArg) $ Dot x (y <> [m])
+          case (t2, a1) of
+            -- if unnamed dot term, put new method name inside
+            (Dot x y, []) -> (\z -> t {t = t1 {term = z}} :: AttachedOrArg) $ Dot x (y <> [m])
             -- otherwise, compose a new anonymous dot term with such method name
             _       -> (\z -> AttachedOrArg {t = initAnn z, a = []}) $ Dot t [m]
 
@@ -514,10 +375,10 @@ composeApplication1Elem t Node {node = TApplication1Elem {..}} = do
       -- TODO don't append has twice
       Opt3B b -> appendHas t b
       -- no imported name since it's an application
-      Opt3C b -> appendSuffix t b Nothing
+      Opt3C b -> appendMaybeSuffix t (Just b) Nothing
 
-  ht' <- maybe (return []) composeHtail ht
-  composeApplication1 (applyTail c1' ht') a
+  ht' <- appendMaybeTail c1' composeHtail ht
+  composeApplication1 ht' a
 
 {-| produce annotated method name -}
 composeMethod :: I TMethod -> State MyState (K MethodName)
@@ -541,10 +402,13 @@ appendHas t@AttachedOrArg{a = a1} m@Node {node = THas {..}} = do
   return (t {a = a1 <> [Opt2B (Just h)]} :: AttachedOrArg)
 
 {-| append suffix name with possibly imported name to a term -}
-appendSuffix :: AttachedOrArg -> I TSuffix -> Maybe ImportedName -> State MyState AttachedOrArg
-appendSuffix t@AttachedOrArg{a = a1} m i = do
-  s' <- composeSuffix m
-  return (t {a = a1 <> [Opt2A (AttachedName {a = s', imported = i})]} :: AttachedOrArg)
+appendMaybeSuffix :: AttachedOrArg -> Maybe (I TSuffix) -> Maybe ImportedName -> State MyState AttachedOrArg
+appendMaybeSuffix t@AttachedOrArg{a = a1} ms i = do
+  case ms of
+    Nothing -> return t
+    Just ms' -> do
+      s' <- composeSuffix ms'
+      return (t {a = a1 <> [Opt2A (AttachedName {a = s', imported = i})]} :: AttachedOrArg)
 
 
 {-| produce a list of annotated labels -}
@@ -579,35 +443,16 @@ composeAbstractionTail Node {node = TAbstractionTail {..}} =
       return (Opt2A AttachedName {a = a1, imported = b1})
     Opt2B h -> Opt2B <$> composeHtail h
 
-{-
-head
-  is prepended by a locator to produce a term
-  need a term to later be accessed by a dot
-  assume that data is not directly accessible in the program and is located
-
-head can be stored inside `AttachedOrArg` without a name
-  its term can always be extracted
--- TODO maybe need a separate type for head?
-
-a method `c` can be applied on application like this
-
-a b.c
-
-or on an expression like
-
-a (a:b).c
-
-and on something named also
-
-(a > b).c
--}
-
 {-| compose an anonymous expression for head-}
 attachHead :: I THead -> State MyState AttachedOrArg
 attachHead a = do
   a' <- composeHead a
   b <- dec a $ return HeadTerm {n = Nothing, a = Just a'}
   return AttachedOrArg {t = b, a = []}
+
+
+appendMaybeTail :: AttachedOrArg -> (a -> State MyState [AttachedOrArg]) -> Maybe a -> State MyState AttachedOrArg
+appendMaybeTail a f h = applyTail a <$> maybe (return []) f h
 
 {-| compose list of possibly attached arguments -}
 composeHtail :: I THtail -> State MyState [AttachedOrArg]
@@ -761,3 +606,135 @@ composeByte n@Node{..} = dec n $ do
   let TByte b = node
   return (DByte b)
 
+
+
+{-
+-- IDK
+does `c` in `a b:c` refer to `b` or to `a b`?
+Let us make `c` refer to `a b`
+To make it refer to `b` only, we can write `a (b:c)`
+
+
+
+We get some term and apply a modifier to it to get
+a.b, a:b, a > b
+
+Next, there can be a htail.
+The meaning of the final expression depends on the modifier
+
+a.b c
+is an ordinary application
+
+a:b c
+doesn't make sense since
+  if it's an argument list where a has an optional name, it won't have
+    a term to apply this list to due to left associativity of modifiers
+  if it's an application, why write an optional name
+    if `a` isn't applied to some term directly?
+
+
+
+-- IDK
+I think a `:` modifier refers to the last expression in htail
+
+a:b
+`b` refers to `a`
+
+(a > b):c
+`c` refers to `(a > b)`
+
+a b:c
+`c` refers to `b`?
+
+[c] > a
+
+[c]
+  a b:c
+
+
+
+a > b c
+doesn't really make sense
+  for the aforementioned reasons
+
+However, if htail is empty in the last expression, e.g.
+a > b
+
+This means that we reached the end of the application chain
+and can return this named term
+
+-- IDK what means method after suffix
+
+-}
+
+{-
+-- INFO
+Anywhere a new name shows up after the > symbol,
+it is a declaration of a new attribute in the nearest object abstraction.
+-}
+
+{-
+list of free attributes and the name of abstraction can be of form
+
+[a b] (a > b) (c > d)
+  e > g
+  f > h
+
+For now, we just append this tail (with attributes `g` and `h`)
+to the inline list (with attributes `b` and `d`)
+
+-- IDK
+[a b] (a > b) (c > d) e (f > g)
+Does it mean that `[a b] (a > b) (c > d)` is applied to `e` and `(f > g)`?
+
+-- TODO
+probably need to find the first unattached attribute and suppose that
+it's the first argument of this object
+
+-}
+
+{-
+head
+  is prepended by a locator to produce a term
+  need a term to later be accessed by a dot
+  assume that data is not directly accessible in the program and is located
+
+head can be stored inside `AttachedOrArg` without a name
+  its term can always be extracted
+-- TODO maybe need a separate type for head?
+
+a method `c` can be applied on application like this
+
+a b.c
+
+or on an expression like
+
+a (a:b).c
+
+and on something named also
+
+(a > b).c
+-}
+
+{-
+-- IDK
+What's the meaning of `(a > a).a`?
+
+Is it the same as
+a > a
+.a
+?
+
+Should we allow it or let the expressions in parentheses only for grouping?
+(a b c)
+-}
+
+
+{-
+In context of application tail,
+attributes can have
+  no name
+  `has` name
+  `suffix` name
+  `args` name
+-}

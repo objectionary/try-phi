@@ -201,21 +201,33 @@ parens x = "(" <> x <> ")"
 
 
 printTailInline :: PPTermInline a => [a] -> [Char]
-printTailInline bs = if null bs then "" else " " <> unwords (parens . pprint' <$> bs)
+printTailInline bs = if null bs then "" else " " <> unwords (lessParens . pprint' <$> bs)
 
 
-printTailIndented :: PPTermIndented a => Int -> [a] -> [Char]
+-- TODO don't parenthesize top level expressions
+-- (a) > t
+--   b
+printTailIndented :: Int -> [AttachedOrArg] -> [Char]
 printTailIndented m bs = intercalate "" (map (("\n" <> tabs m) <>) (pprint m <$> bs))
 
 instance PPTermInline [K MethodName] where
   pprint' xs = concatMap ("." <>) (pprint' <$> xs)
 
+lessParens :: String -> String
+lessParens s = 
+  case words s of
+    [t] -> t
+    t -> parens $ unwords t
+
+withLessParens' :: (PPTermInline a, PPTermInline x) => x -> a -> String -> String
+withLessParens' x a y = printf "%s" (lessParens (pprint' x <> y <> pprint' a))
+
 pprintTermNamed' :: PPTermInline a => Term -> a -> String
 pprintTermNamed' t a =
   case t of
-      App x y -> printf "%s%s%s" (pprint' x) (pprint' a) (printTailInline y)
-      Obj x y -> printf "(%s%s)%s" (pprint' x) (pprint' a) (printTailInline y)
-      Dot x y -> printf "(%s)%s%s" (pprint' x) (pprint' a) (pprint' y)
+      App x y -> withLessParens' x a (printTailInline y)
+      Obj x y -> withLessParens' x a (printTailInline y)
+      Dot x y -> withLessParens' x a (pprint' y)
       HeadTerm x y  -> printf "%s%s" (printHead x y) (pprint' a)
 
 
@@ -236,6 +248,32 @@ instance PPTermIndented [K MethodName] where
   -- a. b.
   pprint m xs = unwords ((<> ".") <$> (pprint' <$> xs))
 
+isInlineContiguous :: String -> Bool
+isInlineContiguous s = 
+  case words s of
+    [_] -> True
+    _ -> False
+
+-- withLessLines :: String -> String
+-- withLessLines 
+--   isInlineContiguous
+--   case words s of
+--     [t] -> t
+--     t -> unwords t
+
+lessLines :: (PPTermInline a, PPTermInline x) => x -> a -> String
+lessLines x a = printf "%s" (lessParens (pprint' x <> pprint' a))
+
+-- instance PPTermInline Term where
+--   pprint' x = 
+--     case x of
+--       Dot a b
+--         | isInlineContiguous (pprint' a) -> pprintTermNamed' x ""
+--         | otherwise -> 
+
+
+
+data Context = Tail | Otherwise
 
 {-| takes indentation level, term, name of this term and produces a string
 -}
@@ -244,7 +282,9 @@ pprintTermNamed m t a =
   case t of
       App x y -> printf "%s%s%s" (pprint' x) (pprint' a) (printTailIndented (m + 1) y)
       Obj x y -> printf "%s%s%s" (pprint' x) (pprint' a) (printTailIndented (m + 1) y)
-      Dot x y -> printf "%s%s\n%s%s" (pprint m y) (pprint' a) (tabs (m + 1)) (pprint (m + 1) x)
+      Dot x y
+        | isInlineContiguous (pprint' x) -> pprintTermNamed' t a
+        | otherwise -> printf "%s%s\n%s%s" (pprint m y) (pprint' a) (tabs (m + 1)) (pprint (m + 1) x)
       HeadTerm x y  -> printf "%s%s" (printHead x y) (pprint' a)
 
 instance PPTermIndented (K Term) where

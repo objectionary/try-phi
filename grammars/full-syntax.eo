@@ -144,3 +144,7 @@ a:key
 (r:got.< t).m:hey
 
 a.b.c
+
+a
+.b > c
+  d > e

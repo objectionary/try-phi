@@ -11,7 +11,7 @@ import qualified Data.Graph.Inductive.Graph as Graph
 import           Phi.Minimal.Graph
 import           Phi.Minimal.Model
 
-import Phi.Utils.GraphBuilder
+import           Phi.Utils.GraphBuilder
 
 type Environment = [Parent]
 
@@ -126,7 +126,7 @@ step conf@Configuration {..} =
       case Graph.context graph node of
         (_, _, SomeNode, edge) ->
           case edge of
-            [(LocEdge n, _)] -> 
+            [(LocEdge n, _)] ->
               Just
                 conf
                   {currentNode = Nothing, actions = LocAction (node, n) : actions}
@@ -134,10 +134,10 @@ step conf@Configuration {..} =
               Just
                 conf
                   {currentNode = Just to, actions = DotAction (node, a) : actions}
-            [(DataEdge d, _)] -> 
-              Just 
+            [(DataEdge d, _)] ->
+              Just
                 conf {currentNode = Just 0, actions = [DotAction (rootNode, show d)], environment = [Parent [] 3010]}
-            _ -> 
+            _ ->
               Just conf {currentNode = Nothing, actions = [], environment = []}
         (_, _, ObjNode, outEdges) ->
           case lookup CopyEdge outEdges of

@@ -1,6 +1,6 @@
 <img src="https://www.yegor256.com/images/books/elegant-objects/cactus.svg" height="100px" />
 
-Try [𝜑-calculus](https://www.eolang.org) online: [click here](https://polystat.github.io/try-phi/).
+Try [𝜑-calculus](https://www.eolang.org) online: [click here](https://fizruk.github.io/try-phi/).
 
 ![Demo](images/demo.gif)
 

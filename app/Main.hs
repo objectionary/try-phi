@@ -20,7 +20,7 @@ main :: IO ()
 main = do
   let file = "./grammars/full-syntax.eo"
   -- let file = "./grammars/snippet.eo"
-  code <- pack <$> readFile file
+  code <- pack . (<> "\n") <$> readFile file
   let t = parseMaybe tProgram code
   let t1 = getProgram <$> t
   let t2 = getTermProgram <$> t1

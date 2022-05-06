@@ -1,0 +1,1 @@
+npm run --prefix codemirror build:doc

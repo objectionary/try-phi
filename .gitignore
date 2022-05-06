@@ -9,4 +9,3 @@ node_modules/
 .stack-work/
 *.cabal
 stack.yaml.lock
-stack.yaml.lock

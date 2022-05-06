@@ -38,7 +38,7 @@ Right now we implement it as a term rewriting system with the following features
 
 * Install all dependencies with
 ```sh
-sh 
+sh scripts/init.sh
 ```
 
 ### VS Code

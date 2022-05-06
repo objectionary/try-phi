@@ -34,12 +34,12 @@ Right now we implement it as a term rewriting system with the following features
     
 * Install [Node.js](https://nodejs.org/en/download/)
 
-* Install codemirror dependencies
-    ```sh
-    npm --prefix codemirror i
-    ```
-
 * Install [nix](https://nixos.org/download.html)
+
+* Install all dependencies with
+```sh
+sh 
+```
 
 ### VS Code
 

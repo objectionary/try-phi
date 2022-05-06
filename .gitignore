@@ -9,3 +9,5 @@ node_modules/
 .stack-work/
 *.cabal
 stack.yaml.lock
+cabals
+dist-newstyle

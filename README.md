@@ -27,58 +27,34 @@ Right now we implement it as a term rewriting system with the following features
 
 ## How to contribute
 * Clone this repository
-    ```sh
-    git clone --recurse-submodules -j8 https://github.com/br4ch1st0chr0n3/try-phi
-    cd try-phi
-    ```
-    
+```sh
+git clone --recurse-submodules -j8 https://github.com/br4ch1st0chr0n3/try-phi
+cd try-phi
+```
+ 
 * Install [Node.js](https://nodejs.org/en/download/)
 
-* Install [nix](https://nixos.org/download.html)
+* Install [Nix](https://nixos.org/download.html)
 
-* Install all dependencies with
+* Install all other dependencies and build the project with
 ```sh
 sh scripts/init.sh
 ```
 
-### VS Code
+### Dev
 
-* Install VS Code
+* Enable auto-reloading
+```sh
+chmod +x scripts/ghcid.sh
+./ghcid.sh
+```
 
-* Open it in `try-phi` folder
-    ```sh
-    code .
-    ```
+* Open the corresponding `localhost:8080` (put the correct port) in Chrome
 
-* Open terminal in VS Code (`Ctrl+` `)
+### Release
 
-* Install [stack](https://docs.haskellstack.org/en/stable/install_and_upgrade/)
-
-* Build project. Also, use this command to rebuild the project
-    ```sh
-    sh build.sh
-    ```
-
-* Install `Haskell` extension. It will enable linter and documentation on hover
-
-    * "Multi cradle ..." error [troubleshooting](https://stackoverflow.com/q/64650979)
-
-* Open `app/Main.hs` and hover onto a function and check if docs appear
-    
-* Open `index.html` in browser, e.g.:
-    ```sh
-    firefox index.html
-    ```
-
-    * In case nothing changes, clear browser cache
-
-* Optionally, the extension `stylish-hindent` for formatting the code
-
-* Use [Nix Environment Selector](https://marketplace.visualstudio.com/items?itemName=arrterian.nix-env-selector)
-
-* If typechecking doesn't work, reload VS Code
-
-* You can see Haskell code's output at `localhost:8080/` after
-    ```sh
-    stack run
-    ```
+* Run
+```sh
+chmod +x scripts/nix-build.sh
+./scripts/nix-build.sh
+```

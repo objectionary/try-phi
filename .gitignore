@@ -8,3 +8,5 @@ node_modules/
 .vscode
 .stack-work/
 *.cabal
+stack.yaml.lock
+stack.yaml.lock

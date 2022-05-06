@@ -31,7 +31,7 @@ import           Language.Javascript.JSaddle.Warp     as JSaddle
 
 #ifndef __GHCJS__
 runApp :: JSM () -> IO ()
-runApp = JSaddle.run 8080
+runApp = JSaddle.run 8081
 -- runApp f = do
 --   bString <- B.readFile "bundle.js"
 --   jSaddle <- JSaddle.jsaddleOr defaultConnectionOptions (f >> syncPoint) (JSaddle.jsaddleAppWithJs (B.append (JSaddle.jsaddleJs False) bString))

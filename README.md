@@ -58,3 +58,8 @@ chmod +x scripts/ghcid.sh
 chmod +x scripts/nix-build.sh
 ./scripts/nix-build.sh
 ```
+
+* Checkout to another branch and run a script there
+```
+git checkout publish
+```

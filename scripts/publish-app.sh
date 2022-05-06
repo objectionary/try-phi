@@ -4,7 +4,7 @@ cp index.html ../index.html
 git checkout publish
 mv ../all.js all.js
 mv ../index.html index.html
-git add .
-git commit -m "publish"
-git push origin publish
-git checkout main
+# git add .
+# git commit -m "publish"
+# git push origin publish
+# git checkout main

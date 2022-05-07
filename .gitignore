@@ -11,3 +11,4 @@ node_modules/
 stack.yaml.lock
 cabals
 dist-newstyle
+all.js

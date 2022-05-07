@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE UndecidableInstances #-}
-module PrettyPrintTree (printTree) where
+module PrettyPrintTree (pprintTree, ShowIndented) where
 
 import ParseEO
 
@@ -20,8 +20,8 @@ newtype Indented a = Indented a
 instance ShowIndented a => Show (Indented a) where
   show (Indented x) = showIndented 0 x
 
-printTree :: ShowIndented a => a -> String
-printTree t = show (Indented t)
+pprintTree :: ShowIndented a => a -> String
+pprintTree t = show (Indented t)
 
 -- Print helpers
 

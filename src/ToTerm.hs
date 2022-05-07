@@ -226,6 +226,9 @@ dec n t = do
   put (MyState (tId + 1))
   return Ann {term = t1, ann = IDs {runtimeId = Just tId, treeId = Just (getId n)}}
 
+{- |
+convert parsed tree into annotated terms
+-}
 getTermProgram :: I TProgram -> K Term
 getTermProgram p = evalState (composeProgram p) MyState {termId = 0}
 

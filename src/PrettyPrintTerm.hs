@@ -4,7 +4,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE BlockArguments #-}
 
-module PrettyPrintTerm (pprint, pprintTop) where
+module PrettyPrintTerm (pprintTermProgram) where
 import Numeric (showHex)
 
 import ToTerm(
@@ -276,8 +276,11 @@ instance PPTermIndented (K Term) where
 instance PPTermIndented AttachedOrArgument where
   pprint m AttachedOrArgument {t = Ann {term = t1}, a = a1} = pprintTermNamed m t1 a1
 
-pprintTop :: K Term -> String
-pprintTop Ann {term = t} =
+{- |
+print annotated top term - the whole program
+-}
+pprintTermProgram :: K Term -> String
+pprintTermProgram Ann {term = t} =
     case t of
       Obj _ b -> intercalate "\n\n" (pprint 0 <$> b)
       _ -> ""

@@ -6,25 +6,14 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 module Main where
+  
+import EOParser
 
-import ParseEO as A (tProgram)
-import PrettyPrintTree as PP (printTree)
-import Text.Megaparsec (parseMaybe)
-import Data.Text as DT (pack)
-import EnumerateNodes (enumInsertProgram, getProgram)
-import ToTerm (getTermProgram)
-import PrettyPrintTerm(pprintTop)
-import Text.Pretty.Simple(pPrint)
 
 main :: IO ()
 main = do
   let file = "./grammars/full-syntax.eo"
-  -- let file = "./grammars/snippet.eo"
   code <- pack . (<> "\n") <$> readFile file
-  let t = parseMaybe tProgram code
-  let t1 = getProgram <$> t
-  let t2 = getTermProgram <$> t1
+  let t = parseTermProgram code
   putStr "\n\n"
-  -- putStrLn (maybe "not ok tree" printTree t1)
-  -- pPrint t2
-  putStrLn (maybe "not ok EO" pprintTop t2)
+  putStrLn (maybe "not ok EO" pprintTermProgram t)

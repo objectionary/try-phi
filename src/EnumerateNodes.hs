@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE RecordWildCards      #-}
 {-# LANGUAGE TypeSynonymInstances #-}
-module EnumerateNodes (enumInsertProgram, getProgram) where
+module EnumerateNodes (enumInsertProgram, getIndexedProgram) where
 
 import           Control.Monad.State.Strict (State, get, put, runState, evalState)
 import qualified Data.HashMap.Strict.InsOrd as M (InsOrdHashMap, empty, insert)
@@ -76,8 +76,8 @@ dec n m p = do
 enumInsertProgram :: I TProgram -> (I TProgram, MyState)
 enumInsertProgram t = runState (enum t) (MyState {i=0, m=M.empty})
 
-getProgram :: I TProgram -> I TProgram 
-getProgram t = evalState (enum t) (MyState {i=0, m=M.empty})
+getIndexedProgram :: I TProgram -> I TProgram 
+getIndexedProgram t = evalState (enum t) (MyState {i=0, m=M.empty})
 
 -- enums
 

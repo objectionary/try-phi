@@ -45,8 +45,7 @@ sh scripts/init.sh
 
 * Enable auto-reloading
 ```sh
-chmod +x scripts/ghcid.sh
-./ghcid.sh
+sh scripts/ghcid.sh
 ```
 
 * Open the corresponding `localhost:8080` (put the correct port) in Chrome
@@ -55,11 +54,12 @@ chmod +x scripts/ghcid.sh
 
 * Run
 ```sh
-chmod +x scripts/nix-build.sh
-./scripts/nix-build.sh
+sh scripts/nix-build.sh
 ```
 
-* Checkout to another branch and run a script there
+* Checkout to another branch and run a script there. It will take the generated `.js` and `index.html`, copy to `publish` branch and push.
+
 ```
 git checkout publish
+sh publish.sh
 ```

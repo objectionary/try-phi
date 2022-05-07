@@ -54,7 +54,7 @@ sh scripts/ghcid.sh
 
 * Run
 ```sh
-sh scripts/nix-build.sh
+sh scripts/release.sh
 ```
 
 * Checkout to another branch and run a script there. It will take the generated `.js` and `index.html`, copy to `publish` branch and push.

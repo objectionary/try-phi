@@ -1,3 +1,6 @@
 [submodule "phi-minimal-editor"]
 	path = editor
 	url = https://github.com/br4ch1st0chr0n3/phi-minimal-editor
+[submodule "eo-parser"]
+	path = eo-parser
+	url = https://github.com/br4ch1st0chr0n3/eo-parser

@@ -4,7 +4,8 @@ module EOParser
     parseTermProgram,
     PrettyPrintTerm.pprintTermProgram,
     PrettyPrintTree.pprintTree,
-    Data.Text.pack
+    Data.Text.pack,
+    K, Term
   )
 where
 

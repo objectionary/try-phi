@@ -37,11 +37,6 @@ packages:
 #
 extra-deps:
 # - fgl-5.7.0.3@sha256:a5970bb2d6835e2479380ca822ac43436ffef050770391f21802ed4610e1d5b8,3648
-- mtl-2.2.2
-- ref-tf-0.5.0.1
-- megaparsec-9.2.0
-- scientific-0.3.7.0
-- pretty-simple-4.1.0.0
 #
 # extra-deps: []
 

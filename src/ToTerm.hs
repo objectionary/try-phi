@@ -81,6 +81,9 @@ import           PrettyPrintTree            ()
 type Id = Int
 data Ann a b = Ann {term::a, ann::b} deriving (Show)
 data Annotation = IDs {treeId::Maybe Id, runtimeId::Maybe Id}  deriving (Show)
+{- | shorthand for annotation
+
+-}
 type K a = Ann a Annotation
 
 -- TODO convert inverse dot to dot

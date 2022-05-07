@@ -3,7 +3,7 @@
 {-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE TypeApplications  #-}
 
-module Content where
+module Site.Content where
 
 import qualified Data.Map    as Map
 import           Miso

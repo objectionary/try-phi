@@ -62,15 +62,9 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
-    when:
-      - condition: impl(ghcjs)
-        then:
-          dependencies:
-          - eo-parser
-        else:
-          dependencies:
-          - eo-parser
-
+    dependencies:
+    - eo-parser
+    
 tests:
   spec:
     main:                Spec.hs

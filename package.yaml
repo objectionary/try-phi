@@ -35,9 +35,7 @@ dependencies:
 - bound
 - containers
 - deepseq
-# - fgl
 - free
-# - graphviz
 - hashable
 - insert-ordered-containers
 - kan-extensions
@@ -45,12 +43,10 @@ dependencies:
 - mtl
 - parsers
 - prettyprinter
-# - prettyprinter-ansi-terminal
 - profunctors
 - text
 - transformers
 - pretty-simple
-# - trifecta
 - unordered-containers
 - megaparsec
 - scientific
@@ -71,14 +67,14 @@ executables:
         then:
           dependencies:
           - eo-parser
-          # - miso >= 1.8
-          # - jsaddle
+          - miso >= 1.8
+          - jsaddle
         else:
           dependencies:
           - eo-parser
-          # - miso >= 1.8
-          # - jsaddle
-          # - jsaddle-warp
+          - miso >= 1.8
+          - jsaddle
+          - jsaddle-warp
 
 tests:
   spec:

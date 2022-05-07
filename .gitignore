@@ -7,7 +7,5 @@ src/Main.js
 node_modules/
 .vscode
 .stack-work/
-*.cabal
-stack.yaml.lock
 cabals
 dist-newstyle

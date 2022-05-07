@@ -1,11 +1,11 @@
-{-# LANGUAGE CPP               #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE TypeApplications  #-}
 
 module Main where
 
-import           Content                              (TabMode (..), infoIcon,
+import           Site.Content                              (TabMode (..), infoIcon,
                                                        tabButton, tabContent)
 import           Data.Graph.Inductive.PatriciaTree    (Gr)
 import           Data.Map.Strict.Internal             as Map (fromList)

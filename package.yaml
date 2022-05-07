@@ -52,6 +52,8 @@ dependencies:
 - trifecta
 - unordered-containers
 - ref-tf
+- eo-parser
+- miso
 
 library:
   source-dirs: src

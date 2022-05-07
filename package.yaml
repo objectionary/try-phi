@@ -67,14 +67,9 @@ executables:
         then:
           dependencies:
           - eo-parser
-          - miso >= 1.8
-          - jsaddle
         else:
           dependencies:
           - eo-parser
-          - miso >= 1.8
-          - jsaddle
-          - jsaddle-warp
 
 tests:
   spec:

@@ -1,4 +1,3 @@
--- {-# HLINT ignore "Use <$>" #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# HLINT ignore "Use newtype instead of data" #-}
 {-# LANGUAGE DerivingVia #-}
@@ -7,7 +6,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
--- {-# HLINT ignore "Use camelCase" #-}
 {-# OPTIONS_GHC -Wno-deferred-out-of-scope-variables #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
@@ -67,7 +65,6 @@ module ParseEO
     TAbstrQuestion(..),
     TRegexBody(..),
     TRegexSuffix(..),
-    TObjectTail,
     TObjectTail(..),
     cAT,
     cDOTS,

@@ -15,7 +15,7 @@ It has the following stages:
 
 Currently, steps **1** through **3** are mostly completed. 
 
-After step 4, we can deploy this converter into `Try-phi` online interpreter.
+After step 4, we can deploy this converter into [try-phi](https://github.com/br4ch1st0chr0n3/try-phi) online interpreter.
 
 ## Our tools
 

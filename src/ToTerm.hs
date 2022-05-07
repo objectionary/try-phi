@@ -18,7 +18,7 @@ module ToTerm(
   DLineBytes(..),
   HasName (..),
   AttachedName (..),
-  AttachedOrArg (..),
+  AttachedOrArgument (..),
   Abstraction (..),
   ToTerm.Label(..),
   MethodName(..),
@@ -32,8 +32,8 @@ module ToTerm(
   ) where
 
 
-import           Control.Monad.State        (get, put, when)
-import           Control.Monad.State.Strict (State, evalState)
+import           Control.Monad.State        (get, put)
+import Control.Monad.State.Strict ( State, evalState, foldM )
 import           Data.Hashable              (Hashable)
 import           Data.Maybe                 (isJust)
 import           Data.Scientific            (Scientific)
@@ -76,7 +76,6 @@ import           ParseEO                    as PEO (I, Load (Load), Node (..),
                                                     TVarArg (..),
                                                     TObjectTail (..))
 import           PrettyPrintTree            ()
-import Control.Monad.State.Strict (foldM)
 
 
 type Id = Int
@@ -170,7 +169,7 @@ data AttachedName = AttachedName {a::SuffixName, imported::Maybe ImportedName} d
 
 type AttachedOrArgName = Options2 AttachedName (Maybe (K HasName))
 
-data AttachedOrArg = AttachedOrArg {t::K Term, a :: [AttachedOrArgName]} deriving (Show)
+data AttachedOrArgument = AttachedOrArgument {t::K Term, a :: [AttachedOrArgName]} deriving (Show)
 
 {-
 Not yet a full-fledged abstract attribute
@@ -198,14 +197,12 @@ For cases like
 [a] (3 > b) c
 here, the anonymous abstract object is applied to c
 -}
-type AbstractionTail = Options2 AttachedName [AttachedOrArg]
-
--- data Method =
+type AbstractionTail = Options2 AttachedName [AttachedOrArgument]
 
 data Term
-  = App {t::AttachedOrArg, args::[AttachedOrArg]}
-  | Obj {freeAttrs::[K Label], args::[AttachedOrArg]}
-  | Dot {t::AttachedOrArg, attr::[K MethodName]}
+  = App {t::AttachedOrArgument, args::[AttachedOrArgument]}
+  | Obj {freeAttrs::[K Label], args::[AttachedOrArgument]}
+  | Dot {t::AttachedOrArgument, attr::[K MethodName]}
   -- for cases like just `^` or `$`
   -- it doesn't need body
   | HeadTerm {n::Maybe Int, a::Maybe (K Head)}
@@ -272,16 +269,16 @@ composeObjects n@Node {node = TObjects {..}} = dec n $ do
   .d > e
 -}
 
-appendObjectTail :: AttachedOrArg -> I TObjectTail -> State MyState AttachedOrArg
+appendObjectTail :: AttachedOrArgument -> I TObjectTail -> State MyState AttachedOrArgument
 appendObjectTail p Node {node = TObjectTail {..}} = do
   m1 <- applyDot p m
   m2 <- appendMaybeTail m1 composeHtail h
   m3 <- appendMaybeSuffix m2 s Nothing
   appendMaybeTail m3 composeTail t
 
-composeObject :: I TObject -> State MyState AttachedOrArg
+composeObject :: I TObject -> State MyState AttachedOrArgument
 composeObject Node {node = TObject {..}} = do
-  a' <- 
+  a' <-
     case a of
       Opt2A p -> composeAbstraction p
       Opt2B p -> composeApplication p
@@ -291,7 +288,7 @@ composeObject Node {node = TObject {..}} = do
     -- TODO correctly handle tail, not ignore it
 
 
-composeAbstraction :: I TAbstraction -> State MyState AttachedOrArg
+composeAbstraction :: I TAbstraction -> State MyState AttachedOrArgument
 composeAbstraction n@Node {node = TAbstraction {..}} = do
   as' <- composeFreeAttributes as
   t' <-
@@ -300,7 +297,7 @@ composeAbstraction n@Node {node = TAbstraction {..}} = do
       Nothing -> return Nothing
 
   -- FIXME name here
-  let m name ks = (\t1 -> AttachedOrArg {t = t1, a = name}) <$> dec n (return Obj {freeAttrs = as', args = ks})
+  let m name ks = (\t1 -> AttachedOrArgument {t = t1, a = name}) <$> dec n (return Obj {freeAttrs = as', args = ks})
 
   case t' of
     Just p ->
@@ -311,11 +308,11 @@ composeAbstraction n@Node {node = TAbstraction {..}} = do
       m [] []
 
 -- | produce a list of arguments
-composeTail :: I TTail -> State MyState [AttachedOrArg]
+composeTail :: I TTail -> State MyState [AttachedOrArgument]
 composeTail Node {node = TTail {..}} = mapM composeObject os
 
 
-composeApplication :: I TApplication -> State MyState AttachedOrArg
+composeApplication :: I TApplication -> State MyState AttachedOrArgument
 composeApplication Node {node = TApplication {..}} = do
   s' <-
     case s of
@@ -326,7 +323,7 @@ composeApplication Node {node = TApplication {..}} = do
   composeApplication1 h' a1
 
 
-composeApplication1 :: AttachedOrArg -> I TApplication1 -> State MyState AttachedOrArg
+composeApplication1 :: AttachedOrArgument -> I TApplication1 -> State MyState AttachedOrArgument
 composeApplication1 t Node {node = TApplication1 {..}} =
   case c of
     Just x  -> composeApplication1Elem t x
@@ -344,29 +341,29 @@ if an application, aadd the arguments to its list
 
 otherwise, produce a new term applied to this list
 -}
-applyTail :: AttachedOrArg -> [AttachedOrArg] -> AttachedOrArg
-applyTail t@AttachedOrArg{t = t1@Ann {term = t2}} ts =
+applyTail :: AttachedOrArgument -> [AttachedOrArgument] -> AttachedOrArgument
+applyTail t@AttachedOrArgument{t = t1@Ann {term = t2}} ts =
   case ts of
     [] -> t
     _ ->
-        (\z -> t {t = t1 {term = z}} :: AttachedOrArg) $
+        (\z -> t {t = t1 {term = z}} :: AttachedOrArgument) $
           case t2 of
             App x y -> App {t = x, args = y <> ts}
             Obj x y -> Obj {freeAttrs = x, args = y <> ts}
-            Dot _ _ -> App {t = AttachedOrArg { t = initAnn t2, a = []}, args = ts}
-            HeadTerm _ _ -> App {t = AttachedOrArg { t = initAnn t2, a = []}, args = ts}
+            Dot _ _ -> App {t = AttachedOrArgument { t = initAnn t2, a = []}, args = ts}
+            HeadTerm _ _ -> App {t = AttachedOrArgument { t = initAnn t2, a = []}, args = ts}
 
-applyDot :: AttachedOrArg -> I TMethod -> State MyState AttachedOrArg
-applyDot t@AttachedOrArg{t = t1@Ann {term = t2}, a = a1} b = do
+applyDot :: AttachedOrArgument -> I TMethod -> State MyState AttachedOrArgument
+applyDot t@AttachedOrArgument{t = t1@Ann {term = t2}, a = a1} b = do
   m <- composeMethod b
   return $
           case (t2, a1) of
             -- if unnamed dot term, put new method name inside
-            (Dot x y, []) -> (\z -> t {t = t1 {term = z}} :: AttachedOrArg) $ Dot x (y <> [m])
+            (Dot x y, []) -> (\z -> t {t = t1 {term = z}} :: AttachedOrArgument) $ Dot x (y <> [m])
             -- otherwise, compose a new anonymous dot term with such method name
-            _       -> (\z -> AttachedOrArg {t = initAnn z, a = []}) $ Dot t [m]
+            _       -> (\z -> AttachedOrArgument {t = initAnn z, a = []}) $ Dot t [m]
 
-composeApplication1Elem :: AttachedOrArg -> I TApplication1Elem -> State MyState AttachedOrArg
+composeApplication1Elem :: AttachedOrArgument -> I TApplication1Elem -> State MyState AttachedOrArgument
 composeApplication1Elem t Node {node = TApplication1Elem {..}} = do
   c1' <-
     case c1 of
@@ -395,21 +392,21 @@ composeMethod n@Node {node = TMethod {..}} = dec n $ do
   return m'
 
 {-| append optional argument name to a term -}
-appendHas :: AttachedOrArg -> I THas -> State MyState AttachedOrArg
-appendHas t@AttachedOrArg{a = a1} m@Node {node = THas {..}} = do
+appendHas :: AttachedOrArgument -> I THas -> State MyState AttachedOrArgument
+appendHas t@AttachedOrArgument{a = a1} m@Node {node = THas {..}} = do
   let Node {node = TName t1} = n
   h <- dec m $ return (HName t1)
   -- TODO don't append name?
-  return (t {a = a1 <> [Opt2B (Just h)]} :: AttachedOrArg)
+  return (t {a = a1 <> [Opt2B (Just h)]} :: AttachedOrArgument)
 
 {-| append suffix name with possibly imported name to a term -}
-appendMaybeSuffix :: AttachedOrArg -> Maybe (I TSuffix) -> Maybe ImportedName -> State MyState AttachedOrArg
-appendMaybeSuffix t@AttachedOrArg{a = a1} ms i = do
+appendMaybeSuffix :: AttachedOrArgument -> Maybe (I TSuffix) -> Maybe ImportedName -> State MyState AttachedOrArgument
+appendMaybeSuffix t@AttachedOrArgument{a = a1} ms i = do
   case ms of
     Nothing -> return t
     Just ms' -> do
       s' <- composeSuffix ms'
-      return (t {a = a1 <> [Opt2A (AttachedName {a = s', imported = i})]} :: AttachedOrArg)
+      return (t {a = a1 <> [Opt2A (AttachedName {a = s', imported = i})]} :: AttachedOrArgument)
 
 
 {-| produce a list of annotated labels -}
@@ -445,18 +442,18 @@ composeAbstractionTail Node {node = TAbstractionTail {..}} =
     Opt2B h -> Opt2B <$> composeHtail h
 
 {-| compose an anonymous expression for head-}
-attachHead :: I THead -> State MyState AttachedOrArg
+attachHead :: I THead -> State MyState AttachedOrArgument
 attachHead a = do
   a' <- composeHead a
   b <- dec a $ return HeadTerm {n = Nothing, a = Just a'}
-  return AttachedOrArg {t = b, a = []}
+  return AttachedOrArgument {t = b, a = []}
 
 
-appendMaybeTail :: AttachedOrArg -> (a -> State MyState [AttachedOrArg]) -> Maybe a -> State MyState AttachedOrArg
+appendMaybeTail :: AttachedOrArgument -> (a -> State MyState [AttachedOrArgument]) -> Maybe a -> State MyState AttachedOrArgument
 appendMaybeTail a f h = applyTail a <$> maybe (return []) f h
 
 {-| compose list of possibly attached arguments -}
-composeHtail :: I THtail -> State MyState [AttachedOrArg]
+composeHtail :: I THtail -> State MyState [AttachedOrArgument]
 composeHtail Node {node = THtail {..}} = do
     let f e =
             case e of

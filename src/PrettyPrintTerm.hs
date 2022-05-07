@@ -18,7 +18,7 @@ import ToTerm(
   DLineBytes(..),
   HasName (..),
   AttachedName (..),
-  AttachedOrArg (..),
+  AttachedOrArgument (..),
   Label(..),
   MethodName(..),
   Head(..),
@@ -130,10 +130,10 @@ tab = "  "
 tabs :: Int -> [Char]
 tabs m = concat $ replicate m tab
 
-instance PPTermIndented [AttachedOrArg] where
+instance PPTermIndented [AttachedOrArgument] where
   pprint m ls = printTailIndented m ls
 
-instance PPTermInline [AttachedOrArg] where
+instance PPTermInline [AttachedOrArgument] where
   pprint' ls = printTailInline ls
 
 instance PPTermInline (K MethodName) where
@@ -204,7 +204,7 @@ printTailInline :: PPTermInline a => [a] -> [Char]
 printTailInline bs = if null bs then "" else " " <> unwords (lessParens . pprint' <$> bs)
 
 
-printTailIndented :: Int -> [AttachedOrArg] -> [Char]
+printTailIndented :: Int -> [AttachedOrArgument] -> [Char]
 printTailIndented m bs = intercalate "" (map (("\n" <> tabs m) <>) (pprint m <$> bs))
 
 instance PPTermInline [K MethodName] where
@@ -230,8 +230,8 @@ pprintTermNamed' t a =
       HeadTerm x y  -> printf "%s%s" (printHead x y) (pprint' a)
 
 
-instance PPTermInline AttachedOrArg where
-  pprint' AttachedOrArg {t = Ann {term = t1}, a = a1} =
+instance PPTermInline AttachedOrArgument where
+  pprint' AttachedOrArgument {t = Ann {term = t1}, a = a1} =
     pprintTermNamed' t1 a1
 
 instance PPTermInline String where
@@ -253,26 +253,6 @@ isInlineContiguous s =
     [_] -> True
     _ -> False
 
--- withLessLines :: String -> String
--- withLessLines 
---   isInlineContiguous
---   case words s of
---     [t] -> t
---     t -> unwords t
-
-lessLines :: (PPTermInline a, PPTermInline x) => x -> a -> String
-lessLines x a = printf "%s" (lessParens (pprint' x <> pprint' a))
-
--- instance PPTermInline Term where
---   pprint' x = 
---     case x of
---       Dot a b
---         | isInlineContiguous (pprint' a) -> pprintTermNamed' x ""
---         | otherwise -> 
-
-
-
-data Context = Tail | Otherwise
 
 {-| takes indentation level, term, name of this term and produces a string
 
@@ -293,8 +273,8 @@ pprintTermNamed m t a =
 instance PPTermIndented (K Term) where
   pprint m Ann {term = t1} = pprintTermNamed m t1 (""::String)
 
-instance PPTermIndented AttachedOrArg where
-  pprint m AttachedOrArg {t = Ann {term = t1}, a = a1} = pprintTermNamed m t1 a1
+instance PPTermIndented AttachedOrArgument where
+  pprint m AttachedOrArgument {t = Ann {term = t1}, a = a1} = pprintTermNamed m t1 a1
 
 pprintTop :: K Term -> String
 pprintTop Ann {term = t} =

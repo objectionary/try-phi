@@ -35,6 +35,7 @@ library
       ParseEO
       PrettyPrintTerm
       PrettyPrintTree
+      ToPhi
       ToTerm
   other-modules:
       Paths_eo_parser

@@ -64,6 +64,15 @@ git checkout publish
 sh publish.sh
 ```
 
+### Test EO -> Phi
+
+* Check with
+```sh
+stack ghci
+2
+EO.Test.test
+```
+
 ### VS Code setup notes
 * As this project uses external packages (as git submodules), they were added to `stack.yaml` -> `dependencies`. The `- .` there denotes the current directory
 

@@ -70,6 +70,8 @@ data DataValue =
 
 
 data Term
+  -- TODO store a list of free attributes 
+  -- and a map of attached attributes
   = Obj (Object Term)
   | Dot Term Attr
   | App Term (Attr, Term)

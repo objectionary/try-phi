@@ -65,5 +65,8 @@ sh publish.sh
 ```
 
 ### VS Code setup notes
-* As this project uses external packages (as git submodules), they were added to `stack.yaml` -> `dependencies`
-* Setting up this project in VS Code required creation of `hie.yaml` (explained [here](https://github.com/haskell/hie-bios#stack))
+* As this project uses external packages (as git submodules), they were added to `stack.yaml` -> `dependencies`. The `- .` there denotes the current directory
+
+* Setting up this project in VS Code required creation of `hie.yaml` (explained [here](https://github.com/haskell/hie-bios#stack)) via [implicit-hie](https://github.com/Avi-D-coder/implicit-hie). 
+
+* Also, used [this workaround](https://github.com/haskell/haskell-ide-engine/issues/1650#issuecomment-650192055) to silence errors about Setup.hs

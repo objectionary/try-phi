@@ -9,11 +9,16 @@ test :: IO ()
 test = do
   pwd <- getCurrentDirectory
   putStrLn pwd
-  let file = "eo-parser/grammars/full-syntax.eo"
+  let file = "eo-parser/grammars/snippet.eo"
   code <- pack . (<> "\n") <$> readFile file
   let p = parseTermProgram code
   case p of
-    Just p' -> putStrLn (pprintTermProgram p') >> print (toMinimalTerm p')
+    Just p' -> do 
+      putStrLn "\nEO code\n"
+      putStrLn (pprintTermProgram p')
+      putStrLn "\nPhi Minimal code\n"
+      print (toMinimalTerm p')
+      putStrLn "\n "
     _ -> putStrLn "not Ok"
 
 {-

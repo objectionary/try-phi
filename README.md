@@ -63,3 +63,7 @@ sh scripts/release.sh
 git checkout publish
 sh publish.sh
 ```
+
+### VS Code setup notes
+* As this project uses external packages (as git submodules), they were added to `stack.yaml` -> `dependencies`
+* Setting up this project in VS Code required creation of `hie.yaml` (explained [here](https://github.com/haskell/hie-bios#stack))

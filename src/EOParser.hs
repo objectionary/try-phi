@@ -5,17 +5,54 @@ module EOParser
     PrettyPrintTerm.pprintTermProgram,
     PrettyPrintTree.pprintTree,
     Data.Text.pack,
-    K, Term
+    K,
+    Ann (..),
+    AttachedName (..),
+    HasName (..),
+    Label (..),
+    MethodName (..),
+    Options2 (..),
+    SuffixName (..),
+    THeadTerminal(..),
+    AttachedOrArgument (AttachedOrArgument),
+    Options3 (..),
+    Term (..),
+    Head(..),
+    HeadName(..),
+    LetterName(..),
+    Modifier(..), DataValue (..)
   )
 where
 
 import Data.Text (Text,pack)
 import EnumerateNodes (getIndexedProgram)
-import ParseEO as A (I, TProgram, tProgram)
+import ParseEO as A (I, TProgram, tProgram, THeadTerminal(..))
 import PrettyPrintTerm (pprintTermProgram)
 import PrettyPrintTree (pprintTree)
 import Text.Megaparsec (parseMaybe)
-import ToTerm (K, Term, getTermProgram)
+import ToTerm (K, Term, getTermProgram,
+    Ann (..),
+    AttachedName (..),
+    HasName (..),
+    Label (..),
+    MethodName (..),
+    Options2 (..),
+    SuffixName (..),
+    Ann (..),
+    AttachedName (..),
+    AttachedOrArgument (AttachedOrArgument),
+    HasName (..),
+    K,
+    Label (..),
+    MethodName (..),
+    Options2 (Opt2B),
+    Options3 (..),
+    SuffixName (..),
+    Term (App, Dot, HeadTerm, Obj),
+    Head(..),
+    HeadName(..),
+    LetterName(..),
+    Modifier(..), DataValue (..))
 
 parseProgram :: Text -> Maybe (I TProgram)
 parseProgram = parseMaybe tProgram

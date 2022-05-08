@@ -28,7 +28,9 @@ module ToTerm(
   Modifier(..),
   SuffixName(..),
   AttachedOrArgName,
-  initAnn
+  initAnn,
+  Options2 (..),
+  Options3 (..),
   ) where
 
 

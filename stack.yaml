@@ -31,7 +31,8 @@ resolver:
 #   - auto-update
 #   - wai
 packages:
-- .
+- eo-parser
+
 # Dependency packages to be pulled from upstream that are not in the resolver.
 # These entries can reference officially published versions as well as
 # forks / in-progress versions pinned to a git hash. For example:
@@ -41,7 +42,6 @@ extra-deps:
 - jsaddle-0.9.8.2
 - jsaddle-warp-0.9.8.2
 - servant-lucid-0.9.0.5
-- eo-parser
 
 ghc-options:
   '$everything': -haddock

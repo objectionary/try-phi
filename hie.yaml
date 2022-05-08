@@ -1,19 +1,2 @@
 cradle:
   stack:
-    - path: "./src"
-      component: "try-phi:lib"
-
-    - path: "./app/Main.hs"
-      component: "try-phi:exe:try-phi"
-
-    - path: "./app/Paths_try_phi.hs"
-      component: "try-phi:exe:try-phi"
-
-    - path: "./test"
-      component: "try-phi:test:doctests"
-
-    - path: "./test"
-      component: "try-phi:test:spec"
-    
-    # - path: "./eo-parser/src"
-    #   component: "lib:eo-parser"

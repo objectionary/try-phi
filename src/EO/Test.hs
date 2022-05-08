@@ -9,7 +9,7 @@ test :: IO ()
 test = do
   pwd <- getCurrentDirectory
   putStrLn pwd
-  let file = "eo-parser/grammars/snippet.eo"
+  let file = "src/EO/snippet.eo"
   code <- pack . (<> "\n") <$> readFile file
   let p = parseTermProgram code
   case p of

@@ -30,6 +30,7 @@ custom-setup
 library
   exposed-modules:
       EO.EOtoPhi
+      EO.Test
       Lambda.Model
       Lambda.Pretty
       Phi.Minimal
@@ -56,6 +57,7 @@ library
     , bound
     , containers
     , deepseq
+    , directory
     , eo-parser
     , fgl
     , free
@@ -75,6 +77,7 @@ library
     , transformers
     , trifecta
     , unordered-containers
+    , xmonad-contrib
   default-language: Haskell2010
 
 executable try-phi
@@ -91,6 +94,7 @@ executable try-phi
     , bound
     , containers
     , deepseq
+    , directory
     , eo-parser
     , fgl
     , free
@@ -110,6 +114,7 @@ executable try-phi
     , transformers
     , trifecta
     , unordered-containers
+    , xmonad-contrib
   if impl(ghcjs)
     build-depends:
         jsaddle
@@ -139,6 +144,7 @@ test-suite doctests
     , bound
     , containers
     , deepseq
+    , directory
     , doctest
     , eo-parser
     , fgl
@@ -160,6 +166,7 @@ test-suite doctests
     , transformers
     , trifecta
     , unordered-containers
+    , xmonad-contrib
   default-language: Haskell2010
 
 test-suite spec
@@ -181,6 +188,7 @@ test-suite spec
     , bound
     , containers
     , deepseq
+    , directory
     , eo-parser
     , fgl
     , free
@@ -202,4 +210,5 @@ test-suite spec
     , trifecta
     , try-phi
     , unordered-containers
+    , xmonad-contrib
   default-language: Haskell2010

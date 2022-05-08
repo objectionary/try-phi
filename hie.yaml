@@ -1,31 +1,51 @@
 cradle:
-  stack:
-    - path: "eo-parser/src"
-      component: "eo-parser:lib"
+  multi:
+    - path: "."
+      config:
+        cradle:
+          stack:
+            - path: "./src"
+              component: "try-phi:lib"
 
-    - path: "eo-parser/app/Main.hs"
-      component: "eo-parser:exe:eo-parser"
+            - path: "./app/Main.hs"
+              component: "try-phi:exe:try-phi"
 
-    - path: "eo-parser/app/Paths_eo_parser.hs"
-      component: "eo-parser:exe:eo-parser"
+            - path: "./app/Paths_try_phi.hs"
+              component: "try-phi:exe:try-phi"
 
-    - path: "eo-parser/test"
-      component: "eo-parser:test:doctests"
+            - path: "./test"
+              component: "try-phi:test:doctests"
 
-    - path: "eo-parser/test"
-      component: "eo-parser:test:spec"
-    
-    - path: "./src"
-      component: "try-phi:lib"
+            - path: "./test"
+              component: "try-phi:test:spec"
 
-    - path: "./app/Main.hs"
-      component: "try-phi:exe:try-phi"
+            - path: "eo-parser/src"
+              component: "eo-parser:lib"
 
-    - path: "./app/Paths_try_phi.hs"
-      component: "try-phi:exe:try-phi"
+            - path: "eo-parser/app/Main.hs"
+              component: "eo-parser:exe:eo-parser"
 
-    - path: "./test"
-      component: "try-phi:test:doctests"
+            - path: "eo-parser/app/Paths_eo_parser.hs"
+              component: "eo-parser:exe:eo-parser"
 
-    - path: "./test"
-      component: "try-phi:test:spec"
+            - path: "eo-parser/test"
+              component: "eo-parser:test:doctests"
+
+            - path: "eo-parser/test"
+              component: "eo-parser:test:spec"
+
+    - path: "./Setup.hs"
+      config:
+        cradle:
+          direct:
+            arguments:
+              - "-package Cabal"
+              - "-package base"
+              
+    - path: "eo-parser/Setup.hs"
+      config:
+        cradle:
+          direct:
+            arguments:
+              - "-package Cabal"
+              - "-package base"

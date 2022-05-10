@@ -2,7 +2,9 @@ with (import (builtins.fetchTarball {
   url = "https://github.com/dmjio/miso/archive/refs/tags/1.8.2.tar.gz";
   sha256 = "14cj6cyz0dhk1mjvixbsyha72837bs3lbrjhcdhjb3i17dql0f1n";
 }) {});
-let indexed-traversable-src = pkgs.fetchFromGitHub {
+let 
+    
+    indexed-traversable-src = pkgs.fetchFromGitHub {
       owner = "haskellari";
       repo = "indexed-traversable";
       rev = "indexed-traversable-0.1.2";

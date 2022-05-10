@@ -22831,7 +22831,7 @@ var app = (function (exports) {
     });
     var view = new EditorView({
         state: initialState,
-        parent: document.querySelector("#editor")
+        parent: document.querySelector("#phi-editor")
     });
 
     exports.initFromLink = initFromLink;

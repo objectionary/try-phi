@@ -1,3 +1,2 @@
 node_modules/
-/src/parser.js
-/src/parser.terms.js
+/src/grammar/parser*

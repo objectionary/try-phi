@@ -10,17 +10,22 @@
     Locator {"^" (num | $[1-9] num+)}
     Attr {alpha (alpha | num | underscore)*}
     Decorator {"@"}
-    "[" "]" "(" ")"
+    VOID {"?"}
+    LSQ[closedBy="RSQ"]{ "[" }
+    RSQ[openedBy="LSQ"]{ "]"}
+    LP[closedBy="RP"]{ "("}
+    RP[openedBy="LP"]{ ")"}
+    DOT {"."}
 }
 
 Mapsto {"->"}
 
-body { Block {"[" ("" | mapping ("," mapping)*) "]"} }
+body { Block {LSQ ("" | mapping ("," mapping)*) RSQ} }
 
 mapping { (Attr | Decorator) Mapsto term }
 
-app { term Block {"(" ("" | mapping) ")" } }
+app { term Block {LP ("" | mapping) RP } }
 
-term { term "." Attr | app | body | Locator}
+term { term DOT Attr | app | body | Locator | VOID}
 
 @detectDelim

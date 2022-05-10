@@ -30,23 +30,12 @@ ghc-options:
 
 dependencies:
 - base >= 4.7 && < 5
-- ansi-terminal
-- bifunctors
 - bound
 - containers
-- deepseq
-- free
 - hashable
 - insert-ordered-containers
-- kan-extensions
-- logict
 - mtl
-- parsers
-- prettyprinter
-- profunctors
 - text
-- transformers
-- pretty-simple
 - unordered-containers
 - megaparsec
 - scientific

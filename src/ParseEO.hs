@@ -120,10 +120,10 @@ import Text.Megaparsec.Char.Lexer
     scientific,
     signed,
   )
-import Text.Megaparsec.Debug (dbg)
-import qualified Text.Megaparsec.Error
-import Text.Megaparsec.Internal (ParsecT)
-import qualified Text.Megaparsec.Stream as TM
+-- import Text.Megaparsec.Debug (dbg)
+-- import qualified Text.Megaparsec.Error
+-- import Text.Megaparsec.Internal (ParsecT)
+-- import qualified Text.Megaparsec.Stream as TM
 import Text.Printf (printf)
 
 type Parser = Parsec Void Text
@@ -282,12 +282,15 @@ debugFlag = True
 
 data DebugMode = On | Off
 
-debug :: (Show a, Text.Megaparsec.Error.ShowErrorComponent e,
- TM.VisualStream s) =>
-  String -> ParsecT e s m a -> ParsecT e s m a
-debug label parser
-  | debugFlag = dbg label parser
-  | otherwise = parser <?> label
+-- debug :: (Show a, Text.Megaparsec.Error.ShowErrorComponent e,
+--  TM.VisualStream s) =>
+--   String -> ParsecT e s m a -> ParsecT e s m a
+-- debug :: (Show a, Text.Megaparsec.Error.ShowErrorComponent e,
+--  TM.VisualStream s) =>
+--   String -> ParsecT e s m a -> ParsecT e s m a
+-- debug label parser
+--   | debugFlag = dbg label parser
+--   | otherwise = parser <?> label
 
 manyTry :: MonadParsec e s m => m a -> m [a]
 manyTry p = try $ many (try p)
@@ -299,11 +302,11 @@ choiceTry :: MonadParsec e s m => [m a] -> m a
 choiceTry p = try $ choice (map try p)
 
 -- | print a debug message when enter a node
-enter :: Show a => a -> ParsecT Void Text Identity ()
-enter name = do
-  pos <- getPos
-  debug (show pos <> ": Enter " <> show name) pEmpty
-  return ()
+-- enter :: Show a => a -> ParsecT Void Text Identity ()
+-- enter name = do
+--   pos <- getPos
+--   debug (show pos <> ": Enter " <> show name) pEmpty
+--   return ()
 
 tEOL :: Parser ()
 tEOL = try $ do
@@ -311,12 +314,12 @@ tEOL = try $ do
   return ()
 
 -- | print a debug message when leave a node
-leave :: Show a => a -> p -> ParsecT Void Text Identity ()
-leave name node = do
-  pos <- getPos
-  let l = printf "%s: Leave %s" (show pos) (show name)
-  debug l pEmpty
-  return ()
+-- leave :: Show a => a -> p -> ParsecT Void Text Identity ()
+-- leave name node = do
+--   pos <- getPos
+--   let l = printf "%s: Leave %s" (show pos) (show name)
+--   debug l pEmpty
+--   return ()
 
 noIndent :: Int
 noIndent = 0

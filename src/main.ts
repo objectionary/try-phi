@@ -52,7 +52,7 @@ const initialState = EditorState.create({
 
 const view = new EditorView({
   state: initialState,
-  parent: document.querySelector("#phi-editor")
+  parent: document.getElementById("#phi-editor")
 })
 
 export {view, initFromLink}

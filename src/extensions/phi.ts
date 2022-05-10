@@ -20,7 +20,7 @@ export const phiLanguage = LRLanguage.define({
         Mapsto: t.operatorKeyword,
         DOT: t.operatorKeyword,
 
-        BOOL: t.integer,
+        BOOL: t.bool,
         INT: t.integer,
         BYTES: t.integer,
         HEX: t.integer,
@@ -54,9 +54,9 @@ export const phiHighlighting = HighlightStyle.define([
   { tag: tags.squareBracket, color: '#383A42' },
 
   { tag: tags.integer, color: '#986801' },
-  { tag: tags.bool, color: '#986801' },
   { tag: tags.number, color: '#986801' },
   { tag: tags.float, color: '#986801' },
+  { tag: tags.bool, color: '#0184BC' },
   { tag: tags.regexp, color: '#0184BC' },
   { tag: tags.string, color: '#598559' },
   { tag: tags.character, color: '#598559' },

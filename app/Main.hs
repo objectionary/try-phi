@@ -235,8 +235,8 @@ cdns =
       link_ [href_ "https://www.yegor256.com/images/books/elegant-objects/cactus.png", rel_ "shortcut icon"],
       link_ [href_ "https://cdn.jsdelivr.net/gh/yegor256/tacit@gh-pages/tacit-css.min.css", rel_ "stylesheet", type_ "text/css"],
       link_ [href_ "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi/src/styles/styles.css", rel_ "stylesheet", type_ "text/css"],
-      script_ [src_ "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi/src/scripts/init-popovers.js", type_ "text/javascript"] "",
-      script_ [src_ "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi/src/scripts/set-snippet.js", type_ "text/javascript"] ""
+      script_ [src_ "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi@0.0.1/src/Site/scripts/init-popovers.js", type_ "text/javascript"] "",
+      script_ [src_ "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi@0.0.1/src/Site/scripts/set-snippet.js", type_ "text/javascript"] ""
     ]
 
 getGraphSteps :: Model -> [CGraph.Configuration Gr]

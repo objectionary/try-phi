@@ -283,7 +283,7 @@ debugFlag = True
 data DebugMode = On | Off
 
 debug :: (Show a, Text.Megaparsec.Error.ShowErrorComponent e,
- TM.Stream s) =>
+ TM.VisualStream s) =>
   String -> ParsecT e s m a -> ParsecT e s m a
 debug label parser
   | debugFlag = dbg label parser

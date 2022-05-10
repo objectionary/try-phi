@@ -45,6 +45,7 @@ library
       Phi.Minimal.Translation.Lambda
       Phi.Utils.GraphBuilder
       Site.Content
+      Site.Scripts
   other-modules:
       Paths_try_phi
   hs-source-dirs:

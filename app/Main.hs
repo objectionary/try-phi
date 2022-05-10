@@ -3,7 +3,7 @@
 {-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE TypeApplications  #-}
 
-module Main where
+module Main(main) where
 
 import           Site.Content                              (TabMode (..), infoIcon,
                                                        tabButton, tabContent)
@@ -64,7 +64,6 @@ initModel :: Model
 initModel =
   Model
     { modelSource = "",
-      -- modelAST = Left "initializing...",
       modelAST = Right Model.ex19,
       graphStepNumber = 0,
       jsGetCode = "",
@@ -72,11 +71,23 @@ initModel =
       setSnippetScript = ""
     }
 
+initApp :: Model -> App Model Action
+initApp model = Miso.App {
+  initialAction = NoOp, -- initial action to be executed on application load
+  update = updateModel, -- update function
+  view = viewModel, -- view function
+  events = defaultEvents, -- default delegated events
+  subs = [], -- empty subscription list
+  mountPoint = Nothing,
+  logLevel = Off, -- used during prerendering to see if the VDOM and DOM are in sync (only used with `miso` function)
+  model = model
+}
+
 -- | Entry point for a miso application
 main :: IO ()
 main = do
 #ifndef __GHCJS__
-  jsGetCode <- readFile "src/scripts/get-code.js"
+  jsGetCode <- readFile "src/Site/scripts/get-code.js"
   -- popoversScript <- readFile "src/scripts/init-popovers.js"
   -- setSnippetScript <- readFile "src/scripts/set-snippet.js"
   let model = initModel {
@@ -87,22 +98,8 @@ main = do
 #else
   let model = initModel
 #endif
-  runApp $ startApp Miso.App {..}
-
-  where
-    -- initialAction = Reload -- initial action to be executed on application load
-    initialAction = NoOp -- initial action to be executed on application load
-    update = updateModel -- update function
-    view = viewModel -- view function
-    events = defaultEvents -- default delegated events
-    subs = [] -- empty subscription list
-#ifndef __GHCJS__
-    mountPoint = Nothing
-#else
-    mountPoint = Nothing   -- mount point for application (Nothing defaults to 'body')
-#endif
-    logLevel = Off -- used during prerendering to see if the VDOM and DOM are in sync (only used with `miso` function)
-
+  runApp $ startApp (initApp model)
+  
 -- | Updates model, optionally introduces side effects
 updateModel :: Action -> Model -> Effect Action Model
 updateModel Reload m =
@@ -134,7 +131,7 @@ viewModel m@Model {..} =
     []
     [ eoLogoSection,
       editorDiv,
-      links,
+      cdns,
       div_
         [ id_ "app_div"
         , class_ "pt-5"
@@ -221,8 +218,8 @@ eoLogoSection =
         ]
     ]
 
-links :: View action
-links =
+cdns :: View action
+cdns =
   div_
     []
     [ link_ [href_ "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css", rel_ "stylesheet", type_ "text/css"],

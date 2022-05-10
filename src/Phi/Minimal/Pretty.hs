@@ -11,7 +11,7 @@ import           Data.Graph.Inductive.PatriciaTree    (Gr)
 import           Data.HashMap.Strict.InsOrd           (InsOrdHashMap)
 import qualified Data.HashMap.Strict.InsOrd           as InsOrdHashMap
 
-import           Prettyprinter            as Doc
+import           Data.Text.Prettyprint.Doc            as Doc
 import           Phi.Minimal.Machine.CallByName
 import qualified Phi.Minimal.Machine.CallByName.Graph as Graph
 import           Phi.Minimal.Model

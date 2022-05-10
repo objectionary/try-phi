@@ -32,10 +32,31 @@ packages:
       sha256: 7d529522482f4f83a62430a0fe245afc6272a5b9a63f2581388ac602654806c0
   original:
     hackage: servant-lucid-0.9.0.5
+- completed:
+    hackage: servant-0.19@sha256:8d1119c20d6eccb56e308642ec376eaa1b267a8dd761aa85a10e299e64371e3c,5562
+    pantry-tree:
+      size: 2802
+      sha256: 20fd58aaba4380d0575ce8d61884440d6063c6509a57a7540bb8bce8c02e44a9
+  original:
+    hackage: servant-0.19
+- completed:
+    hackage: ref-tf-0.4.0.2@sha256:69de3550250e0cd69f45d080359cb314a9487c915024349c75b78732bbee9332,1134
+    pantry-tree:
+      size: 211
+      sha256: fc5a4a35b4c782a33f452c1dc66ffa8ddbf321e2db369bd8823c796f0d4d8c7f
+  original:
+    hackage: ref-tf-0.4.0.2
+- completed:
+    hackage: trifecta-2.1@sha256:5a936da33052a9e7c1b3e6c974ba0357943fd5fa5b7e5d595fd7abda0f743f3b,4116
+    pantry-tree:
+      size: 1832
+      sha256: 76f462d216dd1cb00d625b784bcf36a62ce33c222184dacaae56ca64442fd065
+  original:
+    hackage: trifecta-2.1
 snapshots:
 - completed:
-    size: 590100
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/28.yaml
-    sha256: 428ec8d5ce932190d3cbe266b9eb3c175cd81e984babf876b64019e2cbe4ea68
+    size: 524996
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/14/27.yaml
+    sha256: 7ea31a280c56bf36ff591a7397cc384d0dff622e7f9e4225b47d8980f019a0f0
   original:
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/28.yaml
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/14/27.yaml

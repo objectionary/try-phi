@@ -43,6 +43,8 @@ dependencies:
   - miso
   - xmonad-contrib
   - directory
+  - bytestring
+  # - websockets
 library:
   source-dirs: src
 executables:

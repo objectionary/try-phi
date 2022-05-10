@@ -22,20 +22,25 @@ import qualified Phi.Minimal.ConfigurationDot         as CDot
 import           Phi.Minimal.EO.Pretty                (ppTerm)
 import qualified Phi.Minimal.Machine.CallByName.Graph as CGraph
 import qualified Phi.Minimal.Model                    as Model (ex19)
+import qualified Data.ByteString.Lazy as B
+import qualified Network.Wai.Handler.Warp         as Warp
+-- import qualified Network.WebSockets as WS
 
 #ifndef __GHCJS__
 import           Language.Javascript.JSaddle          (eval, strToText,
                                                        textToStr, valToStr)
 import           Language.Javascript.JSaddle.Warp     as JSaddle
+import Data.Text.Lazy (unpack)
 #endif
 
 #ifndef __GHCJS__
 runApp :: JSM () -> IO ()
-runApp = JSaddle.run 8081
--- runApp f = do
---   bString <- B.readFile "bundle.js"
---   jSaddle <- JSaddle.jsaddleOr defaultConnectionOptions (f >> syncPoint) (JSaddle.jsaddleAppWithJs (B.append (JSaddle.jsaddleJs False) bString))
---   Warp.runSettings (Warp.setPort 8082 (Warp.setTimeout 3600 Warp.defaultSettings)) jSaddle
+runApp f = JSaddle.run 8080 f
+  -- do
+  -- bString <- B.readFile "editor/docs/build/bundle.js"
+  -- jSaddle <- JSaddle.jsaddleOr WS.defaultConnectionOptions (f >> syncPoint) (JSaddle.jsaddleAppWithJs (B.append (JSaddle.jsaddleJs False) bString))
+  -- Warp.runSettings (Warp.setPort 8082 (Warp.setTimeout 3600 Warp.defaultSettings)) jSaddle
+
 #else
 runApp :: IO () -> IO ()
 runApp = id
@@ -194,7 +199,7 @@ editorDiv =
                   text ")",
                   infoIcon "info_editor"
                 ],
-              div_ [id_ "editor"] []
+              div_ [id_ "phi-editor"] []
             ]
         ]
     ]
@@ -224,7 +229,8 @@ cdns =
     []
     [ link_ [href_ "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css", rel_ "stylesheet", type_ "text/css"],
       script_ [src_ "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js", type_ "text/javascript"] "",
-      script_ [src_ "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-minimal-editor/docs/build/bundle.js", type_ "text/javascript"] "",
+      script_ [src_ "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-minimal-editor@v1.0/docs/build/bundle.js", type_ "text/javascript"] "",
+      -- script_ [src_ "./editor/docs/build/bundle.js", type_ "text/javascript"] "",
       link_ [href_ "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css", rel_ "stylesheet", type_ "text/css"],
       link_ [href_ "https://www.yegor256.com/images/books/elegant-objects/cactus.png", rel_ "shortcut icon"],
       link_ [href_ "https://cdn.jsdelivr.net/gh/yegor256/tacit@gh-pages/tacit-css.min.css", rel_ "stylesheet", type_ "text/css"],
@@ -289,7 +295,7 @@ termTabs term m@Model {..} =
           div_
             [class_ "col"]
             [ img_
-                [ let dotStringState = CDot.renderAsDot @Gr (getGraphSteps m !! graphStepNumber)
+                [ let dotStringState = unpack $ CDot.renderAsDot @Gr (getGraphSteps m !! graphStepNumber)
                    in src_ (ms ("https://quickchart.io/graphviz?layout=dot&format=svg&graph=" <> dotStringState)),
                   height_ "400"
                 ]

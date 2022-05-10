@@ -3,42 +3,7 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages:
-- completed:
-    hackage: mtl-2.2.2@sha256:1050fb71acd9f5d67da7d992583f5bd0eb14407b9dc7acc122af1b738b706ca3,2261
-    pantry-tree:
-      size: 1713
-      sha256: b8bdc2259e2f943a7252fb164805666fe108ac959d398e0af27b43ba2ebc241c
-  original:
-    hackage: mtl-2.2.2
-- completed:
-    hackage: ref-tf-0.5.0.1@sha256:51174dc1ec8411812e4cad647f4e5cb60ed801a280b9f09f87ad77f2d34f5bb9,1237
-    pantry-tree:
-      size: 212
-      sha256: d0d0314bc338570036365f0437d1494357bf5cc1f131a4c2ae823145c88c31fc
-  original:
-    hackage: ref-tf-0.5.0.1
-- completed:
-    hackage: megaparsec-9.2.0@sha256:0248397bedfddbb94584925a09ba793cf2327362a3183624bd7bfaed529163cb,3347
-    pantry-tree:
-      size: 1518
-      sha256: 71403f455a514f62cb0c62145b6f6ce19bec34b16ed150a53df02ea9d773d0be
-  original:
-    hackage: megaparsec-9.2.0
-- completed:
-    hackage: scientific-0.3.7.0@sha256:76465a82beb2af6ea83ebd00684acc0ffe659e7da7066329931dc8f02fc97507,4826
-    pantry-tree:
-      size: 657
-      sha256: 2e5436cd8a2d2fa045aadc7619aa06cf18f4f77d01b70d8c517213b718b69a2b
-  original:
-    hackage: scientific-0.3.7.0
-- completed:
-    hackage: pretty-simple-4.1.0.0@sha256:2e64bc4de394d88283d259c66931a69d8bcddd50632cf4b4c76a893b1402903f,4113
-    pantry-tree:
-      size: 1229
-      sha256: f4cdacebd7469e04069f5ac8c5a788de2598a48ad0e82bd329addc9f8c41e233
-  original:
-    hackage: pretty-simple-4.1.0.0
+packages: []
 snapshots:
 - completed:
     size: 590100

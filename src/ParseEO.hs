@@ -123,7 +123,7 @@ import Text.Megaparsec.Char.Lexer
 import Text.Megaparsec.Debug (dbg)
 import qualified Text.Megaparsec.Error
 import Text.Megaparsec.Internal (ParsecT)
-import qualified Text.Megaparsec.Stream
+import qualified Text.Megaparsec.Stream as TM
 import Text.Printf (printf)
 
 type Parser = Parsec Void Text
@@ -282,7 +282,9 @@ debugFlag = True
 
 data DebugMode = On | Off
 
-debug :: (Text.Megaparsec.Stream.VisualStream s, Text.Megaparsec.Error.ShowErrorComponent e, Show a) => String -> ParsecT e s m a -> ParsecT e s m a
+debug :: (Show a, Text.Megaparsec.Error.ShowErrorComponent e,
+ TM.Stream s) =>
+  String -> ParsecT e s m a -> ParsecT e s m a
 debug label parser
   | debugFlag = dbg label parser
   | otherwise = parser <?> label

@@ -45,10 +45,10 @@ sh scripts/init.sh
 
 * Enable auto-reloading
 ```sh
-sh scripts/ghcid.sh
+sh scripts/dev.sh
 ```
 
-* Open the corresponding `localhost:8080` (put the correct port) in Chrome
+* Open the corresponding `localhost:8080` (put the correct port) in Chrome (due to [this](https://github.com/dmjio/miso/issues/668))
 
 ### Release
 

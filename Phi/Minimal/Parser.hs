@@ -1,5 +1,6 @@
 {-# LANGUAGE LambdaCase       #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE PackageImports #-}
 
 module Phi.Minimal.Parser where
 
@@ -8,7 +9,7 @@ import           Data.Char               (isAlpha, isAlphaNum)
 import           Data.Function           ((&))
 import qualified Data.HashSet            as HashSet
 import           GHC.Exts                (fromList)
-import           Prettyprinter           as Doc (unAnnotate)
+import           Data.Text.Prettyprint.Doc.Internal           as Doc (unAnnotate)
 import           Text.Parser.Token       (integer)
 import           Text.Parser.Token.Style (emptyIdents)
 import           Text.Trifecta           (IdentifierStyle (..), Parser, TokenParsing, symbol, (<?>))

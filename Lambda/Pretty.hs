@@ -9,7 +9,7 @@ module Lambda.Pretty where
 
 import           Data.HashMap.Strict.InsOrd (InsOrdHashMap)
 import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
-import           Prettyprinter  as Doc
+import           Data.Text.Prettyprint.Doc  as Doc
 
 import           Lambda.Model
 

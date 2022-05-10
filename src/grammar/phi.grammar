@@ -8,24 +8,93 @@
     num {std.digit}
     underscore {"_"}
     Locator {"^" (num | $[1-9] num+)}
-    Attr {alpha (alpha | num | underscore)*}
+    Name {alpha (alpha | num | underscore)*}
     Decorator {"@"}
     VOID {"?"}
+
     LSQ[closedBy="RSQ"]{ "[" }
     RSQ[openedBy="LSQ"]{ "]"}
     LP[closedBy="RP"]{ "("}
     RP[openedBy="LP"]{ ")"}
     DOT {"."}
+
+
+    Mapsto {"->"}
+    PLUS{ "+"}
+    MINUS{ "-"}
+    SLASH{"/"}
+
+    REGEX{ SLASH ![\r\n]+ SLASH $[a-z]+}
+    BYTE{ ($[0-9A-F])($[0-9A-F])}
+    EMPTY_BYTES { MINUS MINUS}
+    LINE_BYTES { BYTE (MINUS BYTE)*}
+    
+    BYTES {
+        EMPTY_BYTES
+        | LINE_BYTES
+    }
+    
+    INT { (PLUS | MINUS)? ($[0-9] | $[1-9] $[0-9]+)}
+    
+    EXP { "e" (PLUS | MINUS)? $[0-9]+ }
+
+    FLOAT { INT DOT $[0-9]* EXP?}
+
+    BOOL{ "TRUE" | "FALSE"}
+    CHAR{  "\'" (!["\\\r\n] | ESCAPE_SEQUENCE) "\'"}
+    STRING{ "\"" (!["\\\r\n] | ESCAPE_SEQUENCE)* "\""}
+    ESCAPE_SEQUENCE {
+            "\\" $[btnfr"'\\]
+        | "\\" ($[01]$[0-9]$[0-9] | "2"$[0-4]$[0-9] | "25" $[0-5])
+        | "\\" "u" BYTE BYTE
+    }
+    
+    HEX{ "0x" ($[0-9a-f])+}
+
+    TEXT_MARK{ "\"\"\""}
+    TEXT{
+        TEXT_MARK ("\n" | "\r\n")
+        (![\\] | ESCAPE_SEQUENCE)*
+        TEXT_MARK
+    }
+
+
+    @precedence {FLOAT, INT, HEX, BYTES}
+    @precedence {REGEX, TEXT, STRING}
 }
 
-Mapsto {"->"}
+Attribute { Name | Decorator}
+
 
 body { Block {LSQ ("" | mapping ("," mapping)*) RSQ} }
 
-mapping { (Attr | Decorator) Mapsto term }
+mapping { Attribute Mapsto term }
 
 app { term Block {LP ("" | mapping) RP } }
 
-term { term DOT Attr | app | body | Locator | VOID}
+term { term DOT Attribute | app | body | Locator | DATA }
+
+DATA
+{
+  BYTES
+  |
+  BOOL
+  |
+  TEXT
+  |
+  STRING
+  |
+  INT
+  |
+  FLOAT
+  |
+  HEX
+  |
+  CHAR
+  |
+  REGEX
+  |
+  VOID
+}
 
 @detectDelim

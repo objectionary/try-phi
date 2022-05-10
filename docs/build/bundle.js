@@ -22449,13 +22449,14 @@ var app = (function (exports) {
     var linkId = '__permalink__';
     var attributeHref = 'href';
     function setLink(state) {
+        var _a;
         var newRef = window.location.protocol +
             '//' +
             window.location.host +
             window.location.pathname +
             '?snippet=' +
             encodeURIComponent(state.doc.toString());
-        document.getElementById(linkId).setAttribute(attributeHref, newRef);
+        (_a = document.getElementById(linkId)) === null || _a === void 0 ? void 0 : _a.setAttribute(attributeHref, newRef);
     }
     function initFromLink(view) {
         var params = new URLSearchParams(window.location.search);
@@ -22831,7 +22832,7 @@ var app = (function (exports) {
     });
     var view = new EditorView({
         state: initialState,
-        parent: document.getElementById("#phi-editor")
+        parent: document.getElementById("phi-editor")
     });
 
     exports.initFromLink = initFromLink;

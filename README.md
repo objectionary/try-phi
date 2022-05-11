@@ -72,4 +72,4 @@ EO.Test.test
 
 ### Building with nix
 
-* I had to put some public keys into `~/.config/nix/nix.conf` from [here](https://github.com/NixOS/nixpkgs/issues/45339#issuecomment-414677181)
+* As I was setting the dependencies, I had to write `trusted-public-keys` and `binary-caches` related to `cache.nixos` from [here](https://github.com/NixOS/nixpkgs/issues/45339#issuecomment-414677181) into `~/.config/nix/nix.conf`

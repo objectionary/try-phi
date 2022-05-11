@@ -79,3 +79,7 @@ EO.Test.test
 * Setting up this project in VS Code required creation of `hie.yaml` (explained [here](https://github.com/haskell/hie-bios#stack)) via [implicit-hie](https://github.com/Avi-D-coder/implicit-hie). 
 
 * Also, used [this workaround](https://github.com/haskell/haskell-ide-engine/issues/1650#issuecomment-650192055) to silence errors about Setup.hs
+
+### Building with nix
+
+* Had to put some public keys into `~/.config/nix/nix.conf` from [here](https://github.com/NixOS/nixpkgs/issues/45339#issuecomment-414677181)

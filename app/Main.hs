@@ -23,14 +23,14 @@ import           Phi.Minimal.EO.Pretty                (ppTerm)
 import qualified Phi.Minimal.Machine.CallByName.Graph as CGraph
 import qualified Phi.Minimal.Model                    as Model (ex19)
 import qualified Data.ByteString.Lazy as B
-import qualified Network.Wai.Handler.Warp         as Warp
+import Data.Text.Lazy as TL (unpack)
+-- import qualified Network.Wai.Handler.Warp         as Warp
 -- import qualified Network.WebSockets as WS
 
 #ifndef __GHCJS__
 import           Language.Javascript.JSaddle          (eval, strToText,
                                                        textToStr, valToStr)
 import           Language.Javascript.JSaddle.Warp     as JSaddle
-import Data.Text.Lazy (unpack)
 #endif
 
 #ifndef __GHCJS__
@@ -295,8 +295,8 @@ termTabs term m@Model {..} =
           div_
             [class_ "col"]
             [ img_
-                [ let dotStringState = unpack $ CDot.renderAsDot @Gr (getGraphSteps m !! graphStepNumber)
-                   in src_ (ms ("https://quickchart.io/graphviz?layout=dot&format=svg&graph=" <> dotStringState)),
+                [ let dotStringState = TL.unpack $ CDot.renderAsDot @Gr (getGraphSteps m !! graphStepNumber)
+                   in src_ (ms ("https://quickchart.io/graphviz?layout=dot&format=svg&graph=" <> dotStringState :: String)),
                   height_ "400"
                 ]
             ]

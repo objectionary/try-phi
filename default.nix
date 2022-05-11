@@ -79,8 +79,8 @@ let
     eo-parser-src = pkgs.fetchFromGitHub {
       owner = "br4ch1st0chr0n3";
       repo = "eo-parser";
-      rev = "f45e30fdcdb379a188e6a1c0f274d16751dc560b";
-      sha256 = "0dk7g2d9krwg85ci08xw6h1rcfa0737j1bbza913mna07nnrppdx";
+      rev = "1cefb8c908284f12c8d97a811cb91037a6ee4ee2";
+      sha256 = "02n35painz6qg78ih0m8gwbfxppjzpw5kfg5ziz1344fdfsa93fl";
     };
     eo-parser-latest = pkgs.haskell.packages.ghcjs.callCabal2nix "eo-parser" eo-parser-src {};
 

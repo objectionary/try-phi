@@ -1,5 +1,5 @@
 module App.Button
-  ( Action(..)
+  ( BAction(..)
   , State
   , component
   , render
@@ -7,6 +7,7 @@ module App.Button
   where
 
 import Prelude
+
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -14,9 +15,9 @@ import Halogen.HTML.Events as HE
 type State
   = { count :: Int }
 
-data Action
-  = Increment
-
+data BAction
+  = Increment | Decrement
+  
 component :: forall q i o m. H.Component q i o m
 component =
   H.mkComponent
@@ -25,7 +26,7 @@ component =
     , eval: H.mkEval H.defaultEval { handleAction = handleAction }
     }
 
-render :: forall cs m. State -> H.ComponentHTML Action cs m
+render :: forall cs m. State -> H.ComponentHTML BAction cs m
 render state =
   HH.div_
     [ HH.p_
@@ -33,8 +34,12 @@ render state =
     , HH.button
         [ HE.onClick \_ -> Increment ]
         [ HH.text "Click me" ]
+    , HH.button
+        [ HE.onClick \_ -> Increment ]
+        [ HH.text "Click me" ]
     ]
 
-handleAction :: forall cs o m. Action → H.HalogenM State Action cs o m Unit
+handleAction :: forall cs o m. BAction → H.HalogenM State BAction cs o m Unit
 handleAction = case _ of
   Increment -> H.modify_ \st -> st { count = st.count + 1 }
+  Decrement -> H.modify_ \st -> st { count = st.count - 1 }

@@ -1,0 +1,17 @@
+.*
+!.gitignore
+!.github
+
+output
+generated-docs
+bower_components
+node_modules
+
+package-lock.json
+*.lock
+
+dist/
+prod/*
+
+index.js
+prod

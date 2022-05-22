@@ -1,45 +1,36 @@
 # Halogen Template
 
+This is another attempt to write try-phi editor, this time in PureScript.
+It's based on this [template](https://github.com/purescript-halogen/purescript-halogen-template).
+
 ### Quick Start
+* Install [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
+* Install [npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm/)
+
 ```sh
-git clone https://github.com/purescript-halogen/purescript-halogen-template.git halogen-project
-cd halogen-project
+git clone https://github.com/br4ch1st0chr0n3/phi-editor-purs
+cd phi-editor-purs
 npm install
 npm run build
 npm run serve
 ```
 
-### Introduction
-
-This is a template for starting a fresh project with the [Halogen](https://github.com/purescript-halogen/purescript-halogen) library for writing declarative, type-safe user interfaces.
-
-You can learn more about Halogen with these resources:
-
-- The [Halogen documentation](https://github.com/purescript-halogen/purescript-halogen/tree/master/docs), which includes a quick start guide and a concepts reference.
-- The [Learn Halogen](https://github.com/jordanmartinez/learn-halogen) learning repository.
-- The [Real World Halogen](https://github.com/thomashoneyman/purescript-halogen-realworld) application and guide. Note that the published article is written for the older halogen v4, but the code and comments cover the current halogen v5.
-- The [API documentation](https://pursuit.purescript.org/packages/purescript-halogen) on Pursuit
-
-You can chat with other Halogen users on the [PureScript Discourse](https://discourse.purescript.org), or join the [Functional Programming Slack](https://functionalprogramming.slack.com) ([invite link](https://fpchat-invite.herokuapp.com/)) in the `#purescript` and `#purescript-beginners` channels.
-
-If you notice any problems with the below setup instructions, or have suggestions on how to make the new-user experience any smoother, please create an issue or pull-request.
-
-Compatible with PureScript compiler 15.x
+Now, your browser will open, showing [http://localhost:1234](http://localhost:1234)
 
 ### Initial Setup
 
-**Prerequisites:** This template assumes you already have Git and Node.js installed with `npm` somewhere on your path.
+**Prerequisites:** This section assumes you already have Git and Node.js installed with `npm` somewhere on your path.
 
 First, clone the repository and step into it:
 
 ```sh
-git clone https://github.com/purescript-halogen/purescript-halogen-template.git halogen-project
-cd halogen-project
+git clone https://github.com/br4ch1st0chr0n3/phi-editor-purs
+cd phi-editor-purs
 ```
 
-Then, install the PureScript compiler, the [Spago](https://github.com/purescript/spago) package manager and build tool, and the [Parcel](https://github.com/parcel-bundler/parcel) bundler. You may either install PureScript tooling _globally_ (possibly using `sudo` on Linux), to reduce duplicated `node_modules` across projects, or _locally_, so that each project uses specific versions of the tools.
+Then, install the PureScript compiler, the [Spago](https://github.com/purescript/spago) package manager and build tool, and the [Parcel](https://github.com/parcel-bundler/parcel) bundler. You may either install PureScript tooling _globally_, to reduce duplicated `node_modules` across projects, or _locally_, so that each project uses specific versions of the tools.
 
-To install the toolchain globally:
+To install the toolchain globally (possibly with `sudo` on Linux):
 ```sh
 npm install -g purescript spago parcel
 ```
@@ -63,13 +54,14 @@ npm run build
 You can launch your app in the browser with:
 
 ```sh
-# An alias for `parcel dev/index.html --out-dir dev-dist --open`
+# An alias for `parcel dev/index.html --open`
 npm run serve
 ```
 
+
 ### Development Cycle
 
-If you're using an [editor](https://github.com/purescript/documentation/blob/master/ecosystem/Editor-and-tool-support.md#editors) that supports [`purs ide`](https://github.com/purescript/purescript/tree/master/psc-ide) or are running [`pscid`](https://github.com/kRITZCREEK/pscid), you simply need to keep the previous `npm run serve` command running in a terminal. Any save to a file will trigger an incremental recompilation, rebundle, and web page refresh, so you can immediately see your changes.
+If you're using an [editor](https://github.com/purescript/documentation/blob/master/ecosystem/Editor-and-tool-support.md#editors) that supports [`purs ide`](https://github.com/purescript/purescript/tree/master/psc-ide) or are running [`pscid`](https://github.com/kRITZCREEK/pscid), you simply need to keep the previous `npm run serve` command running in a terminal. Any save to a file **used** in the project will trigger an incremental recompilation, rebundle, and web page refresh, so you can immediately see your changes.
 
 If your workflow does not support automatic recompilation, then you will need to manually re-run `npm run build`. Even with automatic recompilation, a manual rebuild is occasionally required, such as when you add, remove, or modify module names, or notice any other unexpected behavior.
 

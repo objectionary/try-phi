@@ -3,7 +3,10 @@
 <title>Minimal φ editor</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./styles.css">
+<link rel="stylesheet" href="./phi-editor.css">
+<!-- Test appending the editor when a corresponding div is ready-->
+<script src="../src/add-editor-id.js"></script>
+<script type="module" src="./phi-editor.js"></script>
 <style>
     body {
         max-width: 992px;
@@ -78,17 +81,8 @@
         </table>
         <br>
 
-        <div id="phi-editor"></div>
+        <div id = "id">
 
+        </div>
     </div>
-
-    <script type="module" src="./phi-editor.js"></script>
-    <script type="module">
-        import {phiEditor} from "./phi-editor"
-        if (phiEditor.view !== undefined) {
-            console.log("state is defined")
-        } else {
-            console.log("state is undefined")
-        }
-    </script>
 </body>

@@ -50,16 +50,85 @@ const initialState = EditorState.create({
   ],
 })
 
+// const waitForElement1 =async (selector: string): Promise<HTMLElement> => {
+    
+// }
+// // Я отправляю запрос в компанию. Он синхронный
+// // Компания обещает мне выполнить работу
+// const angelMowersPromise = new Promise<string>((resolve, reject) => {
+//   // Обещание разрешилось спустя несколько часов
+//   setTimeout(() => {
+//       resolve('We finished mowing the lawn')
+//   }, 100000) // разрешается спустя 100 000 мс
+//   reject("We couldn't mow the lawn")
+// })
+
+// const myPaymentPromise = new Promise<Record<string, number | string>>((resolve, reject) => {
+//   // разрешившийся промис с объектом: платежом в 1000 евро
+//   // и большое спасибо
+//   setTimeout(() => {
+//       resolve({
+//           amount: 1000,
+//           note: 'Thank You',
+//       })
+//   }, 100000)
+//   // промис отклонен. 0 евро и отзыв «неудовлетворительно» 
+//   reject({
+//       amount: 0,
+//       note: 'Sorry Lawn was not properly Mowed',
+//   })
+// })
+
+// const myAsync = async (): Promise<Record<string, number | string>> => {
+//   await angelMowersPromise
+//   const response = await myPaymentPromise
+//   return response
+// }
+
+// const element = await waitForElement("phi-editor")
+
 const view = new EditorView({
   state: initialState,
-  parent: document.getElementById("phi-editor")
 })
-
-// export {view, initFromLink}
 
 let phiEditor = {
   view: view,
   initFromLink: initFromLink
 }
+
+function waitForElement(selector: string) {
+  return new Promise<HTMLElement | string>((resolve, reject) => {
+      setTimeout(() => {
+        reject('no element with id "phi-editor" was created')
+      }, 5000) // разрешается спустя 100 000 мс
+
+      // if (document.getElementById(selector)) {
+      //     return resolve(document.getElementById(selector));
+      // }
+
+      const observer = new MutationObserver(mutations => {
+          if (document.getElementById(selector)) {
+              resolve(document.getElementById(selector));
+              observer.disconnect();
+          }
+      });
+
+      observer.observe(document.body, {
+          childList: true,
+          subtree: true
+      });
+  });
+}
+
+async function waitElem() {
+  const element = await waitForElement("phi-editor")
+  if (typeof element == "string"){
+    console.log(element)
+  } else {
+    element.appendChild(view.dom)
+  }
+}
+
+waitElem()
 
 export { phiEditor}

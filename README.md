@@ -17,10 +17,12 @@
 
 ## Use with your HTML
 1. Create a tag with `id="phi-editor"`. The editor tab will be attached to it. You can change tag id in `./src/main.ts` where `view` is declared.
-1. Put `phi-editor.js` from `./docs` into your project and include it as a `<script>`, e.g. 
+1. Add the script and styles from `./docs`, e.g.:
 ```html
 <script type="module" src="./phi-editor.js"></script>
+<link rel="stylesheet" href="./phi-editor.css">
 ```
+
 
 ## Development
 * Install the dependencies and run in rebuild-on-change mode

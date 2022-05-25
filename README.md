@@ -13,26 +13,19 @@
 * Underline code (beta) with `Ctrl`+`H`(see [this example](https://codemirror.net/6/examples/decoration/))
 * Actions from [basic-setup](https://codemirror.net/6/docs/ref/#basic-setup), including [keybindings](https://codemirror.net/6/docs/ref/#commands.defaultKeymap)
 * Continued indentation (thanks to this [facet example](https://codemirror.net/6/examples/zebra/))
-* Share code by permalink
+* Wait until `<div>` for the editor is created
 
 ## Use with your HTML
-* Create a tag with `id="editor"`. The editor tab will appear inside it. You can change tag id in `src/main` where `view` is declared.
-* Put `bundle.js` from `docs/build/` into your project and include it as a `<script>`
+1. Create a tag with `id="eo-editor"`. The editor tab will be attached to it. You can change tag id in `./src/main.ts` where `view` is declared.
+1. Add the script and styles from `./docs`, e.g.:
+```html
+<script type="module" src="./eo-editor.js"></script>
+<link rel="stylesheet" href="./eo-editor.css">
+```
 
-## Run
-* Install packages and build
-    ```sh
-    npm i
-    npm run build
-    ```
-* Open in browser `docs/index.html`. E.g.
-    ```sh
-    firefox docs/index.html
-    ```
 
-* Open browser console to see full Lezer tree
-
-* Re-build after changes in `.grammar`
-  ```sh
-  npm run build
-  ```
+## Development
+* Install the dependencies and run in rebuild-on-change mode
+```sh
+npm i && npm run dev
+```

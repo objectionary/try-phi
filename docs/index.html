@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css">
 <link rel="shortcut icon" href="https://www.yegor256.com/images/books/elegant-objects/cactus.png" />
+<script src="https://cdn.jsdelivr.net/npm/fontawesome@5.6.3/index.min.js"></script>
 
 <link rel="stylesheet" href="./eo-editor.css">
 <script type="module" src="eo-editor.js"></script>
@@ -30,7 +31,11 @@
 
   <div class="pt-3" style="text-align: center;">
     <h2>EO editor</h2>
+    <div class="col-3"></div>
     <button type="button" class="btn btn-yellow me-2" id="__permalink__" onclick="copyLink()">Copy permalink</button>
+    <a href="https://github.com/br4ch1st0chr0n3/eo-editor" class="image-link me-2">
+      <img src="assets/gh.png" style="height: 40px; width: 40px;"/>
+    </a>
     <button class="btn btn-green me-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar"
       aria-controls="offcanvasNavbar">Editor guide
     </button>
@@ -136,7 +141,7 @@
   </nav>
 
   <div class="row">
-    <div class="col-8" id="eo-editor"></div>
+    <div id="eo-editor"></div>
     </row>
 
     <script>

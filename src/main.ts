@@ -2,7 +2,8 @@ import { EditorState, EditorView, basicSetup } from '@codemirror/basic-setup'
 import { keymap } from '@codemirror/view'
 import { indentWithTab } from '@codemirror/commands'
 import { phi } from './extensions/phi'
-import { updatePermalink, initFromLink } from './extensions/permalink'
+import { updatePermalink} from './extensions/permalink'
+import { initFromLink} from './extensions/init-from-link'
 import { parseErrors } from './extensions/diagnostics'
 import { indentGuides } from './extensions/indent-guides'
 import { toggleTree } from './extensions/log-lezer-tree'
@@ -63,7 +64,7 @@ let phiEditor = {
 function waitForElement(id: string) {
   return new Promise<HTMLElement | string>((resolve, reject) => {
       setTimeout(() => {
-        reject('no element with id "phi-editor" was created')
+        reject(`no element with id ${id} was created`)
       }, 5000)
 
       if (document.getElementById(id)) {

@@ -16,23 +16,14 @@
 * Share code by permalink
 
 ## Use with your HTML
-* Create a tag with `id="editor"`. The editor tab will appear inside it. You can change tag id in `src/main` where `view` is declared.
-* Put `bundle.js` from `docs/build/` into your project and include it as a `<script>`
+1. Create a tag with `id="phi-editor"`. The editor tab will be attached to it. You can change tag id in `./src/main.ts` where `view` is declared.
+1. Put `phi-editor.js` from `./docs` into your project and include it as a `<script>`, e.g. 
+```html
+<script type="module" src="./phi-editor.js"></script>
+```
 
-## Run
-* Install packages and build
-    ```sh
-    npm i
-    npm run build
-    ```
-* Open in browser `docs/index.html`. E.g.
-    ```sh
-    firefox docs/index.html
-    ```
-
-* Open browser console to see full Lezer tree
-
-* Re-build after changes in `.grammar`
-  ```sh
-  npm run build
-  ```
+## Development
+* Install the dependencies and run in rebuild-on-change mode
+```sh
+npm i && npm run dev
+```

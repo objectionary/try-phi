@@ -55,4 +55,11 @@ const view = new EditorView({
   parent: document.getElementById("phi-editor")
 })
 
-export {view, initFromLink}
+// export {view, initFromLink}
+
+let phiEditor = {
+  view: view,
+  initFromLink: initFromLink
+}
+
+export { phiEditor}

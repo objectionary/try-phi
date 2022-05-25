@@ -82,5 +82,13 @@
 
     </div>
 
-    <script src="build/bundle.js"></script>
+    <script type="module" src="./phi-editor.js"></script>
+    <script type="module">
+        import {phiEditor} from "./phi-editor"
+        if (phiEditor.view !== undefined) {
+            console.log("state is defined")
+        } else {
+            console.log("state is undefined")
+        }
+    </script>
 </body>

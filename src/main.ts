@@ -2,7 +2,8 @@ import { EditorState, EditorView, basicSetup } from '@codemirror/basic-setup'
 import { keymap } from '@codemirror/view'
 import { indentWithTab } from '@codemirror/commands'
 import { eo } from './extensions/eo'
-import { updatePermalink, initFromLink } from './extensions/permalink'
+import { updatePermalink } from './extensions/permalink'
+import { initFromLink } from './extensions/init-from-link'
 import { parseErrors } from './extensions/diagnostics'
 import { indentGuides } from './extensions/indent-guides'
 import { toggleTree } from './extensions/log-lezer-tree'
@@ -58,7 +59,49 @@ const initialState = EditorState.create({
 
 const view = new EditorView({
   state: initialState,
-  parent: document.querySelector('#editor'),
 })
 
-export { view, initFromLink}
+let eoEditor = {
+  view: view,
+  initFromLink: initFromLink
+}
+
+// Wait until exists div for the editor
+
+function waitForElement(id: string) {
+  return new Promise<HTMLElement | string>((resolve, reject) => {
+      setTimeout(() => {
+        reject(`no element with id ${id} was created`)
+      }, 5000)
+
+      if (document.getElementById(id)) {
+        resolve(document.getElementById(id));
+      }
+
+      const observer = new MutationObserver(mutations => {
+          if (document.getElementById(id)) {
+              resolve(document.getElementById(id));
+              observer.disconnect();
+          }
+      });
+
+      observer.observe(document.body, {
+          childList: true,
+          subtree: true
+      });
+  });
+}
+
+async function insertWhenExists(id: string) {
+  const element = await waitForElement(id)
+  if (typeof element == "string"){
+    console.log(element)
+  } else {
+    element.appendChild(view.dom)
+    initFromLink(view)
+  }
+}
+
+insertWhenExists("eo-editor")
+
+export { eoEditor}

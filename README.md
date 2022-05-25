@@ -14,6 +14,7 @@
 * Actions from [basic-setup](https://codemirror.net/6/docs/ref/#basic-setup), including [keybindings](https://codemirror.net/6/docs/ref/#commands.defaultKeymap)
 * Continued indentation (thanks to this [facet example](https://codemirror.net/6/examples/zebra/))
 * Share code by permalink
+* Wait until `<div>` for the editor is created
 
 ## Use with your HTML
 1. Create a tag with `id="phi-editor"`. The editor tab will be attached to it. You can change tag id in `./src/main.ts` where `view` is declared.

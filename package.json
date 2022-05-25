@@ -6,7 +6,7 @@
     "dev:parser": "nodemon --watch src/grammar/*.grammar --exec \"npm run build:parser\"",
     "dev:build": "node esbuild.config.js",
     "dev:browser": "parcel docs/index.html --open",
-    "dev": "run-p --aggregate-output dev:build dev:browser dev:parser"
+    "dev": "npm run build:parser && run-p --aggregate-output dev:build dev:browser dev:parser"
   },
   "license": "Unlicense",
   "dependencies": {

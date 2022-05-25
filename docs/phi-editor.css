@@ -73,3 +73,7 @@
 .nav > li > button:hover {
   color: #54c234 !important;
 }
+
+.image-link {
+  text-decoration: none;
+}

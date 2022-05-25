@@ -7,7 +7,8 @@ function getPreviousIndent(context: IndentContext, pos: number) {
 
   let cursorRange = context.state.selection.main
   let cursorPos = cursorRange.from
-  if (cursorPos != currentLine.to && cursorPos != currentIndent + currentLine.from){
+  if (cursorPos == currentLine.to && currentLine.text.endsWith(".") 
+  || cursorPos != currentLine.to && cursorPos != currentIndent + currentLine.from){
     return currentIndent + 2
   }
   return currentIndent

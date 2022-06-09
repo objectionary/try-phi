@@ -1,5 +1,16 @@
 { name = "halogen-project"
-, dependencies = [ "console", "effect", "halogen", "prelude" ]
+, dependencies =
+  [ "affjax"
+  , "affjax-web"
+  , "console"
+  , "css"
+  , "effect"
+  , "halogen"
+  , "halogen-css"
+  , "prelude"
+  , "random"
+  , "web-html"
+  ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]
 }

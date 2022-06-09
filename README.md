@@ -15,6 +15,10 @@ npm run build
 npm run serve
 ```
 
+* If there is an [inotify error](https://askubuntu.com/a/1088275), run
+```sh
+echo fs.inotify.max_user_watches=1000000 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p
+```
 Now, your browser will open, showing [http://localhost:1234](http://localhost:1234)
 
 ### Initial Setup
@@ -54,7 +58,6 @@ npm run build
 You can launch your app in the browser with:
 
 ```sh
-# An alias for `parcel dev/index.html --open`
 npm run serve
 ```
 

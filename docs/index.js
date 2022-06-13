@@ -1,0 +1,1 @@
+require("./min.js").main();

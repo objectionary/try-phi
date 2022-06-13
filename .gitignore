@@ -11,7 +11,9 @@ package-lock.json
 *.lock
 
 dist/
-prod/*
+docs/
+prod/
 
 # index.js
 prod
+pub.sh

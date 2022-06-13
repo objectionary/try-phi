@@ -8,7 +8,9 @@ module Main
 
 import Prelude
 
+import Data.Array (head)
 import Data.Array as DA
+import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Halogen (Component)
@@ -46,6 +48,8 @@ md1 =
 
   isActives = [ true, false, false, false, false, false, false ]
 
+initTab = Tab {id: TEO, buttonText: "EO code", isActive: true, tabContent: HE.text "EO code"  }
+
 data Request
   = Request
     { code :: String
@@ -61,7 +65,10 @@ component =
   H.mkComponent
     { initialState
     , render
-    , eval: H.mkEval $ H.defaultEval { handleAction = handleAction }
+    , eval: H.mkEval $ H.defaultEval 
+      { handleAction = handleAction
+      , initialize = Just (SelectTab initTab)
+      }
     }
   where
   initialState _ = md1

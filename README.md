@@ -8,8 +8,8 @@ It's based on this [template](https://github.com/purescript-halogen/purescript-h
 * Install [npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm/)
 
 ```sh
-git clone https://github.com/br4ch1st0chr0n3/phi-editor-purs
-cd phi-editor-purs
+git clone https://github.com/br4ch1st0chr0n3/try-phi-front
+cd try-phi-front
 npm install
 npm run build
 npm run serve

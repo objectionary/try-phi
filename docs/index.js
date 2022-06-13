@@ -1,1 +1,2 @@
-require("./min.js").main();
+import main from 'main.js'
+main()

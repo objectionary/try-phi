@@ -45,7 +45,7 @@ jobs:
           npm run build-prod;
           mkdir -p docs;
           echo 'require("./min.js").main();' > docs/index.js;
-          esbuild --minify prod/index.js --outfile=docs/min.js;
+          npx esbuild --minify prod/index.js --outfile=docs/min.js;
           cp dev/index.html docs;
 
       # - name: Run the tests

@@ -2,6 +2,7 @@
 , dependencies =
   [ "affjax"
   , "affjax-web"
+  , "arrays"
   , "console"
   , "css"
   , "effect"

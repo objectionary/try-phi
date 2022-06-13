@@ -1,48 +1,57 @@
 module Phi
-  ( Model(..)
+  ( Action(..)
+  , State(..)
+  , ParseError(..)
+  , Term(..)
   , dataProp
   , eoLogoSection
   , html
-  , Term(..)
+  , Tab(..),
+  TabId(..),
+  Editor(..)
   )
   where
 
-import Data.Map.Internal
-import Prelude
-
 import CSS.Geometry as CG
 import CSS.Size as CS
-import Data.Either (Either(..))
+import Control.Applicative ((<$>))
 import Data.Foldable (intercalate)
 import Data.Int as DI
-import Data.List (foldl)
+import Data.Map.Internal (Map)
 import Data.Map.Internal as Map
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (fromMaybe)
 import Data.MediaType.Common (applicationJavascript, textCSS)
 import Data.Tuple (Tuple(..))
-import Halogen.HTML (AttrName(..), ClassName(..), HTML(..), PropName(..))
+import Halogen.HTML (AttrName(..), HTML)
 import Halogen.HTML as HH
 import Halogen.HTML.CSS as CSS
-import Halogen.HTML.Core (attr)
 import Halogen.HTML.Core as HC
-import Halogen.HTML.Elements as HE
-import Halogen.HTML.Elements.Keyed (div_)
-import Halogen.HTML.Events (onClick)
-import Halogen.HTML.Properties (ButtonType(..), IProp, href)
+import Halogen.HTML.Elements (a, div, div_, i, img, li_, link, nav_, p_, script, ul_) as HE
+import Halogen.HTML.Events (onClick) as HE
+import Halogen.HTML.Properties (ButtonType(..), IProp)
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties.ARIA as HA
+import Prelude (class Show, discard, map, show, ($), (<>))
 import Utils as U
-import Web.HTML.Common as WC
+import Data.Eq 
+
+data Editor = EOEditor | PhiEditor
+
+-- TODO 
+-- for recompilation, we will determine the source of code somehow
 
 data Action
   = Recompile String
-  | Reload
-  | NoOp
   | NextStep
   | PrevStep
+  | SelectTab Tab
+  | SelectCurrentEditor Editor
 
-html ∷ ∀ a b. Model -> HTML a b
-html md =
+-- TODO
+-- current editor is where the last change occured or the last cursor was left
+
+html ∷ ∀ a. State -> HTML a Action
+html model =
   HH.div
     [ HP.id "root" ]
     [
@@ -52,13 +61,13 @@ html md =
       HE.div [
         HP.id "app_div"
       ][
-        HE.button [onClick (\_ -> Reload), U.class_ "btn btn-secondary mb-5"] [HH.text "Reload"],
-        let {t : term, d: divElem} = 
-                case md.modelAST of
-                  Left err -> {t: Term "Error", d: HH.div [U.class_ "pb-2"] [HH.pre_ [HH.text err]]}
-                  Right t' -> {t: t', d: HH.div_ []}
-        in HH.div_ [divElem, termTabs term md {modelAst : Right term}]
-      ]
+        let
+          showError e = HH.div [U.class_ "pb-2"] [HH.pre_ [HH.text e]]
+        in
+          case model of
+              ParseError e -> showError (show e)
+              md -> HH.div_ [termTabs md]
+      ],
       pageFooter
     ]
 
@@ -80,6 +89,10 @@ eoLogoSection =
 
 dataProp ∷ ∀ a b. String → String → IProp a b
 dataProp propName value = HP.attr (AttrName ("data-" <> propName)) value
+
+dataBsProp ∷ ∀ a b. String → String → IProp a b
+dataBsProp propName value = HP.attr (AttrName ("data-bs-" <> propName)) value
+
 
 getInfoContent ∷ String → String
 getInfoContent x = fromMaybe "" (Map.lookup x infoContent)
@@ -134,7 +147,7 @@ ics =
   , { x: "info_whnf"
     , y:
         [ { pref: ""
-          , href: "https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/Model.hs#L129"
+          , href: "https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/State.hs#L129"
           , txt: "Code"
           }
         , { pref: "Results from"
@@ -150,7 +163,7 @@ ics =
   , { x: "info_nf"
     , y:
         [ { pref: ""
-          , href: "https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/Model.hs#L155"
+          , href: "https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/State.hs#L155"
           , txt: "Code"
           }
         , { pref: "Results from"
@@ -162,7 +175,7 @@ ics =
   , { x: "info_cbn_reduction"
     , y:
         [ { pref: ""
-          , href: "https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/Model.hs#L98"
+          , href: "https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/State.hs#L98"
           , txt: "Code"
           }
         , { pref: "Shows steps of"
@@ -245,49 +258,8 @@ editorDiv =
     ]
 
 
-
-data TabMode = Active | Disabled
-
-tabButton :: forall a b. String -> String -> String -> String -> TabMode -> HTML a b
-tabButton buttonId contentId infoId txt isActive =
-  HH.button [
-    U.class_ $ "nav-link" <> active,
-    HP.id buttonId,
-    dataProp "bs-toggle" "tab",
-    dataProp "bs-target" ("#" <> contentId),
-    HP.type_ ButtonButton,
-    HA.role "tab",
-    U.attr_ "aria-controls" contentId,
-    U.attr_ "aria-selected" selected
-    ] [
-    infoIcon infoId,
-    HC.text txt
-  ]
-  where
-    {t1: active, t2: selected} =
-      case isActive of
-        Active -> {t1 : " active", t2: "true"}
-        _      -> {t1 : "", t2: "false"}
-
-tabContent :: forall a b. String -> HTML a b-> String -> TabMode -> HTML a b
-tabContent tabId content buttonId isActive =
-  HH.div [
-    U.class_ $ "tab-pane fade" <> active,
-    U.class_ "pt-3",
-    HP.id tabId,
-    U.attr_ "role" "tabpanel",
-    U.attr_ "aria-labelledby" buttonId
-    ] [
-    content
-  ]
-  where
-    active =
-      case isActive of
-        Active -> " show active"
-        _      -> ""
-
-
 -- pageFooter :: View action
+pageFooter ∷ ∀ a b. HTML a b
 pageFooter =
   HE.nav_
     [ HE.ul_
@@ -310,81 +282,136 @@ pageFooter =
     ]
 
 
-cdns =
+cdns ∷ ∀ a b. HTML a b
+cdns =  
   HE.div_
-    [ HE.link [HP.href "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css", HP.rel "stylesheet", HP.type_ textCSS],
-      HE.script [HP.src "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js", HP.type_ applicationJavascript] [],
-      HE.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-minimal-editor@v1.0/docs/build/bundle.js", HP.type_ applicationJavascript] [],
+    [ HE.link [HP.href "https://cdn.jsdelivr.net/npm/bootstrap@5.2/dist/css/bootstrap.min.css", HP.rel "stylesheet", HP.type_ textCSS],
+      HE.script [HP.src "https://cdn.jsdelivr.net/npm/bootstrap@5.2/dist/js/bootstrap.bundle.min.js", HP.type_ applicationJavascript] [],
+      HE.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-editor@v1.0/docs/build/bundle.js", HP.type_ applicationJavascript] [],
       -- script_ [HP.src "./editor/docs/build/bundle.js", HP.type_ "text/javascript"] "",
-      HE.link [HP.href "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css", HP.rel "stylesheet", HP.type_ textCSS],
+      HE.link [HP.href "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css", HP.rel "stylesheet", HP.type_ textCSS],
       HE.link [HP.href "https://www.yegor256.com/images/books/elegant-objects/cactus.png", HP.rel "shortcut icon"],
       HE.link [HP.href "https://cdn.jsdelivr.net/gh/yegor256/tacit@gh-pages/tacit-css.min.css", HP.rel "stylesheet", HP.type_ textCSS],
-      HE.link [HP.href "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi/src/styles/styles.css", HP.rel "stylesheet", HP.type_ textCSS],
+      -- HE.link [HP.href "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi/src/styles/styles.css", HP.rel "stylesheet", HP.type_ textCSS],
       HE.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi@0.0.1/src/Site/scripts/init-popovers.js", HP.type_ applicationJavascript] [],
       HE.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi@0.0.1/src/Site/scripts/set-snippet.js", HP.type_ applicationJavascript] []
     ]
+
+
 
 data Term = Term String
 
 instance Show Term where
   show (Term s) = s
 
-term = "Term"
 
-data Model = Model
-  { modelSource      :: String,
-    modelAST         :: Either String Term,
-    graphStepNumber  :: Int,
-    jsGetCode        :: String,
-    popoversScript   :: String,
-    setSnippetScript :: String
-  }
+-- TODO EO and Phi tabs are synced
+-- If there current tab is x in {Phi, EO}, and there's an error, model error will be about this tab
+-- Otherwise, if code in current tab x is without errors, its contents will be translated into another tab
 
-termTabs :: forall a. Term -> Model -> HTML a Action
-termTabs term m =
-  HH.div_
-    [ 
-      HE.nav_
-        [ HH.div
-            [U.class_ "nav nav-tabs", HP.id "nav-tab", U.attr_ "role" "tablist"]
-            [ tabButton "button_eo" "content_eo" "info_eo" " EO code" Active,
-              tabButton "button_original_term" "content_original_term" "info_original_term" " Original term" Disabled,
-              tabButton "button_whnf" "content_whnf" "info_whnf" " Weak head normal form (WHNF)" Disabled,
-              tabButton "button_nf" "content_nf" "info_nf" " Normal form (NF)" Disabled,
-              tabButton "button_cbn_reduction" "content_cbn_reduction" "info_cbn_reduction" " Call-by-name term reduction" Disabled,
-              tabButton "button_cbn_with_tap" "content_cbn_with_tap" "info_cbn_with_tap" " Call-by-name term reduction (via abstract machine)" Disabled,
-              tabButton "button_cbn_with_graph" "content_cbn_with_graph" "info_cbn_with_graph" " Call-by-name evaluation on a graph" Disabled
-            ]
-        ],
-      HH.div
-        [U.class_ "tab-content", HP.id "nav-tabContent"]
-        [ tabContent "content_eo" (HE.pre_ [HH.text (show term)]) "button_eo" Active,
-          tabContent "content_original_term" (HE.pre_ [HH.text (show term)]) "button_original_term" Disabled,
-          tabContent "content_whnf" (HE.pre_ [HH.text (show term)]) "button_whnf" Disabled,
-          tabContent "content_nf" (HE.pre_ [HH.text (show term)]) "button_nf" Disabled,
-          -- cbn == Call by Name
-          tabContent "content_cbn_reduction" (HE.pre_ [HH.text (show term)]) "button_cbn_reduction" Disabled,
-          tabContent "content_cbn_with_tap" (HE.pre_ [HH.text (show term)]) "button_cbn_with_tap" Disabled,
-          tabContent "content_cbn_with_graph" (graphContent term) "button_cbn_with_graph" Disabled
-        ]
-    ]
+data ParseError = EOParseError String | PhiParseError String
+
+instance Show ParseError where
+  show (EOParseError s) = s
+  show (PhiParseError s) = s
+
+data State =
+    ParseError ParseError 
+  | State {
+      currentEditor :: Editor,
+      tabs :: Array Tab,
+      graphStep :: Int
+    }
+
+data TabMode = Active | Disabled
+
+
+tabButton :: forall a. Tab -> HTML a Action
+tabButton t@(Tab tab) =
+  HH.button [
+    U.classes_ $ ["nav-link"] <> active,
+    HP.id $ mkButton id,
+    dataBsProp "toggle" "tab",
+    dataBsProp "target" ("#" <> mkContent id),
+    HP.type_ ButtonButton,
+    HA.role "tab",
+    U.attr_ "aria-controls" (mkContent id),
+    U.attr_ "aria-selected" selected,
+    HE.onClick $ \_ -> SelectTab t
+    ] [
+    HC.text (" " <> tab.buttonText),
+    infoIcon (mkInfo id)
+  ]
   where
-    graphContent t =
+    id = getId tab.id
+    {t1: active, t2: selected} =
+      if tab.isActive
+      then {t1 : ["active"], t2: "true"}
+      else {t1 : [], t2: "false"}
+
+
+tabContent :: forall a b. Tab -> HTML a b
+tabContent (Tab tab) =
+  HH.div [
+    U.classes_ $ ["tab-pane", "fade"] <> active,
+    U.class_ "pt-3",
+    HP.id id,
+    U.attr_ "role" "tabpanel",
+    U.attr_ "aria-labelledby" (mkButton id)
+    ] [
+    tab.tabContent
+  ]
+  where
+  id = getId tab.id
+  active =
+    if tab.isActive
+    then ["show", "active"]
+    else []
+
+mkButton ∷ String → String
+mkButton id = "button_" <> id
+mkContent ∷ String → String
+mkContent id = "content_" <> id
+mkInfo ∷ String → String
+mkInfo id = "info_" <> id
+
+
+data TabId = TEO | TTerm | TWHNF | TNF | TCBNReduction | TCBNWithTAP | TCBNWithGraph
+
+derive instance Eq TabId
+
+class IdGettable where
+  getId :: TabId -> String
+
+instance IdGettable where
+  getId TEO = "eo"
+  getId TTerm = "original-term"
+  getId TWHNF = "whnf"
+  getId TNF = "nf"
+  getId TCBNReduction = "cbn-reduction"
+  getId TCBNWithTAP = "cbn-with-tap"
+  getId TCBNWithGraph = "cbn-with-graph"
+
+data Tab = Tab {
+  id :: TabId,
+  buttonText :: String,
+  isActive :: Boolean,
+  tabContent :: forall a b. HTML a b
+}
+
+instance Eq Tab where
+  eq (Tab t1) (Tab t2) = t1.id == t2.id
+
+termTabs :: forall a. State -> HTML a Action
+termTabs (ParseError s) = HH.div_ [HH.text (show s)]
+termTabs (State {tabs : tabs'}) = 
+  HH.div_ [
+    HE.nav_ [
       HH.div
-        [U.class_ "row"]
-        [ HH.div
-            [U.class_ "col"]
-            [ HH.div
-                [U.class_ "row"]
-                [ HH.div
-                    [U.class_ "col"]
-                    [ HH.button [onClick (\_ -> PrevStep)] [HH.text "Previous step"],
-                      HH.button [onClick (\_ -> NextStep)] [HH.text "Next step"]
-                    ],
-                  HH.div [U.class_ "col-2"] []
-                ],
-              HH.pre_ [
-                  HH.text (show term)
-                ]
-            ]
-        ]
+        [U.classes_ ["nav", "nav-tabs"], HP.id "nav-tab", HA.role "tablist"]
+        (tabButton <$> tabs')
+    ],
+    HH.div 
+      [U.class_ "tab-content", HP.id "nav-tabContent"]
+      (tabContent <$> tabs')
+  ]

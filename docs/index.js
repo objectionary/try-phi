@@ -1,2 +1,2 @@
-import main from './main.js'
-main()  
+import main from './min.js'
+main()

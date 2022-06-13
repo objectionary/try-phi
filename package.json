@@ -1,6 +1,7 @@
 {
   "private": true,
   "devDependencies": {
+    "gh-pages": "^4.0.0",
     "parcel": "2.5.0",
     "purescript": "^0.15.2",
     "spago": "^0.20.9"

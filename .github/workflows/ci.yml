@@ -45,6 +45,11 @@ jobs:
           npm run build-prod;
           npx esbuild --minify prod/index.js --outfile=docs/min.js;
           cp dev/index.html docs;
-
-      # - name: Run the tests
-        # run: npm run test
+          echo "import main from './min.js'\nmain()" > docs/index.js
+      
+      - name: GitHub Pages action
+        uses: peaceiris/actions-gh-pages@v3.7.3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: docs
+          force_orphan: true

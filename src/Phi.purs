@@ -12,6 +12,8 @@ module Phi
   )
   where
 
+import Data.Eq
+
 import CSS.Geometry as CG
 import CSS.Size as CS
 import Control.Applicative ((<$>))
@@ -33,7 +35,6 @@ import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties.ARIA as HA
 import Prelude (class Show, discard, map, show, ($), (<>))
 import Utils as U
-import Data.Eq 
 
 data Editor = EOEditor | PhiEditor
 
@@ -226,11 +227,11 @@ infoIcon :: forall a b. String -> HTML a b
 infoIcon infoId =
   HE.i
     [ HP.id infoId
-    , U.class_ "bi bi-info-square"
-    , dataProp "bs-container" "body"
-    , dataProp "bs-toggle" "popover"
-    , dataProp "bs-placement" "top"
-    , dataProp "bs-content" (getInfoContent infoId)
+    , U.classes_ ["bi", "bi-info-square", "ms-2"]
+    , dataBsProp "container" "body"
+    , dataBsProp "toggle" "popover"
+    , dataBsProp "placement" "top"
+    , dataBsProp "content" (getInfoContent infoId)
     ]
     []
 
@@ -245,14 +246,12 @@ editorDiv =
             [ HE.p_
                 [ HH.text "Minimal ",
                   HE.a [HP.href "https://www.eolang.org"] [HH.text "𝜑-calculus "],
-                  -- a_ [href_ "https://www.eolang.org"] [text "𝜑-calculus "],
                   HH.text "expression (",
                   HE.a [HP.id "__permalink__", HP.href "#"] [HH.text "permalink"],
-                  -- a_ [id_ "__permalink__", href_ "#"] [text "permalink"],
                   HH.text ")",
                   infoIcon "info_editor"
                 ],
-              HH.div [HP.id "phi-editor"] []
+              HH.div [U.class_ "mb-4", HP.id "phi-editor"] []
             ]
         ]
     ]
@@ -285,14 +284,13 @@ pageFooter =
 cdns ∷ ∀ a b. HTML a b
 cdns =  
   HE.div_
-    [ HE.link [HP.href "https://cdn.jsdelivr.net/npm/bootstrap@5.2/dist/css/bootstrap.min.css", HP.rel "stylesheet", HP.type_ textCSS],
-      HE.script [HP.src "https://cdn.jsdelivr.net/npm/bootstrap@5.2/dist/js/bootstrap.bundle.min.js", HP.type_ applicationJavascript] [],
+    [ HE.link [HP.href "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css", HP.rel "stylesheet", HP.type_ textCSS],
+      HE.script [HP.src "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js", HP.type_ applicationJavascript] [],
       HE.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-editor@v1.0/docs/build/bundle.js", HP.type_ applicationJavascript] [],
       -- script_ [HP.src "./editor/docs/build/bundle.js", HP.type_ "text/javascript"] "",
       HE.link [HP.href "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css", HP.rel "stylesheet", HP.type_ textCSS],
       HE.link [HP.href "https://www.yegor256.com/images/books/elegant-objects/cactus.png", HP.rel "shortcut icon"],
       HE.link [HP.href "https://cdn.jsdelivr.net/gh/yegor256/tacit@gh-pages/tacit-css.min.css", HP.rel "stylesheet", HP.type_ textCSS],
-      -- HE.link [HP.href "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi/src/styles/styles.css", HP.rel "stylesheet", HP.type_ textCSS],
       HE.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi@0.0.1/src/Site/scripts/init-popovers.js", HP.type_ applicationJavascript] [],
       HE.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi@0.0.1/src/Site/scripts/set-snippet.js", HP.type_ applicationJavascript] []
     ]
@@ -338,7 +336,7 @@ tabButton t@(Tab tab) =
     U.attr_ "aria-controls" (mkContent id),
     U.attr_ "aria-selected" selected,
     HE.onClick $ \_ -> SelectTab t
-    ] [
+  ] [
     HC.text (" " <> tab.buttonText),
     infoIcon (mkInfo id)
   ]

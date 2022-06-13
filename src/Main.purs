@@ -1,12 +1,13 @@
 module Main
   ( component
   , getState
-  , md1,
-  main
-  )
-  where
+  , md1
+  , main
+  , Request
+  ) where
 
 import Prelude
+
 import Data.Array as DA
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
@@ -27,8 +28,16 @@ md1 :: State
 md1 =
   State
     { currentEditor: EOEditor
-    , tabs: (\(Tuple (Tuple a b) c) -> Tab { id: a, buttonText: b, isActive: c, tabContent: HE.text b }) <$> DA.zip (DA.zip ids btexts) isActives
     , graphStep: 1
+    , tabs:
+        ( \( Tuple
+              ( Tuple a b
+            )
+              c
+          ) ->
+            Tab { id: a, buttonText: b, isActive: c, tabContent: HE.text b }
+        )
+          <$> DA.zip (DA.zip ids btexts) isActives
     }
   where
   ids = [ TEO, TTerm, TWHNF, TNF, TCBNReduction, TCBNWithTAP, TCBNWithGraph ]
@@ -37,8 +46,14 @@ md1 =
 
   isActives = [ true, false, false, false, false, false, false ]
 
+data Request
+  = Request
+    { code :: String
+    , editor :: Editor
+    }
+
 -- FIXME make a request to a server
-getState :: String -> State
+getState :: Request -> State
 getState s = md1
 
 component :: ∀ a b c d. Component a b c d
@@ -51,7 +66,7 @@ component =
   where
   initialState _ = md1
 
-  render _ = html md1
+  render s = html s
 
   -- (ParseError $ EOParseError "noo")
   -- HH.div_
@@ -64,7 +79,12 @@ component =
     SelectTab t1 ->
       H.modify_
         $ \state -> case state of
-            State m -> State (m { tabs = (\t2@(Tab t') -> Tab (t' { isActive = t1 == t2 })) <$> m.tabs })
+            State s ->
+              State
+                ( s
+                    { tabs = (\t2@(Tab t') -> Tab (t' { isActive = t1 == t2})) <$> s.tabs
+                    }
+                )
             s -> s
     NextStep ->
       H.modify_
@@ -79,6 +99,6 @@ component =
     SelectCurrentEditor e ->
       H.modify_
         $ \state -> case state of
-            State s -> State $ s { graphStep = s.graphStep - 1 }
+            State s -> State $ s { currentEditor = e }
             s -> s
-    Recompile c -> H.modify_ $ \_ -> getState c
+    Recompile c -> H.modify_ $ \_ -> getState (Request { code: c, editor: EOEditor })

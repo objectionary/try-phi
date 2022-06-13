@@ -286,6 +286,8 @@ cdns =
   HE.div_
     [ HE.link [HP.href "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css", HP.rel "stylesheet", HP.type_ textCSS],
       HE.script [HP.src "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js", HP.type_ applicationJavascript] [],
+      -- TODO unsert into a separate tab
+      -- TODO add tab switching with ctrl+tab
       HE.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-editor@v1.0/docs/build/bundle.js", HP.type_ applicationJavascript] [],
       -- script_ [HP.src "./editor/docs/build/bundle.js", HP.type_ "text/javascript"] "",
       HE.link [HP.href "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css", HP.rel "stylesheet", HP.type_ textCSS],

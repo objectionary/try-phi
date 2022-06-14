@@ -11,8 +11,8 @@ package-lock.json
 *.lock
 
 dist/
-docs/min.js
 prod/
+docs/
 
 # index.js
 prod

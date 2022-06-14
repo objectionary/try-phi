@@ -21,47 +21,6 @@ echo fs.inotify.max_user_watches=1000000 | sudo tee -a /etc/sysctl.conf && sudo 
 ```
 Now, your browser will open, showing [http://localhost:1234](http://localhost:1234)
 
-### Initial Setup
-
-**Prerequisites:** This section assumes you already have Git and Node.js installed with `npm` somewhere on your path.
-
-First, clone the repository and step into it:
-
-```sh
-git clone https://github.com/br4ch1st0chr0n3/phi-editor-purs
-cd phi-editor-purs
-```
-
-Then, install the PureScript compiler, the [Spago](https://github.com/purescript/spago) package manager and build tool, and the [Parcel](https://github.com/parcel-bundler/parcel) bundler. You may either install PureScript tooling _globally_, to reduce duplicated `node_modules` across projects, or _locally_, so that each project uses specific versions of the tools.
-
-To install the toolchain globally (possibly with `sudo` on Linux):
-```sh
-npm install -g purescript spago parcel
-```
-
-To install the toolchain locally (reads `devDependencies` from `package.json`):
-```sh
-npm install
-```
-
-### Building
-
-You can now build the PureScript source code with:
-
-```sh
-# An alias for `spago build`
-npm run build
-```
-
-### Launching the App
-
-You can launch your app in the browser with:
-
-```sh
-npm run serve
-```
-
-
 ### Development Cycle
 
 If you're using an [editor](https://github.com/purescript/documentation/blob/master/ecosystem/Editor-and-tool-support.md#editors) that supports [`purs ide`](https://github.com/purescript/purescript/tree/master/psc-ide) or are running [`pscid`](https://github.com/kRITZCREEK/pscid), you simply need to keep the previous `npm run serve` command running in a terminal. Any save to a file **used** in the project will trigger an incremental recompilation, rebundle, and web page refresh, so you can immediately see your changes.
@@ -84,3 +43,21 @@ http-server dist -o
 ```
 
 If everything looks good, you can then upload the contents of `dist` to your preferred static hosting service.
+
+## Deployment to GitHub Pages
+
+* If you'd like to upload your site to GitHub Pages, run
+    ```sh
+    npm run deploy
+    ```
+
+    This will do the following:
+    * Go through the steps of [production](#production)
+    * Copy the contents of `dev` into `docs`
+    * Minify the `prod/index.js` via [esbuild](https://esbuild.github.io/) and write into `docs/index.js`
+    * Publish the contents of the `docs` directory via [gh-pages](https://github.com/tschaub/gh-pages) into `gh-pages` branch (see this [post](https://javascript.plainenglish.io/deploying-any-app-to-github-pages-1e8e946bf890))
+
+* Next,
+    * Go to your repository Settings -> Pages
+    * Select the branch `gh-pages` and `/(root)` as the source
+    * Save and check the site when it's built!

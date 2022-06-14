@@ -8,6 +8,7 @@ import { parseErrors } from './extensions/diagnostics'
 import { indentGuides } from './extensions/indent-guides'
 import { toggleTree } from './extensions/log-lezer-tree'
 import { sameIndent } from './extensions/same-indent'
+import { notifyCodeChanged } from './extensions/code-changed'
 
 let code = `[
   book -> [
@@ -47,6 +48,7 @@ const initialState = EditorState.create({
     parseErrors,
     indentGuides,
     sameIndent,
+    notifyCodeChanged,
     toggleTree("Mod-Shift-l")
   ],
 })
@@ -66,14 +68,14 @@ function waitForElement(id: string) {
       setTimeout(() => {
         reject(`no element with id ${id} was created`)
       }, 5000)
-
-      if (document.getElementById(id)) {
-        resolve(document.getElementById(id));
+      
+      if (document.getElementById(id) !== null) {
+        resolve(document.getElementById(id)!);
       }
 
       const observer = new MutationObserver(mutations => {
-          if (document.getElementById(id)) {
-              resolve(document.getElementById(id));
+          if (document.getElementById(id) !== null) {
+              resolve(document.getElementById(id)!);
               observer.disconnect();
           }
       });

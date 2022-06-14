@@ -6,7 +6,7 @@ export function initFromLink(view: EditorView){
     let snippet = view.state.doc.toString();
   
     if (params.has("snippet")) {
-      snippet = params.get("snippet");
+      snippet = params.get("snippet")!;
     }
   
     // change editor content

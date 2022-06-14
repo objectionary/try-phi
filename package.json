@@ -11,7 +11,7 @@
     "test": "spago test",
     "serve": "parcel dev/index.html --open",
     "build-prod": "mkdir -p prod && cp dev/index.html prod/ && rm -rf dist && spago bundle-app --to prod/index.js && parcel build prod/index.html",
-    "deploy": "mkdir -p prod && cp dev/index.html prod/ && rm -rf dist && spago bundle-app --to prod/index.js && mkdir -p docs && cp dev/* docs && esbuild --minify prod/index.js --outfile=docs/index.js && gh-pages -d docs"
+    "deploy": "npm run build-prod && mkdir -p docs && cp dev/* docs && esbuild --minify prod/index.js --outfile=docs/index.js && gh-pages -d docs"
   },
   "dependencies": {
     "esbuild": "^0.14.43"

@@ -46,18 +46,18 @@ If everything looks good, you can then upload the contents of `dist` to your pre
 
 ## Deployment to GitHub Pages
 
-* If you'd like to upload your site to GitHub Pages, run
+* If you'd like to deploy your site to [GitHub Pages](https://pages.github.com/), run
     ```sh
     npm run deploy
     ```
 
     This will do the following:
-    * Go through the steps of [production](#production)
-    * Copy the contents of `dev` into `docs`
-    * Minify the `prod/index.js` via [esbuild](https://esbuild.github.io/) and write into `docs/index.js`
-    * Publish the contents of the `docs` directory via [gh-pages](https://github.com/tschaub/gh-pages) into `gh-pages` branch (see this [post](https://javascript.plainenglish.io/deploying-any-app-to-github-pages-1e8e946bf890))
+    * go through the steps of [production](#production)
+    * copy the contents of `dev` into `docs`
+    * minify the `prod/index.js` via [esbuild](https://esbuild.github.io/) and write into `docs/index.js`
+    * publish the contents of the `docs` directory via [gh-pages](https://github.com/tschaub/gh-pages) into `gh-pages` branch (see this [post](https://javascript.plainenglish.io/deploying-any-app-to-github-pages-1e8e946bf890))
 
 * Next,
-    * Go to your repository Settings -> Pages
-    * Select the branch `gh-pages` and `/(root)` as the source
-    * Save and check the site when it's built!
+    * go to your repository `Settings` -> `Pages`
+    * select the branch `gh-pages` and `/(root)` as the source
+    * save and check the site when it's built!

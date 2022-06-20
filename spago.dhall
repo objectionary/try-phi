@@ -2,6 +2,8 @@
 , dependencies =
   [ "affjax"
   , "affjax-web"
+  , "argonaut"
+  , "argonaut-codecs"
   , "arrays"
   , "console"
   , "css"

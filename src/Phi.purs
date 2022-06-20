@@ -8,66 +8,225 @@ module Phi
   , html
   , Tab(..),
   TabId(..),
-  Editor(..)
+  Editor(..),
+  State'(..),
+  class CodeChangedGettable,
+  getEvent,
+  getEditorCodeChanged,
+   CodeChange(..),
+   md1,
+   component
   )
   where
 
-import Data.Eq
+import Prelude
 
 import CSS.Geometry as CG
 import CSS.Size as CS
-import Control.Applicative ((<$>))
-import Data.Foldable (intercalate)
+import Data.Array as DA
+import Data.Foldable (intercalate, traverse_)
 import Data.Int as DI
 import Data.Map.Internal (Map)
 import Data.Map.Internal as Map
-import Data.Maybe (fromMaybe)
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.MediaType.Common (applicationJavascript, textCSS)
 import Data.Tuple (Tuple(..))
-import Halogen.HTML (AttrName(..), HTML)
-import Halogen.HTML as HH
+import Effect.Aff (Aff)
+import Halogen (AttrName(..), Component)
+import Halogen as H
+import Halogen.HTML (button, header_, pre_, section_, text) as HH
+import Halogen.HTML (HTML)
 import Halogen.HTML.CSS as CSS
 import Halogen.HTML.Core as HC
-import Halogen.HTML.Elements (a, div, div_, i, img, li_, link, nav_, p_, script, ul_) as HE
-import Halogen.HTML.Events (onClick) as HE
+import Halogen.HTML.Elements (a, div, div_, i, img, li_, link, nav_, p_, script, ul_) as HH
+import Halogen.HTML.Events (handler, onClick) as HH
 import Halogen.HTML.Properties (ButtonType(..), IProp)
 import Halogen.HTML.Properties as HP
-import Halogen.HTML.Properties.ARIA as HA
-import Prelude (class Show, discard, map, show, ($), (<>))
+import Halogen.HTML.Properties.ARIA (role) as HA
+import Halogen.Query.Event (eventListener)
 import Utils as U
+import Web.Event.Event (EventType(..))
+import Web.Event.Event as Event
+import Web.HTML (window) as Web
+import Web.HTML.HTMLDocument as HTMLDocument
+import Web.HTML.Window (document) as Web
+
+
+md1 :: State
+md1 =
+  State
+    { currentEditor: EOEditor
+    , graphStep: 1
+    , tabs:
+        ( \( Tuple
+              ( Tuple a b
+            )
+              c
+          ) ->
+            Tab { id: a, buttonText: b, isActive: c, tabContent: HH.text b }
+        )
+          <$> DA.zip (DA.zip ids btexts) isActives
+    -- FIXME store code of editors?
+    -- send immediately?
+    }
+  where
+  ids = [ TEO, TTerm, TWHNF, TNF, TCBNReduction, TCBNWithTAP, TCBNWithGraph ]
+
+  btexts = [ "EO code", "Phi term", " WHNF", "NF", "CBN Reduction", "CBN With TAP", "CBN With Graph" ]
+
+  isActives = [ true, false, false, false, false, false, false ]
+
+initTab :: Tab
+initTab = Tab { id: TEO, buttonText: "EO code", isActive: true, tabContent: HH.text "EO code" }
+
+data Request
+  = Request
+    { editor :: Editor,
+      code :: String
+    }
+
+-- FIXME make a request to a server
+getState :: Request -> State
+getState s = md1
+
+component :: ∀ a b c. Component a b c Aff
+component =
+  H.mkComponent
+    { initialState
+    , render
+    , eval:
+        H.mkEval
+          $ H.defaultEval
+              { handleAction = handleAction
+              , initialize = Just ListenToEditors
+              -- (SelectTab initTab)
+              }
+    }
+  where
+  initialState _ = md1
+
+  render s = html s
+
+  handleAction :: forall output. Action -> H.HalogenM State Action () output Aff Unit
+  handleAction = case _ of
+    SelectTab t1 ->
+      H.modify_
+        $ (<$>) \s ->
+            ( s
+                { tabs =
+                  ( \t2@(Tab t') ->
+                      Tab (t' { isActive = t1 == t2 })
+                  )
+                    <$> s.tabs
+                }
+            )
+    NextStep -> H.modify_ $ (<$>) \s -> s { graphStep = s.graphStep + 1 }
+    PrevStep -> H.modify_ $ (<$>) \s -> s { graphStep = s.graphStep - 1 }
+    SelectCurrentEditor e -> H.modify_ $ (<$>) \s -> s { currentEditor = e }
+    Recompile c -> H.modify_ $ \_ -> getState (Request { code: c, editor: EOEditor })
+    ListenToEditors -> traverse_ handleAction (map (\e -> ListenToEditor e) [EOEditor, PhiEditor])
+    ListenToEditor e -> do
+        document <- H.liftEffect $ Web.document =<< Web.window
+        H.subscribe' \_ ->
+          eventListener
+          (EventType (getEvent e))
+          (HTMLDocument.toEventTarget document)
+          (\ev -> do
+            let
+              editor = getEditorCodeChanged $ (\(EventType s) -> s) $ Event.type_ ev
+              code = ""
+              -- code :: Maybe (Either JsonDecodeError CodeChange)
+              -- code = CE.fromEvent ev <#> CE.detail <#> unsafeFromForeign <#> decodeJson
+            case editor of
+              Nothing -> pure NoOp
+              Just ed -> pure (HandleEditorCodeChanged ed code))
+    
+    -- FIXME use that code
+    HandleEditorCodeChanged editor code -> 
+      H.modify_ $ (<$>) \s -> s {currentEditor = editor, graphStep = s.graphStep + 2}
+    
+    -- FIXME a more appropriate function
+    NoOp -> H.modify_ identity
+
 
 data Editor = EOEditor | PhiEditor
 
--- TODO 
--- for recompilation, we will determine the source of code somehow
+-- TODO maye use tabs for editors?
+-- for now, they will stand side-by-side
 
+-- data EditorTab = EditorTab {
+--   editor :: Editor,
+--   isActive::TabMode
+-- }
+
+-- class EditorTabClass where
+--   getButtonText :: Editor -> String
+--   getId :: Editor -> String
+
+-- instance EditorTabClass where
+--   getButtonText EOEditor = "EO editor"
+
+
+
+class CodeChangedGettable a where
+  getEvent :: a -> String
+  getEditorCodeChanged :: String -> Maybe a
+
+instance CodeChangedGettable Editor where
+  getEvent EOEditor = "eo-editor-code-changed"
+  getEvent PhiEditor = "phi-editor-code-changed"
+  getEditorCodeChanged s
+    | s == getEvent EOEditor = Just EOEditor
+    | s == getEvent PhiEditor = Just PhiEditor
+    | otherwise = Nothing
+  
 data Action
   = Recompile String
   | NextStep
   | PrevStep
   | SelectTab Tab
   | SelectCurrentEditor Editor
+  | ListenToEditors
+  | ListenToEditor Editor
+  | HandleEditorCodeChanged Editor String
+  | NoOp
+
+data CodeChange = CodeChange {
+  editor :: Editor,
+  code :: String
+}
 
 -- TODO
--- current editor is where the last change occured or the last cursor was left
+-- current editor is 
+-- for now: where the last change occured
+-- ideally: the last cursor was left
 
 html ∷ ∀ a. State -> HTML a Action
-html model =
+html state =
   HH.div
     [ HP.id "root" ]
     [
       cdns,
       eoLogoSection,
       editorDiv,
-      HE.div [
+      HH.div [
         HP.id "app_div"
       ][
         let
           showError e = HH.div [U.class_ "pb-2"] [HH.pre_ [HH.text e]]
         in
-          case model of
+          case state of
               ParseError e -> showError (show e)
               md -> HH.div_ [termTabs md]
+      ],
+      HH.div [HP.id "catch"
+      -- , HH.handler (EventType "phi-editor-code-changed") \_ -> NextStep
+      -- , HH.handler (EventType "eo-editor-code-changed") \_ -> NextStep
+      ] [
+        HH.text $ case state of 
+          ParseError e -> show e
+          -- FIXME this is a temporary output just to check if event handling
+          State s -> (show s.graphStep)
       ],
       pageFooter
     ]
@@ -78,7 +237,7 @@ eoLogoSection =
     [ HH.header_
         [ -- TODO center
           HH.a [ HP.href "https://www.eolang.org" ]
-            [ HE.img
+            [ HH.img
                 [ HP.src "https://www.yegor256.com/images/books/elegant-objects/cactus.png"
                 , CSS.style do
                     CG.width (CS.px $ DI.toNumber 64)
@@ -114,14 +273,14 @@ infoContent = Map.fromFoldable $ map (\{ x, y } -> Tuple x (combine y)) ics
   _div s = "<div>" <> s <> "</div>"
 
   _bullet :: String -> String
-  _bullet s = "&bull;" <> s
+  _bullet s = "&bull; " <> s
 
   combine y = _div $ intercalate "<br>" (map (\{ pref, href, txt } -> (_bullet $ pref <> " " <> _a href txt)) y)
 
 
 ics ∷ Array { x ∷ String , y ∷ Array { href :: String , pref :: String , txt :: String } }
-ics =
-  [ { x: "info_editor"
+ics = (\r@{x: x} -> r {x = mkInfo x}) <$>
+  [ { x: "editor"
     , y:
         [ { pref: "Original"
           , href: "https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAATVEUf-E"
@@ -137,7 +296,7 @@ ics =
           }
         ]
     }
-  , { x: "info_original_term"
+  , { x: getId TTerm
     , y:
         [ { pref: "Just prettyprint locators and brackets"
           , href: "https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAATVEUf-E"
@@ -145,7 +304,7 @@ ics =
           }
         ]
     }
-  , { x: "info_whnf"
+  , { x: getId TWHNF
     , y:
         [ { pref: ""
           , href: "https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/State.hs#L129"
@@ -161,7 +320,7 @@ ics =
           }
         ]
     }
-  , { x: "info_nf"
+  , { x: getId TNF
     , y:
         [ { pref: ""
           , href: "https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/State.hs#L155"
@@ -173,7 +332,7 @@ ics =
           }
         ]
     }
-  , { x: "info_cbn_reduction"
+  , { x: getId TCBNReduction
     , y:
         [ { pref: ""
           , href: "https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/State.hs#L98"
@@ -185,7 +344,7 @@ ics =
           }
         ]
     }
-  , { x: "info_cbn_with_tap"
+  , { x: getId TCBNWithTAP
     , y:
         [ { pref: ""
           , href: "https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/Machine/CallByName.hs#L85"
@@ -201,7 +360,7 @@ ics =
           }
         ]
     }
-  , { x: "info_cbn_with_graph"
+  , { x: getId TCBNWithGraph
     , y:
         [ { pref: ""
           , href: "https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/Machine/CallByName/Graph.hs#L77"
@@ -213,7 +372,7 @@ ics =
           }
         ]
     }
-  , { x: "info_eo"
+  , { x: "eo"
     , y:
         [ { pref: "𝜑-term translated to EO"
           , href: ""
@@ -225,7 +384,7 @@ ics =
 
 infoIcon :: forall a b. String -> HTML a b
 infoIcon infoId =
-  HE.i
+  HH.i
     [ HP.id infoId
     , U.classes_ ["bi", "bi-info-square", "ms-2"]
     , dataBsProp "container" "body"
@@ -243,15 +402,16 @@ editorDiv =
         [U.class_ "col"]
         [ HH.div
             [U.class_ "row"]
-            [ HE.p_
+            [ HH.p_
                 [ HH.text "Minimal ",
-                  HE.a [HP.href "https://www.eolang.org"] [HH.text "𝜑-calculus "],
+                  HH.a [HP.href "https://www.eolang.org"] [HH.text "𝜑-calculus "],
                   HH.text "expression (",
-                  HE.a [HP.id "__permalink__", HP.href "#"] [HH.text "permalink"],
+                  HH.a [HP.id "__permalink__", HP.href "#"] [HH.text "permalink"],
                   HH.text ")",
                   infoIcon "info_editor"
                 ],
-              HH.div [U.class_ "mb-4", HP.id "phi-editor"] []
+              HH.div [U.classes_ ["mb-4", "col-sm"], HP.id "phi-editor"] [],
+              HH.div [U.classes_ ["mb-4", "col-sm"], HP.id "eo-editor"] []
             ]
         ]
     ]
@@ -260,18 +420,18 @@ editorDiv =
 -- pageFooter :: View action
 pageFooter ∷ ∀ a b. HTML a b
 pageFooter =
-  HE.nav_
-    [ HE.ul_
-        [ HE.li_
+  HH.nav_
+    [ HH.ul_
+        [ HH.li_
             [ HH.text "To discuss how 𝜑-calculus works, join our ",
-              HE.a [HP.href "https://t.me/polystat_org"] [HH.text "Telegram group"]
+              HH.a [HP.href "https://t.me/polystat_org"] [HH.text "Telegram group"]
             ]
         ],
-      HE.ul_
-        [ HE.li_
-            [ HE.a
+      HH.ul_
+        [ HH.li_
+            [ HH.a
                 [HP.href "https://github.com/polystat/try-phi/stargazers"]
-                [ HE.img
+                [ HH.img
                     [ HP.src "https://img.shields.io/github/stars/polystat/try-phi.svg?style=flat-square",
                       HP.alt "github stars"
                     ]
@@ -283,21 +443,23 @@ pageFooter =
 
 cdns ∷ ∀ a b. HTML a b
 cdns =  
-  HE.div_
-    [ HE.link [HP.href "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css", HP.rel "stylesheet", HP.type_ textCSS],
-      HE.script [HP.src "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js", HP.type_ applicationJavascript] [],
+  HH.div_
+    [ HH.link [HP.href "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css", HP.rel "stylesheet", HP.type_ textCSS],
+      HH.script [HP.src "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js", HP.type_ applicationJavascript] [],
       -- TODO unsert into a separate tab
       -- TODO add tab switching with ctrl+tab
-      HE.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-editor@v1.0/docs/build/bundle.js", HP.type_ applicationJavascript] [],
-      -- script_ [HP.src "./editor/docs/build/bundle.js", HP.type_ "text/javascript"] "",
-      HE.link [HP.href "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css", HP.rel "stylesheet", HP.type_ textCSS],
-      HE.link [HP.href "https://www.yegor256.com/images/books/elegant-objects/cactus.png", HP.rel "shortcut icon"],
-      HE.link [HP.href "https://cdn.jsdelivr.net/gh/yegor256/tacit@gh-pages/tacit-css.min.css", HP.rel "stylesheet", HP.type_ textCSS],
-      HE.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi@0.0.1/src/Site/scripts/init-popovers.js", HP.type_ applicationJavascript] [],
-      HE.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi@0.0.1/src/Site/scripts/set-snippet.js", HP.type_ applicationJavascript] []
+      HH.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/eo-editor@d1b8c1a912f780f7e96e78f6bc71eaa35c78186d/docs/eo-editor.js", U.attr_ "type" "module"] [],
+      HH.link [HP.href "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/eo-editor@d1b8c1a912f780f7e96e78f6bc71eaa35c78186d/docs/eo-editor.css", HP.type_ textCSS],
+      
+      HH.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-editor@8bd224677c5e03adc4609589d948f8b6b0ee2456/docs/phi-editor.js", U.attr_ "type" "module"] [],
+      HH.link [HP.href "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-editor@8bd224677c5e03adc4609589d948f8b6b0ee2456/docs/phi-editor.css", HP.type_ textCSS],
+      
+      HH.link [HP.href "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css", HP.rel "stylesheet", HP.type_ textCSS],
+      HH.link [HP.href "https://www.yegor256.com/images/books/elegant-objects/cactus.png", HP.rel "shortcut icon"],
+      HH.link [HP.href "https://cdn.jsdelivr.net/gh/yegor256/tacit@gh-pages/tacit-css.min.css", HP.rel "stylesheet", HP.type_ textCSS],
+      HH.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi@0.0.1/src/Site/scripts/init-popovers.js", HP.type_ applicationJavascript] [],
+      HH.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi@0.0.1/src/Site/scripts/set-snippet.js", HP.type_ applicationJavascript] []
     ]
-
-
 
 data Term = Term String
 
@@ -315,16 +477,28 @@ instance Show ParseError where
   show (EOParseError s) = s
   show (PhiParseError s) = s
 
-data State =
-    ParseError ParseError 
-  | State {
-      currentEditor :: Editor,
-      tabs :: Array Tab,
-      graphStep :: Int
-    }
+data State' a b = ParseError a | State b
+
+instance Functor (State' a) where
+  map f (State s) = State (f s)
+  map _ (ParseError e) = (ParseError e)
+
+type State = State'
+  ParseError 
+
+  {
+    currentEditor :: Editor,
+    tabs :: Array Tab,
+    graphStep :: Int
+  }
+  
+
+
+
 
 data TabMode = Active | Disabled
 
+-- editorTab :: forall a 
 
 tabButton :: forall a. Tab -> HTML a Action
 tabButton t@(Tab tab) =
@@ -337,7 +511,7 @@ tabButton t@(Tab tab) =
     HA.role "tab",
     U.attr_ "aria-controls" (mkContent id),
     U.attr_ "aria-selected" selected,
-    HE.onClick $ \_ -> SelectTab t
+    HH.onClick $ \_ -> SelectTab t
   ] [
     HC.text (" " <> tab.buttonText),
     infoIcon (mkInfo id)
@@ -375,22 +549,21 @@ mkContent id = "content_" <> id
 mkInfo ∷ String → String
 mkInfo id = "info_" <> id
 
-
 data TabId = TEO | TTerm | TWHNF | TNF | TCBNReduction | TCBNWithTAP | TCBNWithGraph
 
 derive instance Eq TabId
 
-class IdGettable where
-  getId :: TabId -> String
+class IdGettable a where
+  getId :: a -> String
 
-instance IdGettable where
+instance IdGettable TabId where
   getId TEO = "eo"
-  getId TTerm = "original-term"
+  getId TTerm = "original_term"
   getId TWHNF = "whnf"
   getId TNF = "nf"
-  getId TCBNReduction = "cbn-reduction"
-  getId TCBNWithTAP = "cbn-with-tap"
-  getId TCBNWithGraph = "cbn-with-graph"
+  getId TCBNReduction = "cbn_reduction"
+  getId TCBNWithTAP = "cbn_with_tap"
+  getId TCBNWithGraph = "cbn_with_graph"
 
 data Tab = Tab {
   id :: TabId,
@@ -406,7 +579,7 @@ termTabs :: forall a. State -> HTML a Action
 termTabs (ParseError s) = HH.div_ [HH.text (show s)]
 termTabs (State {tabs : tabs'}) = 
   HH.div_ [
-    HE.nav_ [
+    HH.nav_ [
       HH.div
         [U.classes_ ["nav", "nav-tabs"], HP.id "nav-tab", HA.role "tablist"]
         (tabButton <$> tabs')
@@ -415,3 +588,19 @@ termTabs (State {tabs : tabs'}) =
       [U.class_ "tab-content", HP.id "nav-tabContent"]
       (tabContent <$> tabs')
   ]
+
+-- TODO handler on `document`
+-- put a handler on it
+-- https://pursuit.purescript.org/packages/purescript-halogen/6.1.2/docs/Halogen.HTML.Events#v:handler
+-- convert Event to CustomEvent
+-- https://pursuit.purescript.org/packages/purescript-web-events/4.0.0/docs/Web.Event.CustomEvent#v:fromEvent
+-- take the detail info
+-- https://pursuit.purescript.org/packages/purescript-web-events/4.0.0/docs/Web.Event.CustomEvent#v:detail
+-- read newCode
+-- https://pursuit.purescript.org/packages/purescript-foreign/7.0.0/docs/Foreign.Index#v:readProp
+-- convert to a string
+-- https://github.com/purescript/purescript-foreign/blob/v7.0.0/src/Foreign.purs#L138-L138
+
+-- or create a custom function to decode Foreign
+-- https://book.purescript.org/chapter10.html#json
+-- and check for validity, create a record from it

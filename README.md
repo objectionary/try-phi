@@ -46,7 +46,7 @@ If everything looks good, you can then upload the contents of `dist` to your pre
 
 ## Deployment to GitHub Pages
 
-* If you'd like to deploy your site to [GitHub Pages](https://pages.github.com/), run
+* If you'd like to deploy your site to [GitHub Pages](https://pages.github.com/) with a command, run
     ```sh
     npm run deploy
     ```
@@ -61,3 +61,11 @@ If everything looks good, you can then upload the contents of `dist` to your pre
     * go to your repository `Settings` -> `Pages`
     * select the branch `gh-pages` and `/(root)` as the source
     * save and check the site when it's built!
+
+## Literature
+
+* Events
+    * [How to dispatch custom events in JavaScript](https://www.educative.io/answers/how-to-dispatch-custom-events-in-javascript)
+
+* Web requests
+    * [Purescript Part 4: Web Requests and Navigation](https://mmhaskell.com/purescript-4)

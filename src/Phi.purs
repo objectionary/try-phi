@@ -8,22 +8,32 @@ module Phi
   , html
   , Tab(..),
   TabId(..),
-  Editor(..),
   State'(..),
-  class CodeChangedGettable,
-  getEvent,
-  getEditorCodeChanged,
-   CodeChange(..),
+  class CodeChanges,
+  getCodeChangedEventName,
+  getChangeCodeEventName,
+  getEditorWhereCodeChanged,
+  codeChangedSuff,
+  changeCodeSuff,
+  editorName,
+  anotherEditor,
    md1,
    component
   )
   where
 
+import Foreign
 import Prelude
+import Web.Event.EventTarget
+import Web.HTML.HTMLDocument
 
+import Affjax.RequestBody (document)
 import CSS.Geometry as CG
 import CSS.Size as CS
+import Data.Argonaut.Decode (JsonDecodeError) as AD
+import Data.Argonaut.Decode.Class (decodeJson)
 import Data.Array as DA
+import Data.Either (Either(..))
 import Data.Foldable (intercalate, traverse_)
 import Data.Int as DI
 import Data.Map.Internal (Map)
@@ -34,8 +44,8 @@ import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff)
 import Halogen (AttrName(..), Component)
 import Halogen as H
-import Halogen.HTML (button, header_, pre_, section_, text) as HH
 import Halogen.HTML (HTML)
+import Halogen.HTML (button, header_, pre_, section_, text) as HH
 import Halogen.HTML.CSS as CSS
 import Halogen.HTML.Core as HC
 import Halogen.HTML.Elements (a, div, div_, i, img, li_, link, nav_, p_, script, ul_) as HH
@@ -44,13 +54,15 @@ import Halogen.HTML.Properties (ButtonType(..), IProp)
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties.ARIA (role) as HA
 import Halogen.Query.Event (eventListener)
-import Utils as U
+import Utils (Editor(..))
+import Utils (classes_, class_, attr_) as U
+import Web.Event.CustomEvent as CE
 import Web.Event.Event (EventType(..))
 import Web.Event.Event as Event
 import Web.HTML (window) as Web
 import Web.HTML.HTMLDocument as HTMLDocument
 import Web.HTML.Window (document) as Web
-
+import Web.XHR.XMLHttpRequest (open')
 
 md1 :: State
 md1 =
@@ -129,57 +141,62 @@ component =
         document <- H.liftEffect $ Web.document =<< Web.window
         H.subscribe' \_ ->
           eventListener
-          (EventType (getEvent e))
+          (EventType (getCodeChangedEventName e))
           (HTMLDocument.toEventTarget document)
           (\ev -> do
             let
-              editor = getEditorCodeChanged $ (\(EventType s) -> s) $ Event.type_ ev
-              code = ""
-              -- code :: Maybe (Either JsonDecodeError CodeChange)
-              -- code = CE.fromEvent ev <#> CE.detail <#> unsafeFromForeign <#> decodeJson
-            case editor of
+              editor = getEditorWhereCodeChanged $ (\(EventType s) -> s) $ Event.type_ ev
+              -- code = ""
+              code' :: Maybe (Either AD.JsonDecodeError NewCode)
+              code' = CE.fromEvent ev <#> CE.detail <#> unsafeFromForeign <#> decodeJson
+              code = 
+                case code' of
+                  Just (Right c) -> Just c.newCode
+                  _ -> Nothing
+              op = HandleEditorCodeChanged <$> editor <*> code
+            case op of
               Nothing -> pure NoOp
-              Just ed -> pure (HandleEditorCodeChanged ed code))
+              Just op' -> pure op')
     
     -- FIXME use that code
-    HandleEditorCodeChanged editor code -> 
+    HandleEditorCodeChanged editor code -> do
+      ce <- H.liftEffect $ CE.toEvent <$> CE.new' (EventType $ getChangeCodeEventName (anotherEditor editor)) (Just {newCode: code})
+      doc <- H.liftEffect $ toEventTarget <$> (Web.document =<< Web.window)
+      _ <- H.liftEffect $ dispatchEvent ce doc
       H.modify_ $ (<$>) \s -> s {currentEditor = editor, graphStep = s.graphStep + 2}
     
     -- FIXME a more appropriate function
     NoOp -> H.modify_ identity
 
+class ChangeCodeEvent where
+  getCodeChangeEventName :: Editor -> String
 
-data Editor = EOEditor | PhiEditor
+class CodeChanges where
+  getCodeChangedEventName :: Editor -> String
+  getEditorWhereCodeChanged :: String -> Maybe Editor
+  getChangeCodeEventName :: Editor -> String
+  codeChangedSuff :: String
+  changeCodeSuff :: String
+  editorName :: Editor -> String
+  anotherEditor :: Editor -> Editor
 
--- TODO maye use tabs for editors?
--- for now, they will stand side-by-side
-
--- data EditorTab = EditorTab {
---   editor :: Editor,
---   isActive::TabMode
--- }
-
--- class EditorTabClass where
---   getButtonText :: Editor -> String
---   getId :: Editor -> String
-
--- instance EditorTabClass where
---   getButtonText EOEditor = "EO editor"
-
-
-
-class CodeChangedGettable a where
-  getEvent :: a -> String
-  getEditorCodeChanged :: String -> Maybe a
-
-instance CodeChangedGettable Editor where
-  getEvent EOEditor = "eo-editor-code-changed"
-  getEvent PhiEditor = "phi-editor-code-changed"
-  getEditorCodeChanged s
-    | s == getEvent EOEditor = Just EOEditor
-    | s == getEvent PhiEditor = Just PhiEditor
+instance CodeChanges where
+  anotherEditor EOEditor = PhiEditor
+  anotherEditor PhiEditor = EOEditor
+  editorName EOEditor = "eo"
+  editorName PhiEditor = "phi"
+  codeChangedSuff = "-editor-code-changed"
+  getCodeChangedEventName x = editorName x <> codeChangedSuff
+  -- getCodeChangedEventName PhiEditor = "phi" <> codeChangedSuff
+  getEditorWhereCodeChanged s
+    | s == getCodeChangedEventName EOEditor = Just EOEditor
+    | s == getCodeChangedEventName PhiEditor = Just PhiEditor
     | otherwise = Nothing
-  
+  changeCodeSuff = "-editor-change-code"
+  getChangeCodeEventName x = editorName x <> changeCodeSuff
+
+
+
 data Action
   = Recompile String
   | NextStep
@@ -191,11 +208,9 @@ data Action
   | HandleEditorCodeChanged Editor String
   | NoOp
 
-data CodeChange = CodeChange {
-  editor :: Editor,
-  code :: String
+type NewCode = {
+  newCode :: String
 }
-
 -- TODO
 -- current editor is 
 -- for now: where the last change occured
@@ -457,7 +472,7 @@ cdns =
       HH.link [HP.href "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css", HP.rel "stylesheet", HP.type_ textCSS],
       HH.link [HP.href "https://www.yegor256.com/images/books/elegant-objects/cactus.png", HP.rel "shortcut icon"],
       HH.link [HP.href "https://cdn.jsdelivr.net/gh/yegor256/tacit@gh-pages/tacit-css.min.css", HP.rel "stylesheet", HP.type_ textCSS],
-      HH.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi@0.0.1/src/Site/scripts/init-popovers.js", HP.type_ applicationJavascript] [],
+      HH.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi@0.0.1/src/Site/scripts/ini t-popovers.js", HP.type_ applicationJavascript] [],
       HH.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi@0.0.1/src/Site/scripts/set-snippet.js", HP.type_ applicationJavascript] []
     ]
 

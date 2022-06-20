@@ -44,43 +44,47 @@ let getTab = event => phiTab => eoTab => just => nothing => {
 
 // TODO listen to onCreate for elements with popovers
 
-var popoverList
+// var popoverList
 
-function waitForElem(selector) {
-  return new Promise((resolve) => {
-    let e = document.getElementById(selector)
-    if (e !== null) {
-      return resolve(e)
-    }
+// function waitForElem(selector) {
+//   return new Promise((resolve) => {
+//     let e = document.getElementById(selector)
+//     if (e !== null) {
+//       return resolve(e)
+//     }
 
-    const observer = new MutationObserver((mutations) => {
-      let e = document.getElementById(selector)
-      if (e !== null) {
-        resolve(e)
-        observer.disconnect()
-      }
-    })
+//     const observer = new MutationObserver((mutations) => {
+//       let e = document.getElementById(selector)
+//       if (e !== null) {
+//         resolve(e)
+//         observer.disconnect()
+//       }
+//     })
 
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-    })
-  })
+//     observer.observe(document.body, {
+//       childList: true,
+//       subtree: true,
+//     })
+//   })
+// }
+
+// waitForElem('phi-editor').then((elem) => {
+//   let popoverTriggerList = [].slice.call(
+//     document.querySelectorAll('[data-bs-toggle="popover"]')
+//   )
+
+//   popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+//     return new bootstrap.Popover(popoverTriggerEl, {
+//       container: 'body',
+//       html: true,
+//     })
+//   })
+//   // console.log('Element is ready');
+//   // console.log(elem.textContent);
+// })
+
+let setString = editor => s => () => {
+  let e = new CustomEvent("")
 }
-
-waitForElem('phi-editor').then((elem) => {
-  let popoverTriggerList = [].slice.call(
-    document.querySelectorAll('[data-bs-toggle="popover"]')
-  )
-
-  popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
-    return new bootstrap.Popover(popoverTriggerEl, {
-      container: 'body',
-      html: true,
-    })
-  })
-  // console.log('Element is ready');
-  // console.log(elem.textContent);
-})
 
 export {getHTML, someText, getNewCode, getCustomEventListener, getTab}

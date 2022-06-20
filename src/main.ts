@@ -10,7 +10,8 @@ import { toggleTree } from './extensions/log-lezer-tree'
 import { sameIndent } from './extensions/same-indent'
 
 
-let code = `+alias org.eolang.io.stdout
+let code = 
+`+alias org.eolang.io.stdout
 +alias org.eolang.txt.sprintf
 
 [args...] > main
@@ -72,14 +73,16 @@ function waitForElement(id: string) {
       setTimeout(() => {
         reject(`no element with id ${id} was created`)
       }, 5000)
-
-      if (document.getElementById(id)) {
-        resolve(document.getElementById(id));
+      
+      let e = document.getElementById(id)
+      if (e !== null) {
+        resolve(e);
       }
 
       const observer = new MutationObserver(mutations => {
-          if (document.getElementById(id)) {
-              resolve(document.getElementById(id));
+        let e = document.getElementById(id)
+          if (e !== null) {
+              resolve(e);
               observer.disconnect();
           }
       });
@@ -91,16 +94,30 @@ function waitForElement(id: string) {
   });
 }
 
-async function insertWhenExists(id: string) {
+
+// insert editor
+// make it listen to events which require code updates
+
+const changeCodeEvent = "eo-editor-change-code"
+
+async function doWhenExists(id: string) {
   const element = await waitForElement(id)
   if (typeof element == "string"){
     console.log(element)
   } else {
     element.appendChild(view.dom)
+
     initFromLink(view)
+
+    // insert new code when required
+    document.addEventListener(changeCodeEvent, ((e: CustomEvent) => {
+      view.dispatch({
+        changes: { from: 0, to: view.state.doc.length, insert: e.detail.newCode},
+      });
+    }) as EventListener)
   }
 }
 
-insertWhenExists("eo-editor")
+doWhenExists("eo-editor")
 
 export { eoEditor}

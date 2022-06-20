@@ -12,7 +12,8 @@ function setLink(state: EditorState) {
     window.location.pathname +
     '?snippet=' +
     encodeURIComponent(state.doc.toString())
-  document.getElementById(linkId).setAttribute(attributeHref, newRef)
+  
+  document.getElementById(linkId)?.setAttribute(attributeHref, newRef)
 }
 
 export const updatePermalink = ViewPlugin.fromClass(

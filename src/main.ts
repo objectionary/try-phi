@@ -9,9 +9,7 @@ import { indentGuides } from './extensions/indent-guides'
 import { toggleTree } from './extensions/log-lezer-tree'
 import { sameIndent } from './extensions/same-indent'
 
-
-let code = 
-`+alias org.eolang.io.stdout
+let code = `+alias org.eolang.io.stdout
 +alias org.eolang.txt.sprintf
 
 [args...] > main
@@ -29,7 +27,7 @@ let code =
 `
 
 const myTheme = EditorView.baseTheme({
-  $: {  
+  $: {
     maxHeight: '80vh',
     outline: '1px auto #ddd',
   },
@@ -37,10 +35,12 @@ const myTheme = EditorView.baseTheme({
     fontFamily: '"Fira Mono", monospace',
     fontSize: '30px',
   },
-
+  // set min and max editor height
+  // https://discuss.codemirror.net/t/code-editor-with-automatic-height-that-has-a-minimum-and-maximum-height/4015/5
+  '&': { maxHeight: '300px', minHeight: '300px', border: '1px solid silver' },
+  '.cm-gutter, .cm-content': { minHeight: '300px' },
+  '.cm-scroller': { overflow: 'auto' },
 })
-
-
 
 const initialState = EditorState.create({
   doc: code,
@@ -53,7 +53,7 @@ const initialState = EditorState.create({
     parseErrors,
     indentGuides,
     sameIndent,
-    toggleTree("Mod-Shift-l")
+    toggleTree('Mod-Shift-l'),
   ],
 })
 
@@ -63,46 +63,45 @@ const view = new EditorView({
 
 let eoEditor = {
   view: view,
-  initFromLink: initFromLink
+  initFromLink: initFromLink,
 }
 
 // Wait until exists div for the editor
 
 function waitForElement(id: string) {
   return new Promise<HTMLElement | string>((resolve, reject) => {
-      setTimeout(() => {
-        reject(`no element with id ${id} was created`)
-      }, 5000)
-      
+    setTimeout(() => {
+      reject(`no element with id ${id} was created`)
+    }, 5000)
+
+    let e = document.getElementById(id)
+    if (e !== null) {
+      resolve(e)
+    }
+
+    const observer = new MutationObserver((mutations) => {
       let e = document.getElementById(id)
       if (e !== null) {
-        resolve(e);
+        resolve(e)
+        observer.disconnect()
       }
+    })
 
-      const observer = new MutationObserver(mutations => {
-        let e = document.getElementById(id)
-          if (e !== null) {
-              resolve(e);
-              observer.disconnect();
-          }
-      });
-
-      observer.observe(document.body, {
-          childList: true,
-          subtree: true
-      });
-  });
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    })
+  })
 }
-
 
 // insert editor
 // make it listen to events which require code updates
 
-const changeCodeEvent = "eo-editor-change-code"
+const changeCodeEvent = 'eo-editor-change-code'
 
 async function doWhenExists(id: string) {
   const element = await waitForElement(id)
-  if (typeof element == "string"){
+  if (typeof element == 'string') {
     console.log(element)
   } else {
     element.appendChild(view.dom)
@@ -112,12 +111,16 @@ async function doWhenExists(id: string) {
     // insert new code when required
     document.addEventListener(changeCodeEvent, ((e: CustomEvent) => {
       view.dispatch({
-        changes: { from: 0, to: view.state.doc.length, insert: e.detail.newCode},
-      });
+        changes: {
+          from: 0,
+          to: view.state.doc.length,
+          insert: e.detail.newCode,
+        },
+      })
     }) as EventListener)
   }
 }
 
-doWhenExists("eo-editor")
+doWhenExists('eo-editor')
 
-export { eoEditor}
+export { eoEditor }

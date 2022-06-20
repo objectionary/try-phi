@@ -21,10 +21,9 @@ let code = `[
   ](price -> ^1.price)
 ].manga.price`;
 
-const myTheme = EditorView.baseTheme({
+const myTheme = EditorView.theme({
   $: {
     maxHeight: '80vh',
-    maxWidth: '50vw',
     outline: '1px auto #ddd',
   },
   $scroller: {
@@ -33,9 +32,9 @@ const myTheme = EditorView.baseTheme({
   },
   // set min and max editor height
   // https://discuss.codemirror.net/t/code-editor-with-automatic-height-that-has-a-minimum-and-maximum-height/4015/5
-  '&': { maxHeight: '300px', minHeight: '300px', border: '1px solid silver' },
-  '.cm-gutter, .cm-content': { minHeight: '300px' },
-  '.cm-scroller': { overflow: 'auto' },
+  '.cm-gutter, .cm-content': { minHeight: '400px' },
+  '.cm-scroller': { overflow: 'auto'},
+  '&': { maxHeight: '400px', minHeight: '400px', border: '1px solid silver' },
 })
 
 const initialState = EditorState.create({

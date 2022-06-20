@@ -69,13 +69,15 @@ function waitForElement(id: string) {
         reject(`no element with id ${id} was created`)
       }, 5000)
       
-      if (document.getElementById(id) !== null) {
-        resolve(document.getElementById(id)!);
+      let e = document.getElementById(id)
+      if (e !== null) {
+        resolve(e);
       }
       
       const observer = new MutationObserver(mutations => {
-        if (document.getElementById(id) !== null) {
-          resolve(document.getElementById(id)!);
+        let e = document.getElementById(id)
+        if (e !== null) {
+          resolve(e);
           observer.disconnect();
         }
       });
@@ -89,10 +91,10 @@ function waitForElement(id: string) {
   
 
 // insert editor
-// make it listen events which require code updates
+// make it listen to events which require code updates
 const changeCodeEvent = "phi-editor-change-code"
 
-async function insertWhenExists(id: string) {
+async function doWhenExists(id: string) {
   const element = await waitForElement(id)
   if (typeof element == "string"){
     console.log(element)
@@ -100,6 +102,9 @@ async function insertWhenExists(id: string) {
     // insert editor
     element.appendChild(view.dom)
     
+    // init from snippet
+    initFromLink(view)
+
     // insert new code when required
     document.addEventListener(changeCodeEvent, ((e: CustomEvent) => {
       view.dispatch({
@@ -109,7 +114,7 @@ async function insertWhenExists(id: string) {
   }
 }
 
-insertWhenExists("phi-editor")
+doWhenExists("phi-editor")
 
 
 

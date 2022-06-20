@@ -1,4 +1,4 @@
-# EO editor
+# Phi editor
 
 * Created using [Lezer Grammar](https://lezer.codemirror.net/) and [Codemirror 6](https://codemirror.net/6/)
 * EO [repo](https://github.com/cqfn/eo)

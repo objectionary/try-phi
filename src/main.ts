@@ -65,37 +65,52 @@ let phiEditor = {
 // Wait until exists div for the editor
 function waitForElement(id: string) {
   return new Promise<HTMLElement | string>((resolve, reject) => {
-      setTimeout(() => {
+    setTimeout(() => {
         reject(`no element with id ${id} was created`)
       }, 5000)
       
       if (document.getElementById(id) !== null) {
         resolve(document.getElementById(id)!);
       }
-
+      
       const observer = new MutationObserver(mutations => {
-          if (document.getElementById(id) !== null) {
-              resolve(document.getElementById(id)!);
-              observer.disconnect();
-          }
+        if (document.getElementById(id) !== null) {
+          resolve(document.getElementById(id)!);
+          observer.disconnect();
+        }
       });
-
+      
       observer.observe(document.body, {
-          childList: true,
-          subtree: true
+        childList: true,
+        subtree: true
       });
-  });
-}
+    });
+  }
+  
+
+// insert editor
+// make it listen events which require code updates
+const changeCodeEvent = "phi-editor-change-code"
 
 async function insertWhenExists(id: string) {
   const element = await waitForElement(id)
   if (typeof element == "string"){
     console.log(element)
   } else {
+    // insert editor
     element.appendChild(view.dom)
+    
+    // insert new code when required
+    document.addEventListener(changeCodeEvent, ((e: CustomEvent) => {
+      view.dispatch({
+        changes: { from: 0, to: view.state.doc.length, insert: e.detail.newCode},
+      });
+    }) as EventListener)
   }
 }
 
 insertWhenExists("phi-editor")
+
+
 
 export { phiEditor}

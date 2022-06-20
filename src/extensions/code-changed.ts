@@ -9,7 +9,7 @@ function sendNewCode(state: EditorState) {
   const code = state.doc.toString()
   let newEvent = defaultEvent
   newEvent.detail.newCode = code
-  console.log("works")
+  // console.log("works")
   document.dispatchEvent(newEvent)
 }
 

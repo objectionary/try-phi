@@ -22,10 +22,6 @@ let code = `[
 ].manga.price`;
 
 const myTheme = EditorView.baseTheme({
-  "&": {
-    fontSize: "16pt",
-    border: "1px solid #c0c0c0"
-  },
   $: {
     maxHeight: '80vh',
     maxWidth: '50vw',
@@ -34,7 +30,12 @@ const myTheme = EditorView.baseTheme({
   $scroller: {
     fontFamily: '"Fira Mono", monospace',
     fontSize: '30px',
-  }
+  },
+  // set min and max editor height
+  // https://discuss.codemirror.net/t/code-editor-with-automatic-height-that-has-a-minimum-and-maximum-height/4015/5
+  '&': { maxHeight: '300px', minHeight: '300px', border: '1px solid silver' },
+  '.cm-gutter, .cm-content': { minHeight: '300px' },
+  '.cm-scroller': { overflow: 'auto' },
 })
 
 const initialState = EditorState.create({

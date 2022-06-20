@@ -8,6 +8,7 @@ import { parseErrors } from './extensions/diagnostics'
 import { indentGuides } from './extensions/indent-guides'
 import { toggleTree } from './extensions/log-lezer-tree'
 import { sameIndent } from './extensions/same-indent'
+import {notifyCodeChanged} from './extensions/code-changed'
 
 let code = `+alias org.eolang.io.stdout
 +alias org.eolang.txt.sprintf
@@ -53,6 +54,7 @@ const initialState = EditorState.create({
     parseErrors,
     indentGuides,
     sameIndent,
+    notifyCodeChanged,
     toggleTree('Mod-Shift-l'),
   ],
 })

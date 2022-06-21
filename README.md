@@ -1,6 +1,6 @@
-# Halogen Template
+# Try Phi
 
-This is another attempt to write try-phi editor, this time in PureScript.
+This is an attempt to rewrite [try-phi](https://github.com/br4ch1st0chr0n3/try-phi) in PureScript.
 It's based on this [template](https://github.com/purescript-halogen/purescript-halogen-template).
 
 ### Quick Start
@@ -62,10 +62,14 @@ If everything looks good, you can then upload the contents of `dist` to your pre
     * select the branch `gh-pages` and `/(root)` as the source
     * save and check the site when it's built!
 
-## Literature
+## References
 
 * Events
     * [How to dispatch custom events in JavaScript](https://www.educative.io/answers/how-to-dispatch-custom-events-in-javascript)
 
 * Web requests
     * [Purescript Part 4: Web Requests and Navigation](https://mmhaskell.com/purescript-4)
+
+* Configuring Todo Tree extension
+    * [sample config](https://youtu.be/wzIcG8TdjHE)
+    * can combine [regexes](https://github.com/Gruntfuggly/todo-tree/wiki/Configuration-Examples) for several languages via the vertical bar `|`

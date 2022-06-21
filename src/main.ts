@@ -8,7 +8,7 @@ import { parseErrors } from './extensions/diagnostics'
 import { indentGuides } from './extensions/indent-guides'
 import { toggleTree } from './extensions/log-lezer-tree'
 import { sameIndent } from './extensions/same-indent'
-import { notifyCodeChanged } from './extensions/code-changed'
+import { notifyCodeChanged, editorTriggered, ann } from './extensions/code-changed'
 
 let code = `[
   book -> [
@@ -109,6 +109,7 @@ async function doWhenExists(id: string) {
     document.addEventListener(changeCodeEvent, ((e: CustomEvent) => {
       view.dispatch({
         changes: { from: 0, to: view.state.doc.length, insert: e.detail.newCode},
+        annotations: ann.of(editorTriggered)
       });
     }) as EventListener)
   }

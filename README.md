@@ -11,7 +11,7 @@
 * Show parsing errors (thanks to [this post](https://discuss.codemirror.net/t/showing-syntax-errors/3111/6))
 * Show [Lezer](https://lezer.codemirror.net/) parse tree in browser console (thanks to [this post](https://discuss.codemirror.net/t/whats-the-best-to-test-and-debug-grammars/2542/5))
 * Underline code (beta) with `Ctrl`+`H`(see [this example](https://codemirror.net/6/examples/decoration/))
-* Actions from [basic-setup](https://codemirror.net/6/docs/ref/#basic-setup), including [keybindings](https://codemirror.net/6/docs/ref/#commands.defaultKeymap)
+* Actions from [basic-setup](https://codemirror.net/6/docs/ref/#basic-setup), including [keybindings](https://codemirror.net/6/docs/ref/#commands.defaultKeymap)    
 * Continued indentation (thanks to this [facet example](https://codemirror.net/6/examples/zebra/))
 * Share code by permalink
 * Wait until `<div>` for the editor is created

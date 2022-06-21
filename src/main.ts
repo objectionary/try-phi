@@ -8,7 +8,8 @@ import { parseErrors } from './extensions/diagnostics'
 import { indentGuides } from './extensions/indent-guides'
 import { toggleTree } from './extensions/log-lezer-tree'
 import { sameIndent } from './extensions/same-indent'
-import {notifyCodeChanged} from './extensions/code-changed'
+import {notifyCodeChanged, editorTriggered, ann} from './extensions/code-changed'
+import {Transaction, Annotation} from '@codemirror/state'
 
 let code = `+alias org.eolang.io.stdout
 +alias org.eolang.txt.sprintf
@@ -96,8 +97,13 @@ function waitForElement(id: string) {
   })
 }
 
+// TODO
+// code changes triggered by another editor 
+// shouldn't trigger messages from this editor
+
 // insert editor
 // make it listen to events which require code updates
+
 
 const changeCodeEvent = 'eo-editor-change-code'
 
@@ -109,8 +115,10 @@ async function doWhenExists(id: string) {
     element.appendChild(view.dom)
 
     initFromLink(view)
-
     // insert new code when required
+    
+    // https://discuss.codemirror.net/t/using-annotations-to-differentiate-origin-of-transaction/3224
+
     document.addEventListener(changeCodeEvent, ((e: CustomEvent) => {
       view.dispatch({
         changes: {
@@ -118,6 +126,7 @@ async function doWhenExists(id: string) {
           to: view.state.doc.length,
           insert: e.detail.newCode,
         },
+        annotations: ann.of(editorTriggered)
       })
     }) as EventListener)
   }

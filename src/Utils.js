@@ -20,17 +20,6 @@ let getNewCode = event => just => nothing => {
   return nothing
 }
 
-let getCustomEventListener = elementId => eventName => just => nothing => {
-  if (document.getElementById(elementId) !== null) {
-    let l = document.getElementById(elementId).addEventListener(eventName, event => {
-      return event.detail.newCode
-    })
-    return just(l)
-  } else {
-    return nothing
-  }
-}
-
 let getTab = event => phiTab => eoTab => just => nothing => {
   if (event.eventName == "phi-editor-code-changed") {
     return just(phiTab)
@@ -87,4 +76,4 @@ let setString = editor => s => () => {
   let e = new CustomEvent("")
 }
 
-export {getHTML, someText, getNewCode, getCustomEventListener, getTab}
+export {getHTML, someText, getNewCode, getTab}

@@ -18,7 +18,8 @@ module Phi
   editorName,
   anotherEditor,
    md1,
-   component
+   component,
+   Editor(..)
   )
   where
 
@@ -54,7 +55,6 @@ import Halogen.HTML.Properties (ButtonType(..), IProp)
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties.ARIA (role) as HA
 import Halogen.Query.Event (eventListener)
-import Utils (Editor(..))
 import Utils (classes_, class_, attr_) as U
 import Web.Event.CustomEvent as CE
 import Web.Event.Event (EventType(..))
@@ -63,6 +63,8 @@ import Web.HTML (window) as Web
 import Web.HTML.HTMLDocument as HTMLDocument
 import Web.HTML.Window (document) as Web
 import Web.XHR.XMLHttpRequest (open')
+
+data Editor = EOEditor | PhiEditor
 
 md1 :: State
 md1 =
@@ -211,6 +213,7 @@ data Action
 type NewCode = {
   newCode :: String
 }
+
 -- TODO
 -- current editor is 
 -- for now: where the last change occured
@@ -232,12 +235,10 @@ html state =
         in
           case state of
               ParseError e -> showError (show e)
-              md -> HH.div_ [termTabs md]
+              md -> termTabs md
       ],
-      HH.div [HP.id "catch"
-      -- , HH.handler (EventType "phi-editor-code-changed") \_ -> NextStep
-      -- , HH.handler (EventType "eo-editor-code-changed") \_ -> NextStep
-      ] [
+      HH.div_ 
+      [
         HH.text $ case state of 
           ParseError e -> show e
           -- FIXME this is a temporary output just to check if event handling
@@ -472,7 +473,7 @@ cdns =
       HH.link [HP.href "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css", HP.rel "stylesheet", HP.type_ textCSS],
       HH.link [HP.href "https://www.yegor256.com/images/books/elegant-objects/cactus.png", HP.rel "shortcut icon"],
       HH.link [HP.href "https://cdn.jsdelivr.net/gh/yegor256/tacit@gh-pages/tacit-css.min.css", HP.rel "stylesheet", HP.type_ textCSS],
-      HH.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi@0.0.1/src/Site/scripts/ini t-popovers.js", HP.type_ applicationJavascript] [],
+      HH.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi@0.0.1/src/Site/scripts/init-popovers.js", HP.type_ applicationJavascript] [],
       HH.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi@0.0.1/src/Site/scripts/set-snippet.js", HP.type_ applicationJavascript] []
     ]
 
@@ -507,13 +508,7 @@ type State = State'
     graphStep :: Int
   }
   
-
-
-
-
 data TabMode = Active | Disabled
-
--- editorTab :: forall a 
 
 tabButton :: forall a. Tab -> HTML a Action
 tabButton t@(Tab tab) =

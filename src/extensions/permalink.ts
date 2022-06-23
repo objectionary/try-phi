@@ -2,7 +2,7 @@ import { ViewPlugin, ViewUpdate } from '@codemirror/view'
 import { EditorState, EditorView } from '@codemirror/basic-setup'
 
 const linkId = '__permalink__'
-const attributeHref = 'href'
+const attributeHref = '__href__'
 
 function setLink(state: EditorState) {
   let newRef =

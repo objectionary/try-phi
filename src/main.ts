@@ -24,6 +24,8 @@ let code = `[
 const myTheme = EditorView.theme({
   $: {
     outline: '1px auto #ddd',
+    maxWidth: '100%', 
+    minWidth: '100%'
   },
   $scroller: {
     fontFamily: '"Fira Mono", monospace',

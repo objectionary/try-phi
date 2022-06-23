@@ -54,7 +54,6 @@ const myTheme = EditorView.theme({
 })
 
 const initialState = EditorState.create({
-  doc: code,
   extensions: [
     basicSetup,
     myTheme,
@@ -137,6 +136,15 @@ async function doWhenExists(id: string) {
         annotations: ann.of(editorTriggered),
       })
     }) as EventListener)
+    
+    view.dispatch({
+      changes: {
+        from: 0,
+        to: view.state.doc.length,
+        insert: code,
+      },
+      annotations: ann.of(editorTriggered),
+    })
   }
 }
 

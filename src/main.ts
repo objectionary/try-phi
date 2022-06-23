@@ -35,8 +35,6 @@ let code = `+alias org.eolang.io.stdout
 const myTheme = EditorView.theme({
   $: {
     outline: '1px auto #ddd',
-    minWidth: '100%',
-    maxWidth: '100%',
   },
   $scroller: {
     fontFamily: '"Fira Mono", monospace',
@@ -50,7 +48,7 @@ const myTheme = EditorView.theme({
     maxHeight: '400px',
     minHeight: '400px',
     maxWidth: '100%',
-    minWidth: '100%',
+    minWidth: '50%',
     border: '1px solid silver',
   },
 })

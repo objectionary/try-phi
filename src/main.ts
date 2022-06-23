@@ -105,12 +105,22 @@ async function doWhenExists(id: string) {
     // initFromLink(view)
 
     // insert new code when required
-    document.addEventListener(changeCodeEvent, ((e: CustomEvent) => {
+    let send = (code: string) => {
       view.dispatch({
-        changes: { from: 0, to: view.state.doc.length, insert: e.detail.newCode},
-        annotations: ann.of(editorTriggered)
-      });
+        changes: {
+          from: 0,
+          to: view.state.doc.length,
+          insert: code,
+        },
+        annotations: ann.of(editorTriggered),
+      })
+    }
+
+    document.addEventListener(changeCodeEvent, ((e: CustomEvent) => {
+      send(e.detail.newCode)
     }) as EventListener)
+    
+    send(code)
   }
 }
 

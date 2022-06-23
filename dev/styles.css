@@ -68,3 +68,26 @@ input:checked+.slider:before {
     vertical-align: middle;
 }
 
+.btn-yellow,
+.btn-yellow:hover,
+.btn-yellow:active,
+.btn-yellow:visited {
+  background-color: #eab42b;
+}
+
+.btn-yellow:focus{
+  border-color: #eab42b;
+  box-shadow: 0 0 0 0.2rem #eab42b7c;
+}
+
+.btn-green,
+.btn-green:hover,
+.btn-green:active,
+.btn-green:visited {
+  background-color: #54c234;
+}
+
+.btn-green:focus{
+  border-color: #54c234;
+  box-shadow: 0 0 0 0.2rem #55c23480;
+}

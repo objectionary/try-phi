@@ -1,15 +1,10 @@
 'use strict'
 
-let getHTML = node => {
-  // return node.outerHTML
-  return "some html"
-}
+let getHTML = (node) => 'some html'
 
-let someText = n => {
-    return "some text"
-}
+let someText = (n) => 'some text'
 
-let getNewCode = event => just => nothing => {
+let getNewCode = (event) => (just) => (nothing) => {
   if (event.detail !== null) {
     if (event.detail.newCode !== null) {
       return just(event.detail.newCode)
@@ -20,16 +15,35 @@ let getNewCode = event => just => nothing => {
   return nothing
 }
 
-let getTab = event => phiTab => eoTab => just => nothing => {
-  if (event.eventName == "phi-editor-code-changed") {
+let getTab = (event) => (phiTab) => (eoTab) => (just) => (nothing) => {
+  if (event.eventName == 'phi-editor-code-changed') {
     return just(phiTab)
-  } else if (event.eventName == "eo-editor-code-changed"){
+  } else if (event.eventName == 'eo-editor-code-changed') {
     return just(eoTab)
   } else {
     return nothing
   }
 }
 
+let clipboard = (navigator) => () => navigator.clipboard
+
+// FIXME handle promise
+let writeText = (clipboard) => (s) => () => clipboard.writeText(s)
+
+let makePermalink = (editor) => (s) => () => {
+  let newRef =
+    window.location.protocol +
+    '//' +
+    window.location.host +
+    window.location.pathname +
+    '?' +
+    'editor=' +
+    editor +
+    '&' +
+    'snippet=' +
+    encodeURIComponent(s)
+  return newRef
+}
 
 // TODO listen to onCreate for elements with popovers
 
@@ -72,8 +86,12 @@ let getTab = event => phiTab => eoTab => just => nothing => {
 //   // console.log(elem.textContent);
 // })
 
-let setString = editor => s => () => {
-  let e = new CustomEvent("")
+export {
+  getHTML,
+  someText,
+  getNewCode,
+  getTab,
+  clipboard,
+  writeText,
+  makePermalink,
 }
-
-export {getHTML, someText, getNewCode, getTab}

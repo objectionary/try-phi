@@ -11,7 +11,7 @@ function sendNewCode(state: EditorState) {
   let newEvent = defaultEvent
   newEvent.detail.newCode = code
   document.dispatchEvent(newEvent)
-}
+} 
 
 export const editorTriggered = {}
 export const ann = Annotation.define<Object>()

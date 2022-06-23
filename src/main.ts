@@ -58,7 +58,7 @@ const view = new EditorView({
 
 let phiEditor = {
   view: view,
-  initFromLink: initFromLink
+  // initFromLink: initFromLink
 }
 
 // Wait until exists div for the editor

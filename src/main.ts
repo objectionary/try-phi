@@ -37,7 +37,7 @@ const myTheme = EditorView.theme({
 })
 
 const initialState = EditorState.create({
-  doc: code,
+  // doc: code,
   extensions: [
     basicSetup,
     myTheme,

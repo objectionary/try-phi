@@ -141,7 +141,7 @@ async function doWhenExists(id: string) {
       send(e.detail.newCode)
     }) as EventListener)
     
-    send(code)
+    // send(code)
   }
 }
 

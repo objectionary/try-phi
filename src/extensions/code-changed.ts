@@ -19,7 +19,6 @@ export const ann = Annotation.define<Object>()
 export const notifyCodeChanged = ViewPlugin.fromClass(
   class {
     constructor(view: EditorView) {
-        sendNewCode(view.state)
     }
 
     update(update: ViewUpdate) {

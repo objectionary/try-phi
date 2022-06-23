@@ -126,25 +126,22 @@ async function doWhenExists(id: string) {
 
     // https://discuss.codemirror.net/t/using-annotations-to-differentiate-origin-of-transaction/3224
 
-    document.addEventListener(changeCodeEvent, ((e: CustomEvent) => {
+    let send = (code: string) => {
       view.dispatch({
         changes: {
           from: 0,
           to: view.state.doc.length,
-          insert: e.detail.newCode,
+          insert: code,
         },
         annotations: ann.of(editorTriggered),
       })
+    }
+
+    document.addEventListener(changeCodeEvent, ((e: CustomEvent) => {
+      send(e.detail.newCode)
     }) as EventListener)
     
-    view.dispatch({
-      changes: {
-        from: 0,
-        to: view.state.doc.length,
-        insert: code,
-      },
-      annotations: ann.of(editorTriggered),
-    })
+    send(code)
   }
 }
 

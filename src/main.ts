@@ -48,7 +48,7 @@ const myTheme = EditorView.theme({
     maxHeight: '400px',
     minHeight: '400px',
     maxWidth: '100%',
-    minWidth: '50%',
+    minWidth: '40vw',
     border: '1px solid silver',
   },
 })

@@ -33,7 +33,7 @@ const myTheme = EditorView.theme({
   // https://discuss.codemirror.net/t/code-editor-with-automatic-height-that-has-a-minimum-and-maximum-height/4015/5
   '.cm-gutter, .cm-content': { minHeight: '400px' },
   '.cm-scroller': { overflow: 'auto'},
-  '&': { maxHeight: '400px', minHeight: '400px', maxWidth: '40vw', minWidth: '40vw', border: '1px solid silver' },
+  '&': { maxHeight: '400px', minHeight: '400px', maxWidth: '100%', minWidth: '100%', border: '1px solid silver' },
 })
 
 const initialState = EditorState.create({

@@ -102,7 +102,7 @@ async function doWhenExists(id: string) {
     element.appendChild(view.dom)
     
     // init from snippet
-    initFromLink(view)
+    // initFromLink(view)
 
     // insert new code when required
     document.addEventListener(changeCodeEvent, ((e: CustomEvent) => {

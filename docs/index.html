@@ -34,7 +34,7 @@
     <div class="col-3"></div>
     <button type="button" class="btn btn-yellow me-2" id="__permalink__" onclick="copyLink()">Copy permalink</button>
     <a href="https://github.com/br4ch1st0chr0n3/eo-editor" class="image-link me-2">
-      <img src="assets/gh.png" style="height: 40px; width: 40px;"/>
+      <img src="assets/gh.png" style="height: 40px; width: 40px;" />
     </a>
     <button class="btn btn-green me-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar"
       aria-controls="offcanvasNavbar">Editor guide
@@ -54,7 +54,7 @@
               <button class="nav-link active" id="keybindings-tab" data-bs-toggle="pill" data-bs-target="#keybindings"
                 type="button" role="tab" aria-controls="keybindings" aria-selected="true">Keybindings</button>
             </li>
-            <li class="nav-item"0>
+            <li class="nav-item" 0>
               <button class="nav-link" id="diagnostics-tab" data-bs-toggle="pill" data-bs-target="#diagnostics"
                 type="button" role="tab" aria-controls="diagnostics" aria-selected="false">Diagnostics</button>
             </li>
@@ -141,13 +141,15 @@
   </nav>
 
   <div class="row">
-    <div id="eo-editor"></div>
-    </row>
+    <div class="d-flex justify-content-center">
+      <div id="eo-editor"></div>
+    </div>
+  </div>
 
-    <script>
-      function copyLink() {
-        permalink = document.getElementById("__permalink__")
-        navigator.clipboard.writeText(permalink.getAttribute('href'))
-      }
-    </script>
+  <script>
+    function copyLink() {
+      permalink = document.getElementById("__permalink__")
+      navigator.clipboard.writeText(permalink.getAttribute('href'))
+    }
+  </script>
 </body>

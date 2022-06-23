@@ -30,7 +30,6 @@ let code = `+alias org.eolang.io.stdout
 
 const myTheme = EditorView.theme({
   $: {
-    maxHeight: '80vh',
     outline: '1px auto #ddd',
   },
   $scroller: {
@@ -41,7 +40,7 @@ const myTheme = EditorView.theme({
   // https://discuss.codemirror.net/t/code-editor-with-automatic-height-that-has-a-minimum-and-maximum-height/4015/5
   '.cm-gutter, .cm-content': { minHeight: '400px' },
   '.cm-scroller': { overflow: 'auto'},
-  '&': { maxHeight: '400px', minHeight: '400px', border: '1px solid silver' },
+  '&': { maxHeight: '400px', minHeight: '400px', maxWidth: '50vw', minWidth: '50vw', border: '1px solid silver' },
 })
 
 const initialState = EditorState.create({

@@ -2,7 +2,7 @@ import { EditorState, EditorView, basicSetup } from '@codemirror/basic-setup'
 import { keymap } from '@codemirror/view'
 import { indentWithTab } from '@codemirror/commands'
 import { phi } from './extensions/phi'
-import { updatePermalink} from './extensions/permalink'
+// import { updatePermalink} from './extensions/permalink'
 import { initFromLink} from './extensions/init-from-link'
 import { parseErrors } from './extensions/diagnostics'
 import { indentGuides } from './extensions/indent-guides'
@@ -42,7 +42,7 @@ const initialState = EditorState.create({
     basicSetup,
     myTheme,
     phi(),
-    updatePermalink,
+    // updatePermalink,
     keymap.of([indentWithTab]),
     parseErrors,
     indentGuides,

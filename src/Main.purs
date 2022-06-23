@@ -8,8 +8,7 @@ import Effect (Effect)
 import Halogen.Aff as HA
 import Halogen.VDom.Driver (runUI)
 import Phi (component)
-
-
+  
 main :: Effect Unit
 main =
   HA.runHalogenAff do

@@ -10,8 +10,8 @@ module Phi
   TabId(..),
   State'(..),
   class CodeChanges,
-  getCodeChangedEventName,
-  getChangeCodeEventName,
+  getNameEventCodeChanged,
+  getNameEventChangeCode,
   getEditorWhereCodeChanged,
   codeChangedSuff,
   changeCodeSuff,
@@ -23,34 +23,41 @@ module Phi
   )
   where
 
-import Foreign
 import Prelude
-import Web.Event.EventTarget
-import Web.HTML.HTMLDocument
 
-import Affjax.RequestBody (document)
+import Affjax as AX
+import Affjax.RequestBody (RequestBody(..))
+import Affjax.ResponseFormat as AXRF
+import Affjax.Web as AW
 import CSS.Geometry as CG
 import CSS.Size as CS
+import Data.Argonaut (class EncodeJson, JsonDecodeError, decodeJson, encodeJson, jsonEmptyObject, (.:), (.:?), (:=), (~>))
 import Data.Argonaut.Decode (JsonDecodeError) as AD
+import Data.Argonaut.Decode (class DecodeJson, JsonDecodeError, decodeJson)
 import Data.Argonaut.Decode.Class (decodeJson)
 import Data.Array as DA
-import Data.Either (Either(..))
-import Data.Foldable (intercalate, traverse_)
+import Data.Either (Either(..), hush)
+import Data.Foldable (intercalate, lookup, traverse_)
 import Data.Int as DI
+import Data.List (List(..))
+import Data.Map (fromFoldable)
 import Data.Map.Internal (Map)
 import Data.Map.Internal as Map
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (Maybe(..), fromJust, fromMaybe, isJust)
 import Data.MediaType.Common (applicationJavascript, textCSS)
+import Data.Show.Generic (class GenericShow, genericShow')
+import Data.Traversable (sequence, traverse)
 import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff)
+import Foreign (unsafeFromForeign)
 import Halogen (AttrName(..), Component)
 import Halogen as H
 import Halogen.HTML (HTML)
-import Halogen.HTML (button, header_, pre_, section_, text) as HH
+import Halogen.HTML (button, header_, pre, pre_, section_, text) as HH
 import Halogen.HTML.CSS as CSS
 import Halogen.HTML.Core as HC
 import Halogen.HTML.Elements (a, div, div_, i, img, li_, link, nav_, p_, script, ul_) as HH
-import Halogen.HTML.Events (handler, onClick) as HH
+import Halogen.HTML.Events (onClick) as HH
 import Halogen.HTML.Properties (ButtonType(..), IProp)
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties.ARIA (role) as HA
@@ -59,12 +66,15 @@ import Utils (classes_, class_, attr_) as U
 import Web.Event.CustomEvent as CE
 import Web.Event.Event (EventType(..))
 import Web.Event.Event as Event
+import Web.Event.EventTarget (dispatchEvent)
 import Web.HTML (window) as Web
+import Web.HTML.HTMLDocument (toEventTarget)
 import Web.HTML.HTMLDocument as HTMLDocument
 import Web.HTML.Window (document) as Web
-import Web.XHR.XMLHttpRequest (open')
 
 data Editor = EOEditor | PhiEditor
+
+ids = [ TEO, TTerm, TWHNF, TNF, TCBNReduction, TCBNWithTAP, TCBNWithGraph ]
 
 md1 :: State
 md1 =
@@ -84,24 +94,55 @@ md1 =
     -- send immediately?
     }
   where
-  ids = [ TEO, TTerm, TWHNF, TNF, TCBNReduction, TCBNWithTAP, TCBNWithGraph ]
 
   btexts = [ "EO code", "Phi term", " WHNF", "NF", "CBN Reduction", "CBN With TAP", "CBN With Graph" ]
 
   isActives = [ true, false, false, false, false, false, false ]
 
-initTab :: Tab
-initTab = Tab { id: TEO, buttonText: "EO code", isActive: true, tabContent: HH.text "EO code" }
+data Request = Request { code :: String}
 
-data Request
-  = Request
-    { editor :: Editor,
-      code :: String
-    }
+instance EncodeJson Request where
+  encodeJson (Request r) = 
+      "code" := r.code
+      ~> jsonEmptyObject
+
+urlPrefix = "http://localhost:3000/"
+
+data Response = Response {
+  code :: String,
+  tabs :: Map TabId String
+}
+
+-- derive instance GenericShow Response
+
+-- instance Show Response where
+--   show (Response r) =
+--     "Response" <> show r
+-- derive instance showResponse :: Show Response
+
+instance DecodeJson Response where
+  decodeJson json = do
+    x <- decodeJson json
+    code <- x .: "code"
+    tabs <- x .: "tabs"
+    ps <- traverse (\y -> (\z -> Tuple y z) <$> tabs .: (getName y)) ids
+    let ps' = fromFoldable ps
+    pure $ Response {code: code, tabs: ps'}
 
 -- FIXME make a request to a server
 getState :: Request -> State
-getState s = md1
+getState _ = md1
+
+data CompError = CompError (Either AX.Error (Either JsonDecodeError Response))
+
+-- derive instance GenericShow CompError
+-- instance Show CompError where
+--   show (CompError c) = 
+--     case c of
+--       Left err -> AX.printError err
+--       Right r -> show r
+  -- show (CompError (Right p)) = _
+
 
 component :: ∀ a b c. Component a b c Aff
 component =
@@ -137,13 +178,13 @@ component =
     NextStep -> H.modify_ $ (<$>) \s -> s { graphStep = s.graphStep + 1 }
     PrevStep -> H.modify_ $ (<$>) \s -> s { graphStep = s.graphStep - 1 }
     SelectCurrentEditor e -> H.modify_ $ (<$>) \s -> s { currentEditor = e }
-    Recompile c -> H.modify_ $ \_ -> getState (Request { code: c, editor: EOEditor })
+    Recompile c -> H.modify_ $ \_ -> getState (Request { code: c })
     ListenToEditors -> traverse_ handleAction (map (\e -> ListenToEditor e) [EOEditor, PhiEditor])
     ListenToEditor e -> do
         document <- H.liftEffect $ Web.document =<< Web.window
         H.subscribe' \_ ->
           eventListener
-          (EventType (getCodeChangedEventName e))
+          (EventType (getNameEventCodeChanged e))
           (HTMLDocument.toEventTarget document)
           (\ev -> do
             let
@@ -160,12 +201,46 @@ component =
               Nothing -> pure NoOp
               Just op' -> pure op')
     
-    -- FIXME use that code
+    -- FIXME use that code, not code from editor
     HandleEditorCodeChanged editor code -> do
-      ce <- H.liftEffect $ CE.toEvent <$> CE.new' (EventType $ getChangeCodeEventName (anotherEditor editor)) (Just {newCode: code})
-      doc <- H.liftEffect $ toEventTarget <$> (Web.document =<< Web.window)
-      _ <- H.liftEffect $ dispatchEvent ce doc
-      H.modify_ $ (<$>) \s -> s {currentEditor = editor, graphStep = s.graphStep + 2}
+      -- FIXME request relevant code from server
+      -- send code
+      
+      -- resp <- H.liftAff $ AX.get AW.driver AXRF.json (urlPrefix <> editorName editor)
+      -- Nothing
+      let req = Request {
+          code: code
+        }
+      resp <- H.liftAff $ AX.put AW.driver AXRF.json (urlPrefix <> editorName editor) (Just $ Json $ encodeJson req)
+      let
+        -- TODO handle errors
+        -- resp' :: Either AX.Error (Either JsonDecodeError Response) 
+        resp' :: Maybe Response
+        resp' = 
+            case resp of
+              Right {body: b} -> hush $ decodeJson b
+              Left _ -> Nothing
+      case resp' of
+        Just (Response r) -> 
+      -- say another editor change its code
+          do
+            ce <- H.liftEffect $ CE.toEvent <$> CE.new' (EventType $ getNameEventChangeCode (anotherEditor editor)) (Just {newCode: r.code})
+            doc <- H.liftEffect $ toEventTarget <$> (Web.document =<< Web.window)
+            _ <- H.liftEffect $ dispatchEvent ce doc
+            -- set current editor
+            H.modify_ $ (<$>) \s -> s {
+              currentEditor = editor, 
+              graphStep = s.graphStep + 2,
+              tabs = (\(Tab t) -> 
+                case Map.lookup t.id r.tabs of
+                  Just cont -> Tab t {tabContent = HH.pre_ [HH.text cont]}
+                  Nothing -> Tab t {tabContent = HH.pre_ [HH.text "No response"]}
+                ) <$> s.tabs 
+              }
+                
+        Nothing -> 
+          -- FIXME handle error
+          H.modify_ $ (<$>) \s -> s {graphStep = s.graphStep - 2}
     
     -- FIXME a more appropriate function
     NoOp -> H.modify_ identity
@@ -174,9 +249,9 @@ class ChangeCodeEvent where
   getCodeChangeEventName :: Editor -> String
 
 class CodeChanges where
-  getCodeChangedEventName :: Editor -> String
+  getNameEventCodeChanged :: Editor -> String
   getEditorWhereCodeChanged :: String -> Maybe Editor
-  getChangeCodeEventName :: Editor -> String
+  getNameEventChangeCode :: Editor -> String
   codeChangedSuff :: String
   changeCodeSuff :: String
   editorName :: Editor -> String
@@ -188,14 +263,14 @@ instance CodeChanges where
   editorName EOEditor = "eo"
   editorName PhiEditor = "phi"
   codeChangedSuff = "-editor-code-changed"
-  getCodeChangedEventName x = editorName x <> codeChangedSuff
-  -- getCodeChangedEventName PhiEditor = "phi" <> codeChangedSuff
+  getNameEventCodeChanged x = editorName x <> codeChangedSuff
+  -- getNameEventCodeChanged PhiEditor = "phi" <> codeChangedSuff
   getEditorWhereCodeChanged s
-    | s == getCodeChangedEventName EOEditor = Just EOEditor
-    | s == getCodeChangedEventName PhiEditor = Just PhiEditor
+    | s == getNameEventCodeChanged EOEditor = Just EOEditor
+    | s == getNameEventCodeChanged PhiEditor = Just PhiEditor
     | otherwise = Nothing
   changeCodeSuff = "-editor-change-code"
-  getChangeCodeEventName x = editorName x <> changeCodeSuff
+  getNameEventChangeCode x = editorName x <> changeCodeSuff
 
 
 
@@ -312,7 +387,7 @@ ics = (\r@{x: x} -> r {x = mkInfo x}) <$>
           }
         ]
     }
-  , { x: getId TTerm
+  , { x: getName TTerm
     , y:
         [ { pref: "Just prettyprint locators and brackets"
           , href: "https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAATVEUf-E"
@@ -320,7 +395,7 @@ ics = (\r@{x: x} -> r {x = mkInfo x}) <$>
           }
         ]
     }
-  , { x: getId TWHNF
+  , { x: getName TWHNF
     , y:
         [ { pref: ""
           , href: "https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/State.hs#L129"
@@ -336,7 +411,7 @@ ics = (\r@{x: x} -> r {x = mkInfo x}) <$>
           }
         ]
     }
-  , { x: getId TNF
+  , { x: getName TNF
     , y:
         [ { pref: ""
           , href: "https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/State.hs#L155"
@@ -348,7 +423,7 @@ ics = (\r@{x: x} -> r {x = mkInfo x}) <$>
           }
         ]
     }
-  , { x: getId TCBNReduction
+  , { x: getName TCBNReduction
     , y:
         [ { pref: ""
           , href: "https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/State.hs#L98"
@@ -360,7 +435,7 @@ ics = (\r@{x: x} -> r {x = mkInfo x}) <$>
           }
         ]
     }
-  , { x: getId TCBNWithTAP
+  , { x: getName TCBNWithTAP
     , y:
         [ { pref: ""
           , href: "https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/Machine/CallByName.hs#L85"
@@ -376,7 +451,7 @@ ics = (\r@{x: x} -> r {x = mkInfo x}) <$>
           }
         ]
     }
-  , { x: getId TCBNWithGraph
+  , { x: getName TCBNWithGraph
     , y:
         [ { pref: ""
           , href: "https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/Machine/CallByName/Graph.hs#L77"
@@ -464,17 +539,16 @@ cdns =
       HH.script [HP.src "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js", HP.type_ applicationJavascript] [],
       -- TODO unsert into a separate tab
       -- TODO add tab switching with ctrl+tab
-      HH.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/eo-editor@d1b8c1a912f780f7e96e78f6bc71eaa35c78186d/docs/eo-editor.js", U.attr_ "type" "module"] [],
-      HH.link [HP.href "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/eo-editor@d1b8c1a912f780f7e96e78f6bc71eaa35c78186d/docs/eo-editor.css", HP.type_ textCSS],
+      HH.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/eo-editor@6a5afbc415edcc45e6c7d98ac487eba8f039e2a8/docs/eo-editor.js", U.attr_ "type" "module"] [],
+      HH.link [HP.href "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/eo-editor@6a5afbc415edcc45e6c7d98ac487eba8f039e2a8/docs/eo-editor.css", HP.type_ textCSS],
       
-      HH.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-editor@8bd224677c5e03adc4609589d948f8b6b0ee2456/docs/phi-editor.js", U.attr_ "type" "module"] [],
-      HH.link [HP.href "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-editor@8bd224677c5e03adc4609589d948f8b6b0ee2456/docs/phi-editor.css", HP.type_ textCSS],
+      HH.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-editor@53ea34eca7e995d61fd59d399e304c8294bcd20d/docs/phi-editor.js", U.attr_ "type" "module"] [],
+      HH.link [HP.href "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-editor@53ea34eca7e995d61fd59d399e304c8294bcd20d/docs/phi-editor.css", HP.type_ textCSS],
       
       HH.link [HP.href "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css", HP.rel "stylesheet", HP.type_ textCSS],
       HH.link [HP.href "https://www.yegor256.com/images/books/elegant-objects/cactus.png", HP.rel "shortcut icon"],
       HH.link [HP.href "https://cdn.jsdelivr.net/gh/yegor256/tacit@gh-pages/tacit-css.min.css", HP.rel "stylesheet", HP.type_ textCSS],
-      HH.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi@0.0.1/src/Site/scripts/init-popovers.js", HP.type_ applicationJavascript] [],
-      HH.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi@0.0.1/src/Site/scripts/set-snippet.js", HP.type_ applicationJavascript] []
+      HH.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi@0.0.1/src/Site/scripts/init-popovers.js", HP.type_ applicationJavascript] []
     ]
 
 data Term = Term String
@@ -527,7 +601,7 @@ tabButton t@(Tab tab) =
     infoIcon (mkInfo id)
   ]
   where
-    id = getId tab.id
+    id = getName tab.id
     {t1: active, t2: selected} =
       if tab.isActive
       then {t1 : ["active"], t2: "true"}
@@ -546,7 +620,7 @@ tabContent (Tab tab) =
     tab.tabContent
   ]
   where
-  id = getId tab.id
+  id = getName tab.id
   active =
     if tab.isActive
     then ["show", "active"]
@@ -562,18 +636,31 @@ mkInfo id = "info_" <> id
 data TabId = TEO | TTerm | TWHNF | TNF | TCBNReduction | TCBNWithTAP | TCBNWithGraph
 
 derive instance Eq TabId
+derive instance Ord TabId
+-- instance GenericShow TabId where
+-- derive instance GenericShow TabId
 
 class IdGettable a where
-  getId :: a -> String
+  getName :: a -> String
+  getId :: String -> Maybe a
 
 instance IdGettable TabId where
-  getId TEO = "eo"
-  getId TTerm = "original_term"
-  getId TWHNF = "whnf"
-  getId TNF = "nf"
-  getId TCBNReduction = "cbn_reduction"
-  getId TCBNWithTAP = "cbn_with_tap"
-  getId TCBNWithGraph = "cbn_with_graph"
+  getName TEO = "eo"
+  getName TTerm = "original_term"
+  getName TWHNF = "whnf"
+  getName TNF = "nf"
+  getName TCBNReduction = "cbn_reduction"
+  getName TCBNWithTAP = "cbn_with_tap"
+  getName TCBNWithGraph = "cbn_with_graph"
+  getId x
+    | x == "eo" = Just TEO
+    | x == "original_term" = Just TTerm
+    | x == "whnf" = Just TWHNF
+    | x == "nf" = Just TNF
+    | x == "cbn_reduction" = Just TCBNReduction
+    | x == "cbn_with_tap" = Just TCBNWithTAP
+    | x == "cbn_with_graph" = Just TCBNWithGraph
+    | otherwise = Nothing
 
 data Tab = Tab {
   id :: TabId,
@@ -598,19 +685,3 @@ termTabs (State {tabs : tabs'}) =
       [U.class_ "tab-content", HP.id "nav-tabContent"]
       (tabContent <$> tabs')
   ]
-
--- TODO handler on `document`
--- put a handler on it
--- https://pursuit.purescript.org/packages/purescript-halogen/6.1.2/docs/Halogen.HTML.Events#v:handler
--- convert Event to CustomEvent
--- https://pursuit.purescript.org/packages/purescript-web-events/4.0.0/docs/Web.Event.CustomEvent#v:fromEvent
--- take the detail info
--- https://pursuit.purescript.org/packages/purescript-web-events/4.0.0/docs/Web.Event.CustomEvent#v:detail
--- read newCode
--- https://pursuit.purescript.org/packages/purescript-foreign/7.0.0/docs/Foreign.Index#v:readProp
--- convert to a string
--- https://github.com/purescript/purescript-foreign/blob/v7.0.0/src/Foreign.purs#L138-L138
-
--- or create a custom function to decode Foreign
--- https://book.purescript.org/chapter10.html#json
--- and check for validity, create a record from it

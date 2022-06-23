@@ -1,6 +1,7 @@
 { name = "halogen-project"
 , dependencies =
-  [ "affjax"
+  [ "aff"
+  , "affjax"
   , "affjax-web"
   , "argonaut"
   , "argonaut-codecs"
@@ -8,9 +9,12 @@
   , "console"
   , "css"
   , "effect"
+  , "either"
   , "foldable-traversable"
+  , "foreign"
   , "halogen"
   , "halogen-css"
+  , "halogen-hooks"
   , "integers"
   , "maybe"
   , "media-types"
@@ -18,6 +22,7 @@
   , "prelude"
   , "random"
   , "tuples"
+  , "web-events"
   , "web-html"
   ]
 , packages = ./packages.dhall

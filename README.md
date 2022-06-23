@@ -73,3 +73,26 @@ If everything looks good, you can then upload the contents of `dist` to your pre
 * Configuring Todo Tree extension
     * [sample config](https://youtu.be/wzIcG8TdjHE)
     * can combine [regexes](https://github.com/Gruntfuggly/todo-tree/wiki/Configuration-Examples) for several languages via the vertical bar `|`
+
+* API mocking
+    * [Mockoon](https://mockoon.com/docs/latest/templating/fakerjs-helpers/)
+        <details>
+        <summary>Sample mock</summary>
+        
+        ```javascript
+        {{setVar 'arr' (array 'eo' 'original_term' 'whnf' 'nf' 'cbn_reduction' 'cbn_with_tap' 'cbn_with_graph')}}
+        {{setVar 'p' (len arr)}}
+        {
+        "editor": "eo",
+        "newCode": "{{faker 'random.alphaNumeric' 100}}",
+        "tabs": { {{#each arr}}"{{this}}":"{{faker 'random.alphaNumeric' 25}}"{{#if (lt @index 6)}}, {{/if}}{{/each}} }
+        }
+        ```
+        </details>
+    * [Handlebars.js](https://handlebarsjs.com/api-reference/data-variables.html#root)
+
+* Purescript IDE
+    * Type info can be [improved](https://github.com/purescript/purescript/issues/3670#issuecomment-567151050). For now, need to put type holes via `::?what`
+
+* Working with JSON
+    * `argonaut` [example](https://pursuit.purescript.org/packages/purescript-argonaut-codecs/9.0.0/docs/Data.Argonaut.Decode.Combinators#v:defaultField)

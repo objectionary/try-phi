@@ -75,7 +75,7 @@ const view = new EditorView({
 
 let eoEditor = {
   view: view,
-  initFromLink: initFromLink,
+  // initFromLink: initFromLink,
 }
 
 // Wait until exists div for the editor

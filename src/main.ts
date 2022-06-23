@@ -8,8 +8,12 @@ import { parseErrors } from './extensions/diagnostics'
 import { indentGuides } from './extensions/indent-guides'
 import { toggleTree } from './extensions/log-lezer-tree'
 import { sameIndent } from './extensions/same-indent'
-import {notifyCodeChanged, editorTriggered, ann} from './extensions/code-changed'
-import {Transaction, Annotation} from '@codemirror/state'
+import {
+  notifyCodeChanged,
+  editorTriggered,
+  ann,
+} from './extensions/code-changed'
+import { Transaction, Annotation } from '@codemirror/state'
 
 let code = `+alias org.eolang.io.stdout
 +alias org.eolang.txt.sprintf
@@ -31,6 +35,8 @@ let code = `+alias org.eolang.io.stdout
 const myTheme = EditorView.theme({
   $: {
     outline: '1px auto #ddd',
+    minWidth: '100%',
+    maxWidth: '100%',
   },
   $scroller: {
     fontFamily: '"Fira Mono", monospace',
@@ -39,8 +45,14 @@ const myTheme = EditorView.theme({
   // set min and max editor height
   // https://discuss.codemirror.net/t/code-editor-with-automatic-height-that-has-a-minimum-and-maximum-height/4015/5
   '.cm-gutter, .cm-content': { minHeight: '400px' },
-  '.cm-scroller': { overflow: 'auto'},
-  '&': { maxHeight: '400px', minHeight: '400px', maxWidth: '100%', minWidth: '100%', border: '1px solid silver' },
+  '.cm-scroller': { overflow: 'auto' },
+  '&': {
+    maxHeight: '400px',
+    minHeight: '400px',
+    maxWidth: '100%',
+    minWidth: '100%',
+    border: '1px solid silver',
+  },
 })
 
 const initialState = EditorState.create({
@@ -97,12 +109,11 @@ function waitForElement(id: string) {
 }
 
 // TODO
-// code changes triggered by another editor 
+// code changes triggered by another editor
 // shouldn't trigger messages from this editor
 
 // insert editor
 // make it listen to events which require code updates
-
 
 const changeCodeEvent = 'eo-editor-change-code'
 
@@ -115,7 +126,7 @@ async function doWhenExists(id: string) {
 
     initFromLink(view)
     // insert new code when required
-    
+
     // https://discuss.codemirror.net/t/using-annotations-to-differentiate-origin-of-transaction/3224
 
     document.addEventListener(changeCodeEvent, ((e: CustomEvent) => {
@@ -125,7 +136,7 @@ async function doWhenExists(id: string) {
           to: view.state.doc.length,
           insert: e.detail.newCode,
         },
-        annotations: ann.of(editorTriggered)
+        annotations: ann.of(editorTriggered),
       })
     }) as EventListener)
   }

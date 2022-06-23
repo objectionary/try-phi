@@ -62,7 +62,7 @@ import Halogen.HTML.Properties (ButtonType(..), IProp)
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties.ARIA (role) as HA
 import Halogen.Query.Event (eventListener)
-import Utils (classes_, class_, attr_) as U
+import Utils (attr_, class_, classes_) as U
 import Web.Event.CustomEvent as CE
 import Web.Event.Event (EventType(..))
 import Web.Event.Event as Event
@@ -326,15 +326,17 @@ eoLogoSection ∷ ∀ a b. HTML a b
 eoLogoSection =
   HH.section_
     [ HH.header_
-        [ -- TODO center
-          HH.a [ HP.href "https://www.eolang.org" ]
-            [ HH.img
-                [ HP.src "https://www.yegor256.com/images/books/elegant-objects/cactus.png"
-                , CSS.style do
-                    CG.width (CS.px $ DI.toNumber 64)
-                    CG.height (CS.px $ DI.toNumber 64)
-                ]
-            ]
+        [ 
+          HH.div [U.classes_ ["d-flex", "justify-content-center"]][
+            HH.a [ HP.href "https://www.eolang.org" ]
+              [ HH.img
+                  [ HP.src "https://www.yegor256.com/images/books/elegant-objects/cactus.png"
+                  , CSS.style do
+                      CG.width (CS.px $ DI.toNumber 64)
+                      CG.height (CS.px $ DI.toNumber 64)
+                  ]
+              ]
+          ]
         ]
     ]
 
@@ -490,23 +492,43 @@ editorDiv =
   HH.div
     [U.class_ "container-fluid", HP.id "cont"]
     [ HH.div
-        [U.class_ "col"]
-        [ HH.div
-            [U.class_ "row"]
-            [ HH.p_
-                [ HH.text "Minimal ",
-                  HH.a [HP.href "https://www.eolang.org"] [HH.text "𝜑-calculus "],
-                  HH.text "expression (",
-                  HH.a [HP.id "__permalink__", HP.href "#"] [HH.text "permalink"],
-                  HH.text ")",
-                  infoIcon "info_editor"
-                ],
-              HH.div [U.classes_ ["mb-4", "col-sm"], HP.id "phi-editor"] [],
-              HH.div [U.classes_ ["mb-4", "col-sm"], HP.id "eo-editor"] []
+        [U.class_ "row"] [
+          HH.div [U.classes_ ["col-sm-6"]] [
+            HH.div [U.class_ "row"] [
+              HH.div [U.classes_ ["d-flex", "justify-content-center"]] [
+                HH.p_
+                [ HH.a [HP.href "https://arxiv.org/abs/2204.07454"] [HH.text "𝜑-calculus "],
+                  HH.text "expression",
+                  -- FIXME edit popover
+                  infoIcon "info_phi_editor"
+                ]
+              ]
+            ],
+            HH.div [U.classes_ ["d-flex", "justify-content-center"]] [
+              HH.div [U.class_ "row"] [
+                HH.div [HP.id "phi-editor"] []
+              ]
             ]
+          ],
+          HH.div [U.classes_ ["col-sm-6"]] [
+            HH.div [U.class_ "row"] [
+              HH.div [U.classes_ ["d-flex", "justify-content-center"]] [
+                HH.p_
+                [ HH.a [HP.href "https://www.eolang.org"] [HH.text "EO "],
+                  HH.text "expression",
+                  -- FIXME edit popover
+                  infoIcon "info_eo_editor"
+                ]
+              ]
+            ],
+            HH.div [U.class_ "row"] [
+              HH.div [U.classes_ ["d-flex", "justify-content-center"]] [
+                HH.div [HP.id "eo-editor"] []
+              ]
+            ]
+          ]
         ]
     ]
-
 
 -- pageFooter :: View action
 pageFooter ∷ ∀ a b. HTML a b
@@ -539,11 +561,11 @@ cdns =
       HH.script [HP.src "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js", HP.type_ applicationJavascript] [],
       -- TODO unsert into a separate tab
       -- TODO add tab switching with ctrl+tab
-      HH.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/eo-editor@6a5afbc415edcc45e6c7d98ac487eba8f039e2a8/docs/eo-editor.js", U.attr_ "type" "module"] [],
-      HH.link [HP.href "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/eo-editor@6a5afbc415edcc45e6c7d98ac487eba8f039e2a8/docs/eo-editor.css", HP.type_ textCSS],
+      HH.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/eo-editor@65edd3e795e6751c2ec33df07d196d35f49550f3/docs/eo-editor.js", U.attr_ "type" "module"] [],
+      HH.link [HP.href "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/eo-editor@65edd3e795e6751c2ec33df07d196d35f49550f3/docs/eo-editor.css", HP.type_ textCSS],
       
-      HH.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-editor@53ea34eca7e995d61fd59d399e304c8294bcd20d/docs/phi-editor.js", U.attr_ "type" "module"] [],
-      HH.link [HP.href "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-editor@53ea34eca7e995d61fd59d399e304c8294bcd20d/docs/phi-editor.css", HP.type_ textCSS],
+      HH.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-editor@90c78f639556f3fe4f8fd00cbc961d23f7d6db59/docs/phi-editor.js", U.attr_ "type" "module"] [],
+      HH.link [HP.href "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-editor@90c78f639556f3fe4f8fd00cbc961d23f7d6db59/docs/phi-editor.css", HP.type_ textCSS],
       
       HH.link [HP.href "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css", HP.rel "stylesheet", HP.type_ textCSS],
       HH.link [HP.href "https://www.yegor256.com/images/books/elegant-objects/cactus.png", HP.rel "shortcut icon"],

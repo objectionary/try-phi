@@ -26,8 +26,8 @@ export const notifyCodeChanged = ViewPlugin.fromClass(
       update.transactions.map((tr: Transaction) => {
         let e = tr.annotation(ann)
         if(e !== editorTriggered) {
-          if (update.docChanged){
-            sendNewCode(update.state)
+          if (tr.docChanged){
+            sendNewCode(tr.state)
           }
         }
       })

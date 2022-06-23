@@ -122,7 +122,7 @@ async function doWhenExists(id: string) {
   } else {
     element.appendChild(view.dom)
 
-    initFromLink(view)
+    // initFromLink(view)
     // insert new code when required
 
     // https://discuss.codemirror.net/t/using-annotations-to-differentiate-origin-of-transaction/3224

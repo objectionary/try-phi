@@ -13,7 +13,6 @@ import {
   editorTriggered,
   ann,
 } from './extensions/code-changed'
-import { Transaction, Annotation } from '@codemirror/state'
 
 let code = `+alias org.eolang.io.stdout
 +alias org.eolang.txt.sprintf
@@ -112,11 +111,12 @@ function waitForElement(id: string) {
 // insert editor
 // make it listen to events which require code updates
 
-const changeCodeEvent = 'eo-editor-change-code'
 
-let setCode = (code: string) => {
+// insert new code when required
+ // https://discuss.codemirror.net/t/using-annotations-to-differentiate-origin-of-transaction/3224
+ let setCode = (code: string) => {
   view.dispatch({
-    changes: {  
+    changes: {
       from: 0,
       to: view.state.doc.length,
       insert: code,
@@ -125,22 +125,21 @@ let setCode = (code: string) => {
   })
 }
 
+// insert editor
+// make it listen to events which require code updates
 async function doWhenExists(id: string) {
   const element = await waitForElement(id)
   if (typeof element == 'string') {
     console.log(element)
   } else {
+    // insert editor
     element.appendChild(view.dom)
 
-    // insert new code when required
-
-    // https://discuss.codemirror.net/t/using-annotations-to-differentiate-origin-of-transaction/3224
-
-    document.addEventListener(changeCodeEvent, ((e: CustomEvent) => {
+    document.addEventListener(`${id}-change-code`, ((e: CustomEvent) => {
       setCode(e.detail.newCode)
     }) as EventListener)
-    
-    let onCreate = new Event("eo-editor-created")
+
+    let onCreate = new Event(`${id}-created`)
     document.dispatchEvent(onCreate)
   }
 }

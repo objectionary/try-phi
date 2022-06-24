@@ -150,6 +150,7 @@ doWhenExists('eo-editor')
 
 function setInitialCode(){
   setCode(code)
+  initFromLink(view)
 }
 
 export { eoEditor, setInitialCode}

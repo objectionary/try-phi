@@ -2,7 +2,7 @@ import { EditorState, EditorView, basicSetup } from '@codemirror/basic-setup'
 import { keymap } from '@codemirror/view'
 import { indentWithTab } from '@codemirror/commands'
 import { eo } from './extensions/eo'
-// import { updatePermalink } from './extensions/permalink'
+import { updatePermalink } from './extensions/permalink'
 import { initFromLink } from './extensions/init-from-link'
 import { parseErrors } from './extensions/diagnostics'
 import { indentGuides } from './extensions/indent-guides'
@@ -58,7 +58,7 @@ const initialState = EditorState.create({
     basicSetup,
     myTheme,
     eo(),
-    // updatePermalink,
+    updatePermalink,
     keymap.of([indentWithTab]),
     parseErrors,
     indentGuides,
@@ -132,7 +132,6 @@ async function doWhenExists(id: string) {
   } else {
     element.appendChild(view.dom)
 
-    // initFromLink(view)
     // insert new code when required
 
     // https://discuss.codemirror.net/t/using-annotations-to-differentiate-origin-of-transaction/3224

@@ -32,7 +32,7 @@
   <div class="pt-3" style="text-align: center;">
     <h2>EO editor</h2>
     <div class="col-3"></div>
-    <button type="button" class="btn btn-yellow me-2" id="__permalink__" onclick="copyLink()">Copy permalink</button>
+    <button type="button" class="btn btn-yellow me-2" id="eo-permalink" onclick="copyLink()">Copy permalink</button>
     <a href="https://github.com/br4ch1st0chr0n3/eo-editor" class="image-link me-2">
       <img src="assets/gh.png" style="height: 40px; width: 40px;" />
     </a>
@@ -150,7 +150,7 @@
 
   <script>
     function copyLink() {
-      permalink = document.getElementById("__permalink__")
+      permalink = document.getElementById("eo-permalink")
       navigator.clipboard.writeText(permalink.getAttribute('href'))
     }
   </script>

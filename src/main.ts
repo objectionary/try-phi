@@ -114,6 +114,17 @@ function waitForElement(id: string) {
 
 const changeCodeEvent = 'eo-editor-change-code'
 
+let setCode = (code: string) => {
+  view.dispatch({
+    changes: {  
+      from: 0,
+      to: view.state.doc.length,
+      insert: code,
+    },
+    annotations: ann.of(editorTriggered),
+  })
+}
+
 async function doWhenExists(id: string) {
   const element = await waitForElement(id)
   if (typeof element == 'string') {
@@ -126,25 +137,19 @@ async function doWhenExists(id: string) {
 
     // https://discuss.codemirror.net/t/using-annotations-to-differentiate-origin-of-transaction/3224
 
-    let send = (code: string) => {
-      view.dispatch({
-        changes: {
-          from: 0,
-          to: view.state.doc.length,
-          insert: code,
-        },
-        annotations: ann.of(editorTriggered),
-      })
-    }
-
     document.addEventListener(changeCodeEvent, ((e: CustomEvent) => {
-      send(e.detail.newCode)
+      setCode(e.detail.newCode)
     }) as EventListener)
     
-    // send(code)
+    let onCreate = new Event("eo-editor-created")
+    document.dispatchEvent(onCreate)
   }
 }
 
 doWhenExists('eo-editor')
 
-export { eoEditor }
+function setInitialCode(){
+  setCode(code)
+}
+
+export { eoEditor, setInitialCode}

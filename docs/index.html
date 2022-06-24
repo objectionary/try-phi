@@ -84,7 +84,11 @@
             </tr>
         </table>
         <br>
-
         <div id = "phi-editor"></div>
     </div>
+    <script type="module">
+        import {setInitialCode} from './phi-editor.js'
+        setInitialCode()
+        document.addEventListener("phi-editor-created", (e) => {setInitialCode()})
+    </script>
 </body>

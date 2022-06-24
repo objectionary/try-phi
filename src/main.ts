@@ -2,7 +2,7 @@ import { EditorState, EditorView, basicSetup } from '@codemirror/basic-setup'
 import { keymap } from '@codemirror/view'
 import { indentWithTab } from '@codemirror/commands'
 import { phi } from './extensions/phi'
-// import { updatePermalink} from './extensions/permalink'
+import { updatePermalink} from './extensions/permalink'
 import { initFromLink } from './extensions/init-from-link'
 import { parseErrors } from './extensions/diagnostics'
 import { indentGuides } from './extensions/indent-guides'
@@ -99,6 +99,7 @@ function waitForElement(id: string) {
 }
 
 // insert new code when required
+ // https://discuss.codemirror.net/t/using-annotations-to-differentiate-origin-of-transaction/3224
 let setCode = (code: string) => {
   view.dispatch({
     changes: {
@@ -110,8 +111,6 @@ let setCode = (code: string) => {
   })
 }
 
-const changeCodeEvent = 'phi-editor-change-code'
-
 // insert editor
 // make it listen to events which require code updates
 async function doWhenExists(id: string) {
@@ -122,9 +121,12 @@ async function doWhenExists(id: string) {
     // insert editor
     element.appendChild(view.dom)
 
-    document.addEventListener(changeCodeEvent, ((e: CustomEvent) => {
+    document.addEventListener(`${id}-change-code`, ((e: CustomEvent) => {
       setCode(e.detail.newCode)
     }) as EventListener)
+
+    let onCreate = new Event(`${id}-created`)
+    document.dispatchEvent(onCreate)
   }
 }
 

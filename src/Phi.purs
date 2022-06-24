@@ -9,22 +9,15 @@ module Phi
   , Tab(..),
   TabId(..),
   State'(..),
-  class CodeChanges,
-  getNameEventCodeChanged,
-  getNameEventChangeCode,
-  getEditorWhereCodeChanged,
-  codeChangedSuff,
-  changeCodeSuff,
-  editorName,
-  anotherEditor,
-   md1,
-   component,
-   Editor(..),
-   editorId
+  md1,
+  component,
+  Editor(..),
+  editorId
   )
   where
 
 import Effect.Console
+import Effect.Timer
 import Prelude
 import Web.HTML.HTMLDocument
 
@@ -34,22 +27,20 @@ import Affjax.ResponseFormat as AXRF
 import Affjax.Web as AW
 import CSS.Geometry as CG
 import CSS.Size as CS
-import Data.Argonaut (class EncodeJson, JsonDecodeError, decodeJson, encodeJson, jsonEmptyObject, (.:), (.:?), (:=), (~>))
+import Data.Argonaut (class EncodeJson, encodeJson, jsonEmptyObject, (.:), (:=), (~>))
 import Data.Argonaut.Decode (JsonDecodeError) as AD
-import Data.Argonaut.Decode (class DecodeJson, JsonDecodeError, decodeJson)
+import Data.Argonaut.Decode (class DecodeJson)
 import Data.Argonaut.Decode.Class (decodeJson)
 import Data.Array as DA
 import Data.Either (Either(..), hush)
-import Data.Foldable (intercalate, lookup, traverse_)
+import Data.Foldable (intercalate, traverse_)
 import Data.Int as DI
-import Data.List (List(..))
 import Data.Map (fromFoldable)
 import Data.Map.Internal (Map)
 import Data.Map.Internal as Map
-import Data.Maybe (Maybe(..), fromJust, fromMaybe, isJust)
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.MediaType.Common (applicationJavascript, textCSS)
-import Data.Show.Generic (class GenericShow, genericShow')
-import Data.Traversable (sequence, traverse)
+import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
 import Effect.Aff (Aff)
@@ -57,7 +48,7 @@ import Foreign (unsafeFromForeign)
 import Halogen (AttrName(..), Component)
 import Halogen as H
 import Halogen.HTML (HTML)
-import Halogen.HTML (button, div, header_, pre, pre_, section_, text) as HH
+import Halogen.HTML (button, header_, pre_, section_, text) as HH
 import Halogen.HTML.CSS as CSS
 import Halogen.HTML.Core as HC
 import Halogen.HTML.Elements (a, div, div_, i, img, li_, link, nav_, p_, script, ul_) as HH
@@ -77,17 +68,17 @@ import Web.Event.Event (EventType(..))
 import Web.Event.Event as Event
 import Web.Event.EventTarget (dispatchEvent)
 import Web.HTML (window) as Web
-import Web.HTML.HTMLBaseElement (fromElement, href)
-import Web.HTML.HTMLDocument (toEventTarget)
 import Web.HTML.HTMLDocument as HTMLDocument
 import Web.HTML.Location (search) as Web
 import Web.HTML.Window (document, location) as Web
 import Web.HTML.Window (navigator)
 import Web.URL.URLSearchParams as USP
-import Effect.Timer
 
 data Editor = EOEditor | PhiEditor
 
+derive instance Eq Editor
+
+ids ∷ Array TabId
 ids = [ TEO, TTerm, TWHNF, TNF, TCBNReduction, TCBNWithTAP, TCBNWithGraph ]
 
 md1 :: State
@@ -120,19 +111,13 @@ instance EncodeJson Request where
       "code" := r.code
       ~> jsonEmptyObject
 
+urlPrefix ∷ String
 urlPrefix = "http://localhost:3000/"
 
 data Response = Response {
   code :: String,
   tabs :: Map TabId String
 }
-
--- derive instance GenericShow Response
-
--- instance Show Response where
---   show (Response r) =
---     "Response" <> show r
--- derive instance showResponse :: Show Response
 
 instance DecodeJson Response where
   decodeJson json = do
@@ -143,25 +128,16 @@ instance DecodeJson Response where
     let ps' = fromFoldable ps
     pure $ Response {code: code, tabs: ps'}
 
--- FIXME make a request to a server
-getState :: Request -> State
-getState _ = md1
-
-data CompError = CompError (Either AX.Error (Either JsonDecodeError Response))
-
--- derive instance GenericShow CompError
--- instance Show CompError where
---   show (CompError c) = 
---     case c of
---       Left err -> AX.printError err
---       Right r -> show r
-  -- show (CompError (Right p)) = _
-
+myHref_ ∷ String
 myHref_ = "my-href"
+editor_ ∷ String
 editor_ = "editor"
+permalink_ ∷ String
 permalink_ = "permalink"
+snippet_ ∷ String
 snippet_ = "snippet"
 
+log_ :: forall output. String -> H.HalogenM State Action () output Aff Unit
 log_ = H.liftEffect <<< log
 
 component :: ∀ a b c. Component a b c Aff
@@ -185,8 +161,9 @@ component =
   handleAction = case _ of
     Init -> do
       log_ "start"
-      handleAction ListenToEditors
-      handleAction InitFromLink
+      handleAction ListenEditorsCodeChanged
+      handleAction ListenEditorsCreated
+      -- handleAction InitFromLink
     SelectTab t1 ->
       H.modify_
         $ (<$>) \s ->
@@ -201,9 +178,8 @@ component =
     NextStep -> H.modify_ $ (<$>) \s -> s { graphStep = s.graphStep + 1 }
     PrevStep -> H.modify_ $ (<$>) \s -> s { graphStep = s.graphStep - 1 }
     SelectCurrentEditor e -> H.modify_ $ (<$>) \s -> s { currentEditor = e }
-    Recompile c -> H.modify_ $ \_ -> getState (Request { code: c })
-    ListenToEditors -> traverse_ handleAction (map (\e -> ListenToEditor e) [EOEditor, PhiEditor])
-    ListenToEditor e -> do
+    ListenEditorsCodeChanged -> traverse_ handleAction (map (\e -> ListenEditorCodeChanged e) [EOEditor, PhiEditor])
+    ListenEditorCodeChanged e -> do
         document <- H.liftEffect $ Web.document =<< Web.window
         H.subscribe' \_ ->
           eventListener
@@ -218,10 +194,7 @@ component =
                 case code' of
                   Just (Right c) -> Just c.newCode
                   _ -> Nothing
-              op = HandleEditorCodeChanged <$> editor <*> code
-            case op of
-              Nothing -> pure NoOp
-              Just op' -> pure op')
+            HandleEditorCodeChanged <$> editor <*> code)
     
     -- FIXME use that code, not code from editor
     HandleEditorCodeChanged editor code -> do
@@ -283,7 +256,20 @@ component =
           ref <- H.liftEffect $ makePermalink (editorName editor) code
           H.liftEffect $ setAttribute myHref_ ref p
         Nothing -> log_ "no permalink"
-    InitFromLink -> do
+    
+    -- FIXME react to an event from editor when it is created to send the code
+    -- if it sends earlier => it's present, so send the code (init from link) even if no event received
+    
+    ListenEditorsCreated -> traverse_ handleAction (map (\e -> ListenEditorCreated e) [EOEditor, PhiEditor])
+    ListenEditorCreated editor -> do
+      document <- H.liftEffect $ Web.document =<< Web.window
+      H.subscribe' \_ ->
+        eventListener
+        (EventType (getNameEventEditorCreated editor))
+        (HTMLDocument.toEventTarget document)
+        (\_ -> Just $ InitFromLink editor)
+
+    InitFromLink editor -> do
       -- take data for setting initial snippet
       link <- USP.fromString <$> (H.liftEffect $ Web.window >>= Web.location >>= Web.search)
       let
@@ -295,66 +281,76 @@ component =
       case snip /\ ed of
         Just snip' /\ Just ed' -> do
           -- TODO set code from snippet in one editor
-          log_ "starting"
-          log_ snip'
+          -- log_ "starting"
+          -- log_ snip'
           -- log_ (getNameEventChangeCode ed')
           ce <- H.liftEffect $ CE.toEvent <$> CE.new' (EventType $ (getNameEventChangeCode ed')) (Just {newCode: snip'})
           doc <- H.liftEffect $ toEventTarget <$> (Web.document =<< Web.window)
-          -- FIXME react to an event from editor to send the code
-          -- if it sends earlier => it's present, so send the code even if no event received
-          _ <- H.liftEffect $ setTimeout 800 (dispatchEvent ce doc *> pure unit)
+          H.liftEffect $ dispatchEvent ce doc *> pure unit
+          -- TODO send event to another editor that the code has changed
+          -- so that we get the corresponding code in another editor
+          when (editor == ed') (handleAction (HandleEditorCodeChanged ed' snip'))
           H.modify_ $ (<$>) \s -> s {currentEditor = ed'} 
-          pure unit
+          -- pure unit
         _ -> log_ "check `snippet` or `editor`"
     NoOp -> pure unit
 
-class ChangeCodeEvent where
-  getCodeChangeEventName :: Editor -> String
+-- FIXME remove non-polymorphic classes
 
-class CodeChanges where
-  getNameEventCodeChanged :: Editor -> String
-  getEditorWhereCodeChanged :: String -> Maybe Editor
-  getNameEventChangeCode :: Editor -> String
-  codeChangedSuff :: String
-  changeCodeSuff :: String
-  editorName :: Editor -> String
-  anotherEditor :: Editor -> Editor
-  editorId :: String -> Maybe Editor
+-- instance CodeChanges where
+anotherEditor :: Editor -> Editor
+anotherEditor EOEditor = PhiEditor
+anotherEditor PhiEditor = EOEditor
 
-instance CodeChanges where
-  anotherEditor EOEditor = PhiEditor
-  anotherEditor PhiEditor = EOEditor
-  editorName EOEditor = "eo"
-  editorName PhiEditor = "phi"
-  codeChangedSuff = "-editor-code-changed"
-  getNameEventCodeChanged x = editorName x <> codeChangedSuff
-  getEditorWhereCodeChanged s
-    | s == getNameEventCodeChanged EOEditor = Just EOEditor
-    | s == getNameEventCodeChanged PhiEditor = Just PhiEditor
-    | otherwise = Nothing
-  changeCodeSuff = "-editor-change-code"
-  getNameEventChangeCode x = editorName x <> changeCodeSuff
-  editorId s
-    | s == "eo" = Just EOEditor
-    | s == "phi" = Just PhiEditor
-    | otherwise = Nothing
+editorName :: Editor -> String
+editorName EOEditor = "eo"
+editorName PhiEditor = "phi"
 
+codeChangedSuff :: String
+codeChangedSuff = "-editor-code-changed"
 
+getNameEventCodeChanged :: Editor -> String
+getNameEventCodeChanged x = editorName x <> codeChangedSuff
+
+getEditorWhereCodeChanged :: String -> Maybe Editor
+getEditorWhereCodeChanged s
+  | s == getNameEventCodeChanged EOEditor = Just EOEditor
+  | s == getNameEventCodeChanged PhiEditor = Just PhiEditor
+  | otherwise = Nothing
+
+changeCodeSuff :: String
+changeCodeSuff = "-editor-change-code"
+
+getNameEventChangeCode :: Editor -> String
+getNameEventChangeCode x = editorName x <> changeCodeSuff
+
+editorId :: String -> Maybe Editor
+editorId s
+  | s == "eo" = Just EOEditor
+  | s == "phi" = Just PhiEditor
+  | otherwise = Nothing
+
+editorCreatedSuff ∷ String
+editorCreatedSuff = "-editor-created"
+
+getNameEventEditorCreated :: Editor -> String
+getNameEventEditorCreated e = editorName e <> editorCreatedSuff
 
 data Action
-  = Recompile String
-  | Init
+  = Init
   | NextStep
   | PrevStep
   | SelectTab Tab
   | SelectCurrentEditor Editor
-  | ListenToEditors
-  | ListenToEditor Editor
+  | ListenEditorsCodeChanged
+  | ListenEditorCodeChanged Editor
   | HandleEditorCodeChanged Editor String
   | CopyToClipboard
   | UpdatePermalink Editor String
-  | InitFromLink
+  | InitFromLink Editor
   | NoOp
+  | ListenEditorsCreated
+  | ListenEditorCreated Editor
 
 type NewCode = {
   newCode :: String
@@ -365,13 +361,14 @@ type NewCode = {
 -- for now: where the last change occured
 -- ideally: the last cursor was left
 
+justifyContentCenter ∷ String
 justifyContentCenter = "justify-content-center"
 
+dFlex ∷ String
 dFlex = "d-flex"
 
+divRow ∷ ∀ a b. HTML a b → HTML a b
 divRow x = HH.div [U.classes_ ["row", "mt-1"]] [ x ]
-
-href_ = "__href__"
 
 html ∷ ∀ a. State -> HTML a Action
 html state =
@@ -403,7 +400,7 @@ html state =
         [
           HH.text $ case state of 
             ParseError e -> show e
-            -- FIXME this is a temporary output just to check if event handling
+            -- FIXME this is a temporary output just to check event handling
             State s -> (show s.graphStep)
         ]
       ,
@@ -649,11 +646,11 @@ cdns =
       HH.script [HP.src "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js", HP.type_ applicationJavascript] [],
       -- TODO unsert into a separate tab
       -- TODO add tab switching with ctrl+tab
-      HH.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/eo-editor@bffbae9d0d05f1a53fee29ed39192b2297f1a8b4/docs/eo-editor.js", U.attr_ "type" "module"] [],
-      HH.link [HP.href "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/eo-editor@bffbae9d0d05f1a53fee29ed39192b2297f1a8b4/docs/eo-editor.css", HP.type_ textCSS],
+      HH.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/eo-editor@d58d13becead90f7aaf11e424df8663532e85a23/docs/eo-editor.js", U.attr_ "type" "module"] [],
+      HH.link [HP.href "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/eo-editor@d58d13becead90f7aaf11e424df8663532e85a23/docs/eo-editor.css", HP.type_ textCSS],
       
-      HH.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-editor@f6487ef268d01975593ecce2f86eee605ec60d05/docs/phi-editor.js", U.attr_ "type" "module"] [],
-      HH.link [HP.href "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-editor@f6487ef268d01975593ecce2f86eee605ec60d05/docs/phi-editor.css", HP.type_ textCSS],
+      HH.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-editor@c04746d8040a6fcad2efd94b14014defeaccacf4/docs/phi-editor.js", U.attr_ "type" "module"] [],
+      HH.link [HP.href "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-editor@c04746d8040a6fcad2efd94b14014defeaccacf4/docs/phi-editor.css", HP.type_ textCSS],
       
       HH.link [HP.href "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css", HP.rel "stylesheet", HP.type_ textCSS],
       HH.link [HP.href "https://www.yegor256.com/images/books/elegant-objects/cactus.png", HP.rel "shortcut icon"],

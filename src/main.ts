@@ -52,7 +52,7 @@ const initialState = EditorState.create({
     basicSetup,
     myTheme,
     phi(),
-    // updatePermalink,
+    updatePermalink,
     keymap.of([indentWithTab]),
     parseErrors,
     indentGuides,

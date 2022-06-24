@@ -3,12 +3,16 @@ import { keymap } from '@codemirror/view'
 import { indentWithTab } from '@codemirror/commands'
 import { phi } from './extensions/phi'
 // import { updatePermalink} from './extensions/permalink'
-import { initFromLink} from './extensions/init-from-link'
+import { initFromLink } from './extensions/init-from-link'
 import { parseErrors } from './extensions/diagnostics'
 import { indentGuides } from './extensions/indent-guides'
 import { toggleTree } from './extensions/log-lezer-tree'
 import { sameIndent } from './extensions/same-indent'
-import { notifyCodeChanged, editorTriggered, ann } from './extensions/code-changed'
+import {
+  notifyCodeChanged,
+  editorTriggered,
+  ann,
+} from './extensions/code-changed'
 
 let code = `[
   book -> [
@@ -19,11 +23,11 @@ let code = `[
     manga_title -> ^2.str_publisher.add(str -> ^0.title),
     @ -> ^1.book
   ](price -> ^1.price)
-].manga.price`;
+].manga.price`
 
 const myTheme = EditorView.theme({
   $: {
-    outline: '1px auto #ddd'
+    outline: '1px auto #ddd',
   },
   $scroller: {
     fontFamily: '"Fira Mono", monospace',
@@ -32,8 +36,14 @@ const myTheme = EditorView.theme({
   // set min and max editor height
   // https://discuss.codemirror.net/t/code-editor-with-automatic-height-that-has-a-minimum-and-maximum-height/4015/5
   '.cm-gutter, .cm-content': { minHeight: '400px' },
-  '.cm-scroller': { overflow: 'auto'},
-  '&': { maxHeight: '400px', minHeight: '400px', maxWidth: '100%', minWidth: '40vw', border: '1px solid silver' },
+  '.cm-scroller': { overflow: 'auto' },
+  '&': {
+    maxHeight: '400px',
+    minHeight: '400px',
+    maxWidth: '100%',
+    minWidth: '40vw',
+    border: '1px solid silver',
+  },
 })
 
 const initialState = EditorState.create({
@@ -48,7 +58,7 @@ const initialState = EditorState.create({
     indentGuides,
     sameIndent,
     notifyCodeChanged,
-    toggleTree("Mod-Shift-l")
+    toggleTree('Mod-Shift-l'),
   ],
 })
 
@@ -65,67 +75,64 @@ let phiEditor = {
 function waitForElement(id: string) {
   return new Promise<HTMLElement | string>((resolve, reject) => {
     setTimeout(() => {
-        reject(`no element with id ${id} was created`)
-      }, 5000)
-      
+      reject(`no element with id ${id} was created`)
+    }, 5000)
+
+    let e = document.getElementById(id)
+    if (e !== null) {
+      resolve(e)
+    }
+
+    const observer = new MutationObserver((mutations) => {
       let e = document.getElementById(id)
       if (e !== null) {
-        resolve(e);
+        resolve(e)
+        observer.disconnect()
       }
-      
-      const observer = new MutationObserver(mutations => {
-        let e = document.getElementById(id)
-        if (e !== null) {
-          resolve(e);
-          observer.disconnect();
-        }
-      });
-      
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true
-      });
-    });
-  }
-  
+    })
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    })
+  })
+}
+
+// insert new code when required
+let setCode = (code: string) => {
+  view.dispatch({
+    changes: {
+      from: 0,
+      to: view.state.doc.length,
+      insert: code,
+    },
+    annotations: ann.of(editorTriggered),
+  })
+}
+
+const changeCodeEvent = 'phi-editor-change-code'
 
 // insert editor
 // make it listen to events which require code updates
-const changeCodeEvent = "phi-editor-change-code"
-
 async function doWhenExists(id: string) {
   const element = await waitForElement(id)
-  if (typeof element == "string"){
+  if (typeof element == 'string') {
     console.log(element)
   } else {
     // insert editor
     element.appendChild(view.dom)
-    
-    // init from snippet
-    // initFromLink(view)
-
-    // insert new code when required
-    let send = (code: string) => {
-      view.dispatch({
-        changes: {
-          from: 0,
-          to: view.state.doc.length,
-          insert: code,
-        },
-        annotations: ann.of(editorTriggered),
-      })
-    }
 
     document.addEventListener(changeCodeEvent, ((e: CustomEvent) => {
-      send(e.detail.newCode)
+      setCode(e.detail.newCode)
     }) as EventListener)
-    
-    // send(code)
   }
 }
 
-doWhenExists("phi-editor")
+doWhenExists('phi-editor')
 
+function setInitialCode() {
+  setCode(code)
+  initFromLink(view)
+}
 
-
-export { phiEditor}
+export { phiEditor, setInitialCode }

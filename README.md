@@ -1,6 +1,11 @@
 # try-servant
 
-## Deploy to Heroku
+## Run
+```sh
+stack run
+```
+
+## Deploy to Heroku?
 * Read [this](https://hackernoon.com/for-all-the-world-to-see-deploying-haskell-with-heroku-7ea46f827ce) till `web: run-server`
 
 * Select a port when running locally:

@@ -1,1 +1,1 @@
-web: stack exec try-servant-exe
+web: try-servant-exe

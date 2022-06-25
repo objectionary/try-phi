@@ -48,7 +48,7 @@ type API = "phi" :> Put '[JSON] MyResponse
 startApp :: IO ()
 startApp = catchIOError 
   (do
-    port <- read <$> getEnv "Port"
+    port <- read <$> getEnv "PORT"
     print port
     run port app)
   (\_ -> run 8082 app)

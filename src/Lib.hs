@@ -20,6 +20,8 @@ import Faker
 import Data.Text.IO as DT
 import Data.Text
 import Data.Functor ((<&>))
+import System.Environment (getEnv)
+import System.IO.Error
 
 arr = ["eo", "original_term", "whnf", "nf", "cbn_reduction", "cbn_with_tap", "cbn_with_graph"]
 
@@ -44,7 +46,14 @@ $(deriveJSON defaultOptions ''MyResponse)
 type API = "phi" :> Put '[JSON] MyResponse
 
 startApp :: IO ()
-startApp = run 8082 app
+startApp = catchIOError 
+  (do
+    port <- read <$> getEnv "Port"
+    print port
+    run port app)
+  (\_ -> run 8082 app)
+
+
 
 corsPolicy :: Middleware
 corsPolicy = cors (const $ Just policy)

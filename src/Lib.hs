@@ -63,7 +63,8 @@ corsPolicy = cors (const $ Just policy)
       policy = simpleCorsResourcePolicy
         {
             corsMethods = [ "GET", "POST", "PUT", "OPTIONS" ],
-            corsOrigins = Just (["http://localhost:1234"], True),
+            -- corsOrigins = Just (["http://localhost:1234"], True),
+            corsOrigins = Just (["https://br4ch1st0chr0n3.github.io/try-phi-front"], True),
             corsRequestHeaders = [ "authorization", "content-type" ]
         }
 

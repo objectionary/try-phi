@@ -112,7 +112,9 @@ instance EncodeJson Request where
       ~> jsonEmptyObject
 
 urlPrefix ∷ String
-urlPrefix = "http://localhost:3000/"
+-- urlPrefix = "http://localhost:3000/"
+-- urlPrefix = "http://localhost:8082/"
+urlPrefix = "https://try-servant-exe.herokuapp.com/"
 
 data Response = Response {
   code :: String,
@@ -644,7 +646,7 @@ cdns =
   HH.div_
     [ HH.link [HP.href "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css", HP.rel "stylesheet", HP.type_ textCSS],
       HH.script [HP.src "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js", HP.type_ applicationJavascript] [],
-      -- TODO unsert into a separate tab
+      -- TODO insert into a separate tab
       -- TODO add tab switching with ctrl+tab
       HH.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/eo-editor@d58d13becead90f7aaf11e424df8663532e85a23/docs/eo-editor.js", U.attr_ "type" "module"] [],
       HH.link [HP.href "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/eo-editor@d58d13becead90f7aaf11e424df8663532e85a23/docs/eo-editor.css", HP.type_ textCSS],

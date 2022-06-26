@@ -114,7 +114,7 @@ instance EncodeJson Request where
 urlPrefix ∷ String
 -- urlPrefix = "http://localhost:3000/"
 -- urlPrefix = "http://localhost:8082/"
-urlPrefix = "https://try-servant-exe.herokuapp.com/"
+urlPrefix = "https://try-servant.herokuapp.com/"
 
 data Response = Response {
   code :: String,
@@ -306,7 +306,7 @@ anotherEditor PhiEditor = EOEditor
 
 editorName :: Editor -> String
 editorName EOEditor = "eo"
-editorName PhiEditor = "phi"
+editorName PhiEditor = "phi"  
 
 codeChangedSuff :: String
 codeChangedSuff = "-editor-code-changed"

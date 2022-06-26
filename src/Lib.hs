@@ -2,6 +2,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use newtype instead of data" #-}
 
 module Lib
   ( startApp,
@@ -47,7 +50,13 @@ data MyResponse = MyResponse
 $(deriveJSON defaultOptions ''Tabs)
 $(deriveJSON defaultOptions ''MyResponse)
 
-type API = "phi" :> Put '[JSON] MyResponse
+data MyRequest = MyRequest{code :: String} deriving (Eq, Show)
+
+$(deriveJSON defaultOptions ''MyRequest)
+
+type API =
+  "phi" :> ReqBody '[JSON] MyRequest :> Put '[JSON] MyResponse
+    :<|> "eo" :> ReqBody '[JSON] MyRequest :> Put '[JSON] MyResponse
 
 startApp :: IO ()
 startApp =
@@ -85,19 +94,25 @@ app = corsPolicy $ serve api server
 api :: Proxy API
 api = Proxy
 
--- getStr' =
+data Editor = PhiEditor | EOEditor
 
 server :: Server API
-server =
-  do
-    tabs1 <- liftIO $ Tabs <$> getStr' <*> getStr' <*> getStr' <*> getStr' <*> getStr' <*> getStr' <*> getStr'
-    liftIO $ MyResponse <$> getStr' <*> return tabs1
+server = handle PhiEditor :<|> handle EOEditor
+  where
+    handle ed req =
+      do
+        let g = getStr' $
+              case ed of
+                PhiEditor -> "eo"
+                EOEditor -> "phi"
+        tabs1 <- liftIO $ Tabs <$> g <*> g <*> g <*> g <*> g <*> g <*> g
+        liftIO $ MyResponse <$> g <*> return tabs1
+
+    getStr' a = stringRandomIO "20\\d\\d-(1[0-2]|0[1-9])-(0[1-9]|1\\d|2[0-8])" <&> unpack <&> (a <>)
 
 -- tabs1 <- liftIO $ Tabs <$> getStr <*> getStr <*> getStr <*> getStr <*> getStr <*> getStr <*> getStr
 -- liftIO $ MyResponse <$> getStr <*> return tabs1
 
-getStr' :: IO String
-getStr' = stringRandomIO "20\\d\\d-(1[0-2]|0[1-9])-(0[1-9]|1\\d|2[0-8])" <&> unpack
 
 getStr :: IO String
 getStr = generateWithSettings (setNonDeterministic defaultFakerSettings) Yoda.quotes <&> unpack

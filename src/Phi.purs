@@ -114,7 +114,7 @@ instance EncodeJson Request where
 urlPrefix ∷ String
 -- urlPrefix = "http://localhost:3000/"
 -- urlPrefix = "http://localhost:8082/"
-urlPrefix = "https://try-servant.herokuapp.com/"
+urlPrefix = "https://try-phi-back.herokuapp.com/"
 
 data Response = Response {
   code :: String,
@@ -381,7 +381,7 @@ html state =
       divRow eoLogoSection,
       divRow $
         HH.div [U.classes_ [dFlex, justifyContentCenter]] [
-          HH.button [HP.type_ ButtonButton, U.classes_ ["btn", "btn-yellow", "me-2"], HP.id permalink_, onClick $ \_ -> CopyToClipboard] [HH.text $ "Copy permalink"]
+          HH.button [HP.type_ ButtonButton, U.classes_ ["btn", "btn-warning", "me-2"], HP.id permalink_, onClick $ \_ -> CopyToClipboard] [HH.text $ "Copy permalink"]
         ]
       ,
       divRow $ editorDiv,
@@ -579,6 +579,7 @@ editorDiv =
   HH.div
     [U.class_ "container-fluid", HP.id "cont"]
     [ HH.div
+    -- TODO function for editors
         [U.class_ "row"] [
           HH.div [U.classes_ ["col-sm-6"]] [
             HH.div [U.class_ "row"] [

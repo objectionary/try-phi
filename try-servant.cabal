@@ -34,6 +34,7 @@ library
     , base >=4.7 && <5
     , fakedata
     , servant-server
+    , string-random
     , text
     , wai
     , wai-cors
@@ -52,6 +53,7 @@ executable try-servant-exe
     , base
     , fakedata
     , servant-server
+    , string-random
     , text
     , try-servant
     , wai
@@ -75,6 +77,7 @@ test-suite try-servant-test
     , hspec-wai
     , hspec-wai-json
     , servant-server
+    , string-random
     , text
     , try-servant
     , wai

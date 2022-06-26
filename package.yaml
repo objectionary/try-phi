@@ -27,6 +27,7 @@ dependencies:
 - fakedata
 - text
 - wai-cors
+- string-random
 
 library:
   source-dirs: src

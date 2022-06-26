@@ -22,6 +22,7 @@ import Data.Text
 import Data.Functor ((<&>))
 import System.Environment (getEnv)
 import System.IO.Error
+import Text.StringRandom (stringRandomIO)
 
 arr = ["eo", "original_term", "whnf", "nf", "cbn_reduction", "cbn_with_tap", "cbn_with_graph"]
 
@@ -46,7 +47,7 @@ $(deriveJSON defaultOptions ''MyResponse)
 type API = "phi" :> Put '[JSON] MyResponse
 
 startApp :: IO ()
-startApp = catchIOError 
+startApp = catchIOError
   (do
     port <- read <$> getEnv "PORT"
     print port
@@ -63,8 +64,7 @@ corsPolicy = cors (const $ Just policy)
       policy = simpleCorsResourcePolicy
         {
             corsMethods = [ "GET", "POST", "PUT", "OPTIONS" ],
-            -- corsOrigins = Just (["http://localhost:1234"], True),
-            corsOrigins = Just (["https://br4ch1st0chr0n3.github.io/try-phi-front"], True),
+            corsOrigins = Just (["https://br4ch1st0chr0n3.github.io/try-phi-front", "http://localhost:1234"], True),
             corsRequestHeaders = [ "authorization", "content-type" ]
         }
 
@@ -74,11 +74,18 @@ app = corsPolicy $ serve api server
 api :: Proxy API
 api = Proxy
 
+-- getStr' = 
+
 server :: Server API
 server =
     do
-      tabs1 <- liftIO $ Tabs <$> getStr <*> getStr <*> getStr <*> getStr <*> getStr <*> getStr <*> getStr
-      liftIO $ MyResponse <$> getStr <*> return tabs1
+      tabs1 <- liftIO $ Tabs <$> getStr' <*> getStr' <*> getStr' <*> getStr' <*> getStr' <*> getStr' <*> getStr'
+      liftIO $ MyResponse <$> getStr' <*> return tabs1
+      -- tabs1 <- liftIO $ Tabs <$> getStr <*> getStr <*> getStr <*> getStr <*> getStr <*> getStr <*> getStr
+      -- liftIO $ MyResponse <$> getStr <*> return tabs1
+
+getStr' :: IO String
+getStr' = stringRandomIO "20\\d\\d-(1[0-2]|0[1-9])-(0[1-9]|1\\d|2[0-8])" <&> unpack
 
 getStr :: IO String
 getStr = generateWithSettings (setNonDeterministic defaultFakerSettings) Yoda.quotes <&> unpack

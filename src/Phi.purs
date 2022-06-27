@@ -1,25 +1,22 @@
 module Phi
   ( Action(..)
-  , State(..)
+  , Editor(..)
   , ParseError(..)
+  , State(..)
+  , Tab
+  , TabId(..)
   , Term(..)
+  , component
   , dataProp
+  , editorId
   , eoLogoSection
   , html
-  , Tab(..),
-  TabId(..),
-  State'(..),
-  md1,
-  component,
-  Editor(..),
-  editorId
+  , md1
+  , OkState(..)
   )
   where
 
-import Effect.Console
-import Effect.Timer
 import Prelude
-import Web.HTML.HTMLDocument
 
 import Affjax as AX
 import Affjax.RequestBody (RequestBody(..))
@@ -40,18 +37,20 @@ import Data.Map.Internal (Map)
 import Data.Map.Internal as Map
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.MediaType.Common (applicationJavascript, textCSS)
+import Data.String.Common (null)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
 import Effect.Aff (Aff)
+import Effect.Console (log)
 import Foreign (unsafeFromForeign)
 import Halogen (AttrName(..), Component)
 import Halogen as H
-import Halogen.HTML (HTML)
-import Halogen.HTML (button, header_, pre_, section_, text) as HH
+import Halogen.HTML (HTML, b)
+import Halogen.HTML (button, header_, pre_, section_, span, span_, text) as HH
 import Halogen.HTML.CSS as CSS
 import Halogen.HTML.Core as HC
-import Halogen.HTML.Elements (a, div, div_, i, img, li_, link, nav_, p_, script, ul_) as HH
+import Halogen.HTML.Elements (a, div, div_, i, img, li_, link, nav_, p_, script, ul_, h3_) as HH
 import Halogen.HTML.Events (onClick)
 import Halogen.HTML.Events (onClick) as HH
 import Halogen.HTML.Properties (ButtonType(..), IProp)
@@ -68,11 +67,13 @@ import Web.Event.Event (EventType(..))
 import Web.Event.Event as Event
 import Web.Event.EventTarget (dispatchEvent)
 import Web.HTML (window) as Web
+import Web.HTML.HTMLDocument (toDocument, toEventTarget)
 import Web.HTML.HTMLDocument as HTMLDocument
 import Web.HTML.Location (search) as Web
 import Web.HTML.Window (document, location) as Web
 import Web.HTML.Window (navigator)
 import Web.URL.URLSearchParams as USP
+import WebSender (handleAction)
 
 data Editor = EOEditor | PhiEditor
 
@@ -81,28 +82,36 @@ derive instance Eq Editor
 ids ∷ Array TabId
 ids = [ TEO, TTerm, TWHNF, TNF, TCBNReduction, TCBNWithTAP, TCBNWithGraph ]
 
-md1 :: State
-md1 =
-  State
-    { currentEditor: EOEditor
-    , graphStep: 1
-    , tabs:
+defaultOk :: OkState
+defaultOk = {
+  graphStep : 1,
+  tabs:
         ( \( Tuple
               ( Tuple a b
             )
               c
           ) ->
-            Tab { id: a, buttonText: b, isActive: c, tabContent: HH.text b }
+            Tab { id: a, buttonText: b, isActive: c, tabContent: HH.text "" }
         )
           <$> DA.zip (DA.zip ids btexts) isActives
-    -- FIXME store code of editors?
-    -- send immediately?
     }
   where
-
+  
   btexts = [ "EO code", "Phi term", " WHNF", "NF", "CBN Reduction", "CBN With TAP", "CBN With Graph" ]
 
   isActives = [ true, false, false, false, false, false, false ]
+
+
+md1 :: State
+md1 =
+    { currentEditor: EOEditor
+    , info: Left NoCode
+    }
+  
+-- TODO no tabs when empty editors
+-- Prompt to type in one of the editors
+-- md2 :: State
+-- md2 = 
 
 data Request = Request { code :: String}
 
@@ -115,6 +124,9 @@ urlPrefix ∷ String
 -- urlPrefix = "http://localhost:3000/"
 -- urlPrefix = "http://localhost:8082/"
 urlPrefix = "https://try-phi-back.herokuapp.com/"
+
+-- FIXME
+-- add error entry
 
 data Response = Response {
   code :: String,
@@ -142,6 +154,21 @@ snippet_ = "snippet"
 log_ :: forall output. String -> H.HalogenM State Action () output Aff Unit
 log_ = H.liftEffect <<< log
 
+class LogError a where
+  err :: forall output. a -> H.HalogenM State Action () output Aff Unit
+
+data HandleError = 
+    NoSnippetOrEditor 
+  | NoPermalink
+  | NoResponse
+  | NoHrefPermalink
+
+instance LogError HandleError where
+  err NoSnippetOrEditor = log_ "check 'snippet' or 'editor'"
+  err NoPermalink = log_ "no permalink"
+  err NoResponse = log_ "no response received!"
+  err NoHrefPermalink = log_ "no href in permalink!"
+
 component :: ∀ a b c. Component a b c Aff
 component =
   H.mkComponent
@@ -162,25 +189,16 @@ component =
   handleAction :: forall output. Action -> H.HalogenM State Action () output Aff Unit
   handleAction = case _ of
     Init -> do
-      log_ "start"
+      handleAction $ UpdatePermalink EOEditor ""
       handleAction ListenEditorsCodeChanged
       handleAction ListenEditorsCreated
-      -- handleAction InitFromLink
-    SelectTab t1 ->
-      H.modify_
-        $ (<$>) \s ->
-            ( s
-                { tabs =
-                  ( \t2@(Tab t') ->
-                      Tab (t' { isActive = t1 == t2 })
-                  )
-                    <$> s.tabs
-                }
-            )
-    NextStep -> H.modify_ $ (<$>) \s -> s { graphStep = s.graphStep + 1 }
-    PrevStep -> H.modify_ $ (<$>) \s -> s { graphStep = s.graphStep - 1 }
-    SelectCurrentEditor e -> H.modify_ $ (<$>) \s -> s { currentEditor = e }
-    ListenEditorsCodeChanged -> traverse_ handleAction (map (\e -> ListenEditorCodeChanged e) [EOEditor, PhiEditor])
+    SelectTab t1 -> do
+      let selectActiveTab = (\x -> x { tabs = ( \t2@(Tab t') -> Tab (t' { isActive = t1 == t2 })) <$> x.tabs})
+      updateInfo selectActiveTab
+            
+    NextStep -> updateInfo $ \x -> x {graphStep = x.graphStep + 1}
+    PrevStep -> updateInfo $ \x -> x {graphStep = x.graphStep - 1}
+    ListenEditorsCodeChanged -> forEditors ListenEditorCodeChanged
     ListenEditorCodeChanged e -> do
         document <- H.liftEffect $ Web.document =<< Web.window
         H.subscribe' \_ ->
@@ -197,21 +215,25 @@ component =
                   Just (Right c) -> Just c.newCode
                   _ -> Nothing
             HandleEditorCodeChanged <$> editor <*> code)
-    
-    -- FIXME use that code, not code from editor
+
     HandleEditorCodeChanged editor code -> do
-      -- FIXME request relevant code from server
-      -- send code
+      if null code
+      then handleAction $ HandleError NoCode
+      -- FIXME only set when there was an error in state
+      else H.modify_ $ \s -> 
+        case s.info of 
+          Left _ -> s {info = Right defaultOk}
+          Right _ -> s
+
+      setEditor editor
       handleAction $ UpdatePermalink editor code
-      -- resp <- H.liftAff $ AX.get AW.driver AXRF.json (urlPrefix <> editorName editor)
-      -- Nothing
+      -- request code from server
       let req = Request {
           code: code
         }
       resp <- H.liftAff $ AX.put AW.driver AXRF.json (urlPrefix <> editorName editor) (Just $ Json $ encodeJson req)
       let
-        -- TODO handle errors
-        -- resp' :: Either AX.Error (Either JsonDecodeError Response) 
+        -- FIXME handle errors
         resp' :: Maybe Response
         resp' = 
             case resp of
@@ -219,50 +241,43 @@ component =
               Left _ -> Nothing
       case resp' of
         Just (Response r) -> 
-      -- say another editor change its code
           do
-            ce <- H.liftEffect $ CE.toEvent <$> CE.new' (EventType $ getNameEventChangeCode (anotherEditor editor)) (Just {newCode: r.code})
-            doc <- H.liftEffect $ toEventTarget <$> (Web.document =<< Web.window)
-            _ <- H.liftEffect $ dispatchEvent ce doc
-            -- set current editor
-            H.modify_ $ (<$>) \s -> s {
-              currentEditor = editor, 
-              graphStep = s.graphStep + 2,
+            setCode (anotherEditor editor) r.code
+            updateInfo $ \s -> s {
               tabs = (\(Tab t) -> 
                 case Map.lookup t.id r.tabs of
                   Just cont -> Tab t {tabContent = HH.pre_ [HH.text cont]}
                   Nothing -> Tab t {tabContent = HH.pre_ [HH.text "No response"]}
                 ) <$> s.tabs 
               }
-                
-        Nothing -> 
-          -- FIXME handle error
-          H.modify_ $ (<$>) \s -> s {graphStep = s.graphStep - 2}
+
+        -- FIXME Handle error
+        Nothing -> err NoResponse
+
     CopyToClipboard -> do
       cb <- H.liftEffect $ Web.window >>= navigator >>= clipboard
-      -- TODO get link
+      -- get link
       perm <- H.liftEffect $ Web.window >>= Web.document >>= (\x -> getElementById permalink_ $ toNonElementParentNode (toDocument x))
       case perm of
         Just j -> do
           h <- H.liftEffect $ getAttribute myHref_ j
           case h of
             Just h' -> H.liftEffect $ pure h' >>= writeText cb
-            Nothing -> H.liftEffect $ log "no href attribute"
-          H.modify_ $ (<$>) \s -> s {graphStep = s.graphStep + 100}
-        Nothing -> 
-          H.modify_ $ (<$>) \s -> s {graphStep = s.graphStep - 100}
+            Nothing -> err NoHrefPermalink
+        Nothing -> err NoPermalink
+
     UpdatePermalink editor code -> do
       perm <- H.liftEffect $ Web.window >>= Web.document >>= (\x -> getElementById permalink_ $ toNonElementParentNode (toDocument x))
       case perm of
         Just p -> do
           ref <- H.liftEffect $ makePermalink (editorName editor) code
           H.liftEffect $ setAttribute myHref_ ref p
-        Nothing -> log_ "no permalink"
-    
+        Nothing -> err NoPermalink
+
     -- FIXME react to an event from editor when it is created to send the code
     -- if it sends earlier => it's present, so send the code (init from link) even if no event received
-    
-    ListenEditorsCreated -> traverse_ handleAction (map (\e -> ListenEditorCreated e) [EOEditor, PhiEditor])
+    -- editors notify when created
+    ListenEditorsCreated -> forEditors ListenEditorCreated
     ListenEditorCreated editor -> do
       document <- H.liftEffect $ Web.document =<< Web.window
       H.subscribe' \_ ->
@@ -270,32 +285,36 @@ component =
         (EventType (getNameEventEditorCreated editor))
         (HTMLDocument.toEventTarget document)
         (\_ -> Just $ InitFromLink editor)
-
+    InitEditorsFromLink -> forEditors InitFromLink
     InitFromLink editor -> do
       -- take data for setting initial snippet
       link <- USP.fromString <$> (H.liftEffect $ Web.window >>= Web.location >>= Web.search)
       let
         ed = USP.get editor_ link >>= editorId
         snip = USP.get snippet_ link
-      -- H.liftEffect $ log $ show snip
-      -- log_ $ show $ editorName <$> ed
-      -- log_ $ show $ snipk
       case snip /\ ed of
-        Just snip' /\ Just ed' -> do
-          -- TODO set code from snippet in one editor
-          -- log_ "starting"
-          -- log_ snip'
-          -- log_ (getNameEventChangeCode ed')
-          ce <- H.liftEffect $ CE.toEvent <$> CE.new' (EventType $ (getNameEventChangeCode ed')) (Just {newCode: snip'})
-          doc <- H.liftEffect $ toEventTarget <$> (Web.document =<< Web.window)
-          H.liftEffect $ dispatchEvent ce doc *> pure unit
-          -- TODO send event to another editor that the code has changed
-          -- so that we get the corresponding code in another editor
-          when (editor == ed') (handleAction (HandleEditorCodeChanged ed' snip'))
-          H.modify_ $ (<$>) \s -> s {currentEditor = ed'} 
-          -- pure unit
-        _ -> log_ "check `snippet` or `editor`"
+        Just snippet' /\ Just editor' -> do
+          setCode editor' snippet'
+          -- handle code change when it is caused by user actions
+          when (editor == editor') (handleAction (HandleEditorCodeChanged editor' snippet'))
+        _ -> err NoSnippetOrEditor
+    HandleError error -> H.modify_ $ \s -> s {info = Left error}
     NoOp -> pure unit
+
+  setEditor :: forall output. Editor -> H.HalogenM State Action () output Aff Unit
+  setEditor editor = H.modify_ $ \s -> s {currentEditor = editor}
+
+  updateInfo :: forall output. (OkState -> OkState) -> H.HalogenM State Action () output Aff Unit
+  updateInfo f = H.modify_ $ \s -> s {info = f <$> s.info}
+
+  forEditors :: forall output. (Editor -> Action) -> H.HalogenM State Action () output Aff Unit
+  forEditors f = traverse_ handleAction (map (\e -> f e) [EOEditor, PhiEditor])
+  
+  setCode :: forall output. Editor -> String -> H.HalogenM State Action () output Aff Unit
+  setCode editor code = do
+      ce <- H.liftEffect $ CE.toEvent <$> CE.new' (EventType $ (getNameEventChangeCode editor)) (Just {newCode: code})
+      doc <- H.liftEffect $ toEventTarget <$> (Web.document =<< Web.window)
+      H.liftEffect $ dispatchEvent ce doc *> pure unit
 
 -- FIXME remove non-polymorphic classes
 
@@ -343,7 +362,6 @@ data Action
   | NextStep
   | PrevStep
   | SelectTab Tab
-  | SelectCurrentEditor Editor
   | ListenEditorsCodeChanged
   | ListenEditorCodeChanged Editor
   | HandleEditorCodeChanged Editor String
@@ -353,7 +371,8 @@ data Action
   | NoOp
   | ListenEditorsCreated
   | ListenEditorCreated Editor
-
+  | InitEditorsFromLink
+  | HandleError ParseError
 type NewCode = {
   newCode :: String
 }
@@ -369,45 +388,41 @@ justifyContentCenter = "justify-content-center"
 dFlex ∷ String
 dFlex = "d-flex"
 
-divRow ∷ ∀ a b. HTML a b → HTML a b
-divRow x = HH.div [U.classes_ ["row", "mt-1"]] [ x ]
+dGrid = "d-grid"
 
 html ∷ ∀ a. State -> HTML a Action
 html state =
   HH.div
-    [ HP.id "root" ]
-    [
-      divRow cdns,
-      divRow eoLogoSection,
-      divRow $
-        HH.div [U.classes_ [dFlex, justifyContentCenter]] [
-          HH.button [HP.type_ ButtonButton, U.classes_ ["btn", "btn-warning", "me-2"], HP.id permalink_, onClick $ \_ -> CopyToClipboard] [HH.text $ "Copy permalink"]
+    [ U.classes_ [dGrid, "gap-1"] ] $
+        divRow <$> [
+          cdns,
+          eoLogoSection,
+          permalinkButton,
+          editorDiv,
+          infos state,
+          pageFooter
         ]
-      ,
-      divRow $ editorDiv,
-      divRow $ 
-        HH.div [
-          HP.id "app_div"
-        ][
-          let
-            showError e = HH.div [U.class_ "pb-2"] [HH.pre_ [HH.text e]]
-          in
-            case state of
-                ParseError e -> showError (show e)
-                md -> termTabs md
-        ]
-      ,
-      divRow $
-        HH.div_ 
-        [
-          HH.text $ case state of 
-            ParseError e -> show e
-            -- FIXME this is a temporary output just to check event handling
-            State s -> (show s.graphStep)
-        ]
-      ,
-      divRow pageFooter
-    ]
+  where
+  divRow x = HH.div [U.classes_ ["p-1"]] [ x ]
+
+permalinkButton :: forall a. HTML a Action
+permalinkButton = 
+  HH.div [U.classes_ [dFlex, justifyContentCenter]] [
+    HH.button [HP.type_ ButtonButton, U.classes_ ["btn", "btn-warning"], HP.id permalink_, onClick $ \_ -> CopyToClipboard] [HH.text $ "Copy permalink"]
+  ]
+          
+
+infos :: ∀ a. State -> HTML a Action
+infos s = case s.info of
+  Left e -> showError e
+  Right r -> termTabs r
+  where
+    pleaseCheck s e = "Please, check your " <> s <> " code:\n" <> e
+    message (EOParseError e) = pleaseCheck "EO" e
+    message (PhiParseError e) = pleaseCheck "Phi" e
+    message NoCode = "Type something!"
+    showError e = HH.div [U.classes_ ["text-center"]] [HH.h3_ [HH.span [HP.style "font-weight:normal"] [HH.text $ message e]]]
+
 
 eoLogoSection ∷ ∀ a b. HTML a b
 eoLogoSection =
@@ -624,8 +639,9 @@ pageFooter =
   HH.nav_
     [ HH.ul_
         [ HH.li_
-            [ HH.text "To discuss how 𝜑-calculus works, join our ",
-              HH.a [HP.href "https://t.me/polystat_org"] [HH.text "Telegram group"]
+            [ HH.text "Join our ",
+              HH.a [HP.href "https://t.me/polystat_org"] [HH.text "Telegram group"],
+              HH.text " to discuss how 𝜑-calculus works"
             ]
         ],
       HH.ul_
@@ -667,31 +683,30 @@ instance Show Term where
   show (Term s) = s
 
 
--- TODO EO and Phi tabs are synced
--- If there current tab is x in {Phi, EO}, and there's an error, model error will be about this tab
--- Otherwise, if code in current tab x is without errors, its contents will be translated into another tab
+-- | TODO EO and Phi tabs are synced
+-- | Phi code is translated into EO code (and vice-versa) on a server
+-- | Currently, the state will store just the parse errors, including
+-- TODO provide error message
+data ParseError = EOParseError String | PhiParseError String | NoCode
 
-data ParseError = EOParseError String | PhiParseError String
 
 instance Show ParseError where
   show (EOParseError s) = s
   show (PhiParseError s) = s
+  show NoCode = "no code"
 
-data State' a b = ParseError a | State b
+type OkState = {
+  tabs :: Array Tab,
+  graphStep :: Int
+}
 
-instance Functor (State' a) where
-  map f (State s) = State (f s)
-  map _ (ParseError e) = (ParseError e)
+-- FIXME store the last editor even in case of parse errors
+-- then no need to store a flag about non-empty code, can use just an error
+type State = {
+  currentEditor :: Editor,
+  info :: Either ParseError OkState
+}
 
-type State = State'
-  ParseError 
-
-  {
-    currentEditor :: Editor,
-    tabs :: Array Tab,
-    graphStep :: Int
-  }
-  
 data TabMode = Active | Disabled
 
 tabButton :: forall a. Tab -> HTML a Action
@@ -741,7 +756,7 @@ mkButton id = "button_" <> id
 mkContent ∷ String → String
 mkContent id = "content_" <> id
 mkInfo ∷ String → String
-mkInfo id = "info_" <> id
+mkInfo id = "info" <> id
 
 data TabId = TEO | TTerm | TWHNF | TNF | TCBNReduction | TCBNWithTAP | TCBNWithGraph
 
@@ -782,9 +797,8 @@ data Tab = Tab {
 instance Eq Tab where
   eq (Tab t1) (Tab t2) = t1.id == t2.id
 
-termTabs :: forall a. State -> HTML a Action
-termTabs (ParseError s) = HH.div_ [HH.text (show s)]
-termTabs (State {tabs : tabs'}) = 
+termTabs :: forall a. OkState -> HTML a Action
+termTabs {tabs : tabs'} = 
   HH.div_ [
     HH.nav_ [
       HH.div

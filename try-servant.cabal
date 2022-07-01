@@ -25,6 +25,7 @@ source-repository head
 library
   exposed-modules:
       Lib
+      TH
   other-modules:
       Paths_try_servant
   hs-source-dirs:
@@ -33,9 +34,11 @@ library
       aeson
     , base >=4.7 && <5
     , fakedata
+    , random
     , servant-server
     , string-random
     , text
+    , transformers
     , wai
     , wai-cors
     , warp
@@ -52,9 +55,11 @@ executable try-servant-exe
       aeson
     , base
     , fakedata
+    , random
     , servant-server
     , string-random
     , text
+    , transformers
     , try-servant
     , wai
     , wai-cors
@@ -76,9 +81,11 @@ test-suite try-servant-test
     , hspec
     , hspec-wai
     , hspec-wai-json
+    , random
     , servant-server
     , string-random
     , text
+    , transformers
     , try-servant
     , wai
     , wai-cors

@@ -28,6 +28,8 @@ dependencies:
 - text
 - wai-cors
 - string-random
+- random
+- transformers
 
 library:
   source-dirs: src

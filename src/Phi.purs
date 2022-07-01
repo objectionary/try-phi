@@ -1,21 +1,27 @@
 module Phi
   ( Action(..)
   , Editor(..)
+  , GraphTab(..)
+  , OkState(..)
   , ParseError(..)
+  , Response(..)
   , State(..)
   , Tab
   , TabId(..)
   , Term(..)
+  , TextTabs
   , component
   , dataProp
   , editorId
   , eoLogoSection
   , html
   , md1
-  , OkState(..)
+  , r1
   )
   where
 
+import Data.Argonaut.Decode.Generic
+import Data.Generic.Rep
 import Prelude
 
 import Affjax as AX
@@ -24,14 +30,18 @@ import Affjax.ResponseFormat as AXRF
 import Affjax.Web as AW
 import CSS.Geometry as CG
 import CSS.Size as CS
-import Data.Argonaut (class EncodeJson, encodeJson, jsonEmptyObject, (.:), (:=), (~>))
+import Data.Argonaut (class DecodeJson, class EncodeJson, JsonDecodeError(..), decodeJson, encodeJson, jsonEmptyObject, parseJson, (.:), (:=), (~>))
 import Data.Argonaut.Decode (JsonDecodeError) as AD
 import Data.Argonaut.Decode (class DecodeJson)
+import Data.Argonaut.Decode.Class (class DecodeJson)
 import Data.Argonaut.Decode.Class (decodeJson)
+import Data.Argonaut.Decode.Decoders (decodeString)
+import Data.Argonaut.Encode.Generic (genericEncodeJson)
 import Data.Array as DA
 import Data.Either (Either(..), hush)
 import Data.Foldable (intercalate, traverse_)
 import Data.Int as DI
+import Data.List (List)
 import Data.Map (fromFoldable)
 import Data.Map.Internal (Map)
 import Data.Map.Internal as Map
@@ -73,19 +83,21 @@ import Web.HTML.Location (search) as Web
 import Web.HTML.Window (document, location) as Web
 import Web.HTML.Window (navigator)
 import Web.URL.URLSearchParams as USP
-import WebSender (handleAction)
 
 data Editor = EOEditor | PhiEditor
 
 derive instance Eq Editor
 
-ids ∷ Array TabId
-ids = [ TEO, TTerm, TWHNF, TNF, TCBNReduction, TCBNWithTAP, TCBNWithGraph ]
+textTabIds ∷ Array TabId
+-- FIXME exclude cbnwithGraph
+textTabIds = [ TEO, TTerm, TWHNF, TNF, TCBNReduction, TCBNWithTAP]
+
+graphTabId = [TCBNWithGraph]
 
 defaultOk :: OkState
 defaultOk = {
   graphStep : 1,
-  tabs:
+  textTabs:
         ( \( Tuple
               ( Tuple a b
             )
@@ -93,7 +105,12 @@ defaultOk = {
           ) ->
             Tab { id: a, buttonText: b, isActive: c, tabContent: HH.text "" }
         )
-          <$> DA.zip (DA.zip ids btexts) isActives
+          <$> DA.zip (DA.zip textTabIds btexts) isActives,
+  graphTab:
+    GraphTab {
+      states: [],
+      graphs: []
+    }
     }
   where
   
@@ -113,7 +130,68 @@ md1 =
 -- md2 :: State
 -- md2 = 
 
+data GraphTab = GraphTab
+  { states :: Array String,
+    graphs :: Array String
+  }
+
 data Request = Request { code :: String}
+
+r1 :: Either JsonDecodeError (Either JsonDecodeError Response)
+r1 = decodeJson <$> parseJson "{\"tag\":\"ok\",\"code\":\"eo2003-09-18\",\"textTabs\":{\"eo\":\"eo2053-10-01\",\"original_term\":\"eo2091-08-23\",\"whnf\":\"eo2065-12-06\",\"nf\":\"eo2079-07-27\",\"cbn_reduction\":\"eo2093-12-23\",\"cbn_with_tap\":\"eo2013-08-17\"},\"graphTab\":{\"states\":[\"eo2094-08-13\"],\"graphs\":[\"eo2063-08-04\"]}}"
+
+data Response
+  = OkResponse
+      { code :: String,
+        textTabs :: TextTabs,
+        graphTab :: GraphTab
+      }
+  | ErrorResponse
+      { error :: String
+      }
+
+type TextTabs = Map TabId String
+
+-- data TextTabs 
+--   = TextTabs {
+--     eo :: String,
+--     original_term :: String,
+--     whnf :: String,
+--     nf :: String,
+--     cbn_reduction :: String,
+--     cbn_with_tap :: String
+--   }
+
+-- class AsMap a where
+--   asMap :: a -> Map String String
+
+-- instance AsMap TextTabs where
+--   asMap (TextTabs r) = Map.empty
+--     where
+--       p = encodeJson r
+
+
+-- derive instance Generic TextTabs _
+
+-- instance DecodeJson TextTabs where
+--   decodeJson = genericDecodeJson
+
+-- instance EncodeJson TextTabs where
+--   encodeJson = genericEncodeJson
+
+
+instance Show Response where
+  show (OkResponse r) = "OkResponse:\n" <> show r
+  show (ErrorResponse r) = "ErrorResponse:\n" <> show r
+
+instance Show TabId where
+  show = getName
+
+instance Show GraphTab where
+  show (GraphTab t) = show t
+
+-- instance Show TextTabs where
+--   show (TextTabs t) = show t
 
 instance EncodeJson Request where
   encodeJson (Request r) = 
@@ -122,25 +200,55 @@ instance EncodeJson Request where
 
 urlPrefix ∷ String
 -- urlPrefix = "http://localhost:3000/"
--- urlPrefix = "http://localhost:8082/"
-urlPrefix = "https://try-phi-back.herokuapp.com/"
+urlPrefix = "http://localhost:8082/"
+-- urlPrefix = "https://try-phi-back.herokuapp.com/"
 
 -- FIXME
 -- add error entry
 
-data Response = Response {
-  code :: String,
-  tabs :: Map TabId String
-}
+
+instance DecodeJson GraphTab where
+  decodeJson json = do
+    x <- decodeJson json
+    states <- x .: "states"
+    graphs <- x .: "graphs"
+    pure $ GraphTab {
+      states : states,
+      graphs : graphs
+    }
+
+data Tag = OkTag | ErrorTag
+instance Show Tag where
+  show OkTag = "ok"
+  show ErrorTag = "error"
+
+instance DecodeJson TabId where
+  decodeJson json = do
+    x <- decodeString json
+    case getId x of
+      Just i -> Right i
+      Nothing -> Left $ TypeMismatch "not a tab id"
 
 instance DecodeJson Response where
   decodeJson json = do
     x <- decodeJson json
-    code <- x .: "code"
-    tabs <- x .: "tabs"
-    ps <- traverse (\y -> (\z -> Tuple y z) <$> tabs .: (getName y)) ids
-    let ps' = fromFoldable ps
-    pure $ Response {code: code, tabs: ps'}
+    tag <- x .: "tag"
+    resp <- 
+      if tag == show OkTag
+      then 
+        do
+          code <- x .: "code"
+          textTabs <- x .: "textTabs"
+          ps <- traverse (\y -> (\z -> Tuple y z) <$> textTabs .: (getName y)) textTabIds
+          let ps' = fromFoldable ps
+          graphTab <- x .: "graphTab"
+          pure $ OkResponse {code: code, textTabs: ps', graphTab: graphTab}
+      else
+        do
+          e <- x .: "error"
+          pure $ ErrorResponse {error : e}
+    pure resp
+
 
 myHref_ ∷ String
 myHref_ = "my-href"
@@ -162,12 +270,14 @@ data HandleError =
   | NoPermalink
   | NoResponse
   | NoHrefPermalink
+  | EditorError Editor String
 
 instance LogError HandleError where
   err NoSnippetOrEditor = log_ "check 'snippet' or 'editor'"
   err NoPermalink = log_ "no permalink"
   err NoResponse = log_ "no response received!"
   err NoHrefPermalink = log_ "no href in permalink!"
+  err (EditorError e s) = log_ s
 
 component :: ∀ a b c. Component a b c Aff
 component =
@@ -193,7 +303,7 @@ component =
       handleAction ListenEditorsCodeChanged
       handleAction ListenEditorsCreated
     SelectTab t1 -> do
-      let selectActiveTab = (\x -> x { tabs = ( \t2@(Tab t') -> Tab (t' { isActive = t1 == t2 })) <$> x.tabs})
+      let selectActiveTab = (\x -> x { textTabs = ( \t2@(Tab t') -> Tab (t' { isActive = t1 == t2 })) <$> x.textTabs})
       updateInfo selectActiveTab
             
     NextStep -> updateInfo $ \x -> x {graphStep = x.graphStep + 1}
@@ -240,17 +350,20 @@ component =
               Right {body: b} -> hush $ decodeJson b
               Left _ -> Nothing
       case resp' of
-        Just (Response r) -> 
+        Just (OkResponse r) -> 
           do
             setCode (anotherEditor editor) r.code
             updateInfo $ \s -> s {
-              tabs = (\(Tab t) -> 
-                case Map.lookup t.id r.tabs of
+              textTabs = (\(Tab t) ->
+                case Map.lookup t.id r.textTabs of
                   Just cont -> Tab t {tabContent = HH.pre_ [HH.text cont]}
                   Nothing -> Tab t {tabContent = HH.pre_ [HH.text "No response"]}
-                ) <$> s.tabs 
+                ) <$> s.textTabs 
               }
-
+        Just (ErrorResponse r) -> handleAction $ HandleError $ (r.error #
+          case editor of
+            EOEditor -> EOParseError
+            PhiEditor -> PhiParseError)
         -- FIXME Handle error
         Nothing -> err NoResponse
 
@@ -417,7 +530,7 @@ infos s = case s.info of
   Left e -> showError e
   Right r -> termTabs r
   where
-    pleaseCheck s e = "Please, check your " <> s <> " code:\n" <> e
+    pleaseCheck t e = "Please, check your " <> t <> " code:\n" <> e
     message (EOParseError e) = pleaseCheck "EO" e
     message (PhiParseError e) = pleaseCheck "Phi" e
     message NoCode = "Type something!"
@@ -696,8 +809,9 @@ instance Show ParseError where
   show NoCode = "no code"
 
 type OkState = {
-  tabs :: Array Tab,
-  graphStep :: Int
+  textTabs :: Array Tab,
+  graphStep :: Int,
+  graphTab :: GraphTab
 }
 
 -- FIXME store the last editor even in case of parse errors
@@ -798,7 +912,7 @@ instance Eq Tab where
   eq (Tab t1) (Tab t2) = t1.id == t2.id
 
 termTabs :: forall a. OkState -> HTML a Action
-termTabs {tabs : tabs'} = 
+termTabs {textTabs : tabs'} = 
   HH.div_ [
     HH.nav_ [
       HH.div

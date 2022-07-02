@@ -1,9 +1,9 @@
 [submodule "phi-minimal-editor"]
 	path = editor
 	url = https://github.com/br4ch1st0chr0n3/phi-minimal-editor
-[submodule "phi-utils"]
-	path = phi-utils
-	url = https://github.com/br4ch1st0chr0n3/phi-utils
 [submodule "eo-utils"]
 	path = eo-utils
 	url = https://github.com/br4ch1st0chr0n3/eo-utils
+[submodule "phi-utils"]
+	path = phi-utils
+	url = https://github.com/br4ch1st0chr0n3/phi-utils

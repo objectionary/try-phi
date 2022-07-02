@@ -351,6 +351,15 @@ data Options2 a b = Opt2A a | Opt2B b deriving (Data)
 
 data Options3 a b c = Opt3A a | Opt3B b | Opt3C c deriving (Data)
 
+instance (Show a, Show b, Show c) => Show (Options3 a b c) where
+  show (Opt3A a) = show a
+  show (Opt3B a) = show a
+  show (Opt3C a) = show a
+
+instance (Show a, Show b) => Show (Options2 a b) where
+  show (Opt2A a) = show a
+  show (Opt2B a) = show a
+
 data TProgram = TProgram {l :: Maybe (I TLicense), m :: Maybe (I TMetas), o :: I TObjects} deriving (Data)
 
 tProgram :: Parser (I TProgram)
@@ -434,6 +443,26 @@ data TAbstrQuestion =
   AbstrQuestion
   deriving (Data)
 
+instance Show TAbstrQuestion where
+  show t = constructorName t
+
+instance Show TDots where
+  show t = constructorName t
+
+instance Show TConst where
+  show t = constructorName t
+
+instance Show TMethodTerminal where
+  show t = drop 6 (constructorName t)
+
+instance Show TLabelTerminal where
+  show t = drop 5 (constructorName t)
+
+instance Show THeadTerminal where
+  show t = drop 4 (constructorName t)
+
+instance Show THeadModifier where
+  show t = drop 4 (constructorName t)
 
 tAbstractionTail :: Parser (I TAbstractionTail)
 tAbstractionTail = dec "Abstraction tail" $ do

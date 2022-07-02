@@ -224,15 +224,6 @@ instance ShowIndented (I TFreeAttribute) where
 instance ShowIndented (I TDots) where 
   showIndented m t = printTerminal m t
 
-instance Show TAbstrQuestion where
-  show t = constructorName t
-
-instance Show TDots where
-  show t = constructorName t
-
-instance Show TConst where
-  show t = constructorName t
-
 instance ShowIndented (I TConst) where
   showIndented m t = printTerminal m t
 
@@ -241,18 +232,6 @@ instance ShowIndented (I TSuffix) where
     where
       l' k = showIndented k l
       c' k = printMaybe printTerminal k c
-
-instance Show TMethodTerminal where
-  show t = drop 6 (constructorName t)
-
-instance Show TLabelTerminal where
-  show t = drop 5 (constructorName t)
-
-instance Show THeadTerminal where
-  show t = drop 4 (constructorName t)
-
-instance Show THeadModifier where
-  show t = drop 4 (constructorName t)
 
 printTerminal :: (Show a) => Int -> I a -> String
 printTerminal m Node {..} = printf "%s%s %s %s\n" (tabs m) (show node) (show pos) (show load)

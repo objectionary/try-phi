@@ -122,16 +122,6 @@ data MethodName =
 -- AttachedOrArg
 -- Unpacked can be ^.x, not necessarily a name
 
-instance (Show a, Show b, Show c) => Show (Options3 a b c) where
-  show (Opt3A a) = show a
-  show (Opt3B a) = show a
-  show (Opt3C a) = show a
-
-instance (Show a, Show b) => Show (Options2 a b) where
-  show (Opt2A a) = show a
-  show (Opt2B a) = show a
-
-
 {- | any elementary expressions that can stand in the head, e.g.:
 
 Reserved name `@` in `@.c`

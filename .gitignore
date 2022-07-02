@@ -1,10 +1,2 @@
-result
-all.js
-
-src/Main.js
-.DS_Store
-node_modules/
-.vscode
 .stack-work/
-cabals
-dist-newstyle
+*~

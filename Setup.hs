@@ -7,7 +7,7 @@ module Main (main) where
 #endif
 
 #if MIN_VERSION_cabal_doctest(1,0,0)
-
+    
 import Distribution.Extra.Doctest ( defaultMainWithDoctests )
 main :: IO ()
 main = defaultMainWithDoctests "doctests"

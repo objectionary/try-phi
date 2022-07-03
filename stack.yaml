@@ -19,7 +19,6 @@
 # resolver: https://example.com/snapshots/2018-01-01.yaml
 resolver:
   url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/28.yaml
-  # url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/14/27.yaml
 
 
 # User packages to be built.
@@ -32,7 +31,8 @@ resolver:
 #   - auto-update
 #   - wai
 packages:
-- eo-parser
+- eo-utils
+- phi-utils
 - .
 
 # Dependency packages to be pulled from upstream that are not in the resolver.

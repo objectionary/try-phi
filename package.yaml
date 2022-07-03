@@ -1,9 +1,9 @@
-name: try-phi
+name: try-phi-language-utils
 version: 0.1.0.0
-github: fizruk/try-phi
+github: br4ch1st0chr0n3/try-phi-language-utils
 license: BSD3
-author: Nikolai Kudasov
-maintainer: nickolay.kudasov@gmail.com
+author: Nikolai Kudasov, Danila Danko
+maintainer: nickolay.kudasov@gmail.com, br4ch1st0chr0n3@gmail.com
 copyright: 2021 Nikolai Kudasov
 extra-source-files:
   - README.md
@@ -17,58 +17,58 @@ ghc-options:
   - '-Wall -fno-warn-type-defaults -O2'
 dependencies:
   - base >= 4.7 && < 5
-  - ansi-terminal
-  - bifunctors
-  - bound
+  # - ansi-terminal
+  # - bifunctors
+  # - bound
+  # - bytestring
   - containers
-  - deepseq
+  # - deepseq
+  - directory
+  - eo-utils
   - fgl
-  - free
+  # - free
   - graphviz
-  - hashable
+  # - hashable
   - insert-ordered-containers
-  - kan-extensions
-  - logict
+  # - kan-extensions
+  # - logict
   - mtl
   - parsers
+
   - prettyprinter
-  - prettyprinter-ansi-terminal
-  - profunctors
+  # - prettyprinter-ansi-terminal
+  # - profunctors
+  # - ref-tf
   - text
-  - transformers
+  # - transformers
   - trifecta
   - unordered-containers
-  - ref-tf
-  - eo-parser
-  - miso
-  - xmonad-contrib
-  - directory
-  - bytestring
-  # - websockets
+  # - xmonad-contrib
+  - phi-utils
 library:
   source-dirs: src
 executables:
-  try-phi:
+  try-phi-language-utils:
     main: Main.hs
     source-dirs: app
     ghc-options:
       - '-threaded'
       - '-rtsopts'
       - '-with-rtsopts=-N'
-    when:
-      - condition: impl(ghcjs)
-        then:
-          dependencies:
-            - try-phi
-            - miso >= 1.8
-            - jsaddle
-        else:
-          dependencies:
-            - try-phi
-            - miso >= 1.8
-            - jsaddle
-            - jsaddle-warp
-            - warp
+    # when:
+      # - condition: impl(ghcjs)
+        # then:
+          # dependencies:
+            # - try-phi-language-utils
+            # - miso >= 1.8
+            # - jsaddle
+        # else:
+          # dependencies:
+            # - try-phi-language-utils
+            # - miso >= 1.8
+            # - jsaddle
+            # - jsaddle-warp
+            # - warp
 tests:
   spec:
     main: Spec.hs
@@ -78,7 +78,7 @@ tests:
       - '-rtsopts'
       - '-with-rtsopts=-N'
     dependencies:
-      - try-phi
+      - try-phi-language-utils
       - hspec
       - QuickCheck
   doctests:

@@ -31,19 +31,6 @@ library
   exposed-modules:
       EO.EOtoPhi
       EO.Test
-      Lambda.Model
-      Lambda.Pretty
-      Phi.Minimal
-      Phi.Minimal.ConfigurationDot
-      Phi.Minimal.EO.Pretty
-      Phi.Minimal.Graph
-      Phi.Minimal.Machine.CallByName
-      Phi.Minimal.Machine.CallByName.Graph
-      Phi.Minimal.Model
-      Phi.Minimal.Parser
-      Phi.Minimal.Pretty
-      Phi.Minimal.Translation.Lambda
-      Phi.Utils.GraphBuilder
   other-modules:
       Paths_try_phi_language_utils
   hs-source-dirs:
@@ -121,9 +108,6 @@ test-suite spec
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Phi.Minimal.Machine.CallByNameSpec
-      Phi.Minimal.Model.Arbitrary
-      Phi.Minimal.Translation.LambdaSpec
       Paths_try_phi_language_utils
   hs-source-dirs:
       test

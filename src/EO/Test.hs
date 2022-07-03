@@ -9,7 +9,7 @@ test :: IO ()
 test = do
   pwd <- getCurrentDirectory
   putStrLn pwd
-  let file = "src/EO/snippet.eo"
+  let file = "snippet.eo"
   code <- pack . (<> "\n") <$> readFile file
   let p = parseTermProgram code
   case p of
@@ -23,4 +23,5 @@ test = do
 
 {-
 >>>test
+snippet.eo: openFile: does not exist (No such file or directory)
 -}

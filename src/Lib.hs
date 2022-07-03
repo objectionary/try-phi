@@ -109,25 +109,3 @@ server = handle PhiEditor :<|> handle EOEditor
         liftIO $ MyResponse <$> g <*> return tabs1
 
     getStr' a = stringRandomIO "20\\d\\d-(1[0-2]|0[1-9])-(0[1-9]|1\\d|2[0-8])" <&> unpack <&> (a <>)
-
--- tabs1 <- liftIO $ Tabs <$> getStr <*> getStr <*> getStr <*> getStr <*> getStr <*> getStr <*> getStr
--- liftIO $ MyResponse <$> getStr <*> return tabs1
-
-
--- getStr :: IO String
--- getStr = generateWithSettings (setNonDeterministic defaultFakerSettings) Yoda.quotes <&> unpack
-
--- resp =
---   MyResponse
---     { code = "code",
---       tabs =
---         Tabs
---           { eo = "eo",
---             original_term = "original_term",
---             whnf = "whnf",
---             nf = "nf",
---             cbn_reduction = "cbn_reduction",
---             cbn_with_tap = "cbn_with_tap",
---             cbn_with_graph = "cbn_with_graph"
---           }
---     }

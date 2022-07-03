@@ -18,8 +18,8 @@ import Data.Aeson.TH
 import Data.Functor ((<&>))
 import Data.Text
 import Data.Text.IO as DT
-import Faker
-import qualified Faker.Yoda as Yoda
+-- import Faker
+-- import qualified Faker.Yoda as Yoda
 import Network.Wai
 import Network.Wai.Handler.Warp
 import Network.Wai.Middleware.Cors (CorsResourcePolicy (corsMethods, corsOrigins, corsRequestHeaders), cors, simpleCors, simpleCorsResourcePolicy)
@@ -114,20 +114,20 @@ server = handle PhiEditor :<|> handle EOEditor
 -- liftIO $ MyResponse <$> getStr <*> return tabs1
 
 
-getStr :: IO String
-getStr = generateWithSettings (setNonDeterministic defaultFakerSettings) Yoda.quotes <&> unpack
+-- getStr :: IO String
+-- getStr = generateWithSettings (setNonDeterministic defaultFakerSettings) Yoda.quotes <&> unpack
 
-resp =
-  MyResponse
-    { code = "code",
-      tabs =
-        Tabs
-          { eo = "eo",
-            original_term = "original_term",
-            whnf = "whnf",
-            nf = "nf",
-            cbn_reduction = "cbn_reduction",
-            cbn_with_tap = "cbn_with_tap",
-            cbn_with_graph = "cbn_with_graph"
-          }
-    }
+-- resp =
+--   MyResponse
+--     { code = "code",
+--       tabs =
+--         Tabs
+--           { eo = "eo",
+--             original_term = "original_term",
+--             whnf = "whnf",
+--             nf = "nf",
+--             cbn_reduction = "cbn_reduction",
+--             cbn_with_tap = "cbn_with_tap",
+--             cbn_with_graph = "cbn_with_graph"
+--           }
+--     }

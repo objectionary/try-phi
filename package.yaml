@@ -1,6 +1,6 @@
-name:                try-servant
+name:                try-phi-back
 version:             0.1.0.0
-github:              "githubuser/try-servant"
+github:              "githubuser/try-phi-back"
 license:             BSD3
 author:              "Author name here"
 maintainer:          "example@example.com"
@@ -16,7 +16,7 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/githubuser/try-servant#readme>
+description:         Please see the README on GitHub at <https://github.com/githubuser/try-phi-back#readme>
 
 dependencies:
 - base >= 4.7 && < 5
@@ -24,7 +24,7 @@ dependencies:
 - servant-server
 - wai
 - warp
-- fakedata
+# - fakedata
 - text
 - wai-cors
 - string-random
@@ -33,7 +33,7 @@ library:
   source-dirs: src
 
 executables:
-  try-servant-exe:
+  try-phi-back-exe:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
@@ -42,10 +42,10 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - base
-    - try-servant
+    - try-phi-back
 
 tests:
-  try-servant-test:
+  try-phi-back-test:
     main:                Spec.hs
     source-dirs:         test
     ghc-options:
@@ -54,7 +54,7 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - base
-    - try-servant
+    - try-phi-back
     - hspec
     - hspec-wai
     - hspec-wai-json

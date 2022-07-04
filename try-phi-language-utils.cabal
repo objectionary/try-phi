@@ -30,9 +30,9 @@ custom-setup
 library
   exposed-modules:
       Common
+      EO.Test
   other-modules:
       EO.EOtoPhi
-      EO.Test
       Paths_try_phi_language_utils
   hs-source-dirs:
       src

@@ -19,17 +19,18 @@ dependencies:
   - base >= 4.7 && < 5
   - directory
   - eo-utils
-  - insert-ordered-containers
-  - phi-utils
-  - text
-  - lucid
-  - prettyprinter
   - fgl
+  - insert-ordered-containers
+  - lucid
+  - phi-utils
+  - prettyprinter
+  - text
   
 library:
   source-dirs: src
   exposed-modules:
   - Common
+  - EO.Test
 executables:
   try-phi-language-utils:
     main: Main.hs

@@ -1,8 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
-{-# HLINT ignore "Use newtype instead of data" #-}
 module TH (newOptions, MyResponse (..), MyRequest (..), GraphTab (..), TabId (..), TextTabs (..)) where
 
 import Data.Aeson (Options (constructorTagModifier), defaultOptions)

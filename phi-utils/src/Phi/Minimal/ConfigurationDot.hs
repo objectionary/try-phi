@@ -1,7 +1,7 @@
 {-# LANGUAGE LambdaCase       #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Phi.Minimal.ConfigurationDot where
+module Phi.Minimal.ConfigurationDot(renderAsDot, renderAsColorfulDot) where
 
 import qualified Data.Graph.Inductive.Graph           as Graph
 import           Data.Graph.Inductive.PatriciaTree    (Gr)

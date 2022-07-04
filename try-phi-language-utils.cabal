@@ -29,9 +29,10 @@ custom-setup
 
 library
   exposed-modules:
+      Common
+  other-modules:
       EO.EOtoPhi
       EO.Test
-  other-modules:
       Paths_try_phi_language_utils
   hs-source-dirs:
       src
@@ -40,8 +41,11 @@ library
       base >=4.7 && <5
     , directory
     , eo-utils
+    , fgl
     , insert-ordered-containers
+    , lucid
     , phi-utils
+    , prettyprinter
     , text
   default-language: Haskell2010
 
@@ -56,8 +60,11 @@ executable try-phi-language-utils
       base >=4.7 && <5
     , directory
     , eo-utils
+    , fgl
     , insert-ordered-containers
+    , lucid
     , phi-utils
+    , prettyprinter
     , text
     , try-phi-language-utils
   default-language: Haskell2010
@@ -75,8 +82,11 @@ test-suite doctests
     , directory
     , doctest
     , eo-utils
+    , fgl
     , insert-ordered-containers
+    , lucid
     , phi-utils
+    , prettyprinter
     , template-haskell
     , text
   default-language: Haskell2010
@@ -94,9 +104,12 @@ test-suite spec
     , base >=4.7 && <5
     , directory
     , eo-utils
+    , fgl
     , hspec
     , insert-ordered-containers
+    , lucid
     , phi-utils
+    , prettyprinter
     , text
     , try-phi-language-utils
   default-language: Haskell2010

@@ -22,9 +22,14 @@ dependencies:
   - insert-ordered-containers
   - phi-utils
   - text
+  - lucid
+  - prettyprinter
+  - fgl
   
 library:
   source-dirs: src
+  exposed-modules:
+  - Common
 executables:
   try-phi-language-utils:
     main: Main.hs

@@ -4,18 +4,18 @@ cradle:
       config:
         cradle:
           stack:
-          - path: "./src"
-            component: "try-servant:lib"
+                - path: "./src"
+                  component: "try-phi-back:lib"
 
-          - path: "./app/Main.hs"
-            component: "try-servant:exe:try-servant-exe"
+                - path: "./app/Main.hs"
+                  component: "try-phi-back:exe:try-phi-back-exe"
 
-          - path: "./app/Paths_try_servant.hs"
-            component: "try-servant:exe:try-servant-exe"
+                - path: "./app/Paths_try_phi_back.hs"
+                  component: "try-phi-back:exe:try-phi-back-exe"
 
-          - path: "./test"
-            component: "try-servant:test:try-servant-test"
-  
+                - path: "./test"
+                  component: "try-phi-back:test:try-phi-back-test"
+              
     - path: "./Setup.hs"
       config:
         cradle:

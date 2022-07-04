@@ -24,9 +24,8 @@ import Data.Data (Typeable)
 import Data.Functor ((<&>))
 import Data.Text
 import Data.Text.IO as DT
-import Faker
-import qualified Faker.Yoda as Yoda
-import GHC.Generics (Generic)
+-- import Faker
+-- import qualified Faker.Yoda as Yoda
 import Network.Wai
 import Network.Wai.Handler.Warp
 import Network.Wai.Middleware.Cors (CorsResourcePolicy (corsMethods, corsOrigins, corsRequestHeaders), cors, simpleCors, simpleCorsResourcePolicy)

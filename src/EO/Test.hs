@@ -1,15 +1,18 @@
-module EO.Test where
+module EO.Test(test, test') where
 
 import EO.EOtoPhi(toMinimalTerm)
 import Phi.Minimal.Pretty
 import EOParser
 import System.Directory(getCurrentDirectory)
 
-test :: IO ()
-test = do
+test' :: IO ()
+test' = print "not ok"
+
+test :: String -> IO ()
+test s = do
   pwd <- getCurrentDirectory
   putStrLn pwd
-  let file = "snippet.eo"
+  let file = s
   code <- pack . (<> "\n") <$> readFile file
   let p = parseTermProgram code
   case p of
@@ -20,8 +23,3 @@ test = do
       print (toMinimalTerm p')
       putStrLn "\n "
     _ -> putStrLn "not Ok"
-
-{-
->>>test
-snippet.eo: openFile: does not exist (No such file or directory)
--}

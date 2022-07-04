@@ -17,34 +17,12 @@ ghc-options:
   - '-Wall -fno-warn-type-defaults -O2'
 dependencies:
   - base >= 4.7 && < 5
-  # - ansi-terminal
-  # - bifunctors
-  # - bound
-  # - bytestring
-  - containers
-  # - deepseq
   - directory
   - eo-utils
-  - fgl
-  # - free
-  - graphviz
-  # - hashable
   - insert-ordered-containers
-  # - kan-extensions
-  # - logict
-  - mtl
-  - parsers
-
-  - prettyprinter
-  # - prettyprinter-ansi-terminal
-  # - profunctors
-  # - ref-tf
-  - text
-  # - transformers
-  - trifecta
-  - unordered-containers
-  # - xmonad-contrib
   - phi-utils
+  - text
+  
 library:
   source-dirs: src
 executables:
@@ -55,20 +33,9 @@ executables:
       - '-threaded'
       - '-rtsopts'
       - '-with-rtsopts=-N'
-    # when:
-      # - condition: impl(ghcjs)
-        # then:
-          # dependencies:
-            # - try-phi-language-utils
-            # - miso >= 1.8
-            # - jsaddle
-        # else:
-          # dependencies:
-            # - try-phi-language-utils
-            # - miso >= 1.8
-            # - jsaddle
-            # - jsaddle-warp
-            # - warp
+    dependencies:
+    - try-phi-language-utils
+
 tests:
   spec:
     main: Spec.hs

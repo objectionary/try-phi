@@ -38,19 +38,11 @@ library
   ghc-options: -Wall -fno-warn-type-defaults -O2
   build-depends:
       base >=4.7 && <5
-    , containers
     , directory
     , eo-utils
-    , fgl
-    , graphviz
     , insert-ordered-containers
-    , mtl
-    , parsers
     , phi-utils
-    , prettyprinter
     , text
-    , trifecta
-    , unordered-containers
   default-language: Haskell2010
 
 executable try-phi-language-utils
@@ -62,19 +54,12 @@ executable try-phi-language-utils
   ghc-options: -Wall -fno-warn-type-defaults -O2 -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
-    , containers
     , directory
     , eo-utils
-    , fgl
-    , graphviz
     , insert-ordered-containers
-    , mtl
-    , parsers
     , phi-utils
-    , prettyprinter
     , text
-    , trifecta
-    , unordered-containers
+    , try-phi-language-utils
   default-language: Haskell2010
 
 test-suite doctests
@@ -87,21 +72,13 @@ test-suite doctests
       Glob
     , QuickCheck
     , base
-    , containers
     , directory
     , doctest
     , eo-utils
-    , fgl
-    , graphviz
     , insert-ordered-containers
-    , mtl
-    , parsers
     , phi-utils
-    , prettyprinter
     , template-haskell
     , text
-    , trifecta
-    , unordered-containers
   default-language: Haskell2010
 
 test-suite spec
@@ -115,19 +92,11 @@ test-suite spec
   build-depends:
       QuickCheck
     , base >=4.7 && <5
-    , containers
     , directory
     , eo-utils
-    , fgl
-    , graphviz
     , hspec
     , insert-ordered-containers
-    , mtl
-    , parsers
     , phi-utils
-    , prettyprinter
     , text
-    , trifecta
     , try-phi-language-utils
-    , unordered-containers
   default-language: Haskell2010

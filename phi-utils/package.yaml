@@ -21,32 +21,16 @@ description:         Please see the README on GitHub at <https://github.com/valu
 
 dependencies:
 - base >= 4.7 && < 5
-- insert-ordered-containers
-# - ansi-terminal
-# - bifunctors
-# - bound
 - containers
-# - deepseq
 - fgl
-# - free
 - graphviz
-# - hashable
 - insert-ordered-containers
-# - kan-extensions
-# - logict
 - mtl
 - parsers
 - prettyprinter
-# - prettyprinter-ansi-terminal
-# - profunctors
 - text
-# - transformers
 - trifecta
 - unordered-containers
-# - ref-tf
-# - xmonad-contrib
-# - directory
-# - bytestring
 
 library:
   source-dirs: src

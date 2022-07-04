@@ -1,6 +1,6 @@
-name:                eo-parser
+name:                eo-utils
 version:             0.1.0.0
-github:              "br4ch1st0chr0n3/eo-parser"
+github:              "br4ch1st0chr0n3/eo-utils"
 license:             BSD3
 author:              "Danila Danko"
 maintainer:          "br4ch1st0chr0n3@gmail.com"
@@ -17,7 +17,7 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/br4ch1st0chr0n3/eo-parser#readme>
+description:         Please see the README on GitHub at <https://github.com/br4ch1st0chr0n3/eo-utils#readme>
 
 custom-setup:
   dependencies:
@@ -46,7 +46,7 @@ library:
   - EOParser
 
 executables:
-  eo-parser:
+  eo-utils:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
@@ -54,7 +54,7 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - eo-parser
+    - eo-utils
     
 tests:
   spec:
@@ -65,7 +65,7 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - eo-parser
+    - eo-utils
     - hspec
     - QuickCheck
 

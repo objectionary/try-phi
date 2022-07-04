@@ -21,6 +21,16 @@ description:         Please see the README on GitHub at <https://github.com/valu
 
 dependencies:
 - base >= 4.7 && < 5
+- containers
+- fgl
+- graphviz
+- insert-ordered-containers
+- mtl
+- parsers
+- prettyprinter
+- text
+- trifecta
+- unordered-containers
 
 library:
   source-dirs: src

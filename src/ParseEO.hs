@@ -114,6 +114,9 @@ import Text.Megaparsec.Char
     printChar,
     string,
   )
+
+import Data.Data (Data(toConstr))
+
 import Text.Megaparsec.Char.Lexer
   ( charLiteral,
     decimal,
@@ -442,6 +445,9 @@ data TAbstractionTail = TAbstractionTail {e :: Options2 (I TSuffix, Maybe (Optio
 data TAbstrQuestion = 
   AbstrQuestion
   deriving (Data)
+
+constructorName :: Data a => a -> String
+constructorName n = show $ toConstr n
 
 instance Show TAbstrQuestion where
   show t = constructorName t

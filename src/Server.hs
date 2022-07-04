@@ -9,7 +9,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
-module Lib
+module Server
   ( startApp,
     app,
   )

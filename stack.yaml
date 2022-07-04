@@ -36,6 +36,10 @@ resolver:
 #   - wai
 packages:
 - .
+- try-phi-language-utils
+- try-phi-language-utils/eo-utils
+- try-phi-language-utils/phi-utils
+
 
 ghc-options:
   '$everything': -haddock

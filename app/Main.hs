@@ -1,6 +1,6 @@
 module Main where
 
-import Lib ( startApp )
+import Server ( startApp )
 -- import Faker.Cannabis as FC
 -- import Faker
 -- import Faker.Name as FN

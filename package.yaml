@@ -24,12 +24,14 @@ dependencies:
 - servant-server
 - wai
 - warp
-# - fakedata
 - text
 - wai-cors
 - string-random
 - random
 - transformers
+- try-phi-language-utils
+- eo-utils
+- phi-utils
 
 library:
   source-dirs: src

@@ -24,7 +24,7 @@ source-repository head
 
 library
   exposed-modules:
-      Lib
+      Server
       TH
   other-modules:
       Paths_try_phi_back
@@ -33,11 +33,14 @@ library
   build-depends:
       aeson
     , base >=4.7 && <5
+    , eo-utils
+    , phi-utils
     , random
     , servant-server
     , string-random
     , text
     , transformers
+    , try-phi-language-utils
     , wai
     , wai-cors
     , warp
@@ -53,12 +56,15 @@ executable try-phi-back-exe
   build-depends:
       aeson
     , base
+    , eo-utils
+    , phi-utils
     , random
     , servant-server
     , string-random
     , text
     , transformers
     , try-phi-back
+    , try-phi-language-utils
     , wai
     , wai-cors
     , warp
@@ -75,15 +81,18 @@ test-suite try-phi-back-test
   build-depends:
       aeson
     , base
+    , eo-utils
     , hspec
     , hspec-wai
     , hspec-wai-json
+    , phi-utils
     , random
     , servant-server
     , string-random
     , text
     , transformers
     , try-phi-back
+    , try-phi-language-utils
     , wai
     , wai-cors
     , warp

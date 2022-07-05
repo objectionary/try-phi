@@ -30,13 +30,13 @@ ghc-options:
 
 dependencies:
 - base >= 4.7 && < 5
-- bound
-- containers
+# - bound
+# - containers
 - hashable
 - insert-ordered-containers
 - mtl
 - text
-- unordered-containers
+# - unordered-containers
 - megaparsec
 - scientific
 

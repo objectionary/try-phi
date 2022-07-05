@@ -43,9 +43,7 @@ library
     , eo-utils
     , fgl
     , insert-ordered-containers
-    , lucid
     , phi-utils
-    , prettyprinter
     , text
   default-language: Haskell2010
 
@@ -62,9 +60,7 @@ executable try-phi-language-utils
     , eo-utils
     , fgl
     , insert-ordered-containers
-    , lucid
     , phi-utils
-    , prettyprinter
     , text
     , try-phi-language-utils
   default-language: Haskell2010
@@ -84,9 +80,7 @@ test-suite doctests
     , eo-utils
     , fgl
     , insert-ordered-containers
-    , lucid
     , phi-utils
-    , prettyprinter
     , template-haskell
     , text
   default-language: Haskell2010
@@ -107,9 +101,7 @@ test-suite spec
     , fgl
     , hspec
     , insert-ordered-containers
-    , lucid
     , phi-utils
-    , prettyprinter
     , text
     , try-phi-language-utils
   default-language: Haskell2010

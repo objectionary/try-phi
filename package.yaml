@@ -21,9 +21,9 @@ dependencies:
   - eo-utils
   - fgl
   - insert-ordered-containers
-  - lucid
+  # - lucid
   - phi-utils
-  - prettyprinter
+  # - prettyprinter
   - text
   
 library:

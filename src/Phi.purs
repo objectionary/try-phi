@@ -97,7 +97,7 @@ derive instance Eq Editor
 
 textTabIds ∷ Array TabId
 -- FIXME exclude cbnwithGraph
-textTabIds = [ TEO, TTerm, TWHNF, TNF, TCBNReduction, TCBNWithTAP]
+textTabIds = [ TTerm, TWHNF, TNF, TCBNReduction, TCBNWithTAP]
 
 graphTabId = [TCBNWithGraph]
 
@@ -121,7 +121,7 @@ defaultOk = {
     }
   where
   
-  btexts = [ "EO code", "Phi term", " WHNF", "NF", "CBN Reduction", "CBN With TAP", "CBN With Graph" ]
+  btexts = ["Phi term", " WHNF", "NF", "CBN Reduction", "CBN With TAP", "CBN With Graph" ]
 
   isActives = [ true, false, false, false, false, false, false ]
 
@@ -874,7 +874,7 @@ mkContent id = "content_" <> id
 mkInfo ∷ String → String
 mkInfo id = "info" <> id
 
-data TabId = TEO | TTerm | TWHNF | TNF | TCBNReduction | TCBNWithTAP | TCBNWithGraph
+data TabId = TTerm | TWHNF | TNF | TCBNReduction | TCBNWithTAP | TCBNWithGraph
 
 derive instance Eq TabId
 derive instance Ord TabId
@@ -886,7 +886,6 @@ class IdGettable a where
   getId :: String -> Maybe a
 
 instance IdGettable TabId where
-  getName TEO = "eo"
   getName TTerm = "original_term"
   getName TWHNF = "whnf"
   getName TNF = "nf"
@@ -894,7 +893,6 @@ instance IdGettable TabId where
   getName TCBNWithTAP = "cbn_with_tap"
   getName TCBNWithGraph = "cbn_with_graph"
   getId x
-    | x == "eo" = Just TEO
     | x == "original_term" = Just TTerm
     | x == "whnf" = Just TWHNF
     | x == "nf" = Just TNF

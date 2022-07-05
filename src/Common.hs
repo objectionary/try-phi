@@ -1,6 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TypeApplications #-}
-module Common(ppPhiToEO, ppWHNF, ppWHNFSteps, ppNF, ppTapSteps, ppStates, ppGraphs, getTermFromPhi, getTermFromEO) where
+module Common(ppPhiToEO, ppWHNF, ppWHNFSteps, ppNF, ppTapSteps, ppStates, ppGraphs, getTermFromPhi, getTermFromEO, ppEO, ppPhi, Common.ppPhiSource) where
 
 
 import Phi.Minimal as Phi
@@ -12,10 +12,13 @@ import qualified Phi.Minimal.Machine.CallByName.Graph as CGraph
 import Phi.Minimal.Model as PM
 
 import EO.EOtoPhi(toMinimalTerm)
-import EOParser(parseTermProgram)
+import EOParser as EOP(parseTermProgram)
 
-import Data.Text (Text, pack)
+import Phi.Minimal.EO.Pretty as EP (ppTerm)
+
+import Data.Text (pack)
 import Phi.Minimal.Parser as PMP(parseTerm)
+-- import Phi.Minimal.Print(ppPhiSource)
 
 -- TODO send html, not text
 -- import Lucid (Html, ToHtml (toHtml), br_, pre_)
@@ -33,33 +36,39 @@ import Phi.Minimal.Parser as PMP(parseTerm)
 --             STConcat contents -> foldMap go contents
 --      in pre_ . go
 
-tShow :: (Show a) => a -> Text
-tShow = pack . show
+ppPhiSource :: Term -> String
+ppPhiSource = show . Phi.ppPhiSource
 
-ppPhiToEO :: Term -> Text
-ppPhiToEO = tShow . Phi.ppTerm
+ppEO :: Term -> String
+ppEO = show . EP.ppTerm
 
-ppWHNF :: Term -> Text
-ppWHNF = tShow . Phi.whnf
+ppPhi :: Term -> String
+ppPhi = show
 
-ppNF :: Term -> Text
-ppNF = tShow . Phi.nf
+ppPhiToEO :: Term -> String
+ppPhiToEO = show . Phi.ppTerm
 
-ppWHNFSteps :: Term -> Text
-ppWHNFSteps = tShow . Phi.ppWhnfSteps
+ppWHNF :: Term -> String
+ppWHNF = show . Phi.whnf
 
-ppTapSteps :: Term -> Text
-ppTapSteps = tShow . Phi.ppStepsFor
+ppNF :: Term -> String
+ppNF = show . Phi.nf
+
+ppWHNFSteps :: Term -> String
+ppWHNFSteps = show . Phi.ppWhnfSteps
+
+ppTapSteps :: Term -> String
+ppTapSteps = show . Phi.ppStepsFor
 
 -- | list of graph steps
-ppStates :: Term -> Int -> [Text]
+ppStates :: Term -> Int -> [String]
 ppStates
     term 
     lim 
-    = tShow . Phi.ppGraphStepsFor term <$> [0 .. lim]
+    = show . Phi.ppGraphStepsFor term <$> [0 .. lim]
 
-ppGraphs :: PM.Term -> Int -> [Text]
-ppGraphs term lim = T.toStrict <$> map (renderAsDot @Gr) (take lim $ CGraph.steps $ CGraph.initConfiguration term)
+ppGraphs :: PM.Term -> Int -> [String]
+ppGraphs term lim = T.unpack <$> map (renderAsDot @Gr) (take lim $ CGraph.steps $ CGraph.initConfiguration term)
 
 -- FIXME use Either
 getTermFromEO :: String -> Maybe PM.Term
@@ -67,3 +76,4 @@ getTermFromEO s = toMinimalTerm <$> parseTermProgram (pack s)
 
 getTermFromPhi :: String -> Either String Term
 getTermFromPhi = PMP.parseTerm
+

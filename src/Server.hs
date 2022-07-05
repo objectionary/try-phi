@@ -34,8 +34,21 @@ import System.Environment (getEnv)
 import System.IO.Error
 import System.Random
 import TH
-import TH (MyResponse (textTabs))
+-- import TH (MyResponse (textTabs), GraphTab(..),TextTabs(..),)
 import Text.StringRandom (stringRandomIO)
+import Data.Either.Combinators(rightToMaybe)
+import Common
+    ( getTermFromEO,
+      getTermFromPhi,
+      ppGraphs,
+      ppNF,
+      ppPhi,
+      ppPhiToEO,
+      ppStates,
+      ppTapSteps,
+      ppWHNF,
+      ppWHNFSteps, ppEO, ppPhiSource )
+import EOParser (parseTermProgram)
 
 arr = ["eo", "original_term", "whnf", "nf", "cbn_reduction", "cbn_with_tap"]
 
@@ -86,24 +99,52 @@ api = Proxy
 
 data Editor = PhiEditor | EOEditor
 
+stepLimit = 10
+
 server :: Server API
 server = han PhiEditor :<|> han EOEditor
   where
     han e r = Handler $ ExceptT $ handle e r
     handle :: Editor -> MyRequest -> IO (Either ServerError MyResponse)
-    handle ed r =
+    handle ed (MyRequest r) =
       do
-        let g = getStr' $
+        let phiTerm = 
               case ed of
-                PhiEditor -> "eo"
-                EOEditor -> "phi"
-        graphTab <- liftIO $ GraphTab <$> ((: []) <$> g) <*> ((: []) <$> g)
-        textTabs <- TextTabs <$> g <*> g <*> g <*> g <*> g <*> g
-        p <- liftIO $ flip mod 2 <$> randomIO :: IO Int
-        okResp <- liftIO $ OkResponse <$> g <*> return textTabs <*> return graphTab
+                EOEditor -> getTermFromEO r
+                PhiEditor -> rightToMaybe $ getTermFromPhi r
+            
+            editorPref = getStr' $
+              case ed of
+                EOEditor -> "eo"
+                PhiEditor -> "phi"
         return $
-          if p == 0
-            then Right (ErrorResponse "hey")
-            else Right okResp
+          case phiTerm of
+            Nothing -> Right (ErrorResponse "hey")
+            Just s -> do 
+              let tt = TextTabs {
+                      eo = ppPhiToEO s,
+                      original_term = ppPhi s,
+                      whnf = ppWHNF s,
+                      nf = ppNF s,
+                      cbn_reduction = ppWHNFSteps s,
+                      cbn_with_tap = ppTapSteps s
+                    } 
+                  gt = GraphTab { 
+                      states = ppStates s stepLimit,
+                      graphs = ppGraphs s stepLimit
+                    }
+                  g' = 
+                    case ed of 
+                      PhiEditor -> ppEO s
+                      EOEditor -> ppPhiSource s
+              return $ OkResponse g' tt gt
+        -- graphTab <- liftIO $ GraphTab <$> ((: []) <$> g) <*> ((: []) <$> g)
+        -- textTabs <- TextTabs <$> g <*> g <*> g <*> g <*> g <*> g
+        -- p <- liftIO $ flip mod 2 <$> randomIO :: IO Int
+        -- okResp <- liftIO $ OkResponse <$> g <*> return textTabs <*> return graphTab
+        -- return $
+        --   if p == 0
+        --     then Right (ErrorResponse "hey")
+        --     else Right okResp
 
     getStr' a = stringRandomIO "20\\d\\d-(1[0-2]|0[1-9])-(0[1-9]|1\\d|2[0-8])" <&> unpack <&> (a <>)

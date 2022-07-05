@@ -32,6 +32,7 @@ dependencies:
 - try-phi-language-utils
 - eo-utils
 - phi-utils
+- either
 
 library:
   source-dirs: src

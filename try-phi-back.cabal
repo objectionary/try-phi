@@ -33,6 +33,7 @@ library
   build-depends:
       aeson
     , base >=4.7 && <5
+    , either
     , eo-utils
     , phi-utils
     , random
@@ -56,6 +57,7 @@ executable try-phi-back-exe
   build-depends:
       aeson
     , base
+    , either
     , eo-utils
     , phi-utils
     , random
@@ -81,6 +83,7 @@ test-suite try-phi-back-test
   build-depends:
       aeson
     , base
+    , either
     , eo-utils
     , hspec
     , hspec-wai

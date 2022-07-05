@@ -85,6 +85,12 @@ import Web.HTML.Window (navigator)
 import Web.URL.URLSearchParams as USP
 
 
+urlPrefix ∷ String
+-- urlPrefix = "http://localhost:3000/"
+-- urlPrefix = "http://localhost:8082/"
+urlPrefix = "https://try-phi-back.herokuapp.com/"
+
+
 data Editor = EOEditor | PhiEditor
 
 derive instance Eq Editor
@@ -198,11 +204,6 @@ instance EncodeJson Request where
   encodeJson (Request r) = 
       "code" := r.code
       ~> jsonEmptyObject
-
-urlPrefix ∷ String
--- urlPrefix = "http://localhost:3000/"
--- urlPrefix = "http://localhost:8082/"
-urlPrefix = "https://try-phi-back.herokuapp.com/"
 
 -- FIXME
 -- add error entry

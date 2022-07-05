@@ -3,6 +3,7 @@ module Phi.Minimal
   , module Phi.Minimal.Pretty
   , module Phi.Minimal.Parser
   , module Phi.Minimal.ConfigurationDot
+  , module Phi.Minimal.Print
   ) where
 
 import           Phi.Minimal.ConfigurationDot (renderAsColorfulDot)
@@ -13,3 +14,5 @@ import           Phi.Minimal.Pretty           (ppConfiguration,
                                                ppGraphConfiguration',
                                                ppGraphStepsFor, ppStepsFor,
                                                ppTerm, ppWhnfSteps)
+
+import           Phi.Minimal.Print(ppPhiSource)

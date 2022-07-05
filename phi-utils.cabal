@@ -36,6 +36,7 @@ library
       Phi.Minimal.Model
       Phi.Minimal.Parser
       Phi.Minimal.Pretty
+      Phi.Minimal.Print
       Phi.Minimal.Translation.Lambda
       Phi.Utils.GraphBuilder
   other-modules:

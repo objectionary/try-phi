@@ -4,7 +4,7 @@
 
 module Phi.Minimal.EO.Pretty where
 
-import  Data.Text.Prettyprint.Doc as Pretty
+import  Prettyprinter as Pretty
 import Data.List(intercalate)
 
 import Phi.Minimal.Model

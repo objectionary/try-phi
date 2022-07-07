@@ -39,6 +39,9 @@ dependencies:
 # - unordered-containers
 - megaparsec
 - scientific
+- template-haskell
+- microlens
+- pretty-simple
 
 library:
   source-dirs: src

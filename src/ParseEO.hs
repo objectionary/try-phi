@@ -10,7 +10,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module ParseEO_A
+module ParseEO
   ( tProgram,
     Position (..),
     TProgram (..),
@@ -76,23 +76,25 @@ module ParseEO_A
     cDOT,
     cCONST,
     cQUESTION,
+    EpiAnn(..), Segment(..), Ann(..)
   )
 where
 
 import Control.Applicative (Alternative ((<|>)), optional)
 import Control.Monad.Identity (guard)
 import Data.Char (digitToInt)
-import Data.Data (Data (toConstr))
+import Data.Data (Data)
 import Data.Scientific (Scientific)
 import Data.Text (Text, pack)
 import qualified Data.Text as T
--- import Text.Megaparsec.Debug (dbg)
--- import qualified Text.Megaparsec.Error
--- import Text.Megaparsec.Internal (ParsecT)
--- import qualified Text.Megaparsec.Stream as TM
 
 import Data.Void (Void)
-import TH
+import ParseEOTH
+    ( EpiAnn(..),
+      Segment(Segment, start, end),
+      Ann(Ann, num, segment),
+      Position(..),
+      genEpiN )
 import Text.Megaparsec
   ( MonadParsec (lookAhead, notFollowedBy, takeWhile1P),
     Parsec,
@@ -230,15 +232,15 @@ data Options3 a b c = Opt3A a | Opt3B b | Opt3C c deriving (Data)
 
 data Options2 a b = Opt2A a | Opt2B b deriving (Data)
 
-data TProgram = TProgram {ann :: Ann, l :: Maybe TLicense, m :: Maybe TMetas, o :: TObjects} deriving (Data)
+data TProgram = TProgram {l :: Maybe TLicense, m :: Maybe TMetas, o :: TObjects, ann :: Ann} deriving (Data)
 
-data TLicense = TLicense {ann :: Ann, cs :: [TComment]} deriving (Data)
+data TLicense = TLicense {cs :: [TComment], ann :: Ann} deriving (Data)
 
-data TMetas = TMetas {ann :: Ann, ms :: [TMeta]} deriving (Data)
+data TMetas = TMetas {ms :: [TMeta], ann :: Ann} deriving (Data)
 
-data TObjects = TObjects {ann :: Ann, os :: [TObject]} deriving (Data)
+data TObjects = TObjects {os :: [TObject], ann :: Ann} deriving (Data)
 
-data TObjectTail = TObjectTail {ann :: Ann, m :: TMethod, h :: Maybe THtail, s :: Maybe TSuffix, t :: Maybe TTail} deriving (Data)
+data TObjectTail = TObjectTail {m :: TMethod, h :: Maybe THtail, s :: Maybe TSuffix, t :: Maybe TTail, ann :: Ann} deriving (Data)
 
 data TObject = TObject
   { ann :: Ann,
@@ -249,66 +251,66 @@ data TObject = TObject
   }
   deriving (Data)
 
-data TAbstraction = TAbstraction {ann :: Ann, as :: TAttributes, t :: Maybe TAbstractionTail} deriving (Data)
+data TAbstraction = TAbstraction {as :: TAttributes, t :: Maybe TAbstractionTail, ann :: Ann} deriving (Data)
 
-data TAbstractionTail = TAbstractionTail {ann :: Ann, e :: Options2 (TSuffix, Maybe (Options2 TName TAbstrQuestion)) THtail} deriving (Data)
+data TAbstractionTail = TAbstractionTail {e :: Options2 (TSuffix, Maybe (Options2 TName TAbstrQuestion)) THtail, ann :: Ann} deriving (Data)
 
-data TAbstrQuestion = AbstrQuestion {ann :: Ann} deriving (Data)
+newtype TAbstrQuestion = TAbstrQuestion {ann :: Ann} deriving (Data)
 
-data TAttributes = TAttributes {ann :: Ann, as :: [TFreeAttribute]} deriving (Data)
+data TAttributes = TAttributes {as :: [TFreeAttribute], ann :: Ann} deriving (Data)
 
-data TVarArg = TVarArg {ann :: Ann, n :: Text} deriving (Data)
+data TVarArg = TVarArg {n :: Text, ann :: Ann} deriving (Data)
 
-data TFreeAttribute = TFreeAttribute {ann :: Ann, l :: Options3 TLabelTerminal TName TVarArg} deriving (Data)
+data TFreeAttribute = TFreeAttribute {l :: Options3 TLabelTerminal TName TVarArg, ann :: Ann} deriving (Data)
 
-data TLabel = TLabel {ann :: Ann, l :: Options2 TLabelTerminal (TName, Maybe TDots)} deriving (Data)
+data TLabel = TLabel {l :: Options2 TLabelTerminal (TName, Maybe TDots), ann :: Ann} deriving (Data)
 
 newtype TLabelTerminal = LabelAt {ann :: Ann} deriving (Data)
 
-data TTail = TTail {ann :: Ann, os :: [TObject]} deriving (Data)
+data TTail = TTail {os :: [TObject], ann :: Ann} deriving (Data)
 
-data TSuffix = TSuffix {ann :: Ann, l :: TLabel, c :: Maybe TConst} deriving (Data)
+data TSuffix = TSuffix {l :: TLabel, c :: Maybe TConst, ann :: Ann} deriving (Data)
 
 data TMethodTerminal
-  = MethodRho {ann :: Ann}
-  | MethodAt {ann :: Ann}
-  | MethodVertex {ann :: Ann}
+  = TMethodRho {ann :: Ann}
+  | TMethodAt {ann :: Ann}
+  | TMethodVertex {ann :: Ann}
   deriving (Data)
 
-data TMethod = TMethod {ann :: Ann, m :: Options2 TName TMethodTerminal} deriving (Data)
+data TMethod = TMethod {m :: Options2 TName TMethodTerminal, ann :: Ann} deriving (Data)
 
-data TApplication = TApplication {ann :: Ann, s :: Options2 THead TApplication, h :: Maybe THtail, a1 :: TApplication1} deriving (Data)
+data TApplication = TApplication {s :: Options2 THead TApplication, h :: Maybe THtail, a1 :: TApplication1, ann :: Ann} deriving (Data)
 
-data TApplication1 = TApplication1 {ann :: Ann, c :: Maybe TApplication1Elem} deriving (Data)
+data TApplication1 = TApplication1 {c :: Maybe TApplication1Elem, ann :: Ann} deriving (Data)
 
-data TApplication1Elem = TApplication1Elem {ann :: Ann, c1 :: Options3 TMethod THas TSuffix, ht :: Maybe THtail, a :: TApplication1} deriving (Data)
+data TApplication1Elem = TApplication1Elem {c1 :: Options3 TMethod THas TSuffix, ht :: Maybe THtail, a :: TApplication1, ann :: Ann} deriving (Data)
 
-data THtail = THtail {ann :: Ann, t :: [Options3 THead TApplication TAbstraction]} deriving (Data)
+data THtail = THtail {t :: [Options3 THead TApplication TAbstraction], ann :: Ann} deriving (Data)
 
 newtype TDots = TDots {ann :: Ann} deriving (Data)
 
 newtype TConst = TConst {ann :: Ann} deriving (Data)
 
 -- TODO prohibit dots before data
-data THead = THead {ann :: Ann, dots :: Maybe TDots, t :: Options3 THeadTerminal THeadName TData} deriving (Data)
+data THead = THead {dots :: Maybe TDots, t :: Options3 THeadTerminal THeadName TData, ann :: Ann} deriving (Data)
 
 data THeadTerminal
-  = HeadRoot {ann :: Ann}
-  | HeadAt {ann :: Ann}
-  | HeadRho {ann :: Ann}
-  | HeadXi {ann :: Ann}
-  | HeadSigma {ann :: Ann}
-  | HeadStar {ann :: Ann}
+  = THeadRoot {ann :: Ann}
+  | THeadAt {ann :: Ann}
+  | THeadRho {ann :: Ann}
+  | THeadXi {ann :: Ann}
+  | THeadSigma {ann :: Ann}
+  | THeadStar {ann :: Ann}
   deriving (Data)
 
-data THeadName = THeadName {ann :: Ann, name :: TName, c :: Maybe THeadModifier} deriving (Data)
+data THeadName = THeadName {name :: TName, c :: Maybe THeadModifier, ann :: Ann} deriving (Data)
 
 data THeadModifier
-  = HeadDot {ann :: Ann}
-  | HeadCopy {ann :: Ann}
+  = THeadDot {ann :: Ann}
+  | THeadCopy {ann :: Ann}
   deriving (Data)
 
-data THas = THas {ann :: Ann, n :: TName} deriving (Data)
+data THas = THas {n :: TName, ann :: Ann} deriving (Data)
 
 data Options9 a b c d e f g h i
   = Opt9A a
@@ -322,43 +324,43 @@ data Options9 a b c d e f g h i
   | Opt9I i
   deriving (Data)
 
-data TData = TData {ann :: Ann, d :: Options9 TBool TText THex TString TFloat TInt TBytes TChar TRegex} deriving (Data)
+data TData = TData {d :: Options9 TBool TText THex TString TFloat TInt TBytes TChar TRegex, ann :: Ann} deriving (Data)
 
-data TRegex = TRegex {ann :: Ann, r :: TRegexBody, suff :: TRegexSuffix} deriving (Data)
+data TRegex = TRegex {r :: TRegexBody, suff :: TRegexSuffix, ann :: Ann} deriving (Data)
 
-data TIndent = TIndent {ann :: Ann, n :: Int} deriving (Data)
+data TIndent = TIndent {n :: Int, ann :: Ann} deriving (Data)
 
-data TByte = TByte {ann :: Ann, b :: Integer} | EmptyBytes deriving (Data)
+data TByte = TByte {b :: Integer, ann :: Ann} | EmptyBytes deriving (Data)
 
-data TLineBytes = TLineBytes {ann :: Ann, bs :: [TByte]} deriving (Data)
+data TLineBytes = TLineBytes {bs :: [TByte], ann :: Ann} deriving (Data)
 
-data TBytes = TBytes {ann :: Ann, bs :: Options2 TByte [TLineBytes]} deriving (Data)
+data TBytes = TBytes {bs :: Options2 TByte [TLineBytes], ann :: Ann} deriving (Data)
 
-data TBool = TBool {ann :: Ann, b :: Bool} deriving (Data)
+data TBool = TBool {b :: Bool, ann :: Ann} deriving (Data)
 
-data TChar = TChar {ann :: Ann, c :: Char} deriving (Data)
+data TChar = TChar {c :: Char, ann :: Ann} deriving (Data)
 
-data TString = TString {ann :: Ann, s :: Text} deriving (Data)
+data TString = TString {s :: Text, ann :: Ann} deriving (Data)
 
-data TInt = TInt {ann :: Ann, s :: Integer} deriving (Data)
+data TInt = TInt {s :: Integer, ann :: Ann} deriving (Data)
 
-data TFloat = TFloat {ann :: Ann, f :: Scientific} deriving (Data)
+data TFloat = TFloat {f :: Scientific, ann :: Ann} deriving (Data)
 
-data THex = THex {ann :: Ann, h :: Integer} deriving (Data)
+data THex = THex {h :: Integer, ann :: Ann} deriving (Data)
 
-data TName = TName {ann :: Ann, n :: Text} deriving (Data)
+data TName = TName {n :: Text, ann :: Ann} deriving (Data)
 
-data TText = TText {ann :: Ann, t :: Text} deriving (Data)
+data TText = TText {t :: Text, ann :: Ann} deriving (Data)
 
-data TComment = TComment {ann :: Ann, c :: Text} deriving (Data)
+data TComment = TComment {c :: Text, ann :: Ann} deriving (Data)
 
-data TMeta = TMeta {ann :: Ann, name :: TName, suff :: Maybe TMetaSuffix} deriving (Data)
+data TMeta = TMeta {name :: TName, suff :: Maybe TMetaSuffix, ann :: Ann} deriving (Data)
 
-data TMetaSuffix = TMetaSuffix {ann :: Ann, s :: Text} deriving (Data)
+data TMetaSuffix = TMetaSuffix {s :: Text, ann :: Ann} deriving (Data)
 
-data TRegexBody = TRegexBody {ann :: Ann, b :: Text} deriving (Data)
+data TRegexBody = TRegexBody {b :: Text, ann :: Ann} deriving (Data)
 
-data TRegexSuffix = TRegexSuffix {ann :: Ann, s :: Text} deriving (Data)
+data TRegexSuffix = TRegexSuffix {s :: Text, ann :: Ann} deriving (Data)
 
 $( genEpiN
      [ ''TAbstrQuestion,
@@ -560,7 +562,7 @@ tAbstractionTail = dec $ do
                   *> string cSLASH
                   *> choiceTry
                     [ Opt2A <$> {-debug "abstraction:name"-} tName,
-                      Opt2B <$> tTerminal cQUESTION AbstrQuestion
+                      Opt2B <$> tTerminal cQUESTION TAbstrQuestion
                     ]
               )
         return (suff, o)
@@ -649,9 +651,9 @@ tMethod = dec $ do
     string cDOT
       *> choiceTry
         [ Opt2A <$> {-debug "method:name"-} tName,
-          Opt2B <$> {-debug "method:^"-} tTerminal cRHO MethodRho,
-          Opt2B <$> {-debug "method:@"-} tTerminal cAT MethodAt,
-          Opt2B <$> {-debug "method:<"-} tTerminal cVERTEX MethodVertex
+          Opt2B <$> {-debug "method:^"-} tTerminal cRHO TMethodRho,
+          Opt2B <$> {-debug "method:@"-} tTerminal cAT TMethodAt,
+          Opt2B <$> {-debug "method:<"-} tTerminal cVERTEX TMethodVertex
         ]
   return TMethod {m = method}
 
@@ -717,12 +719,12 @@ tHead = dec $ do
   dots <- optional $ tTerminal cDOTS TDots
   t <-
     choiceTry
-      [ Opt3A <$> {-debug "head:root"-} tTerminal cROOT HeadRoot,
-        Opt3A <$> {-debug "head:at"-} (tTerminal cAT HeadAt),
-        Opt3A <$> {-debug "head:rho"-} (tTerminal cRHO HeadRho),
-        Opt3A <$> {-debug "head:xi"-} (tTerminal cXI HeadXi),
-        Opt3A <$> {-debug "head:sigma"-} (tTerminal cSIGMA HeadSigma),
-        Opt3A <$> {-debug "head:star"-} (tTerminal cSTAR HeadStar),
+      [ Opt3A <$> {-debug "head:root"-} (tTerminal cROOT THeadRoot),
+        Opt3A <$> {-debug "head:at"-} (tTerminal cAT THeadAt),
+        Opt3A <$> {-debug "head:rho"-} (tTerminal cRHO THeadRho),
+        Opt3A <$> {-debug "head:xi"-} (tTerminal cXI THeadXi),
+        Opt3A <$> {-debug "head:sigma"-} (tTerminal cSIGMA THeadSigma),
+        Opt3A <$> {-debug "head:star"-} (tTerminal cSTAR THeadStar),
         Opt3B <$> tHeadName,
         Opt3C <$> {-debug "head:data"-} (tData)
       ]
@@ -740,8 +742,8 @@ tHeadName = dec $ do
   name <- tName
   c <-
     choiceTry
-      [ Just <$> tTerminal cDOT HeadDot <* lookAhead (string cSPACE),
-        optional (tTerminal cCOPY HeadCopy)
+      [ Just <$> tTerminal cDOT THeadDot <* lookAhead (string cSPACE),
+        optional (tTerminal cCOPY THeadCopy)
       ]
   return THeadName {name = name, c = c}
 
@@ -896,4 +898,23 @@ dec p = do
   p' <- p
   p2 <- getPos
   let ann = Ann {num = 3, segment = Segment {start = p1, end = p2}}
-  return (setAnn ann p')
+  return (modify (const ann) p')
+
+
+data P = P {ok :: Int, lok :: Double}
+data T = T {ok :: Int, lok :: Double, kek :: String}
+
+
+-- class EpiOk a where
+--   modiOk :: a -> Maybe a
+
+
+-- instance EpiOk P where
+--   modiOk pt@P {..} = return $ pt {ok = ok + 1}
+
+-- instance EpiOk T where
+--   modiOk pt@T {..} = return $ pt {ok = ok + 1}
+
+
+-- f :: EpiOk 
+-- f p = p {ok = 3}

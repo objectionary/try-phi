@@ -2,7 +2,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module TH where
+module ParseEOTH(Position(..), Ann(..), Segment(..), EpiAnn(..), genEpiN) where
 
 import Data.Data (Data)
 import Language.Haskell.TH
@@ -18,13 +18,12 @@ data Position = Position
 
 data Ann
   = Ann {num :: Int, segment :: Segment}
-  | Other
   deriving (Data)
 
 data Segment = Segment {start :: Position, end :: Position} deriving (Data)
 
 class EpiAnn a where
-  setAnn :: Ann -> a -> a
+  modify :: (Ann -> Ann) -> a -> a
 
 instance Show Position where
   show (Position r c) = printf "%d:%d" r c
@@ -35,8 +34,6 @@ instance Show Segment where
 --FIXME show segment
 instance Show Ann where
   show Ann {..} = "{ (" <> show num <> "), " <> show segment <> " }"
-  show Other = "Other"
-
 
 ppQ :: (Quasi m, Show a) => Q a -> m ()
 ppQ x = runQ x >>= pPrint
@@ -44,39 +41,35 @@ ppQ x = runQ x >>= pPrint
 genEpi :: Name -> Q Dec
 genEpi t =
   do
-    let a = mkName "a"
-        b = mkName "b"
+    let f = mkName "f"
+        x = mkName "x"
         ann = mkName "ann"
     return $
-      InstanceD
-          Nothing
-          []
-          (AppT (ConT ''EpiAnn) (ConT t))
-          [ FunD
-              'setAnn
-              [ Clause
-                  [ VarP a,
-                    VarP b
-                  ]
-                  ( NormalB
-                      ( RecUpdE
-                          (VarE b)
-                          [ ( ann,
-                              VarE a
-                            )
-                          ]
-                      )
-                  )
-                  []
+      InstanceD Nothing []
+      ( AppT ( ConT ''EpiAnn ) ( ConT t ) )
+      [ FunD 'modify
+          [ Clause
+              [ VarP f
+              , VarP x
               ]
+              ( NormalB
+                  ( RecUpdE ( VarE x )
+                      [
+                          ( ann
+                          , AppE ( VarE f )
+                              ( AppE
+                                  ( SigE ( VarE ann )
+                                      ( AppT
+                                          ( AppT ArrowT ( ConT t ) ) ( ConT ''Ann )
+                                      )
+                                  ) ( VarE x )
+                              )
+                          )
+                      ]
+                  )
+              ) []
           ]
+      ]
 
 genEpiN :: [Name] -> Q [Dec]
 genEpiN = traverse genEpi
-
--- instance EpiAnn THeadTerminal where
---   setAnn a t = t {ann = a}
-
-{-
->>>
--}

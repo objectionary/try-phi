@@ -1,14 +1,9 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings     #-}
-{-# LANGUAGE RecordWildCards       #-}
-{-# HLINT ignore "Use camelCase" #-}
-{-# OPTIONS_GHC -Wno-deferred-out-of-scope-variables #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 module Main where
-  
-import EOParser
 
+import EOParser ( pack, parseTermProgram, pprintTermProgram )
 
 main :: IO ()
 main = do

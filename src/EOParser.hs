@@ -1,63 +1,46 @@
+{-# LANGUAGE RankNTypes #-}
 module EOParser
-  ( parseProgram,
-    parseIndexedProgram,
-    parseTermProgram,
-    PrettyPrintTerm.pprintTermProgram,
-    PrettyPrintTree.pprintTree,
-    Data.Text.pack,
-    Ann (..),
-    AttachedName (..),
-    HasName (..),
-    Label (..),
-    MethodName (..),
-    Options2 (..),
-    SuffixName (..),
-    THeadTerminal(..),
-    AttachedOrArgument (AttachedOrArgument),
-    Options3 (..),
-    Term (..),
-    Head(..),
-    HeadName(..),
-    LetterName(..),
-    Modifier(..), DataValue (..)
-  )
+  ( module EOParser,
+    module A,
+    module PrettyPrintTerm,
+    module PrettyPrintTree,
+    module TT,
+    pack
+    )
 where
 
-import Data.Text (Text,pack)
+import Data.Text (Text, pack)
 import EnumerateNodes (getIndexedProgram)
-import ParseEO as A (TProgram, tProgram, THeadTerminal(..))
+import ParseEO as A (THeadTerminal (..), TProgram, tProgram)
 import PrettyPrintTerm (pprintTermProgram)
-import PrettyPrintTree (pprintTree)
+import PrettyPrintTree (pprintTree, ShowIndented)
 import Text.Megaparsec (parseMaybe)
-import ToTerm (
-    getTermProgram,
-    Ann (..),
+import ToTerm (getTermProgram)
+import ToTerm as TT
+  ( Ann (..),
     AttachedName (..),
+    AttachedOrArgument (..),
+    DataValue (..),
     HasName (..),
+    Head (..),
+    HeadName (..),
+    HeadTerminal (..),
     Label (..),
+    LetterName (..),
     MethodName (..),
+    Modifier (..),
     Options2 (..),
-    SuffixName (..),
-    Ann (..),
-    AttachedName (..),
-    AttachedOrArgument (AttachedOrArgument),
-    HasName (..),
-    Label (..),
-    MethodName (..),
-    Options2 (Opt2B),
     Options3 (..),
     SuffixName (..),
-    Term (App, Dot, HeadTerm, Obj),
-    Head(..),
-    HeadName(..),
-    LetterName(..),
-    Modifier(..), DataValue (..))
+    Term (..),
+  )
 
-parseProgram :: Text -> Maybe TProgram
-parseProgram = parseMaybe tProgram
+pprintCST :: forall a. (ShowIndented a) => a -> String
+pprintCST = PrettyPrintTree.pprintTree
 
-parseIndexedProgram :: Text -> Maybe TProgram
-parseIndexedProgram p = getIndexedProgram <$> parseProgram p
+-- FIXME 
+parseCSTProgram :: Text -> Maybe TProgram
+parseCSTProgram p = getIndexedProgram <$> parseMaybe tProgram p
 
 parseTermProgram :: Text -> Maybe Term
-parseTermProgram p = getTermProgram <$> parseIndexedProgram p
+parseTermProgram p = getTermProgram <$> parseCSTProgram p

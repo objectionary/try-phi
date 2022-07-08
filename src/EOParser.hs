@@ -5,7 +5,6 @@ module EOParser
     PrettyPrintTerm.pprintTermProgram,
     PrettyPrintTree.pprintTree,
     Data.Text.pack,
-    K,
     Ann (..),
     AttachedName (..),
     HasName (..),
@@ -26,11 +25,12 @@ where
 
 import Data.Text (Text,pack)
 import EnumerateNodes (getIndexedProgram)
-import ParseEO as A (I, TProgram, tProgram, THeadTerminal(..))
+import ParseEO as A (TProgram, tProgram, THeadTerminal(..))
 import PrettyPrintTerm (pprintTermProgram)
 import PrettyPrintTree (pprintTree)
 import Text.Megaparsec (parseMaybe)
-import ToTerm (K, Term, getTermProgram,
+import ToTerm (
+    getTermProgram,
     Ann (..),
     AttachedName (..),
     HasName (..),
@@ -42,7 +42,6 @@ import ToTerm (K, Term, getTermProgram,
     AttachedName (..),
     AttachedOrArgument (AttachedOrArgument),
     HasName (..),
-    K,
     Label (..),
     MethodName (..),
     Options2 (Opt2B),
@@ -54,11 +53,11 @@ import ToTerm (K, Term, getTermProgram,
     LetterName(..),
     Modifier(..), DataValue (..))
 
-parseProgram :: Text -> Maybe (I TProgram)
+parseProgram :: Text -> Maybe TProgram
 parseProgram = parseMaybe tProgram
 
-parseIndexedProgram :: Text -> Maybe (I TProgram)
+parseIndexedProgram :: Text -> Maybe TProgram
 parseIndexedProgram p = getIndexedProgram <$> parseProgram p
 
-parseTermProgram :: Text -> Maybe (K Term)
+parseTermProgram :: Text -> Maybe Term
 parseTermProgram p = getTermProgram <$> parseIndexedProgram p

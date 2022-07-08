@@ -16,6 +16,7 @@ module ToTerm
     DataValue (..),
     Ann (..),
     DByte (..),
+    AbstrQuestion(..),
     DRegexBody (..),
     DRegexSuffix (..),
     DLineBytes (..),
@@ -26,6 +27,7 @@ module ToTerm
     ToTerm.Label (..),
     MethodName (..),
     Head (..),
+    HeadTerminal (..),
     HeadName (..),
     LetterName (..),
     Modifier (..),
@@ -34,6 +36,7 @@ module ToTerm
     -- initAnn,
     Options2 (..),
     Options3 (..),
+    getTermProgram
   )
 where
 
@@ -47,7 +50,7 @@ import ParseEO as P
   ( Options2 (..),
     Options3 (..),
     Options9 (..),
-    TAbstrQuestion (TAbstrQuestion),
+    TAbstrQuestion (..),
     TAbstraction (..),
     TAbstractionTail (..),
     TApplication (..),
@@ -286,9 +289,9 @@ $( genEpiN
 -- Ann {term = t1, ann = IDs {runtimeId = Just tId, treeId = Just (getId n)}}
 
 -- |
--- -- convert parsed tree into annotated terms
--- getTermProgram :: TProgram -> Term
--- getTermProgram p = evalState (composeProgram p) {termId = 0}
+-- convert parsed tree into annotated terms
+getTermProgram :: TProgram -> Term
+getTermProgram = composeProgram
 
 composeProgram :: TProgram -> Term
 composeProgram TProgram {..} =
@@ -402,7 +405,7 @@ composeApplication1 t TApplication1 {..} =
 applyTail :: AttachedOrArgument -> [AttachedOrArgument] -> AttachedOrArgument
 applyTail pt@AttachedOrArgument {t=t1} ts = ret
   where
-    ret = 
+    ret =
       case ts of
         [] -> pt
         _ ->
@@ -417,7 +420,7 @@ applyDot :: AttachedOrArgument -> TMethod -> AttachedOrArgument
 applyDot pt@AttachedOrArgument {t = t2, a = a1} b = ret
   where
     m = composeMethod b
-    ret = 
+    ret =
       case (t2, a1) of
         -- if unnamed dot term, put new method name inside
         (Dot {..}, []) -> (\z -> t {t = z} :: AttachedOrArgument) $ Dot {t, attr = attr <> [m]}
@@ -467,7 +470,7 @@ appendHas pt@AttachedOrArgument {a = a1} ps@THas {..} = ret
 appendMaybeSuffix :: AttachedOrArgument -> Maybe TSuffix -> Maybe ImportedName -> AttachedOrArgument
 appendMaybeSuffix pt@AttachedOrArgument {a = a1, t = t} ms i = ret
   where
-    ret = 
+    ret =
       case ms of
         Nothing -> pt
         Just ms' -> ret'
@@ -502,7 +505,7 @@ composeAbstractionTail TAbstractionTail {..} =
     Opt2A (a, b) -> ret
       where
         a1 = composeSuffix a
-        b1 = 
+        b1 =
           case b of
               Just b' ->
                 Just

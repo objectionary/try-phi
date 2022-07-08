@@ -1,39 +1,27 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module ParseEOTH (Position (..), Ann (..), Segment (..), EpiAnn (..), genEpiN) where
+module ToTermTH (Ann (..), EpiAnn (..), genEpiN) where
 
 import Data.Data (Data)
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax
 import Text.Pretty.Simple
-import Text.Printf (printf)
+import Data.Hashable (Hashable)
+import GHC.Generics (Generic)
 
-data Position = Position
-  { row :: Int,
-    column :: Int
-  }
-  deriving (Data)
-
-data Ann = Ann {num :: Int, segment :: Segment}
-  deriving (Data)
-
-data Segment = Segment {start :: Position, end :: Position} deriving (Data)
+newtype Ann = Ann {num :: Int} deriving (Data, Eq, Ord, Hashable, Generic)
 
 class EpiAnn a where
   modify :: (Ann -> Ann) -> a -> a
   get :: a -> Ann
 
-instance Show Position where
-  show (Position r c) = printf "%d:%d" r c
-
-instance Show Segment where
-  show Segment {..} = printf "[%s..%s]" (show start) (show end)
-
 --FIXME show segment
 instance Show Ann where
-  show Ann {..} = "{ (" <> show num <> "), " <> show segment <> " }"
+  show Ann {..} = "{ " <> show num <> " }"
 
 data K = K {ann :: Ann}
 
@@ -44,10 +32,6 @@ instance EpiAnn K where
 
 ppQ :: (Quasi m, Show a) => Q a -> m ()
 ppQ x = runQ x >>= pPrint
-
-{-
->>>ppQ [d| instance EpiAnn K where {modify f x = x {ann = f ((ann:: K -> Ann) x)}; get x = (ann :: K -> Ann) x} |]
--}
 
 genEpi :: Name -> Q Dec
 genEpi t =

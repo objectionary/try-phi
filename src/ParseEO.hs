@@ -326,7 +326,7 @@ data Options9 a b c d e f g h i
 
 data TData = TData {d :: Options9 TBool TText THex TString TFloat TInt TBytes TChar TRegex, ann :: Ann} deriving (Data)
 
-data TRegex = TRegex {r :: TRegexBody, suff :: TRegexSuffix, ann :: Ann} deriving (Data)
+data TRegex = TRegex {rb :: TRegexBody, rs :: TRegexSuffix, ann :: Ann} deriving (Data)
 
 data TIndent = TIndent {n :: Int, ann :: Ann} deriving (Data)
 
@@ -342,7 +342,7 @@ data TChar = TChar {c :: Char, ann :: Ann} deriving (Data)
 
 data TString = TString {s :: Text, ann :: Ann} deriving (Data)
 
-data TInt = TInt {s :: Integer, ann :: Ann} deriving (Data)
+data TInt = TInt {i :: Integer, ann :: Ann} deriving (Data)
 
 data TFloat = TFloat {f :: Scientific, ann :: Ann} deriving (Data)
 
@@ -795,7 +795,7 @@ tRegex = dec $ do
   r <- dec $ (\x -> TRegexBody {b = x}) <$> takeWhile1P (Just "regex expression") (`notElem` map T.head [cSLASH, cNEWLINE, cCARET_RETURN])
   _ <- string cSLASH
   suffix <- dec $ (\x -> TRegexSuffix {s = x}) . pack <$> many alphaNumChar
-  return (TRegex {r = r, suff = suffix})
+  return (TRegex {rb = r, rs = suffix})
 
 tEOLTabMany :: Parser TIndent
 tEOLTabMany = dec $ do
@@ -867,7 +867,7 @@ tString = dec $ do
 tInt :: Parser TInt
 tInt = dec $ do
   s <- signed pEmpty decimal
-  return TInt {s = s}
+  return TInt {i = s}
 
 tFloat :: Parser TFloat
 tFloat = dec $ do
@@ -899,22 +899,3 @@ dec p = do
   p2 <- getPos
   let ann = Ann {num = 3, segment = Segment {start = p1, end = p2}}
   return (modify (const ann) p')
-
-
-data P = P {ok :: Int, lok :: Double}
-data T = T {ok :: Int, lok :: Double, kek :: String}
-
-
--- class EpiOk a where
---   modiOk :: a -> Maybe a
-
-
--- instance EpiOk P where
---   modiOk pt@P {..} = return $ pt {ok = ok + 1}
-
--- instance EpiOk T where
---   modiOk pt@T {..} = return $ pt {ok = ok + 1}
-
-
--- f :: EpiOk 
--- f p = p {ok = 3}

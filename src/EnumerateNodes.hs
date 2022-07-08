@@ -5,7 +5,7 @@
 
 module EnumerateNodes (enumInsertProgram, getIndexedProgram) where
 
-import Control.Monad.State.Strict (State, evalState, get, put, runState)
+import Control.Monad.State.Strict as State(State, evalState, get, put, runState)
 import qualified Data.HashMap.Strict.InsOrd as M (InsOrdHashMap, empty, insert)
 import ParseEO
 
@@ -61,9 +61,6 @@ data MapElement
 
 data MyState = MyState {i :: Int, m :: M.InsOrdHashMap Int MapElement}
 
--- instance Traversable TProgram where
---     trav
-
 -- | conduct common operations on a node
 -- change annotation of a node by taking
 --    tree id from state
@@ -71,7 +68,7 @@ data MyState = MyState {i :: Int, m :: M.InsOrdHashMap Int MapElement}
 dec :: EpiAnn a => a -> (a -> MapElement) -> State MyState a -> State MyState a
 dec pt m s = do
   t <- s
-  MyState {i = i1, m = m1} <- get
+  MyState {i = i1, m = m1} <- State.get
   put MyState {i = i1 + 1, m = M.insert i1 (m pt) m1}
   return (modify (\a -> a {num = i1}) t)
 
@@ -154,7 +151,7 @@ instance Enumerable TApplication where
     s' <- enum s
     h' <- enum h
     a1' <- enum a1
-    return $ TApplication s' h' a1' ann
+    return $ pt {s = s', h = h', a1 = a1'}
 
 instance Enumerable TApplication1 where
   enum pt@TApplication1 {..} = dec pt MApplication1 $ do

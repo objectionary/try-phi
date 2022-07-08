@@ -1,171 +1,195 @@
-{-# LANGUAGE DeriveAnyClass        #-}
-{-# LANGUAGE DeriveGeneric         #-}
-
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
-{-# LANGUAGE RecordWildCards       #-}
+module ToTerm
+  ( -- composeProgram,
+    -- getTermProgram,
+    Term (..),
+    -- K,
+    DataValue (..),
+    Ann (..),
+    DByte (..),
+    DRegexBody (..),
+    DRegexSuffix (..),
+    DLineBytes (..),
+    HasName (..),
+    AttachedName (..),
+    AttachedOrArgument (..),
+    Abstraction (..),
+    ToTerm.Label (..),
+    MethodName (..),
+    Head (..),
+    HeadName (..),
+    LetterName (..),
+    Modifier (..),
+    SuffixName (..),
+    AttachedOrArgName,
+    -- initAnn,
+    Options2 (..),
+    Options3 (..),
+  )
+where
 
+import Data.Data (Data)
+import Data.Hashable (Hashable)
+import Data.Maybe (isJust)
+import Data.Scientific (Scientific)
+import Data.Text (Text)
+import GHC.Generics (Generic)
+import ParseEO as P
+  ( Options2 (..),
+    Options3 (..),
+    Options9 (..),
+    TAbstrQuestion (TAbstrQuestion),
+    TAbstraction (..),
+    TAbstractionTail (..),
+    TApplication (..),
+    TApplication1 (..),
+    TApplication1Elem (..),
+    TAttributes (..),
+    TBool (..),
+    TByte (..),
+    TBytes (..),
+    TChar (..),
+    TData (..),
+    TFloat (..),
+    TFreeAttribute (..),
+    THas (..),
+    THead (..),
+    THeadModifier (..),
+    THeadName (..),
+    THeadTerminal (..),
+    THex (..),
+    THtail (..),
+    TInt (..),
+    TLabel (..),
+    TLabelTerminal (..),
+    TLineBytes (..),
+    TMethod (..),
+    TMethodTerminal (..),
+    TName (..),
+    TObject (..),
+    TObjectTail (..),
+    TObjects (..),
+    TProgram (..),
+    TRegex (..),
+    TRegexBody (..),
+    TRegexSuffix (..),
+    TString (..),
+    TSuffix (..),
+    TTail (..),
+    TText (..),
+    TVarArg (..),
+  )
+import qualified ParseEO as P (Ann (..), EpiAnn (..))
+import PrettyPrintTree ()
+import ToTermTH
 
-module ToTerm(
-  composeProgram,
-  getTermProgram,
-  Term(..),
-  K,
-  DataValue(..),
-  Ann(..),
-  DByte(..),
-  DRegexBody(..),
-  DRegexSuffix(..),
-  DLineBytes(..),
-  HasName (..),
-  AttachedName (..),
-  AttachedOrArgument (..),
-  Abstraction (..),
-  ToTerm.Label(..),
-  MethodName(..),
-  Head(..),
-  HeadName(..),
-  LetterName(..),
-  Modifier(..),
-  SuffixName(..),
-  AttachedOrArgName,
-  initAnn,
-  Options2 (..),
-  Options3 (..),
-  ) where
+-- type Id = Int
 
+-- newtype Ann = Ann {id :: Int} deriving (Data, Eq, Ord, Hashable, Generic)
 
-import           Control.Monad.State        (get, put)
-import Control.Monad.State.Strict ( State, evalState, foldM )
-import           Data.Hashable              (Hashable)
-import           Data.Maybe                 (isJust)
-import           Data.Scientific            (Scientific)
-import           Data.Text                  (Text)
-import           GHC.Generics               (Generic)
-import           ParseEO                    as PEO (I, Load (Load), Node (..),
-                                                    Options2 (..),
-                                                    Options3 (..),
-                                                    Options9 (..),
-                                                    TAbstrQuestion,
-                                                    TAbstraction (..),
-                                                    TAbstractionTail (..),
-                                                    TApplication (..),
-                                                    TApplication1 (..),
-                                                    TApplication1Elem (..),
-                                                    TAttributes (..),
-                                                    TBool (TBool),
-                                                    TByte (TByte), TBytes (..),
-                                                    TChar (TChar), TData (..),
-                                                    TFloat (TFloat),
-                                                    TFreeAttribute (..),
-                                                    THas (..), THead (..),
-                                                    THeadModifier (HeadCopy, HeadDot),
-                                                    THeadName (..),
-                                                    THeadTerminal, THex (THex),
-                                                    THtail (..), TInt (TInt),
-                                                    TLabel (..),
-                                                    TLabelTerminal (LabelAt),
-                                                    TLineBytes (..),
-                                                    TMethod (..),
-                                                    TMethodTerminal (..),
-                                                    TName (TName), TObject (..),
-                                                    TObjects (..),
-                                                    TProgram (..), TRegex (..),
-                                                    TRegexBody (..),
-                                                    TRegexSuffix (..),
-                                                    TString (..),
-                                                    TSuffix (..), TTail (..),
-                                                    TText (..),
-                                                    TVarArg (..),
-                                                    TObjectTail (..))
-import           PrettyPrintTree            ()
+-- data Ann a b = Ann {term::a, ann::b} deriving (Data)
+-- data Annotation = IDs {treeId::Maybe Id, runtimeId::Maybe Id}  deriving (Data)
 
+-- | shorthand for annotation
 
-type Id = Int
-data Ann a b = Ann {term::a, ann::b} deriving (Show)
-data Annotation = IDs {treeId::Maybe Id, runtimeId::Maybe Id}  deriving (Show)
-{- | shorthand for annotation
-
--}
-type K a = Ann a Annotation
+-- type a = Ann a Annotation
 
 -- TODO convert inverse dot to dot
 
 -- Attribute names
 -- if a constructor is composite
-  -- its argument types should be declared separately
-  -- its argument types should be annotated
+-- its argument types should be declared separately
+-- its argument types should be annotated
 
 -- if a type has many constructors,
-  -- it will be annotated outside
+-- it will be annotated outside
 
-data Label =
-    LName Text
-  | LAt
-  | LVarArg Text
-  deriving (Show)
+data Label
+  = LName {n :: Text, ann :: Ann}
+  | LAt {ann :: Ann}
+  | LVarArg {t :: Text, ann :: Ann}
+  deriving (Data)
 
+data LetterName = LetterName {n :: Text, ann :: Ann}
+  deriving (Data)
 
-newtype LetterName = LetterName Text  deriving (Show)
-data Modifier = MCopy | MInverseDot  deriving (Show)
-data HeadName = HeadName {n::K LetterName, m::Maybe Modifier}  deriving (Show)
+data Modifier
+  = MCopy {ann :: Ann}
+  | MInverseDot {ann :: Ann}
+  deriving (Data)
+
+data HeadName = HeadName {n :: LetterName, m :: Maybe Modifier, ann :: Ann} deriving (Data)
 
 -- TODO Question is not a terminal
 
-data MethodName =
-    MName Text
-  | MRho
-  | MAt
-  | MVertex
-  deriving (Eq, Ord, Generic, Show, Hashable)
+data MethodName
+  = MName {n :: Text, ann :: Ann}
+  | MRho {ann :: Ann}
+  | MAt {ann :: Ann}
+  | MVertex {ann :: Ann}
+  deriving (Eq, Ord, Generic, Data, Hashable)
 
 -- AttachedOrArg
 -- Unpacked can be ^.x, not necessarily a name
 
-{- | any elementary expressions that can stand in the head, e.g.:
+-- | any elementary expressions that can stand in the head, e.g.:
+--
+-- Reserved name `@` in `@.c`
+--
+-- Name `a` in `a.b`
+--
+-- Number `3` in `3.a`
+data Head = Head {h :: Options3 HeadTerminal HeadName DataValue, unpacked :: Bool, ann :: Ann} deriving (Data)
 
-Reserved name `@` in `@.c`
+data DByte = DByte {byte :: Integer, ann :: Ann} deriving (Data)
 
-Name `a` in `a.b`
+data DLineBytes = DLineBytes {bs :: [DByte], ann :: Ann} deriving (Data)
 
-Number `3` in `3.a`
+data DRegexBody = DRegexBody {b :: Text, ann :: Ann} deriving (Data)
 
--}
-data Head = Head {h::Options3 (K THeadTerminal) (K HeadName) (K DataValue), unpacked::Bool}  deriving (Show)
-
-newtype DByte = DByte {byte::Integer}  deriving (Show)
-newtype DLineBytes = DLineBytes {bs :: [K DByte]}  deriving (Show)
-
-newtype DRegexBody = DRegexBody {b::Text} deriving (Show)
-newtype DRegexSuffix = DRegexSuffix {s::Text} deriving (Show)
+data DRegexSuffix = DRegexSuffix {s :: Text, ann :: Ann} deriving (Data)
 
 data DataValue
-  = DBool Bool
-  | DBytes (Options2  (K DByte) [K DLineBytes])
-  | DChar Char
-  | DFloat Scientific
-  | DHex Integer
-  | DInt Integer
-  | DRegex (K DRegexBody) (K DRegexSuffix)
-  | DString Text
-  -- TODO save indentation of closing quotes
-  | DText Text
- deriving (Show)
+  = DBool {b :: Bool, ann :: Ann}
+  | DBytes {bs :: Options2 DByte [DLineBytes], ann :: Ann}
+  | DChar {c :: Char, ann :: Ann}
+  | DFloat {f :: Scientific, ann :: Ann}
+  | DHex {h :: Integer, ann :: Ann}
+  | DInt {i :: Integer, ann :: Ann}
+  | DRegex {rb :: DRegexBody, rs :: DRegexSuffix, ann :: Ann}
+  | DString {s :: Text, ann :: Ann}
+  | -- TODO save indentation of closing quotes
+    DText {t :: Text, ann :: Ann}
+  deriving (Data)
 
 -- TODO define when to throw exceptions
 -- TODO somehow pass problems with node conversion upwards
 -- probably need to use exceptions or Either Id Term
 
+data HasName
+  = HName {t :: Text, ann :: Ann}
+  | HAt {ann :: Ann}
+  deriving (Data)
 
-data HasName = HName Text | HAt  deriving (Show)
+newtype AbstrQuestion = AbstrQuestion {ann :: Ann} deriving (Data)
 
-type ImportedName = Options2 (K LetterName) (K TAbstrQuestion)
+type ImportedName = Options2 LetterName AbstrQuestion
 
-data AttachedName = AttachedName {a::SuffixName, imported::Maybe ImportedName} deriving (Show)
+data AttachedName = AttachedName {a :: SuffixName, imported :: Maybe ImportedName, ann :: Ann}
+  deriving (Data)
 
-type AttachedOrArgName = Options2 AttachedName (Maybe (K HasName))
+type AttachedOrArgName = Options2 AttachedName (Maybe HasName)
 
-data AttachedOrArgument = AttachedOrArgument {t::K Term, a :: [AttachedOrArgName]} deriving (Show)
+data AttachedOrArgument = AttachedOrArgument {t :: Term, a :: [AttachedOrArgName], ann :: Ann} deriving (Data)
 
 {-
 Not yet a full-fledged abstract attribute
@@ -181,7 +205,7 @@ Probably, such object is always anonymous
 
 otherwise, Abstraction should store AttachedName
 -}
-data Abstraction = Abstraction {attrs :: [K Label], t::Maybe AbstractionTail}  deriving (Show)
+data Abstraction = Abstraction {attrs :: [Label], t :: Maybe AbstractionTail, ann :: Ann} deriving (Data)
 
 {-
 -- TODO Don't distinguish between them?
@@ -195,71 +219,104 @@ here, the anonymous abstract object is applied to c
 -}
 type AbstractionTail = Options2 AttachedName [AttachedOrArgument]
 
+data HeadTerminal
+  = HeadRoot {ann :: Ann}
+  | HeadAt {ann :: Ann}
+  | HeadRho {ann :: Ann}
+  | HeadXi {ann :: Ann}
+  | HeadSigma {ann :: Ann}
+  | HeadStar {ann :: Ann}
+  deriving (Data)
+
 data Term
-  = App {t::AttachedOrArgument, args::[AttachedOrArgument]}
-  | Obj {freeAttrs::[K Label], args::[AttachedOrArgument]}
-  | Dot {t::AttachedOrArgument, attr::[K MethodName]}
-  -- for cases like just `^` or `$`
-  -- it doesn't need body
-  | HeadTerm {n::Maybe Int, a::Maybe (K Head)}
-  deriving (Show)
+  = App {t :: AttachedOrArgument, args :: [AttachedOrArgument], ann :: Ann}
+  | Obj {freeAttrs :: [Label], attrs :: [AttachedOrArgument], ann :: Ann}
+  | Dot {t :: AttachedOrArgument, attr :: [MethodName], ann :: Ann}
+  | -- for cases like just `^` or `$`
+    -- it doesn't need body
+    HeadTerm {n :: Maybe Int, a :: Maybe Head, ann :: Ann}
+  deriving (Data)
 
-newtype ReturnValue = ReturnValue {t::K Term}  deriving (Show)
-newtype MyState = MyState {termId :: Int}  deriving (Show)
-data SuffixName = SuffixName {n::K Label, isConst::Bool}  deriving (Show)
+-- newtype ReturnValue = ReturnValue {t :: Term} deriving (Data)
 
-getId :: Node a Load -> Int
-getId Node{..} =
-  case load of
-    Load i -> i
+-- newtype MyState = MyState {termId :: Int} deriving (Data)
 
+data SuffixName = SuffixName {n :: Label, isConst :: Bool, ann :: Ann} deriving (Data)
 
--- | annotate a node with term id and CST node id
-dec :: I a -> State MyState b -> State MyState (K b)
-dec n t = do
-  t1 <- t
-  MyState tId <- get
-  put (MyState (tId + 1))
-  return Ann {term = t1, ann = IDs {runtimeId = Just tId, treeId = Just (getId n)}}
+getId :: (EpiAnn a) => a -> Int
+getId a = num $ get a
 
-{- |
-convert parsed tree into annotated terms
--}
-getTermProgram :: I TProgram -> K Term
-getTermProgram p = evalState (composeProgram p) MyState {termId = 0}
+-- | annotate a node with tree node id
+dec :: (P.EpiAnn a, EpiAnn b) => a -> b -> b
+dec a b = b'
+  where
+    P.Ann {num = num} = P.get a
+    b' = modify (const Ann {num = num}) b
 
-composeProgram :: I TProgram -> State MyState (K Term)
-composeProgram Node {node = TProgram {..}} =
+$( genEpiN
+     [
+       ''Abstraction,
+       ''AbstrQuestion,
+       ''AttachedName,
+       ''AttachedOrArgument,
+       ''DByte,
+       ''DLineBytes,
+       ''DRegexBody,
+       ''DRegexSuffix,
+       ''DataValue,
+       ''HasName,
+       ''Head,
+       ''HeadName,
+       ''HeadTerminal,
+       ''Label,
+       ''LetterName,
+       ''MethodName,
+       ''Modifier,
+       ''SuffixName,
+       ''Term
+     ]
+ )
+
+-- do
+-- t1 <- t
+-- MyState tId <- get
+-- put (MyState (tId + 1))
+-- return _
+
+-- Ann {term = t1, ann = IDs {runtimeId = Just tId, treeId = Just (getId n)}}
+
+-- |
+-- -- convert parsed tree into annotated terms
+-- getTermProgram :: TProgram -> Term
+-- getTermProgram p = evalState (composeProgram p) {termId = 0}
+
+composeProgram :: TProgram -> Term
+composeProgram TProgram {..} =
   composeObjects o
 
-
--- toTermMetas :: I TMetas -> State MyState (K TMetas)
--- toTermMetas n@Node {node = TMetas {..}} = dec n $ do
+-- toTermMetas :: TMetas -> (TMetas)
+-- toTermMetas pt@TMetas {..} = dec pt $ do
 --     cs' <- mapM toTermMeta ms
 --     return $ TMetas cs'
 
-
-
--- toTermMeta :: I TMeta -> State MyState (K TMeta)
--- toTermMeta n@Node {node = TMeta {..}} = dec n $ do
+-- toTermMeta :: TMeta -> (TMeta)
+-- toTermMeta pt@TMeta {..} = dec pt $ do
 --     name' <- composeLetterName name
 --     suff' <- toTermMaybe toTermMetaSuffix suff
 --     return $ TMeta name' suff'
 
+-- toTermMetaSuffix :: TMetaSuffix -> (TMetaSuffix)
+-- toTermMetaSuffix pt@Node {..} = dec pt $ return node
 
--- toTermMetaSuffix :: I TMetaSuffix -> State MyState (K TMetaSuffix)
--- toTermMetaSuffix n@Node {..} = dec n $ return node
-
-
-composeLetterName :: I TName -> State MyState (K LetterName)
-composeLetterName m@Node {node = TName t1} = dec m $ return (LetterName t1)
+composeLetterName :: TName -> LetterName
+composeLetterName m@TName {..} = dec m $ LetterName {n}
 
 -- should produce an object
-composeObjects :: I TObjects -> State MyState (K Term)
-composeObjects n@Node {node = TObjects {..}} = dec n $ do
-  os' <- mapM composeObject os
-  return Obj {freeAttrs = [], args = os'}
-
+composeObjects :: TObjects -> Term
+composeObjects pt@TObjects {..} = dec pt ret
+  where
+    os' = composeObject <$> os
+    ret = Obj {freeAttrs = [], attrs = os'}
 
 {-
 -- TODO also handle cases like
@@ -268,200 +325,217 @@ composeObjects n@Node {node = TObjects {..}} = dec n $ do
   .d > e
 -}
 
-appendObjectTail :: AttachedOrArgument -> I TObjectTail -> State MyState AttachedOrArgument
-appendObjectTail p Node {node = TObjectTail {..}} = do
-  m1 <- applyDot p m
-  m2 <- appendMaybeTail m1 composeHtail h
-  m3 <- appendMaybeSuffix m2 s Nothing
-  appendMaybeTail m3 composeTail t
+-- FIXME use num from objecttail
+appendObjectTail :: AttachedOrArgument -> TObjectTail -> AttachedOrArgument
+appendObjectTail p pt@TObjectTail {..} = ret
+  where
+    m1 = applyDot p m
+    m2 = appendMaybeTail m1 composeHtail h
+    m3 = appendMaybeSuffix m2 s Nothing
+    ret = appendMaybeTail m3 composeTail t
 
-composeObject :: I TObject -> State MyState AttachedOrArgument
-composeObject Node {node = TObject {..}} = do
-  a' <-
-    case a of
-      Opt2A p -> composeAbstraction p
-      Opt2B p -> composeApplication p
-  t' <- appendMaybeTail a' composeTail t
-  foldM appendObjectTail t' s
+composeObject :: TObject -> AttachedOrArgument
+composeObject pt@TObject {..} = dec pt ret
+  where
+    a' =
+      case a of
+        Opt2A p -> composeAbstraction p
+        Opt2B p -> composeApplication p
+    t' = appendMaybeTail a' composeTail t
+    ret = foldl appendObjectTail t' s
 
-    -- TODO correctly handle tail, not ignore it
+-- TODO correctly handle tail, not ignore it
 
+composeAbstraction :: TAbstraction -> AttachedOrArgument
+composeAbstraction pt@TAbstraction {..} = dec pt ret
+  where
+    as' = composeFreeAttributes as
+    t' =
+      case t of
+        Just t1 -> Just $ composeAbstractionTail t1
+        Nothing -> Nothing
 
-composeAbstraction :: I TAbstraction -> State MyState AttachedOrArgument
-composeAbstraction n@Node {node = TAbstraction {..}} = do
-  as' <- composeFreeAttributes as
-  t' <-
-    case t of
-      Just t1 -> Just <$> composeAbstractionTail t1
-      Nothing -> return Nothing
+    -- FIXME name here
+    m name ks = (\t1 -> AttachedOrArgument {t = t1, a = name}) $ dec pt Obj {freeAttrs = as', attrs = ks}
 
-  -- FIXME name here
-  let m name ks = (\t1 -> AttachedOrArgument {t = t1, a = name}) <$> dec n (return Obj {freeAttrs = as', args = ks})
-
-  case t' of
-    Just p ->
-      case p of
-        Opt2A a -> m [Opt2A a] []
-        Opt2B b -> m [] b
-    Nothing ->
-      m [] []
+    ret =
+      case t' of
+        Just p ->
+          case p of
+            Opt2A a -> m [Opt2A a] []
+            Opt2B b -> m [] b
+        Nothing ->
+          m [] []
 
 -- | produce a list of arguments
-composeTail :: I TTail -> State MyState [AttachedOrArgument]
-composeTail Node {node = TTail {..}} = mapM composeObject os
+composeTail :: TTail -> [AttachedOrArgument]
+composeTail TTail {..} = composeObject <$> os
 
+composeApplication :: TApplication -> AttachedOrArgument
+composeApplication TApplication {..} = ret
+  where
+    s' =
+      case s of
+        Opt2A a -> attachHead a
+        -- application in parentheses
+        Opt2B a -> composeApplication a
+    h' = appendMaybeTail s' composeHtail h
+    ret = composeApplication1 h' a1
 
-composeApplication :: I TApplication -> State MyState AttachedOrArgument
-composeApplication Node {node = TApplication {..}} = do
-  s' <-
-    case s of
-      Opt2A a -> attachHead a
-      -- application in parentheses
-      Opt2B a -> composeApplication a
-  h' <- appendMaybeTail s' composeHtail h
-  composeApplication1 h' a1
-
-
-composeApplication1 :: AttachedOrArgument -> I TApplication1 -> State MyState AttachedOrArgument
-composeApplication1 t Node {node = TApplication1 {..}} =
+composeApplication1 :: AttachedOrArgument -> TApplication1 -> AttachedOrArgument
+composeApplication1 t TApplication1 {..} =
   case c of
-    Just x  -> composeApplication1Elem t x
-    Nothing -> return t
+    Just x -> composeApplication1Elem t x
+    Nothing -> t
 
 -- TODO use runtime ids from state, not Nothing?
-initAnn :: a -> K a
-initAnn x = Ann {term = x, ann = IDs {treeId = Nothing, runtimeId = Nothing}}
+-- initAnn :: a -> a
+-- initAnn x = Ann {term = x, ann = IDs {treeId = Nothing, runtimeId = Nothing}}
 
-{- | apply term to a list of arguments
-
-if an object, append the arguments to its list
-
-if an application, aadd the arguments to its list
-
-otherwise, produce a new term applied to this list
--}
+-- | apply term to a list of arguments
+--
+-- if an object, append the arguments to its list
+--
+-- if an application, aadd the arguments to its list
+--
+-- otherwise, produce a new term applied to this list
 applyTail :: AttachedOrArgument -> [AttachedOrArgument] -> AttachedOrArgument
-applyTail t@AttachedOrArgument{t = t1@Ann {term = t2}} ts =
-  case ts of
-    [] -> t
-    _ ->
-        (\z -> t {t = t1 {term = z}} :: AttachedOrArgument) $
-          case t2 of
-            App x y -> App {t = x, args = y <> ts}
-            Obj x y -> Obj {freeAttrs = x, args = y <> ts}
-            Dot _ _ -> App {t = AttachedOrArgument { t = initAnn t2, a = []}, args = ts}
-            HeadTerm _ _ -> App {t = AttachedOrArgument { t = initAnn t2, a = []}, args = ts}
-
-applyDot :: AttachedOrArgument -> I TMethod -> State MyState AttachedOrArgument
-applyDot t@AttachedOrArgument{t = t1@Ann {term = t2}, a = a1} b = do
-  m <- composeMethod b
-  return $
-          case (t2, a1) of
-            -- if unnamed dot term, put new method name inside
-            (Dot x y, []) -> (\z -> t {t = t1 {term = z}} :: AttachedOrArgument) $ Dot x (y <> [m])
-            -- otherwise, compose a new anonymous dot term with such method name
-            _       -> (\z -> AttachedOrArgument {t = initAnn z, a = []}) $ Dot t [m]
-
-composeApplication1Elem :: AttachedOrArgument -> I TApplication1Elem -> State MyState AttachedOrArgument
-composeApplication1Elem t Node {node = TApplication1Elem {..}} = do
-  c1' <-
-    case c1 of
-      -- append method name to an application
-      Opt3A b -> applyDot t b
-      -- append optional argument name to a term
-      -- TODO don't append has twice
-      Opt3B b -> appendHas t b
-      -- no imported name since it's an application
-      Opt3C b -> appendMaybeSuffix t (Just b) Nothing
-
-  ht' <- appendMaybeTail c1' composeHtail ht
-  composeApplication1 ht' a
-
-{-| produce annotated method name -}
-composeMethod :: I TMethod -> State MyState (K MethodName)
-composeMethod n@Node {node = TMethod {..}} = dec n $ do
-  let m' =
-        case m of
-          Opt2A Node{node=TName t1} -> MName t1
-          Opt2B Node{node=t1} ->
+applyTail pt@AttachedOrArgument {t=t1} ts = ret
+  where
+    ret = 
+      case ts of
+        [] -> pt
+        _ ->
+          (\z -> pt {t = z} :: AttachedOrArgument) $
             case t1 of
-              MethodRho    -> MRho
-              MethodVertex -> MVertex
-              MethodAt     -> MAt
-  return m'
+              App {..} -> App {t = t, args = args <> ts}
+              Obj {..} -> Obj {freeAttrs = freeAttrs, attrs = attrs <> ts}
+              Dot {..} -> App {t = AttachedOrArgument {t = t1, a = []}, args = ts}
+              HeadTerm {..} -> App {t = AttachedOrArgument {t = t1, a = []}, args = ts}
 
-{-| append optional argument name to a term -}
-appendHas :: AttachedOrArgument -> I THas -> State MyState AttachedOrArgument
-appendHas t@AttachedOrArgument{a = a1} m@Node {node = THas {..}} = do
-  let Node {node = TName t1} = n
-  h <- dec m $ return (HName t1)
-  -- TODO don't append name?
-  return (t {a = a1 <> [Opt2B (Just h)]} :: AttachedOrArgument)
+applyDot :: AttachedOrArgument -> TMethod -> AttachedOrArgument
+applyDot pt@AttachedOrArgument {t = t2, a = a1} b = ret
+  where
+    m = composeMethod b
+    ret = 
+      case (t2, a1) of
+        -- if unnamed dot term, put new method name inside
+        (Dot {..}, []) -> (\z -> t {t = z} :: AttachedOrArgument) $ Dot {t, attr = attr <> [m]}
+        -- otherwise, compose a new anonymous dot term with such method name
+        _ -> (\z -> AttachedOrArgument {t = z, a = []}) $ Dot {t = pt, attr = [m]}
 
-{-| append suffix name with possibly imported name to a term -}
-appendMaybeSuffix :: AttachedOrArgument -> Maybe (I TSuffix) -> Maybe ImportedName -> State MyState AttachedOrArgument
-appendMaybeSuffix t@AttachedOrArgument{a = a1} ms i = do
-  case ms of
-    Nothing -> return t
-    Just ms' -> do
-      s' <- composeSuffix ms'
-      return (t {a = a1 <> [Opt2A (AttachedName {a = s', imported = i})]} :: AttachedOrArgument)
+composeApplication1Elem :: AttachedOrArgument -> TApplication1Elem -> AttachedOrArgument
+composeApplication1Elem t TApplication1Elem {..} = ret
+  where
+    c1' =
+      case c1 of
+        -- append method name to an application
+        Opt3A b -> applyDot t b
+        -- append optional argument name to a term
+        -- TODO don't append has twice
+        Opt3B b -> appendHas t b
+        -- no imported name since it's an application
+        Opt3C b -> appendMaybeSuffix t (Just b) Nothing
 
+    ht' = appendMaybeTail c1' composeHtail ht
+    ret = composeApplication1 ht' a
 
-{-| produce a list of annotated labels -}
-composeFreeAttributes :: I TAttributes -> State MyState [K Label]
-composeFreeAttributes Node {node = TAttributes {..}} =
-  mapM composeFreeAttribute as
+-- | produce annotated method name
+composeMethod :: TMethod -> MethodName
+composeMethod pt@TMethod {..} = dec pt ret
+  where
+    ret =
+        case m of
+          Opt2A TName {..} -> MName {n}
+          Opt2B t1 -> dec t1 $
+            case t1 of
+              TMethodRho {} -> MRho {}
+              TMethodVertex {} -> MVertex {}
+              TMethodAt {} -> MAt {}
 
-{-| produce a free attribute as a label -}
-composeFreeAttribute :: I TFreeAttribute -> State MyState (K Label)
-composeFreeAttribute n@Node {node = TFreeAttribute {..}} = dec n $ do
-  let l' =
-        case l of
-          Opt3A Node{node = LabelAt}    -> LAt
-          Opt3B Node{node = TName t1}   -> LName t1
-          Opt3C Node{node = TVarArg t1} -> LVarArg t1
-  return l'
+-- | append optional argument name to a term
+-- FIXME somehow refer to a super node (to these two)
+appendHas :: AttachedOrArgument -> THas -> AttachedOrArgument
+appendHas pt@AttachedOrArgument {a = a1} ps@THas {..} = ret
+  where
+    TName {n = n1} = n
+    h = dec ps (HName {t = n1})
+    -- TODO don't append name?
+    ret = pt {a = a1 <> [Opt2B (Just h)]} :: AttachedOrArgument
 
+-- | append suffix name with possibly imported name to a term
+appendMaybeSuffix :: AttachedOrArgument -> Maybe TSuffix -> Maybe ImportedName -> AttachedOrArgument
+appendMaybeSuffix pt@AttachedOrArgument {a = a1, t = t} ms i = ret
+  where
+    ret = 
+      case ms of
+        Nothing -> pt
+        Just ms' -> ret'
+          where
+            s' = composeSuffix ms'
+            -- FIXME refer to super node
+            a' = dec ms' AttachedName {a = s', imported = i}
+            ret' :: AttachedOrArgument
+            ret' = (pt {a = a1 <> [Opt2A a']})
 
-composeAbstractionTail :: I TAbstractionTail -> State MyState AbstractionTail
-composeAbstractionTail Node {node = TAbstractionTail {..}} =
+-- | produce a list of annotated labels
+composeFreeAttributes :: TAttributes -> [Label]
+composeFreeAttributes TAttributes {..} =
+  composeFreeAttribute <$> as
+
+-- | produce a free attribute as a label
+composeFreeAttribute :: TFreeAttribute -> Label
+composeFreeAttribute pt@TFreeAttribute {..} = dec pt ret
+  where
+    ret =
+      case l of
+        Opt3A LabelAt {..} -> LAt {}
+        Opt3B TName {..} -> LName {n = n}
+        Opt3C TVarArg {..} -> LVarArg {t = n}
+
+composeAbstrQuestion :: TAbstrQuestion -> AbstrQuestion
+composeAbstrQuestion pt@TAbstrQuestion {..} = dec pt AbstrQuestion {}
+
+composeAbstractionTail :: TAbstractionTail -> AbstractionTail
+composeAbstractionTail TAbstractionTail {..} =
   case e of
-    Opt2A (a,b) -> do
-      a1 <- composeSuffix a
-      b1 <- (
-        case b of
-          Just b' -> Just <$>
-            case b' of
-              Opt2A c -> Opt2A <$> composeLetterName c
-              Opt2B c -> Opt2B <$> composeTerminal c
-          Nothing -> return Nothing
-        )
-      return (Opt2A AttachedName {a = a1, imported = b1})
-    Opt2B h -> Opt2B <$> composeHtail h
+    Opt2A (a, b) -> ret
+      where
+        a1 = composeSuffix a
+        b1 = 
+          case b of
+              Just b' ->
+                Just
+                  $ case b' of
+                    Opt2A c -> Opt2A $ composeLetterName c
+                    Opt2B c -> Opt2B $ composeAbstrQuestion c
+              Nothing -> Nothing
+        ret = (Opt2A AttachedName {a = a1, imported = b1})
+    Opt2B h -> Opt2B $ composeHtail h
 
-{-| compose an anonymous expression for head-}
-attachHead :: I THead -> State MyState AttachedOrArgument
-attachHead a = do
-  a' <- composeHead a
-  b <- dec a $ return HeadTerm {n = Nothing, a = Just a'}
-  return AttachedOrArgument {t = b, a = []}
+-- | compose an anonymous expression for head
+attachHead :: THead -> AttachedOrArgument
+attachHead pt@THead {..} = ret
+  where
+    a' = composeHead pt
+    b = dec pt HeadTerm {n = Nothing, a = Just a'}
+    ret = AttachedOrArgument {t = b, a = []}
 
+appendMaybeTail :: AttachedOrArgument -> (a -> [AttachedOrArgument]) -> Maybe a -> AttachedOrArgument
+appendMaybeTail a f h = applyTail a $ maybe [] f h
 
-appendMaybeTail :: AttachedOrArgument -> (a -> State MyState [AttachedOrArgument]) -> Maybe a -> State MyState AttachedOrArgument
-appendMaybeTail a f h = applyTail a <$> maybe (return []) f h
-
-{-| compose list of possibly attached arguments -}
-composeHtail :: I THtail -> State MyState [AttachedOrArgument]
-composeHtail Node {node = THtail {..}} = do
-    let f e =
-            case e of
-              Opt3A a -> attachHead a
-              -- it's an application in parentheses
-              Opt3B a -> composeApplication a
-              -- TODO add case for explicit construction of Opts
-              Opt3C a -> composeAbstraction a
-    mapM f t
+-- | compose list of possibly attached arguments
+composeHtail :: THtail -> [AttachedOrArgument]
+composeHtail THtail {..} = ret
+  where
+    f e =
+          case e of
+            Opt3A a -> attachHead a
+            -- it's an application in parentheses
+            Opt3B a -> composeApplication a
+            -- TODO add case for explicit construction of Opts
+            Opt3C a -> composeAbstraction a
+    ret = f <$> t
 
 {-
 -- TODO
@@ -473,53 +547,62 @@ varargs can be in label
 
 -}
 
-composeLabel :: I TLabel -> State MyState (K Label)
-composeLabel n@Node {node = TLabel {..}} = dec n $ do
-    let l' =
-          case l of
-            Opt2A _ -> LAt
-            Opt2B (Node{node=TName n1}, t) ->
-              case t of
-                Just _  -> LVarArg n1
-                Nothing -> LName n1
-    return l'
+composeLabel :: TLabel -> Label
+composeLabel pt@TLabel {..} = dec pt ret
+  where
+    ret =
+      case l of
+        Opt2A _ -> LAt {}
+        Opt2B (TName {..}, t) ->
+          case t of
+            Just _ -> LVarArg {t = n}
+            Nothing -> LName {n = n}
 
-composeSuffix :: I TSuffix -> State MyState SuffixName
-composeSuffix Node {node = TSuffix {..}} = do
-  l' <- composeLabel l
-  let c' = Data.Maybe.isJust c
-  return $ SuffixName {n = l', isConst = c'}
+composeSuffix :: TSuffix -> SuffixName
+composeSuffix pt@TSuffix {..} = dec pt ret
+  where
+    l' = composeLabel l
+    c' = Data.Maybe.isJust c
+    ret = SuffixName {n = l', isConst = c'}
 
-composeTerminal :: I a -> State MyState (K a)
-composeTerminal n@Node {..} = dec n $ return node
-
-composeHead :: I THead -> State MyState (K Head)
-composeHead n@Node {node = THead {..}} = dec n $ do
-  let d = Data.Maybe.isJust dots
-  t' <-
-    case t of
-      Opt3A a -> Opt3A <$> composeTerminal a
-      Opt3B a -> Opt3B <$> composeHeadName a
-      Opt3C a -> Opt3C <$> composeData a
-  return Head {h = t', unpacked = d}
+composeHeadTerminal :: THeadTerminal -> HeadTerminal
+composeHeadTerminal pt = dec pt $
+  case pt of
+    THeadRoot {} -> HeadRoot {}
+    THeadAt {} -> HeadAt {}
+    THeadRho {} -> HeadRho {}
+    THeadXi {} -> HeadXi {}
+    THeadSigma {} -> HeadSigma {}
+    THeadStar {} -> HeadStar {}
 
 
-composeHeadName :: I THeadName -> State MyState (K HeadName)
-composeHeadName n@Node {node = THeadName {..}} = dec n $ do
-  let Node {node = TName t} = name
-  hn <- dec name $ return (LetterName t)
-  let c' =
-        case c of
-          Just Node {node = n1} ->
-            case n1 of
-              PEO.HeadDot  -> Just MInverseDot
-              PEO.HeadCopy -> Just MCopy
-          Nothing -> Nothing
-  return HeadName {n = hn, m = c'}
+composeHead :: THead -> Head
+composeHead pt@THead {..} = dec pt ret
+  where
+    d = Data.Maybe.isJust dots
+    t' =
+      case t of
+        Opt3A a -> Opt3A $ composeHeadTerminal a
+        Opt3B a -> Opt3B $ composeHeadName a
+        Opt3C a -> Opt3C $ composeData a
+    ret = Head {h = t', unpacked = d}
 
+composeHeadName :: THeadName -> HeadName
+composeHeadName pt@THeadName {..} = dec pt ret
+  where
+    TName {n = n} = name
+    hn = dec name (LetterName {n = n})
+    c' =
+      case c of
+        Just n1 ->
+          case n1 of
+            THeadDot {..} -> Just $ dec n1 MInverseDot {}
+            THeadCopy {..} -> Just $ dec n1 MCopy {}
+        Nothing -> Nothing
+    ret = HeadName {n = hn, m = c'}
 
-composeData :: I TData -> State MyState (K DataValue)
-composeData n@Node {node = TData {..}} = dec n $
+composeData :: TData -> DataValue
+composeData pt@TData {..} = dec pt $
   case d of
     Opt9A a -> composeBool a
     Opt9B a -> composeText a
@@ -531,87 +614,62 @@ composeData n@Node {node = TData {..}} = dec n $
     Opt9H a -> composeChar a
     Opt9I a -> composeRegex a
 
-composeBool :: I TBool -> State MyState DataValue
-composeBool Node {..} = do
-  let TBool i = node
-  return $ DBool i
+composeBytes :: TBytes -> DataValue
+composeBytes pt@TBytes {..} = dec pt (DBytes {bs = bs'})
+  where
+    bs' =
+      case bs of
+        Opt2A t -> Opt2A $ composeByte t
+        Opt2B t -> Opt2B $ composeLineBytes <$> t
 
+composeBool :: TBool -> DataValue
+composeBool pt@TBool {..} = dec pt DBool {b}
 
-composeText :: I TText -> State MyState DataValue
-composeText Node {..} = do
-  let TText i = node
-  return $ DText i
+composeText :: TText -> DataValue
+composeText pt@TText {..} = dec pt DText {t}
 
+composeHex :: THex -> DataValue
+composeHex pt@THex {..} = dec pt DHex {h}
 
-composeHex :: I THex -> State MyState DataValue
-composeHex Node {..} = do
-  let THex i = node
-  return $ DHex i
+composeString :: TString -> DataValue
+composeString pt@TString {..} = dec pt DString {s}
 
-composeString :: I TString -> State MyState DataValue
-composeString Node {..} = do
-  let TString i = node
-  return $ DString i
+composeFloat :: TFloat -> DataValue
+composeFloat pt@TFloat {..} = dec pt DFloat {f}
 
-composeFloat :: I TFloat -> State MyState DataValue
-composeFloat Node {..} = do
-  let TFloat i = node
-  return $ DFloat i
+composeChar :: TChar -> DataValue
+composeChar pt@TChar {..} = dec pt DChar {c}
 
-composeInt :: I TInt -> State MyState DataValue
-composeInt Node {..} = do
-  let TInt i = node
-  return $ DInt i
+composeRegexBody :: TRegexBody -> DRegexBody
+composeRegexBody pt@TRegexBody {..} = dec pt DRegexBody {b}
 
-composeBytes :: I TBytes -> State MyState DataValue
-composeBytes Node {node = TBytes {..}} =
-    DBytes <$>
-  case bs of
-      Opt2A t -> Opt2A <$> composeByte t
-      Opt2B t -> Opt2B <$> mapM composeLineBytes t
+composeRegexSuffix :: TRegexSuffix -> DRegexSuffix
+composeRegexSuffix pt@TRegexSuffix {..} = dec pt DRegexSuffix {s}
 
-composeChar :: I TChar -> State MyState DataValue
-composeChar Node{..} = do
-  let TChar i = node
-  return $ DChar i
+composeRegex :: TRegex -> DataValue
+composeRegex pt@TRegex {..} = dec pt ret
+  where
+    rb' = composeRegexBody rb
+    rs' = composeRegexSuffix rs
+    ret = DRegex {rb = rb', rs = rs'}
 
-composeRegexBody :: I TRegexBody -> State MyState (K DRegexBody)
-composeRegexBody n@Node {..} = dec n $ do
-  let TRegexBody {..} = node
-  return $ DRegexBody b
+composeInt :: TInt -> DataValue
+composeInt pt@TInt {..} = dec pt DInt {i}
 
-composeRegexSuffix :: I TRegexSuffix -> State MyState (K DRegexSuffix)
-composeRegexSuffix n@Node {..} = dec n $ do
-  let TRegexSuffix {..} = node
-  return $ DRegexSuffix s
+composeLineBytes :: TLineBytes -> DLineBytes
+composeLineBytes pt@TLineBytes {..} = dec pt ret
+  where
+    bs' = composeByte <$> bs
+    ret = DLineBytes {bs = bs'}
 
-composeRegex :: I TRegex -> State MyState DataValue
-composeRegex Node{..} = do
-  let TRegex {..} = node
-  r' <- composeRegexBody r
-  s' <- composeRegexSuffix suff
-  return (DRegex r' s')
-
-composeLineBytes :: I TLineBytes -> State MyState (K DLineBytes)
-composeLineBytes n@Node {node = TLineBytes {..}} = dec n $ do
-  bs' <- mapM composeByte bs
-  return (DLineBytes bs')
-
-
-composeByte :: Node TByte Load -> State MyState (K DByte)
-composeByte n@Node{..} = dec n $ do
-  let TByte b = node
-  return (DByte b)
-
-
+composeByte :: TByte -> DByte
+composeByte pt@TByte {..} = dec pt DByte {byte = b}
 
 {-
 -- IDK
 does `c` in `a b:c` refer to `b` or to `a b`?
 Let us make `c` refer to `a b`
 To make it refer to `b` only, we can write `a (b:c)`
-
-
 
 We get some term and apply a modifier to it to get
 a.b, a:b, a > b
@@ -628,8 +686,6 @@ doesn't make sense since
     a term to apply this list to due to left associativity of modifiers
   if it's an application, why write an optional name
     if `a` isn't applied to some term directly?
-
-
 
 -- IDK
 I think a `:` modifier refers to the last expression in htail
@@ -648,8 +704,6 @@ a b:c
 [c]
   a b:c
 
-
-
 a > b c
 doesn't really make sense
   for the aforementioned reasons
@@ -660,13 +714,13 @@ a > b
 This means that we reached the end of the application chain
 and can return this named term
 
--- IDK what means method after suffix
+-- IDwhat means method after suffix
 
 -}
 
 {-
 -- INFO
-Anywhere a new name shows up after the > symbol,
+Anywhere a new name Datas up after the > symbol,
 it is a declaration of a new attribute in the nearest object abstraction.
 -}
 
@@ -725,7 +779,6 @@ a > a
 Should we allow it or let the expressions in parentheses only for grouping?
 (a b c)
 -}
-
 
 {-
 In context of application tail,

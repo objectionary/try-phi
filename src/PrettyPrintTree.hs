@@ -34,22 +34,24 @@ tabs n = DL.intercalate "" (replicate n tab)
 constructorName :: Data a => a -> String
 constructorName n = show $ toConstr n
 
-showHead :: (PrintfType t, Data a) => Int -> I a -> t
-showHead n Node {..} = printf "%s%s %s %s" (tabs n) (tail $ constructorName node) (show pos) (show load)
+showHead :: (PrintfType t, Data a, EpiAnn a) => Int -> a -> t
+showHead n m = printf "%s%s %s %s" (tabs n) (tail $ constructorName m) (show segment) (show num)
+  where
+    Ann {segment = segment, num = num} = get m
 
 nothing :: String
 nothing = "Nothing"
 
-printNonLeaf :: (Data a, Foldable t, Functor t) =>
-  Int -> I a -> t (Int -> [Char]) -> [Char]
+printNonLeaf :: (Data a, Foldable t, Functor t, EpiAnn a) =>
+  Int -> a -> t (Int -> String) -> String
 printNonLeaf n i l = showHead n i <> "\n" <> printList ($ n + 1) l
 
-printLeaf :: (Show t, Data a) =>
-  Int -> I a -> t -> [Char]
+printLeaf :: (Show t, Data a, EpiAnn a) =>
+  Int -> a -> t -> String
 printLeaf n i d = showHead n i <>  " " <> show d <> "\n"
 
 printMaybe :: (Int -> a -> String) -> Int -> Maybe a -> String
-printMaybe f k a = maybe (printNothing k) (f k) a
+printMaybe f k = maybe (printNothing k) (f k)
 
 printList :: (Foldable t, Functor t) => (a1 -> [a2]) -> t a1 -> [a2]
 printList f t = concat (f <$> t)
@@ -63,59 +65,59 @@ instance ShowIndented a => ShowIndented (Maybe a) where
 class ShowIndented a where
   showIndented :: Int -> a -> String
 
-instance ShowIndented (I TProgram) where
-  showIndented n i@Node {node = TProgram {..}} = printNonLeaf n i [l', m', o']
+instance ShowIndented TProgram where
+  showIndented n pt@TProgram {..} = printNonLeaf n pt [l', m', o']
     where
       l' k = showIndented k l
       m' k = showIndented k m
       o' k = showIndented k o
 
-instance ShowIndented (I TLicense) where
-  showIndented n i@Node {node = TLicense {..}} = printNonLeaf n i [cs']
+instance ShowIndented TLicense where
+  showIndented n pt@TLicense {..} = printNonLeaf n pt [cs']
     where
       cs' k = concat (showIndented k <$> cs)
 
-instance ShowIndented (I TComment) where
-  showIndented n i@Node {node = TComment {..}} = printLeaf n i c
+instance ShowIndented TComment where
+  showIndented n pt@TComment {..} = printLeaf n pt c
 
-instance ShowIndented (I TMetas) where
-  showIndented n i@Node {node = TMetas {..}} = printNonLeaf n i [cs']
+instance ShowIndented TMetas where
+  showIndented n pt@TMetas {..} = printNonLeaf n pt [cs']
     where
       cs' k = concat (showIndented k <$> ms)
 
 printNothing :: Int -> String
 printNothing n = tabs n <> nothing <> "\n"
 
-instance ShowIndented (I TMeta) where
-  showIndented n i@Node {node = TMeta {..}} = printNonLeaf n i [name', suff']
+instance ShowIndented TMeta where
+  showIndented n pt@TMeta {..} = printNonLeaf n pt [name', suff']
     where
       name' k = showIndented k name
       suff' k = showIndented k suff
 
-instance ShowIndented (I TMetaSuffix) where
-  showIndented n i@Node {node = TMetaSuffix {..}} = printLeaf n i s
+instance ShowIndented TMetaSuffix where
+  showIndented n pt@TMetaSuffix {..} = printLeaf n pt s
 
-instance ShowIndented (I TName) where
-  showIndented m i@Node {node = TName {..}} = printLeaf m i n
+instance ShowIndented TName where
+  showIndented m pt@TName {..} = printLeaf m pt n
 
-instance ShowIndented (I TVarArg) where
-  showIndented m i@Node {node = TVarArg {..}} = printLeaf m i n
+instance ShowIndented TVarArg where
+  showIndented m pt@TVarArg {..} = printLeaf m pt n
 
-instance ShowIndented (I TObjects) where
-  showIndented n i@Node {node = TObjects {..}} = printNonLeaf n i [os']
+instance ShowIndented TObjects where
+  showIndented n pt@TObjects {..} = printNonLeaf n pt [os']
     where
       os' k = concat (showIndented k <$> os)
 
-instance ShowIndented (I TObjectTail) where
-  showIndented n i@Node {node = TObjectTail {..}} = printNonLeaf n i [m', h', s', t']
+instance ShowIndented TObjectTail where
+  showIndented n pt@TObjectTail {..} = printNonLeaf n pt [m', h', s', t']
     where
       m' k = showIndented k m
       h' k = showIndented k h
       s' k = showIndented k s
       t' k = showIndented k t
 
-instance ShowIndented (I TObject) where
-  showIndented n i@Node {node = TObject {..}} = printNonLeaf n i [cs', a', t', s']
+instance ShowIndented TObject where
+  showIndented n pt@TObject {..} = printNonLeaf n pt [cs', a', t', s']
     where
       cs' k = concat (showIndented k <$> cs)
       a' k =
@@ -125,19 +127,19 @@ instance ShowIndented (I TObject) where
       t' k = showIndented k t
       s' k = concatMap (showIndented k) s
 
-instance ShowIndented (I TAbstraction) where
-  showIndented m i@Node {node = TAbstraction {..}} = printNonLeaf m i [as', t']
+instance ShowIndented TAbstraction where
+  showIndented m pt@TAbstraction {..} = printNonLeaf m pt [as', t']
     where
       as' k = showIndented k as
       t' k = showIndented k t
 
-instance ShowIndented (I TTail) where
-  showIndented m i@Node {node = TTail {..}} = printNonLeaf m i [os']
+instance ShowIndented TTail where
+  showIndented m pt@TTail {..} = printNonLeaf m pt [os']
     where
       os' k = concat (showIndented k <$> os)
 
-instance ShowIndented (I TApplication) where
-  showIndented m i@Node {node = TApplication {..}} = printNonLeaf m i [s', h', a1']
+instance ShowIndented TApplication where
+  showIndented m pt@TApplication {..} = printNonLeaf m pt [s', h', a1']
     where
       s' k = case s of
         Opt2A a -> showIndented k a
@@ -145,13 +147,13 @@ instance ShowIndented (I TApplication) where
       h' k = showIndented k h
       a1' k = showIndented k a1
 
-instance ShowIndented (I TApplication1) where
-  showIndented m i@Node {node = TApplication1 {..}} = printNonLeaf m i [c']
+instance ShowIndented TApplication1 where
+  showIndented m pt@TApplication1 {..} = printNonLeaf m pt [c']
     where
       c' k = showIndented k c
 
-instance ShowIndented (I TApplication1Elem) where
-  showIndented m i@Node {node = TApplication1Elem {..}} = printNonLeaf m i [c1', ht', a']
+instance ShowIndented TApplication1Elem where
+  showIndented m pt@TApplication1Elem {..} = printNonLeaf m pt [c1', ht', a']
     where
       c1' k = case c1 of
         Opt3A t -> showIndented k t
@@ -160,25 +162,25 @@ instance ShowIndented (I TApplication1Elem) where
       ht' k = showIndented k ht
       a' k = showIndented k a
 
-instance ShowIndented (I TMethod) where
-  showIndented n i@Node {node = TMethod {..}} = printNonLeaf n i [m']
+instance ShowIndented TMethod where
+  showIndented n pt@TMethod {..} = printNonLeaf n pt [m']
     where
       m' k = case m of
         Opt2A t -> showIndented k t
         Opt2B t -> printTerminal k t
 
-instance ShowIndented (I THas) where
-  showIndented m i@Node {node = THas {..}} = printNonLeaf m i [n']
+instance ShowIndented THas where
+  showIndented m pt@THas {..} = printNonLeaf m pt [n']
     where
       n' k = showIndented k n
 
-instance ShowIndented (I TAttributes) where
-  showIndented m i@Node {node = TAttributes {..}} = printNonLeaf m i [as']
+instance ShowIndented TAttributes where
+  showIndented m pt@TAttributes {..} = printNonLeaf m pt [as']
     where
       as' k = concat (showIndented k <$> as)
 
-instance ShowIndented (I TAbstractionTail) where
-  showIndented m i@Node {node = TAbstractionTail {..}} = printNonLeaf m i [e']
+instance ShowIndented TAbstractionTail where
+  showIndented m pt@TAbstractionTail {..} = printNonLeaf m pt [e']
     where
       e' k =
         case e of
@@ -193,8 +195,8 @@ instance ShowIndented (I TAbstractionTail) where
                 )
           Opt2B h -> showIndented k h
 
-instance ShowIndented (I THtail) where
-  showIndented m i@Node {node = THtail {..}} = printNonLeaf m i [t']
+instance ShowIndented THtail where
+  showIndented m pt@THtail {..} = printNonLeaf m pt [t']
     where
       t' k = concat (f k <$> t)
       f k e =
@@ -203,8 +205,8 @@ instance ShowIndented (I THtail) where
           Opt3B a -> showIndented k a
           Opt3C a -> showIndented k a
 
-instance ShowIndented (I TLabel) where
-  showIndented m i@Node {node = TLabel {..}} = printNonLeaf m i [l']
+instance ShowIndented TLabel where
+  showIndented m pt@TLabel {..} = printNonLeaf m pt [l']
     where
       l' k =
         case l of
@@ -212,8 +214,8 @@ instance ShowIndented (I TLabel) where
           Opt2B (n, t) ->
             showIndented k n <> showIndented k t
 
-instance ShowIndented (I TFreeAttribute) where
-  showIndented m i@Node {node = TFreeAttribute {..}} = printNonLeaf m i [l']
+instance ShowIndented TFreeAttribute where
+  showIndented m pt@TFreeAttribute {..} = printNonLeaf m pt [l']
     where
       l' k =
         case l of
@@ -221,23 +223,25 @@ instance ShowIndented (I TFreeAttribute) where
           Opt3B t -> showIndented k t
           Opt3C t -> showIndented k t
 
-instance ShowIndented (I TDots) where 
+instance ShowIndented TDots where
   showIndented m t = printTerminal m t
 
-instance ShowIndented (I TConst) where
+instance ShowIndented TConst where
   showIndented m t = printTerminal m t
 
-instance ShowIndented (I TSuffix) where
-  showIndented m i@Node {node = TSuffix {..}} = printNonLeaf m i [l', c']
+instance ShowIndented TSuffix where
+  showIndented m pt@TSuffix {..} = printNonLeaf m pt [l', c']
     where
       l' k = showIndented k l
       c' k = printMaybe printTerminal k c
 
-printTerminal :: (Show a) => Int -> I a -> String
-printTerminal m Node {..} = printf "%s%s %s %s\n" (tabs m) (show node) (show pos) (show load)
+printTerminal :: (Data a, EpiAnn a) => Int -> a -> String
+printTerminal m a = printf "%s%s %s %s\n" (tabs m) (show $ constructorName a) (show segment) (show num)
+  where
+    Ann {segment = segment, num = num} = get a
 
-instance ShowIndented (I THead) where
-  showIndented m i@Node {node = THead {..}} = printNonLeaf m i [dots', t']
+instance ShowIndented THead where
+  showIndented m pt@THead {..} = printNonLeaf m pt [dots', t']
     where
       dots' k = printMaybe printTerminal k dots
       t' k =
@@ -246,14 +250,14 @@ instance ShowIndented (I THead) where
           Opt3B a -> showIndented k a
           Opt3C a -> showIndented k a
 
-instance ShowIndented (I THeadName) where
-  showIndented m i@Node {node = THeadName {..}} = printNonLeaf m i [name', c']
+instance ShowIndented THeadName where
+  showIndented m pt@THeadName {..} = printNonLeaf m pt [name', c']
     where
       name' k = showIndented k name
       c' k = printMaybe printTerminal k c
 
-instance ShowIndented (I TData) where
-  showIndented m i@Node {node = TData {..}} = printNonLeaf m i [d']
+instance ShowIndented TData where
+  showIndented m pt@TData {..} = printNonLeaf m pt [d']
     where
       d' k =
         case d of
@@ -267,51 +271,52 @@ instance ShowIndented (I TData) where
           Opt9H a -> showIndented k a
           Opt9I a -> showIndented k a
 
-instance ShowIndented (I TBool) where
-  showIndented m i@Node {node = TBool {..}} = printLeaf m i b
+instance ShowIndented TBool where
+  showIndented m pt@TBool {..} = printLeaf m pt b
 
-instance ShowIndented (I TText) where
-  showIndented m i@Node {node = TText {..}} = printLeaf m i t
+instance ShowIndented TText where
+  showIndented m pt@TText {..} = printLeaf m pt t
 
-instance ShowIndented (I THex) where
-  showIndented m i@Node {node = THex {..}} = printLeaf m i h
+instance ShowIndented THex where
+  showIndented m pt@THex {..} = printLeaf m pt h
 
-instance ShowIndented (I TString) where
-  showIndented m i@Node {node = TString {..}} = printLeaf m i s
+instance ShowIndented TString where
+  showIndented m pt@TString {..} = printLeaf m pt s
 
-instance ShowIndented (I TFloat) where
-  showIndented m i@Node {node = TFloat {..}} = printLeaf m i f
+instance ShowIndented TFloat where
+  showIndented m pt@TFloat {..} = printLeaf m pt f
 
-instance ShowIndented (I TInt) where
-  showIndented m i@Node {node = TInt {..}} = printLeaf m i s
+instance ShowIndented TInt where
+  showIndented m pt@TInt {..} = printLeaf m pt i
 
-instance ShowIndented (I TBytes) where
-  showIndented m i@Node {node = TBytes {..}} = printNonLeaf m i [bs']
+instance ShowIndented TBytes where
+  showIndented m pt@TBytes {..} = printNonLeaf m pt [bs']
     where
       bs' k =
         case bs of
           Opt2A t -> showIndented k t
           Opt2B t -> printList (showIndented k) t
 
-instance ShowIndented (I TChar) where
-  showIndented m i@Node {node = TChar {..}} = printLeaf m i c
+instance ShowIndented TChar where
+  showIndented m pt@TChar {..} = printLeaf m pt c
 
-instance ShowIndented (I TRegexBody) where
-  showIndented m i@Node {node = TRegexBody  {..}} = printLeaf m i b
+instance ShowIndented TRegexBody where
+  showIndented m pt@TRegexBody  {..} = printLeaf m pt b
 
-instance ShowIndented (I TRegexSuffix ) where
-  showIndented m i@Node {node = TRegexSuffix  {..}} = printLeaf m i s
+instance ShowIndented TRegexSuffix where
+  showIndented m pt@TRegexSuffix  {..} = printLeaf m pt s
 
-instance ShowIndented (I TRegex) where
-  showIndented m n@Node {node = TRegex {..}} = printNonLeaf m n [r', s']
+instance ShowIndented TRegex where
+  showIndented m pt@TRegex {..} = printNonLeaf m pt [r', s']
     where
-      r' i = showIndented i r
-      s' i = showIndented i suff
+      r' i = showIndented i rb
+      s' i = showIndented i rs
 
-instance ShowIndented (I TLineBytes) where
-  showIndented m i@Node {node = TLineBytes {..}} = printNonLeaf m i [bs']
+instance ShowIndented TLineBytes where
+  showIndented m pt@TLineBytes {..} = printNonLeaf m pt [bs']
     where
       bs' k = printList (showIndented k) bs
 
-instance ShowIndented (I TByte) where
-  showIndented m i@Node {node = TByte {..}} = printLeaf m i b
+instance ShowIndented TByte where
+  -- FIXME missing case
+  showIndented m pt@TByte {..} = printLeaf m pt b

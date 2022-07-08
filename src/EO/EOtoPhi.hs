@@ -1,6 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module EO.EOtoPhi(toMinimalTerm) where
 
@@ -11,29 +12,27 @@ import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
 import Data.Maybe (fromJust, isJust)
 import Data.Text (unpack)
 import EOParser as EO
-  ( Ann (..),
-    AttachedName (..),
+  ( AttachedName (..),
     HasName (..),
     Label (..),
     MethodName (..),
     Options2 (..),
     SuffixName (..),
-    THeadTerminal(..),
-    Ann (..),
+    HeadTerminal(..),
     AttachedName (..),
-    AttachedOrArgument (AttachedOrArgument),
+    AttachedOrArgument (..),
     HasName (..),
-    K,
     Label (..),
     MethodName (..),
-    Options2 (Opt2B),
+    Options2 (..),
     Options3 (..),
     SuffixName (..),
-    Term (App, Dot, HeadTerm, Obj),
+    Term (..),
     Head(..),
     HeadName(..),
     LetterName(..),
-    Modifier(..), DataValue (..)
+    Modifier(..),
+    DataValue (..),
   )
 import Phi.Minimal.Model as Min
 
@@ -49,93 +48,95 @@ import Phi.Minimal.Model as Min
 -- > phi { a -> [t -> 4, b -> ?] }
 -- >
 -- > eo { a.b } -> phi { a.b }
-toMinimalTerm :: EO.K EO.Term -> Min.Term
-toMinimalTerm EO.Ann {..} =
-  case term of
+toMinimalTerm :: EO.Term -> Min.Term
+toMinimalTerm = \case
     -- FIXME somehow use the names
-    EO.App (EO.AttachedOrArgument t ns) as -> t2
+    EO.App {t = EO.AttachedOrArgument {t = t, a = ns}, args = as} -> t2
       where
         t1 = toMinimalTerm t
-        g (EO.AttachedOrArgument t3 xs) =
+        g EO.AttachedOrArgument {t = t3, a = xs} =
           -- TODO report errors
           case filter (\case Opt2B _ -> True; _ -> False) xs of
             [] -> Nothing
-            Opt2B (Just (Ann y _)) : _ ->
+            Opt2B (Just y) : _ ->
               (,) (toMinimalTerm t3)
                 <$> case y of
                   -- TODO use special names for attributes
                   -- not just @ and all others
-                  HName y' -> Just (unpack y')
-                  HAt -> Just "@"
+                  HName {t = y'} -> Just (unpack y')
+                  HAt {} -> Just "@"
             _ -> Nothing
         -- get application arguments having a name
         as1 = fromJust <$> filter isJust (g <$> as)
         t2 = foldl (\p1 (p2, a) -> Min.App p1 (a, p2)) t1 as1
-    EO.Obj fs as -> obj
+    EO.Obj {freeAttrs = fs, attrs = as} -> obj
       where
         fs' =
-          filter (\(Ann t _) -> case t of LVarArg _ -> False; _ -> True) fs
-            <&> (\(Ann t _) -> case t of LName txt -> unpack txt; LAt -> "@"; _ -> error "LVarArg here!")
+          filter (\case LVarArg {} -> False; _ -> True) fs
+            <&> (\case LName {n = txt} -> unpack txt; LAt {} -> "@"; _ -> error "LVarArg here!")
             <&> (,VoidAttr)
-        g (EO.AttachedOrArgument t3 xs) =
+        g EO.AttachedOrArgument {t = t3, a = xs} =
           -- TODO partition to not allow incorrect attachments
           case filter (\case Opt2A _ -> True; _ -> False) xs of
             [] -> Nothing
-            Opt2A (AttachedName (SuffixName (Ann y _) _) _) : _ ->
+            -- TODO support imports
+            -- TODO handle list end
+            Opt2A AttachedName {a = SuffixName {n = y}} : _ ->
               (,toMinimalTerm t3)
                 <$> case y of
-                  LName s -> Just $ unpack s
-                  LAt -> Just "@"
-                  LVarArg _ -> Nothing
+                  LName {n = s} -> Just $ unpack s
+                  LAt {} -> Just "@"
+                  -- FIXME has some text
+                  LVarArg {} -> Nothing
             _ -> Nothing
         as1 = as <&> g & filter isJust <&> fromJust <&> second Attached
         obj = Min.Obj $ Object (InsOrdHashMap.fromList (fs' <> as1))
 
     -- FIXME somehow use the names
-    EO.Dot (EO.AttachedOrArgument t ns) as -> t1
+    EO.Dot {t = EO.AttachedOrArgument {t = t, a = ns},  attr = as} -> t1
       where
         t' = toMinimalTerm t
         as' =
           as
-            <&> ( \(Ann m _) ->
-                    case m of
-                      MName tx -> unpack tx
-                      MRho -> "^"
-                      MAt -> "@"
-                      MVertex -> ">"
+            <&> ( \case
+                      MName {n} -> unpack n
+                      MRho {} -> "^"
+                      MAt {} -> "@"
+                      MVertex {} -> ">"
                 )
         t1 = foldl Min.Dot t' as'
-    EO.HeadTerm l h -> t
+    EO.HeadTerm {n = l, a = h} -> t
       where
         loc = l <&> Loc
-        h' = h <&> \(Ann (Head x _) _) ->
+        h' = h <&> \Head {h = x} ->
           case x of
-            Opt3A (Ann a _) -> Left $
+            Opt3A a -> Left $
               case a of
                 -- FIXME use another type for head expressions
                 -- it shouldn't include ^
-                HeadRho -> "^"
+                HeadRho {} -> "^"
                   -- error "head term shouldn't contain ^"
-                HeadRoot -> "Q"
-                HeadXi -> error "head term shouldn't contain $"
-                HeadSigma -> "&"
-                HeadStar -> "*"
-                HeadAt -> "@"
-            Opt3B (Ann (HeadName (Ann (LetterName tx) _) m) _) -> Left $
-              unpack tx <> maybe "" (\case MCopy -> "'"; MInverseDot -> ".") m
-            Opt3C (Ann a _) -> Right . DataTerm $
+                HeadRoot {} -> "Q"
+                -- FIXME throw exception
+                HeadXi {} -> error "head term shouldn't contain $"
+                HeadSigma {} -> "&"
+                HeadStar {} -> "*"
+                HeadAt {} -> "@"
+            Opt3B HeadName {n = LetterName {n = tx}, m = m} -> Left $
+              unpack tx <> maybe "" (\case MCopy {} -> "'"; MInverseDot {} -> ".") m
+            Opt3C a -> Right . DataTerm $
               case a of
-                DInt i -> DataInteger i
+                DInt {i} -> DataInteger i
                 -- TODO support more data types
                 i -> NoData
-        t = 
+        t =
           case (loc, h') of
             (Just a, Just b) -> Min.Dot a $
               case b of
                 Left b' -> b'
                 Right d -> error "No locator before data allowed"
             (Just a, _) -> a
-            (_, Just b) -> 
+            (_, Just b) ->
               case b of
                 Left b' -> Min.Dot (Loc 0) b'
                 Right b' -> b'

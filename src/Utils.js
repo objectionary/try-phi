@@ -45,6 +45,18 @@ let makePermalink = (editor) => (s) => () => {
   return newRef
 }
 
+
+let setGlobalBoolean = (name) => (val) => () => {
+  globalThis[name] = val
+}
+
+let readGlobalBooleanImpl = (name) => (just) => (nothing) => () => {
+  let g = globalThis[name]
+  if (g === true || g === false) {
+    return just(g)
+  }
+  return nothing
+}
 // TODO listen to onCreate for elements with popovers
 
 // var popoverList
@@ -94,4 +106,6 @@ export {
   clipboard,
   writeText,
   makePermalink,
+  readGlobalBooleanImpl,
+  setGlobalBoolean
 }

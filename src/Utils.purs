@@ -1,8 +1,8 @@
-module Utils(class_, attr_, classes_, writeText, Clipboard, clipboard, makePermalink) where
+module Utils(class_, attr_, classes_, writeText, Clipboard, clipboard, makePermalink, setGlobalBoolean, readGlobalBoolean) where
 
 import Prelude
 
-import Data.Maybe (Maybe)
+import Data.Maybe (Maybe(..))
 import Effect (Effect)
 import Halogen (AttrName(..))
 import Halogen.HTML (HTML) as HH
@@ -23,3 +23,11 @@ foreign import clipboard :: Navigator -> Effect Clipboard
 foreign import writeText :: Clipboard -> String -> Effect Unit
 
 foreign import makePermalink :: String -> String -> Effect String
+
+foreign import setGlobalBoolean :: String -> Boolean -> Effect Unit
+
+
+-- https://book.purescript.org/chapter10.html#beyond-simple-types
+readGlobalBoolean :: String -> Effect (Maybe Boolean)
+readGlobalBoolean s = readGlobalBooleanImpl s Just Nothing
+foreign import readGlobalBooleanImpl :: String -> (forall x. x -> Maybe x) -> (forall x. Maybe x) -> Effect (Maybe Boolean)

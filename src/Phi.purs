@@ -64,7 +64,7 @@ import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties.ARIA (role) as HA
 import Halogen.Query.Event (eventListener)
 import Utils (attr_, class_, classes_) as U
-import Utils (clipboard, makePermalink, writeText)
+import Utils (clipboard, makePermalink, readGlobalBoolean, writeText)
 import Web.DOM.Document (toNonElementParentNode)
 import Web.DOM.Element (getAttribute, setAttribute)
 import Web.DOM.NonElementParentNode (getElementById)
@@ -81,10 +81,13 @@ import Web.HTML.Window (navigator)
 import Web.URL.URLSearchParams as USP
 
 
-urlPrefix ∷ String
--- urlPrefix = "http://localhost:3000/"
-urlPrefix = "http://localhost:8082/"
--- urlPrefix = "https://try-phi-back.herokuapp.com/"
+
+data AppState = DevState | DeployState
+
+urlPrefix ∷ AppState -> String
+urlPrefix DevState = "http://localhost:8082/"
+-- urlPrefix DevState = "https://try-phi-back.herokuapp.com/"
+urlPrefix DeployState = "https://try-phi-back.herokuapp.com/"
 
 
 data Editor = EOEditor | PhiEditor
@@ -127,7 +130,7 @@ defaultOk = {
 
 defaultError :: ErrorState
 defaultError = ErrorState {
-    errorTab : Tab {id: TError, isActive: true, buttonText: "Error", tabContent: HH.text ""},
+    errorTab : Tab {id: errorTabId, isActive: true, buttonText: "Error", tabContent: HH.text ""},
     parseError: NoCode
   }
   where
@@ -168,37 +171,6 @@ data Response
       }
 
 type TextTabs = Map TabId String
-
--- data TextTabs 
---   = TextTabs {
---     eo :: String,
---     original_term :: String,
---     whnf :: String,
---     nf :: String,
---     cbn_reduction :: String,
---     cbn_with_tap :: String
---   }
-
--- class AsMap a where
---   asMap :: a -> Map String String
-
--- instance AsMap TextTabs where
---   asMap (TextTabs r) = Map.empty
---     where
---       p = encodeJson r
-
-
--- derive instance Generic TextTabs _
-
--- instance DecodeJson TextTabs where
---   decodeJson = genericDecodeJson
-
--- instance EncodeJson TextTabs where
---   encodeJson = genericEncodeJson
-
--- instance Show Editor where
---   show EOEditor = "EO"
---   show PhiEditor = "Phi"
 
 instance Show Response where
   show (OkResponse r) = "OkResponse:\n" <> show r
@@ -356,7 +328,12 @@ component =
       let req = Request {
           code: code
         }
-      resp <- H.liftAff $ AX.put AW.driver AXRF.json (urlPrefix <> editorName editor) (Just $ Json $ encodeJson req)
+      isDev <- H.liftEffect $ readGlobalBoolean "dev"
+      let appState = 
+            case isDev of 
+              Just true -> DevState 
+              _ -> DeployState
+      resp <- H.liftAff $ AX.put AW.driver AXRF.json (urlPrefix appState <> editorName editor) (Just $ Json $ encodeJson req)
       let
         -- FIXME handle errors
         resp' :: Maybe Response

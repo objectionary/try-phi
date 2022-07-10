@@ -99,6 +99,7 @@ api = Proxy
 
 data Editor = PhiEditor | EOEditor
 
+stepLimit :: Int
 stepLimit = 10
 
 server :: Server API
@@ -111,16 +112,16 @@ server = han PhiEditor :<|> han EOEditor
         let phiTerm = 
               case ed of
                 EOEditor -> getTermFromEO r
-                PhiEditor -> rightToMaybe $ getTermFromPhi r
+                PhiEditor -> getTermFromPhi r
             
-            editorPref = getStr' $
+            editorPrefix = getStr' $
               case ed of
                 EOEditor -> "eo"
                 PhiEditor -> "phi"
         return $
           case phiTerm of
-            Nothing -> Right (ErrorResponse "hey")
-            Just s -> do 
+            Left l -> Right (ErrorResponse l)
+            Right s -> do 
               let tt = TextTabs {
                       eo = ppPhiToEO s,
                       original_term = ppPhi s,

@@ -1,14 +1,19 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE LambdaCase #-}
 
 module Main where
 
-import EOParser ( pack, parseTermProgram, pprintTermProgram )
+import EOParser ( pack, parseCSTProgram, pprintCST, parseTermProgram, pprintTermProgram )
+import Text.Megaparsec (errorBundlePretty)
 
 main :: IO ()
 main = do
-  let file = "./grammars/full-syntax.eo"
+  let file = "./grammars/snippet.eo"
+  -- let file = "./grammars/full-syntax.eo"
   code <- pack . (<> "\n") <$> readFile file
-  let t = parseTermProgram code
+  let t' = parseTermProgram code
+  let t = parseCSTProgram code
   putStr "\n\n"
-  putStrLn (maybe "not ok EO" pprintTermProgram t)
+  putStrLn $ either errorBundlePretty pprintCST t
+  putStrLn $ either errorBundlePretty pprintTermProgram t'

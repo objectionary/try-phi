@@ -11,7 +11,6 @@ import Numeric (showHex)
 import ToTerm(
   Term(..),
   DataValue(..),
-  Ann(..),
   DByte(..),
   DRegexBody(..),
   DRegexSuffix(..),
@@ -45,8 +44,7 @@ import ParseEO
       Options2(..),
       cAT,
       cDOTS,
-      cDOT,
-      TAbstrQuestion )
+      cDOT )
 
 import Data.Char (toUpper)
 import Data.Text (unpack)
@@ -134,7 +132,7 @@ instance PPTermIndented [AttachedOrArgument] where
 instance PPTermInline [AttachedOrArgument] where
   pprint' ls = printTailInline ls
 
-instance PPTermInline (MethodName) where
+instance PPTermInline MethodName where
   pprint' t1 = unpack $
     case t1 of
       MName {n} -> n
@@ -169,9 +167,9 @@ instance PPTermInline Head where
     where
       h' =
         case h of
-          Opt3A ann -> pprint' ann
-          Opt3B ann -> pprint' ann
-          Opt3C ann -> pprint' ann
+          Opt3A a -> pprint' a
+          Opt3B a -> pprint' a
+          Opt3C a -> pprint' a
       u'
         | unpacked = unpack cDOTS
         | otherwise = ""
@@ -222,10 +220,10 @@ withLessParens' x a y = printf "%s" (lessParens (pprint' x <> y <> pprint' a))
 pprintTermNamed' :: PPTermInline a => Term -> a -> String
 pprintTermNamed' pt pa =
   case pt of
-      App {..} -> withLessParens' t pa (printTailInline args)
-      Obj {..} -> withLessParens' freeAttrs pa (printTailInline attrs)
-      Dot {..} -> parens $ pprint' t <> pprint' attr <> pprint' pa
-      HeadTerm {..}  -> printf "%s%s" (printHead n a) (pprint' pa)
+      App {t, args} -> withLessParens' t pa (printTailInline args)
+      Obj {freeAttrs, attrs} -> withLessParens' freeAttrs pa (printTailInline attrs)
+      Dot {t, attr} -> parens $ pprint' t <> pprint' attr <> pprint' pa
+      HeadTerm {n, a}  -> printf "%s%s" (printHead n a) (pprint' pa)
 
 
 instance PPTermInline AttachedOrArgument where
@@ -260,12 +258,12 @@ isInlineContiguous s =
 pprintTermNamed :: PPTermInline a => Int -> Term -> a -> String
 pprintTermNamed m pt pa =
   case pt of
-      App {..} -> printf "%s%s%s" (pprint' t) (pprint' args) (printTailIndented (m + 1) args)
-      Obj {..} -> printf "%s%s%s" (pprint' freeAttrs) (pprint' attrs) (printTailIndented (m + 1) attrs)
-      Dot {..}
+      App {t, args} -> printf "%s%s%s" (pprint' t) (pprint' pa) (printTailIndented (m + 1) args)
+      Obj {freeAttrs, attrs} -> printf "%s%s%s" (pprint' freeAttrs) (pprint' pa) (printTailIndented (m + 1) attrs)
+      Dot {t, attr}
         | isInlineContiguous (pprint' t) -> pprintTermNamed' pt pa
         | otherwise -> printf "%s%s\n%s%s" (pprint m attr) (pprint' pa) (tabs (m + 1)) (pprint (m + 1) t)
-      HeadTerm {..}  -> printf "%s%s" (printHead n a) (pprint' pa)
+      HeadTerm {n, a}  -> printf "%s%s" (printHead n a) (pprint' pa)
 
 instance PPTermIndented Term where
   pprint m t1 = pprintTermNamed m t1 (""::String)

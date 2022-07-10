@@ -2,11 +2,11 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE NamedFieldPuns #-}
 
 module ToTerm
   ( -- composeProgram,
@@ -16,7 +16,7 @@ module ToTerm
     DataValue (..),
     Ann (..),
     DByte (..),
-    AbstrQuestion(..),
+    AbstrQuestion (..),
     DRegexBody (..),
     DRegexSuffix (..),
     DLineBytes (..),
@@ -36,7 +36,7 @@ module ToTerm
     -- initAnn,
     Options2 (..),
     Options3 (..),
-    getTermProgram
+    getTermProgram,
   )
 where
 
@@ -253,12 +253,11 @@ getId a = num $ get a
 dec :: (P.EpiAnn a, EpiAnn b) => a -> b -> b
 dec a b = b'
   where
-    P.Ann {num = num} = P.get a
-    b' = modify (const Ann {num = num}) b
+    P.Ann {num} = P.get a
+    b' = modify (const Ann {num}) b
 
 $( genEpiN
-     [
-       ''Abstraction,
+     [ ''Abstraction,
        ''AbstrQuestion,
        ''AttachedName,
        ''AttachedOrArgument,
@@ -279,14 +278,6 @@ $( genEpiN
        ''Term
      ]
  )
-
--- do
--- t1 <- t
--- MyState tId <- get
--- put (MyState (tId + 1))
--- return _
-
--- Ann {term = t1, ann = IDs {runtimeId = Just tId, treeId = Just (getId n)}}
 
 -- |
 -- convert parsed tree into annotated terms
@@ -403,7 +394,7 @@ composeApplication1 t TApplication1 {..} =
 --
 -- otherwise, produce a new term applied to this list
 applyTail :: AttachedOrArgument -> [AttachedOrArgument] -> AttachedOrArgument
-applyTail pt@AttachedOrArgument {t=t1} ts = ret
+applyTail pt@AttachedOrArgument {t = t1, ann = ann1} ts = ret
   where
     ret =
       case ts of
@@ -411,21 +402,23 @@ applyTail pt@AttachedOrArgument {t=t1} ts = ret
         _ ->
           (\z -> pt {t = z} :: AttachedOrArgument) $
             case t1 of
-              App {..} -> App {t = t, args = args <> ts}
-              Obj {..} -> Obj {freeAttrs = freeAttrs, attrs = attrs <> ts}
-              Dot {..} -> App {t = AttachedOrArgument {t = t1, a = []}, args = ts}
-              HeadTerm {..} -> App {t = AttachedOrArgument {t = t1, a = []}, args = ts}
+              st@App {..} -> st {args = args <> ts}
+              st@Obj {..} -> st {attrs = attrs <> ts} :: Term
+              -- FIXME annotation
+              Dot {..} -> App {t = AttachedOrArgument {t = t1, a = [], ann = ann1}, args = ts, ann}
+              HeadTerm {..} -> App {t = AttachedOrArgument {t = t1, a = [], ann = ann1}, args = ts, ann}
 
 applyDot :: AttachedOrArgument -> TMethod -> AttachedOrArgument
-applyDot pt@AttachedOrArgument {t = t2, a = a1} b = ret
+applyDot pt@AttachedOrArgument {t = t2, a = a1, ann} b = ret
   where
     m = composeMethod b
     ret =
       case (t2, a1) of
         -- if unnamed dot term, put new method name inside
-        (Dot {..}, []) -> (\z -> t {t = z} :: AttachedOrArgument) $ Dot {t, attr = attr <> [m]}
+        (pt1@Dot {attr}, []) -> (\z -> pt {t = z} :: AttachedOrArgument) (pt1 {attr = attr <> [m]})
         -- otherwise, compose a new anonymous dot term with such method name
-        _ -> (\z -> AttachedOrArgument {t = z, a = []}) $ Dot {t = pt, attr = [m]}
+        -- FIXME use super annotation
+        _ -> (\z -> AttachedOrArgument {t = z, a = [], ann}) $ Dot {t = pt, attr = [m], ann}
 
 composeApplication1Elem :: AttachedOrArgument -> TApplication1Elem -> AttachedOrArgument
 composeApplication1Elem t TApplication1Elem {..} = ret
@@ -448,13 +441,13 @@ composeMethod :: TMethod -> MethodName
 composeMethod pt@TMethod {..} = dec pt ret
   where
     ret =
-        case m of
-          Opt2A TName {..} -> MName {n}
-          Opt2B t1 -> dec t1 $
-            case t1 of
-              TMethodRho {} -> MRho {}
-              TMethodVertex {} -> MVertex {}
-              TMethodAt {} -> MAt {}
+      case m of
+        Opt2A TName {..} -> MName {n}
+        Opt2B t1 -> dec t1 $
+          case t1 of
+            TMethodRho {} -> MRho {}
+            TMethodVertex {} -> MVertex {}
+            TMethodAt {} -> MAt {}
 
 -- | append optional argument name to a term
 -- FIXME somehow refer to a super node (to these two)
@@ -507,12 +500,12 @@ composeAbstractionTail TAbstractionTail {..} =
         a1 = composeSuffix a
         b1 =
           case b of
-              Just b' ->
-                Just
-                  $ case b' of
-                    Opt2A c -> Opt2A $ composeLetterName c
-                    Opt2B c -> Opt2B $ composeAbstrQuestion c
-              Nothing -> Nothing
+            Just b' ->
+              Just $
+                case b' of
+                  Opt2A c -> Opt2A $ composeLetterName c
+                  Opt2B c -> Opt2B $ composeAbstrQuestion c
+            Nothing -> Nothing
         ret = (Opt2A AttachedName {a = a1, imported = b1})
     Opt2B h -> Opt2B $ composeHtail h
 
@@ -532,12 +525,12 @@ composeHtail :: THtail -> [AttachedOrArgument]
 composeHtail THtail {..} = ret
   where
     f e =
-          case e of
-            Opt3A a -> attachHead a
-            -- it's an application in parentheses
-            Opt3B a -> composeApplication a
-            -- TODO add case for explicit construction of Opts
-            Opt3C a -> composeAbstraction a
+      case e of
+        Opt3A a -> attachHead a
+        -- it's an application in parentheses
+        Opt3B a -> composeApplication a
+        -- TODO add case for explicit construction of Opts
+        Opt3C a -> composeAbstraction a
     ret = f <$> t
 
 {-
@@ -577,7 +570,6 @@ composeHeadTerminal pt = dec pt $
     THeadXi {} -> HeadXi {}
     THeadSigma {} -> HeadSigma {}
     THeadStar {} -> HeadStar {}
-
 
 composeHead :: THead -> Head
 composeHead pt@THead {..} = dec pt ret
@@ -647,7 +639,7 @@ composeRegexBody :: TRegexBody -> DRegexBody
 composeRegexBody pt@TRegexBody {..} = dec pt DRegexBody {b}
 
 composeRegexSuffix :: TRegexSuffix -> DRegexSuffix
-composeRegexSuffix pt@TRegexSuffix {..} = dec pt DRegexSuffix {s}
+composeRegexSuffix pt@TRegexSuffix {..} = dec pt DRegexSuffix {s} 
 
 composeRegex :: TRegex -> DataValue
 composeRegex pt@TRegex {..} = dec pt ret

@@ -14,7 +14,7 @@ import EnumerateNodes (getIndexedProgram)
 import ParseEO as A (THeadTerminal (..), TProgram, tProgram)
 import PrettyPrintTerm (pprintTermProgram)
 import PrettyPrintTree (pprintTree, ShowIndented)
-import Text.Megaparsec (parseMaybe)
+import Text.Megaparsec (parse, ParseErrorBundle)
 import ToTerm (getTermProgram)
 import ToTerm as TT
   ( Ann (..),
@@ -34,13 +34,15 @@ import ToTerm as TT
     SuffixName (..),
     Term (..),
   )
+import Data.Void (Void)
 
 pprintCST :: forall a. (ShowIndented a) => a -> String
 pprintCST = PrettyPrintTree.pprintTree
 
 -- FIXME 
-parseCSTProgram :: Text -> Maybe TProgram
-parseCSTProgram p = getIndexedProgram <$> parseMaybe tProgram p
+-- parseCSTProgram :: Text -> Either (ParseErrorBundle Text) TProgram
+parseCSTProgram :: Text -> Either (ParseErrorBundle Text Void) TProgram
+parseCSTProgram p = getIndexedProgram <$> parse tProgram "" p
 
-parseTermProgram :: Text -> Maybe Term
+parseTermProgram :: Text -> Either (ParseErrorBundle Text Void) Term
 parseTermProgram p = getTermProgram <$> parseCSTProgram p

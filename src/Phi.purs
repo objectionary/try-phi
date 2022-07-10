@@ -16,12 +16,11 @@ module Phi
   , eoLogoSection
   , html
   , md1
-  , r1
+  , r1,
+  ErrorState(..)
   )
   where
 
-import Data.Argonaut.Decode.Generic
-import Data.Generic.Rep
 import Prelude
 
 import Affjax as AX
@@ -30,18 +29,15 @@ import Affjax.ResponseFormat as AXRF
 import Affjax.Web as AW
 import CSS.Geometry as CG
 import CSS.Size as CS
-import Data.Argonaut (class DecodeJson, class EncodeJson, JsonDecodeError(..), decodeJson, encodeJson, jsonEmptyObject, parseJson, (.:), (:=), (~>))
+import Data.Argonaut (class EncodeJson, JsonDecodeError(..), encodeJson, jsonEmptyObject, parseJson, (.:), (:=), (~>))
 import Data.Argonaut.Decode (JsonDecodeError) as AD
-import Data.Argonaut.Decode (class DecodeJson)
 import Data.Argonaut.Decode.Class (class DecodeJson)
 import Data.Argonaut.Decode.Class (decodeJson)
 import Data.Argonaut.Decode.Decoders (decodeString)
-import Data.Argonaut.Encode.Generic (genericEncodeJson)
 import Data.Array as DA
 import Data.Either (Either(..), hush)
 import Data.Foldable (intercalate, traverse_)
 import Data.Int as DI
-import Data.List (List)
 import Data.Map (fromFoldable)
 import Data.Map.Internal (Map)
 import Data.Map.Internal as Map
@@ -56,14 +52,14 @@ import Effect.Console (log)
 import Foreign (unsafeFromForeign)
 import Halogen (AttrName(..), Component)
 import Halogen as H
-import Halogen.HTML (HTML, b)
-import Halogen.HTML (button, header_, pre_, section_, span, span_, text) as HH
+import Halogen.HTML (HTML)
+import Halogen.HTML (button, header_, pre, pre_, section_, span, text) as HH
 import Halogen.HTML.CSS as CSS
 import Halogen.HTML.Core as HC
 import Halogen.HTML.Elements (a, div, div_, i, img, li_, link, nav_, p_, script, ul_, h3_) as HH
 import Halogen.HTML.Events (onClick)
 import Halogen.HTML.Events (onClick) as HH
-import Halogen.HTML.Properties (ButtonType(..), IProp)
+import Halogen.HTML.Properties (ButtonType(..), IProp, style)
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties.ARIA (role) as HA
 import Halogen.Query.Event (eventListener)
@@ -87,8 +83,8 @@ import Web.URL.URLSearchParams as USP
 
 urlPrefix ∷ String
 -- urlPrefix = "http://localhost:3000/"
--- urlPrefix = "http://localhost:8082/"
-urlPrefix = "https://try-phi-back.herokuapp.com/"
+urlPrefix = "http://localhost:8082/"
+-- urlPrefix = "https://try-phi-back.herokuapp.com/"
 
 
 data Editor = EOEditor | PhiEditor
@@ -99,6 +95,10 @@ textTabIds ∷ Array TabId
 -- FIXME exclude cbnwithGraph
 textTabIds = [ TTerm, TWHNF, TNF, TCBNReduction, TCBNWithTAP]
 
+errorTabId :: TabId
+errorTabId = TError
+
+graphTabId :: Array TabId
 graphTabId = [TCBNWithGraph]
 
 defaultOk :: OkState
@@ -125,11 +125,21 @@ defaultOk = {
 
   isActives = [ true, false, false, false, false, false, false ]
 
+defaultError :: ErrorState
+defaultError = ErrorState {
+    errorTab : Tab {id: TError, isActive: true, buttonText: "Error", tabContent: HH.text ""},
+    parseError: NoCode
+  }
+  where
+  
+  bText = "Errors"
+
+  isActive = true
 
 md1 :: State
 md1 =
     { currentEditor: EOEditor
-    , info: Left NoCode
+    , info: Left defaultError
     }
   
 -- TODO no tabs when empty editors
@@ -186,6 +196,9 @@ type TextTabs = Map TabId String
 -- instance EncodeJson TextTabs where
 --   encodeJson = genericEncodeJson
 
+-- instance Show Editor where
+--   show EOEditor = "EO"
+--   show PhiEditor = "Phi"
 
 instance Show Response where
   show (OkResponse r) = "OkResponse:\n" <> show r
@@ -413,7 +426,7 @@ component =
           -- handle code change when it is caused by user actions
           when (editor == editor') (handleAction (HandleEditorCodeChanged editor' snippet'))
         _ -> err NoSnippetOrEditor
-    HandleError error -> H.modify_ $ \s -> s {info = Left error}
+    HandleError error -> H.modify_ $ \s -> s {info = Left $ let ErrorState s' = defaultError in ErrorState s' {parseError = error}}
     NoOp -> pure unit
 
   setEditor :: forall output. Editor -> H.HalogenM State Action () output Aff Unit
@@ -440,7 +453,11 @@ anotherEditor PhiEditor = EOEditor
 
 editorName :: Editor -> String
 editorName EOEditor = "eo"
-editorName PhiEditor = "phi"  
+editorName PhiEditor = "phi"
+
+editorNamePretty :: Editor -> String
+editorNamePretty EOEditor = "EO"
+editorNamePretty PhiEditor = "𝜑-calculus"
 
 codeChangedSuff :: String
 codeChangedSuff = "-editor-code-changed"
@@ -503,6 +520,7 @@ justifyContentCenter = "justify-content-center"
 dFlex ∷ String
 dFlex = "d-flex"
 
+dGrid ∷ String
 dGrid = "d-grid"
 
 html ∷ ∀ a. State -> HTML a Action
@@ -513,7 +531,7 @@ html state =
           cdns,
           eoLogoSection,
           permalinkButton,
-          editorDiv,
+          editorsDiv,
           infos state,
           pageFooter
         ]
@@ -529,15 +547,48 @@ permalinkButton =
 
 infos :: ∀ a. State -> HTML a Action
 infos s = case s.info of
-  Left e -> showError e
+  Left e -> errorTab e
   Right r -> termTabs r
+  
+errorTab :: forall a. ErrorState -> HTML a Action
+errorTab (ErrorState {parseError: pe, errorTab : et}) = 
+    -- TODO where to set tab content?
+  HH.div_ [
+    HH.nav_ [
+      HH.div
+        [U.classes_ ["nav", "nav-tabs"], HP.id "nav-tab", HA.role "tablist"]
+        [tabButton et']
+    ],
+    HH.div
+      [U.class_ "tab-content", HP.id "nav-tabContent"]
+      [tabContent et']
+  ]
   where
-    pleaseCheck t e = "Please, check your " <> t <> " code:\n" <> e
-    message (EOParseError e) = pleaseCheck "EO" e
-    message (PhiParseError e) = pleaseCheck "Phi" e
-    message NoCode = "Type something!"
-    showError e = HH.div [U.classes_ ["text-center"]] [HH.h3_ [HH.span [HP.style "font-weight:normal"] [HH.text $ message e]]]
+    et' = setTab et pe
 
+setTab :: forall a. Tab -> ParseError -> Tab
+setTab (Tab t) pe = t'
+  where
+    pleaseCheck t = "Please, check your " <> t <> " code:\n"
+    getMessage =
+      case _ of
+        EOParseError e' -> e'
+        PhiParseError e' -> e'
+        NoCode -> "Type something!"
+    getEditor e = pleaseCheck $
+      case e of
+        EOParseError _ -> (editorNamePretty EOEditor)
+        PhiParseError _ -> (editorNamePretty PhiEditor)
+        NoCode -> "empty editors'"
+    ppParseError :: forall b. ParseError -> HTML b Action
+    ppParseError e = HH.div_ [HH.pre [style "white-space: pre-wrap"] [HH.text $ getMessage e]]
+    ppErrorMessage :: forall b. ParseError -> HTML b Action
+    ppErrorMessage e = HH.div [U.classes_ []] [HH.h3_ [HH.span [HP.style "font-weight:normal"] [HH.text $ getEditor e]]]
+    showError :: forall b. ParseError -> HTML b Action
+    showError e = HH.div [U.classes_ ["d-flex"]] [HH.div_ [ppErrorMessage e, ppParseError e]]
+    
+    -- FIXME
+    t' = Tab t {tabContent = showError pe}
 
 eoLogoSection ∷ ∀ a b. HTML a b
 eoLogoSection =
@@ -596,7 +647,7 @@ ics = (\r@{x: x} -> r {x = mkInfo x}) <$>
           , href: "https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAATVEUf-E"
           , txt: "syntax"
           }
-        , { pref: "𝜑-calculus"
+        , { pref: editorNamePretty PhiEditor
           , href: "https://drive.google.com/file/d/1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH/edit?disco=AAAASlupb0I"
           , txt: "definition"
           }
@@ -704,47 +755,36 @@ infoIcon infoId =
     ]
     []
 
-editorDiv :: forall a b. HTML a b
-editorDiv =
-  HH.div
-    [U.class_ "container-fluid", HP.id "cont"]
-    [ HH.div
-    -- TODO function for editors
-        [U.class_ "row"] [
-          HH.div [U.classes_ ["col-sm-6"]] [
+
+editorDiv :: forall a b. Editor -> String -> HTML a b
+editorDiv ed ref =
+          HH.div [U.classes_ ["col-sm-6"]] [  
             HH.div [U.class_ "row"] [
               HH.div [U.classes_ [dFlex, justifyContentCenter]] [
                 HH.p_
-                [ HH.a [HP.href "https://arxiv.org/abs/2204.07454"] [HH.text "𝜑-calculus "],
-                  HH.text "expression",
+                [ HH.a [HP.href ref] [HH.text $ editorNamePretty ed <> " "],
+                  HH.text "code",
                   -- FIXME edit popover
-                  infoIcon "info_phi_editor"
+                  infoIcon $ "info_"<> editorName ed <> "_editor"
                 ]
               ]
             ],
             HH.div [U.classes_ [dFlex, justifyContentCenter]] [
               HH.div [U.class_ "row"] [
-                HH.div [HP.id "phi-editor"] []
-              ]
-            ]
-          ],
-          HH.div [U.classes_ ["col-sm-6"]] [
-            HH.div [U.class_ "row"] [
-              HH.div [U.classes_ [dFlex, justifyContentCenter]] [
-                HH.p_
-                [ HH.a [HP.href "https://www.eolang.org"] [HH.text "EO "],
-                  HH.text "expression",
-                  -- FIXME edit popover
-                  infoIcon "info_eo_editor"
-                ]
-              ]
-            ],
-            HH.div [U.class_ "row"] [
-              HH.div [U.classes_ [dFlex, justifyContentCenter]] [
-                HH.div [HP.id "eo-editor"] []
+                HH.div [HP.id $ editorName ed <> "-editor"] []
               ]
             ]
           ]
+
+
+editorsDiv :: forall a b. HTML a b
+editorsDiv =
+  HH.div
+    [U.class_ "container-fluid", HP.id "cont"]
+    [ HH.div
+        [U.class_ "row"] [
+          editorDiv PhiEditor "https://arxiv.org/abs/2204.07454"
+        , editorDiv EOEditor "https://www.eolang.org"
         ]
     ]
 
@@ -816,11 +856,17 @@ type OkState = {
   graphTab :: GraphTab
 }
 
+data ErrorState = ErrorState {
+  -- FIXME? parseerror is implicitly stored in tab
+  parseError :: ParseError,
+  errorTab :: Tab
+}
+
 -- FIXME store the last editor even in case of parse errors
 -- then no need to store a flag about non-empty code, can use just an error
 type State = {
   currentEditor :: Editor,
-  info :: Either ParseError OkState
+  info :: Either ErrorState OkState
 }
 
 data TabMode = Active | Disabled
@@ -849,7 +895,7 @@ tabButton t@(Tab tab) =
       else {t1 : [], t2: "false"}
 
 
-tabContent :: forall a b. Tab -> HTML a b
+tabContent :: forall a. Tab -> HTML a Action
 tabContent (Tab tab) =
   HH.div [
     U.classes_ $ ["tab-pane", "fade"] <> active,
@@ -874,7 +920,7 @@ mkContent id = "content_" <> id
 mkInfo ∷ String → String
 mkInfo id = "info" <> id
 
-data TabId = TTerm | TWHNF | TNF | TCBNReduction | TCBNWithTAP | TCBNWithGraph
+data TabId = TTerm | TWHNF | TNF | TCBNReduction | TCBNWithTAP | TCBNWithGraph | TError
 
 derive instance Eq TabId
 derive instance Ord TabId
@@ -892,6 +938,7 @@ instance IdGettable TabId where
   getName TCBNReduction = "cbn_reduction"
   getName TCBNWithTAP = "cbn_with_tap"
   getName TCBNWithGraph = "cbn_with_graph"
+  getName TError = "error"
   getId x
     | x == "original_term" = Just TTerm
     | x == "whnf" = Just TWHNF
@@ -899,13 +946,14 @@ instance IdGettable TabId where
     | x == "cbn_reduction" = Just TCBNReduction
     | x == "cbn_with_tap" = Just TCBNWithTAP
     | x == "cbn_with_graph" = Just TCBNWithGraph
+    | x == "error" = Just TError
     | otherwise = Nothing
 
 data Tab = Tab {
   id :: TabId,
   buttonText :: String,
   isActive :: Boolean,
-  tabContent :: forall a b. HTML a b
+  tabContent :: forall a. HTML a Action
 }
 
 instance Eq Tab where

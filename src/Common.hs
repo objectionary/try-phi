@@ -18,6 +18,7 @@ import Phi.Minimal.EO.Pretty as EP (ppTerm)
 
 import Data.Text (pack)
 import Phi.Minimal.Parser as PMP(parseTerm)
+import Text.Megaparsec.Error(errorBundlePretty)
 -- import Phi.Minimal.Print(ppPhiSource)
 
 -- TODO send html, not text
@@ -40,7 +41,7 @@ ppPhiSource :: Term -> String
 ppPhiSource = show . Phi.ppPhiSource
 
 ppEO :: Term -> String
-ppEO = show . EP.ppTerm
+ppEO t = (show . EP.ppTerm) t <> "\n"
 
 ppPhi :: Term -> String
 ppPhi = show
@@ -63,16 +64,24 @@ ppTapSteps = show . Phi.ppStepsFor
 -- | list of graph steps
 ppStates :: Term -> Int -> [String]
 ppStates
-    term 
-    lim 
+    term
+    lim
     = show . Phi.ppGraphStepsFor term <$> [0 .. lim]
 
 ppGraphs :: PM.Term -> Int -> [String]
 ppGraphs term lim = T.unpack <$> map (renderAsDot @Gr) (take lim $ CGraph.steps $ CGraph.initConfiguration term)
 
 -- FIXME use Either
-getTermFromEO :: String -> Maybe PM.Term
-getTermFromEO s = toMinimalTerm <$> parseTermProgram (pack s)
+-- getTermFromEO :: String -> Either  PM.Term
+-- getTermFromEO :: String -> Either (ParseErrorBundle Text Void) Term
+getTermFromEO :: String -> Either String Term
+getTermFromEO s = ret
+    where
+        t = toMinimalTerm <$> parseTermProgram (pack s)
+        ret =
+            case t of
+                Left l -> Left $ errorBundlePretty l
+                Right r -> Right r
 
 getTermFromPhi :: String -> Either String Term
 getTermFromPhi = PMP.parseTerm

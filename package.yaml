@@ -25,6 +25,7 @@ dependencies:
   - phi-utils
   # - prettyprinter
   - text
+  - megaparsec
   
 library:
   source-dirs: src

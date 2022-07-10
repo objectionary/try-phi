@@ -1,9 +1,10 @@
 module EO.Test(test, test') where
 
 import EO.EOtoPhi(toMinimalTerm)
-import Phi.Minimal.Pretty
-import EOParser
+import Phi.Minimal.Pretty ()
+import EOParser ( pprintTermProgram, parseTermProgram, pack )
 import System.Directory(getCurrentDirectory)
+import Data.Function ((&))
 
 test' :: IO ()
 test' = print "not ok"
@@ -15,11 +16,10 @@ test s = do
   let file = s
   code <- pack . (<> "\n") <$> readFile file
   let p = parseTermProgram code
-  case p of
-    Just p' -> do 
+  p & either print (\p' ->
+    do
       putStrLn "\nEO code\n"
       putStrLn (pprintTermProgram p')
       putStrLn "\nPhi Minimal code\n"
       print (toMinimalTerm p')
-      putStrLn "\n "
-    _ -> putStrLn "not Ok"
+      putStrLn "\n ")

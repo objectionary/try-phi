@@ -43,6 +43,7 @@ library
     , eo-utils
     , fgl
     , insert-ordered-containers
+    , megaparsec
     , phi-utils
     , text
   default-language: Haskell2010
@@ -60,6 +61,7 @@ executable try-phi-language-utils
     , eo-utils
     , fgl
     , insert-ordered-containers
+    , megaparsec
     , phi-utils
     , text
     , try-phi-language-utils
@@ -80,6 +82,7 @@ test-suite doctests
     , eo-utils
     , fgl
     , insert-ordered-containers
+    , megaparsec
     , phi-utils
     , template-haskell
     , text
@@ -101,6 +104,7 @@ test-suite spec
     , fgl
     , hspec
     , insert-ordered-containers
+    , megaparsec
     , phi-utils
     , text
     , try-phi-language-utils

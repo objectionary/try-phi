@@ -86,8 +86,8 @@ import Web.URL.URLSearchParams as USP
 data AppState = DevState | DeployState
 
 urlPrefix ∷ AppState -> String
--- urlPrefix DevState = "http://localhost:8082/"
-urlPrefix DevState = "https://try-phi-back.herokuapp.com/"
+urlPrefix DevState = "http://localhost:8082/"
+-- urlPrefix DevState = "https://try-phi-back.herokuapp.com/"
 urlPrefix DeployState = "https://try-phi-back.herokuapp.com/"
 
 

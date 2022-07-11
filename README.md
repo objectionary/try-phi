@@ -1,4 +1,4 @@
-# Try Phi
+# Try-phi frontend
 
 This is an attempt to rewrite [try-phi](https://github.com/br4ch1st0chr0n3/try-phi) in PureScript.
 It's based on this [template](https://github.com/purescript-halogen/purescript-halogen-template).

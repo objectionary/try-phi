@@ -11,8 +11,9 @@
   },
   "scripts": {
     "build": "spago build",
+    "init": "npm i && npm run build && npm run dev",
     "test": "spago test",
-    "serve": "parcel dev/index.html --open",
+    "dev": "parcel dev/index.html --open",
     "build-prod": "mkdir -p prod && cp dev/index.html prod/ && rm -rf dist && spago bundle-app --to prod/index.js && parcel build prod/index.html",
     "deploy": "npm run build-prod && mkdir -p docs && cp dev/* docs && esbuild --minify prod/index.js --outfile=docs/index.js && gh-pages -d docs"
   },

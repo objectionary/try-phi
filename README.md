@@ -10,9 +10,7 @@ It's based on this [template](https://github.com/purescript-halogen/purescript-h
 ```sh
 git clone https://github.com/br4ch1st0chr0n3/try-phi-front
 cd try-phi-front
-npm install
-npm run build
-npm run serve
+npm run init
 ```
 
 * If there is an [inotify error](https://askubuntu.com/a/1088275), run

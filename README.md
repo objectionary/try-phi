@@ -1,8 +1,8 @@
-# try-servant
+# Try-phi backend
 
 ## Run
 ```sh
-stack run
+stack build --exec try-phi-back-exe
 ```
 
 ## Deploy to Heroku?

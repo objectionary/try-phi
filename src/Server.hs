@@ -139,13 +139,5 @@ server = han PhiEditor :<|> han EOEditor
                       PhiEditor -> ppEO s
                       EOEditor -> ppPhiSource s
               return $ OkResponse g' tt gt
-        -- graphTab <- liftIO $ GraphTab <$> ((: []) <$> g) <*> ((: []) <$> g)
-        -- textTabs <- TextTabs <$> g <*> g <*> g <*> g <*> g <*> g
-        -- p <- liftIO $ flip mod 2 <$> randomIO :: IO Int
-        -- okResp <- liftIO $ OkResponse <$> g <*> return textTabs <*> return graphTab
-        -- return $
-        --   if p == 0
-        --     then Right (ErrorResponse "hey")
-        --     else Right okResp
 
     getStr' a = stringRandomIO "20\\d\\d-(1[0-2]|0[1-9])-(0[1-9]|1\\d|2[0-8])" <&> unpack <&> (a <>)

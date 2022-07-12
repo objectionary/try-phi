@@ -5,10 +5,10 @@
 
 module Main(main) where
 
-import EO.Test(test, test')
+import Test(test, test')
 
 main :: IO ()
 main = do 
     test'
-    test "./src/EO/snippet.eo"
+    test "./test/data/snippet.eo"
     print "ok"

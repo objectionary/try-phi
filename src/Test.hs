@@ -1,6 +1,6 @@
-module EO.Test(test, test') where
+module Test(test, test') where
 
-import EO.EOtoPhi(toMinimalTerm)
+import EOtoPhi(toMinimalTerm)
 import Phi.Minimal.Pretty ()
 import EOParser ( pprintTermProgram, parseTermProgram, pack )
 import System.Directory(getCurrentDirectory)

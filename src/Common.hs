@@ -1,6 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TypeApplications #-}
-module Common(ppPhiToEO, ppWHNF, ppWHNFSteps, ppNF, ppTapSteps, ppStates, ppGraphs, getTermFromPhi, getTermFromEO, ppEO, ppPhi, Common.ppPhiSource) where
+module Common(ppPhiToEO, ppWHNF, ppWHNFSteps, ppNF, ppTapSteps, ppStates, ppGraphs, getTermFromPhi, getTermFromEO, ppEOSource, ppPhi, Common.ppPhiSource) where
 
 
 import Phi.Minimal as Phi
@@ -9,12 +9,12 @@ import Phi.Minimal.ConfigurationDot(renderAsDot)
 import qualified Data.Text.Lazy                       as T
 import           Data.Graph.Inductive.PatriciaTree    (Gr)
 import qualified Phi.Minimal.Machine.CallByName.Graph as CGraph
-import Phi.Minimal.Model as PM
+import Phi.Minimal.Model as PM ( Term )
 
-import EO.EOtoPhi(toMinimalTerm)
+import EOtoPhi(toMinimalTerm)
 import EOParser as EOP(parseTermProgram)
 
-import Phi.Minimal.EO.Pretty as EP (ppTerm)
+import PhiToEO as EP (ppTermTop)
 
 import Data.Text (pack)
 import Phi.Minimal.Parser as PMP(parseTerm)
@@ -40,8 +40,8 @@ import Text.Megaparsec.Error(errorBundlePretty)
 ppPhiSource :: Term -> String
 ppPhiSource = show . Phi.ppPhiSource
 
-ppEO :: Term -> String
-ppEO t = (show . EP.ppTerm) t <> "\n"
+ppEOSource :: Term -> String
+ppEOSource t = (show . EP.ppTermTop) t <> "\n"
 
 ppPhi :: Term -> String
 ppPhi = show

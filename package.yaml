@@ -23,7 +23,7 @@ dependencies:
   - insert-ordered-containers
   # - lucid
   - phi-utils
-  # - prettyprinter
+  - prettyprinter
   - text
   - megaparsec
   
@@ -31,7 +31,7 @@ library:
   source-dirs: src
   exposed-modules:
   - Common
-  - EO.Test
+  - Test
 executables:
   try-phi-language-utils:
     main: Main.hs

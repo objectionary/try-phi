@@ -3,7 +3,7 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module EO.EOtoPhi(toMinimalTerm) where
+module EOtoPhi(toMinimalTerm) where
 
 import Data.Bifunctor (Bifunctor (second))
 import Data.Function ((&))

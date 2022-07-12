@@ -29,7 +29,6 @@ library
       Lambda.Pretty
       Phi.Minimal
       Phi.Minimal.ConfigurationDot
-      Phi.Minimal.EO.Pretty
       Phi.Minimal.Graph
       Phi.Minimal.Machine.CallByName
       Phi.Minimal.Machine.CallByName.Graph

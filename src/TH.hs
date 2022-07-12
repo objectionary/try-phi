@@ -14,7 +14,6 @@ data GraphTab = GraphTab
   deriving (Show, Data, Typeable)
 
 data TextTabs = TextTabs {
-    eo :: String,
     original_term :: String,
     whnf :: String,
     nf :: String,
@@ -35,10 +34,9 @@ data MyResponse
 
 data MyRequest = MyRequest {code :: String} deriving (Eq, Show)
 
-data TabId = TEO | TTerm | TWHNF | TNF | TCBNReduction | TCBNWithTAP | TCBNWithGraph
+data TabId = TTerm | TWHNF | TNF | TCBNReduction | TCBNWithTAP | TCBNWithGraph
 
 instance Show TabId where
-  show TEO = "eo"
   show TTerm = "original_term"
   show TWHNF = "whnf"
   show TNF = "nf"

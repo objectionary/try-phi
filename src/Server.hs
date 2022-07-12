@@ -47,7 +47,7 @@ import Common
       ppStates,
       ppTapSteps,
       ppWHNF,
-      ppWHNFSteps, ppEO, ppPhiSource )
+      ppWHNFSteps, ppEOSource, ppPhiSource )
 import EOParser (parseTermProgram)
 
 arr = ["eo", "original_term", "whnf", "nf", "cbn_reduction", "cbn_with_tap"]
@@ -121,9 +121,8 @@ server = han PhiEditor :<|> han EOEditor
         return $
           case phiTerm of
             Left l -> Right (ErrorResponse l)
-            Right s -> do 
+            Right s -> do
               let tt = TextTabs {
-                      eo = ppPhiToEO s,
                       original_term = ppPhi s,
                       whnf = ppWHNF s,
                       nf = ppNF s,
@@ -136,7 +135,7 @@ server = han PhiEditor :<|> han EOEditor
                     }
                   g' = 
                     case ed of 
-                      PhiEditor -> ppEO s
+                      PhiEditor -> ppEOSource s
                       EOEditor -> ppPhiSource s
               return $ OkResponse g' tt gt
 

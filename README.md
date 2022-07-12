@@ -2,7 +2,7 @@
 
 ## Run
 ```sh
-stack build --exec try-phi-back-exe
+sh build.sh
 ```
 
 ## Deploy to Heroku?

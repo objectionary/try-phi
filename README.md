@@ -3,7 +3,7 @@
 This is an experimental interpreter for a variant of 𝜑-calculus.
 Right now we implement it as a term rewriting system.
 
-It is combined with EO editor. EO is based on 𝜑-calculus.
+It is combined with [EO](https://github.com/objectionary/eo) editor. EO is based on 𝜑-calculus.
 
 ## Components
 

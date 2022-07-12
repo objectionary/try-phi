@@ -1,6 +1,7 @@
 module Phi
   ( Action(..)
   , Editor(..)
+  , ErrorState(..)
   , GraphTab(..)
   , OkState(..)
   , ParseError(..)
@@ -14,11 +15,11 @@ module Phi
   , dataProp
   , editorId
   , eoLogoSection
+  , globalVarDev
   , html
   , md1
-  , r1,
-  ErrorState(..),
-  globalVarDev
+  , r1
+  , tabButton
   )
   where
 
@@ -36,19 +37,20 @@ import Data.Argonaut.Decode.Class (class DecodeJson)
 import Data.Argonaut.Decode.Class (decodeJson)
 import Data.Argonaut.Decode.Decoders (decodeString)
 import Data.Array as DA
-import Data.Either (Either(..), hush)
+import Data.Either (Either(..), hush, isLeft)
 import Data.Foldable (intercalate, traverse_)
 import Data.Int as DI
 import Data.Map (fromFoldable)
 import Data.Map.Internal (Map)
 import Data.Map.Internal as Map
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.MediaType.Common (applicationJavascript, textCSS)
 import Data.String.Common (null)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
 import Effect.Aff (Aff)
+import Effect.Class (class MonadEffect)
 import Effect.Console (log)
 import Foreign (unsafeFromForeign)
 import Halogen (AttrName(..), Component)
@@ -64,8 +66,8 @@ import Halogen.HTML.Properties (ButtonType(..), IProp, style)
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties.ARIA (role) as HA
 import Halogen.Query.Event (eventListener)
+import Utils (Popover, clipboard, createPopovers, makePermalink, readGlobalBoolean, removePopovers, writeText)
 import Utils (attr_, class_, classes_) as U
-import Utils (clipboard, makePermalink, readGlobalBoolean, writeText)
 import Web.DOM.Document (toNonElementParentNode)
 import Web.DOM.Element (getAttribute, setAttribute)
 import Web.DOM.NonElementParentNode (getElementById)
@@ -91,9 +93,19 @@ urlPrefix DevState = "http://localhost:8082/"
 urlPrefix DeployState = "https://try-phi-back.herokuapp.com/"
 
 
+
 data Editor = EOEditor | PhiEditor
 
 derive instance Eq Editor
+
+_editor ∷ String → String
+_editor x = x <> "_editor"
+
+editorPopovers = (\x -> mkInfo (editorName x) # _editor) <$> [EOEditor, PhiEditor]
+
+tabPopovers = (\x -> mkInfo (getName x) # _editor) <$> textTabIds
+
+allPopovers = editorPopovers <> tabPopovers
 
 textTabIds ∷ Array TabId
 -- FIXME exclude cbnwithGraph
@@ -130,8 +142,8 @@ defaultOk = {
   isActives = [ true, false, false, false, false, false, false ]
 
 defaultError :: ErrorState
-defaultError = ErrorState {
-    errorTab : Tab {id: errorTabId, isActive: true, buttonText: "Error", tabContent: HH.text ""},
+defaultError = {
+    errorTab : Tab {id: errorTabId, isActive: isActive, buttonText: bText, tabContent: HH.text ""},
     parseError: NoCode
   }
   where
@@ -269,6 +281,7 @@ instance LogError HandleError where
 
 globalVarDev = "dev"
 
+
 component :: ∀ a b c. Component a b c Aff
 component =
   H.mkComponent
@@ -287,127 +300,141 @@ component =
   render s = html s
 
   handleAction :: forall output. Action -> H.HalogenM State Action () output Aff Unit
-  handleAction = case _ of
-    Init -> do
-      handleAction $ UpdatePermalink EOEditor ""
-      handleAction ListenEditorsCodeChanged
-      handleAction ListenEditorsCreated
-    SelectTab t1 -> do
-      let selectActiveTab = (\x -> x { textTabs = ( \t2@(Tab t') -> Tab (t' { isActive = t1 == t2 })) <$> x.textTabs})
-      updateInfo selectActiveTab
+  handleAction ac = do
+    do
+      case ac of
+        Init -> do
+          handleAction $ UpdatePermalink EOEditor ""
+          handleAction ListenEditorsCodeChanged
+          handleAction ListenEditorsCreated
+          setStatePopovers
+
+        SelectTab t1 -> do
+          let selectActiveTab = (\x -> x { textTabs = ( \t2@(Tab t') -> Tab (t' { isActive = t1 == t2 })) <$> x.textTabs})
+          updateInfo selectActiveTab
+                
+        NextStep -> updateInfo $ \x -> x {graphStep = x.graphStep + 1}
+        PrevStep -> updateInfo $ \x -> x {graphStep = x.graphStep - 1}
+        ListenEditorsCodeChanged -> forEditors ListenEditorCodeChanged
+        ListenEditorCodeChanged e -> do
+            document <- H.liftEffect $ Web.document =<< Web.window
+            H.subscribe' \_ ->
+              eventListener
+              (EventType (getNameEventCodeChanged e))
+              (HTMLDocument.toEventTarget document)
+              (\ev -> do
+                let
+                  editor = getEditorWhereCodeChanged $ (\(EventType s) -> s) $ Event.type_ ev
+                  code' :: Maybe (Either AD.JsonDecodeError NewCode)
+                  code' = CE.fromEvent ev <#> CE.detail <#> unsafeFromForeign <#> decodeJson
+                  code = 
+                    case code' of
+                      Just (Right c) -> Just c.newCode
+                      _ -> Nothing
+                HandleEditorCodeChanged <$> editor <*> code)
+
+        HandleEditorCodeChanged editor code -> do
+          -- FIXME only set when there was an error in state
+          del <- deleteStatePopovers
+          when del $ do
+          -- do
+            if null code
+            then handleAction $ HandleError NoCode
+            else H.modify_ $ \s -> 
+              case s.info of 
+                Left _ -> s {info = Right defaultOk}
+                Right _ -> s
             
-    NextStep -> updateInfo $ \x -> x {graphStep = x.graphStep + 1}
-    PrevStep -> updateInfo $ \x -> x {graphStep = x.graphStep - 1}
-    ListenEditorsCodeChanged -> forEditors ListenEditorCodeChanged
-    ListenEditorCodeChanged e -> do
-        document <- H.liftEffect $ Web.document =<< Web.window
-        H.subscribe' \_ ->
-          eventListener
-          (EventType (getNameEventCodeChanged e))
-          (HTMLDocument.toEventTarget document)
-          (\ev -> do
-            let
-              editor = getEditorWhereCodeChanged $ (\(EventType s) -> s) $ Event.type_ ev
-              code' :: Maybe (Either AD.JsonDecodeError NewCode)
-              code' = CE.fromEvent ev <#> CE.detail <#> unsafeFromForeign <#> decodeJson
-              code = 
-                case code' of
-                  Just (Right c) -> Just c.newCode
-                  _ -> Nothing
-            HandleEditorCodeChanged <$> editor <*> code)
-
-    HandleEditorCodeChanged editor code -> do
-      if null code
-      then handleAction $ HandleError NoCode
-      -- FIXME only set when there was an error in state
-      else H.modify_ $ \s -> 
-        case s.info of 
-          Left _ -> s {info = Right defaultOk}
-          Right _ -> s
-
-      setEditor editor
-      handleAction $ UpdatePermalink editor code
-      -- request code from server
-      let req = Request {
-          code: code
-        }
-      isDev <- H.liftEffect $ readGlobalBoolean globalVarDev
-      let appState = 
-            case isDev of 
-              Just true -> DevState 
-              _ -> DeployState
-      resp <- H.liftAff $ AX.put AW.driver AXRF.json (urlPrefix appState <> editorName editor) (Just $ Json $ encodeJson req)
-      let
-        -- FIXME handle errors
-        resp' :: Maybe Response
-        resp' = 
-            case resp of
-              Right {body: b} -> hush $ decodeJson b
-              Left _ -> Nothing
-      case resp' of
-        Just (OkResponse r) -> 
-          do
-            setCode (anotherEditor editor) r.code
-            updateInfo $ \s -> s {
-              textTabs = (\(Tab t) ->
-                case Map.lookup t.id r.textTabs of
-                  Just cont -> Tab t {tabContent = HH.pre_ [HH.text cont]}
-                  Nothing -> Tab t {tabContent = HH.pre_ [HH.text "No response"]}
-                ) <$> s.textTabs 
+            setEditor editor
+            handleAction $ UpdatePermalink editor code
+            -- request code from server
+            let req = Request {
+                code: code
               }
-        Just (ErrorResponse r) -> handleAction $ HandleError $ (r.error #
-          case editor of
-            EOEditor -> EOParseError
-            PhiEditor -> PhiParseError)
-        -- FIXME Handle error
-        Nothing -> err NoResponse
+            isDev <- H.liftEffect $ readGlobalBoolean globalVarDev
+            let appState = 
+                  case isDev of 
+                    Just true -> DevState 
+                    _ -> DeployState
+            resp <- H.liftAff $ AX.put AW.driver AXRF.json (urlPrefix appState <> editorName editor) (Just $ Json $ encodeJson req)
+            let
+              -- FIXME handle errors
+              resp' :: Maybe Response
+              resp' = 
+                  case resp of
+                    Right {body: b} -> hush $ decodeJson b
+                    Left _ -> Nothing
+            case resp' of
+              Just (OkResponse r) -> 
+                do
+                  setCode (anotherEditor editor) r.code
+                  updateInfo $ \s -> s {
+                    textTabs = (\(Tab t) ->
+                      case Map.lookup t.id r.textTabs of
+                        Just cont -> Tab t {tabContent = HH.pre_ [HH.text cont]}
+                        Nothing -> Tab t {tabContent = HH.pre_ [HH.text "No response"]}
+                      ) <$> s.textTabs 
+                    }
+                  setStatePopovers
+                  
+              Just (ErrorResponse r) -> handleAction $ HandleError $ (r.error #
+                case editor of
+                  EOEditor -> EOParseError
+                  PhiEditor -> PhiParseError)
+              -- FIXME Handle error
+              Nothing -> err NoResponse
 
-    CopyToClipboard -> do
-      cb <- H.liftEffect $ Web.window >>= navigator >>= clipboard
-      -- get link
-      perm <- H.liftEffect $ Web.window >>= Web.document >>= (\x -> getElementById permalink_ $ toNonElementParentNode (toDocument x))
-      case perm of
-        Just j -> do
-          h <- H.liftEffect $ getAttribute myHref_ j
-          case h of
-            Just h' -> H.liftEffect $ pure h' >>= writeText cb
-            Nothing -> err NoHrefPermalink
-        Nothing -> err NoPermalink
+        CopyToClipboard -> do
+          cb <- H.liftEffect $ Web.window >>= navigator >>= clipboard
+          -- get link
+          perm <- H.liftEffect $ Web.window >>= Web.document >>= (\x -> getElementById permalink_ $ toNonElementParentNode (toDocument x))
+          case perm of
+            Just j -> do
+              h <- H.liftEffect $ getAttribute myHref_ j
+              case h of
+                Just h' -> H.liftEffect $ pure h' >>= writeText cb
+                Nothing -> err NoHrefPermalink
+            Nothing -> err NoPermalink
 
-    UpdatePermalink editor code -> do
-      perm <- H.liftEffect $ Web.window >>= Web.document >>= (\x -> getElementById permalink_ $ toNonElementParentNode (toDocument x))
-      case perm of
-        Just p -> do
-          ref <- H.liftEffect $ makePermalink (editorName editor) code
-          H.liftEffect $ setAttribute myHref_ ref p
-        Nothing -> err NoPermalink
+        UpdatePermalink editor code -> do
+          perm <- H.liftEffect $ Web.window >>= Web.document >>= (\x -> getElementById permalink_ $ toNonElementParentNode (toDocument x))
+          case perm of
+            Just p -> do
+              ref <- H.liftEffect $ makePermalink (editorName editor) code
+              H.liftEffect $ setAttribute myHref_ ref p
+            Nothing -> err NoPermalink
 
-    -- FIXME react to an event from editor when it is created to send the code
-    -- if it sends earlier => it's present, so send the code (init from link) even if no event received
-    -- editors notify when created
-    ListenEditorsCreated -> forEditors ListenEditorCreated
-    ListenEditorCreated editor -> do
-      document <- H.liftEffect $ Web.document =<< Web.window
-      H.subscribe' \_ ->
-        eventListener
-        (EventType (getNameEventEditorCreated editor))
-        (HTMLDocument.toEventTarget document)
-        (\_ -> Just $ InitFromLink editor)
-    InitEditorsFromLink -> forEditors InitFromLink
-    InitFromLink editor -> do
-      -- take data for setting initial snippet
-      link <- USP.fromString <$> (H.liftEffect $ Web.window >>= Web.location >>= Web.search)
-      let
-        ed = USP.get editor_ link >>= editorId
-        snip = USP.get snippet_ link
-      case snip /\ ed of
-        Just snippet' /\ Just editor' -> do
-          setCode editor' snippet'
-          -- handle code change when it is caused by user actions
-          when (editor == editor') (handleAction (HandleEditorCodeChanged editor' snippet'))
-        _ -> err NoSnippetOrEditor
-    HandleError error -> H.modify_ $ \s -> s {info = Left $ let ErrorState s' = defaultError in ErrorState s' {parseError = error}}
-    NoOp -> pure unit
+        -- FIXME react to an event from editor when it is created to send the code
+        -- if it sends earlier => it's present, so send the code (init from link) even if no event received
+        -- editors notify when created
+        ListenEditorsCreated -> forEditors ListenEditorCreated
+        ListenEditorCreated editor -> do
+          document <- H.liftEffect $ Web.document =<< Web.window
+          H.subscribe' \_ ->
+            eventListener
+            (EventType (getNameEventEditorCreated editor))
+            (HTMLDocument.toEventTarget document)
+            (\_ -> Just $ InitFromLink editor)
+        InitEditorsFromLink -> forEditors InitFromLink
+        InitFromLink editor -> do
+          -- set popover
+          setEditorPopovers
+          -- log_ $ show editorPopovers
+          -- take data for setting initial snippet
+          link <- USP.fromString <$> (H.liftEffect $ Web.window >>= Web.location >>= Web.search)
+          let
+            ed = USP.get editor_ link >>= editorId
+            snip = USP.get snippet_ link
+          case snip /\ ed of
+            Just snippet' /\ Just editor' -> do
+              setCode editor' snippet'
+              -- handle code change when it is caused by user actions
+              when (editor == editor') (handleAction (HandleEditorCodeChanged editor' snippet'))
+            _ -> err NoSnippetOrEditor
+        HandleError error -> do
+          H.modify_ $ \s -> s {info = Left $ defaultError {parseError = error}}
+          setStatePopovers
+        NoOp -> pure unit
 
   setEditor :: forall output. Editor -> H.HalogenM State Action () output Aff Unit
   setEditor editor = H.modify_ $ \s -> s {currentEditor = editor}
@@ -423,7 +450,18 @@ component =
       ce <- H.liftEffect $ CE.toEvent <$> CE.new' (EventType $ (getNameEventChangeCode editor)) (Just {newCode: code})
       doc <- H.liftEffect $ toEventTarget <$> (Web.document =<< Web.window)
       H.liftEffect $ dispatchEvent ce doc *> pure unit
+  
+  setStatePopovers :: forall output. H.HalogenM State Action () output Aff Unit
+  setStatePopovers = H.gets _.info >>= (\x -> H.liftEffect $ createPopovers $ getInfoIds x)
 
+  deleteStatePopovers :: forall output. H.HalogenM State Action () output Aff Boolean
+  deleteStatePopovers = H.gets _.info >>= (\x -> H.liftEffect $ removePopovers $ getInfoIds x)
+  
+  setEditorPopovers :: forall output. H.HalogenM State Action () output Aff Unit
+  setEditorPopovers = H.liftEffect $ createPopovers editorPopovers
+  
+  deletePopoversName :: forall output. Array String -> H.HalogenM State Action () output Aff Boolean
+  deletePopoversName ns = H.liftEffect $ removePopovers ns
 -- FIXME remove non-polymorphic classes
 
 -- instance CodeChanges where
@@ -531,7 +569,7 @@ infos s = case s.info of
   Right r -> termTabs r
   
 errorTab :: forall a. ErrorState -> HTML a Action
-errorTab (ErrorState {parseError: pe, errorTab : et}) = 
+errorTab {parseError: pe, errorTab : et} = 
     -- TODO where to set tab content?
   HH.div_ [
     HH.nav_ [
@@ -601,11 +639,14 @@ getInfoContent x = fromMaybe "" (Map.lookup x infoContent)
 infoContent ∷ Map String String
 infoContent = Map.fromFoldable $ map (\{ x, y } -> Tuple x (combine y)) ics
   where
-  _a :: String -> String -> String
-  _a "" "" = ""
-  _a "" s = s
-  _a h "" = h
-  _a h s = "<a href=" <> h <> ">" <> s <> "</a>"
+  _a :: Maybe String -> Maybe String -> String
+  _a Nothing Nothing = ""
+  _a Nothing (Just s) = s
+  _a (Just h) Nothing = h
+  _a (Just h) (Just s) = "<a href=" <> h <> ">" <> s <> "</a>"
+
+  maybeEmptyString :: Maybe String -> String
+  maybeEmptyString = maybe "" identity
 
   _br :: String -> String
   _br s = "<br>" <> s
@@ -616,112 +657,130 @@ infoContent = Map.fromFoldable $ map (\{ x, y } -> Tuple x (combine y)) ics
   _bullet :: String -> String
   _bullet s = "&bull; " <> s
 
-  combine y = _div $ intercalate "<br>" (map (\{ pref, href, txt } -> (_bullet $ pref <> " " <> _a href txt)) y)
+  combine y = _div $ intercalate "<br>" (map (\{ pref, href, txt } -> (_bullet $ (maybeEmptyString pref) <> " " <> _a href txt)) y)
 
 
-ics ∷ Array { x ∷ String , y ∷ Array { href :: String , pref :: String , txt :: String } }
+ics ∷ Array { x ∷ String , y ∷ Array { href :: Maybe String , pref :: Maybe String , txt :: Maybe String } }
 ics = (\r@{x: x} -> r {x = mkInfo x}) <$>
-  [ { x: "editor"
+  [ { x: editorName PhiEditor # _editor
     , y:
-        [ { pref: "Original"
-          , href: "https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAATVEUf-E"
-          , txt: "syntax"
+        [ { pref: Just "Original"
+          , href: Just "https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAATVEUf-E"
+          , txt: Just "syntax"
           }
-        , { pref: editorNamePretty PhiEditor
-          , href: "https://drive.google.com/file/d/1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH/edit?disco=AAAASlupb0I"
-          , txt: "definition"
+        , { pref: Just $ editorNamePretty PhiEditor
+          , href: Just "https://drive.google.com/file/d/1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH/edit?disco=AAAASlupb0I"
+          , txt: Just "definition"
           }
-        , { pref: ""
-          , href: "https://bit.ly/32zuO4u"
-          , txt: "BNF"
+        , { pref: Nothing
+          , href: Just "https://bit.ly/32zuO4u"
+          , txt: Just "BNF"
+          }
+        ]
+    }
+  , { x: editorName EOEditor # _editor
+    , y:
+        [{ pref: Nothing
+          , href: Just "https://arxiv.org/pdf/2111.13384.pdf#page=3"
+          , txt: Just "BNF and syntax explanation"
           }
         ]
     }
   , { x: getName TTerm
     , y:
-        [ { pref: "Just prettyprint locators and brackets"
-          , href: "https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAATVEUf-E"
-          , txt: "syntax"
+        [ { pref: Just "Just prettyprint locators and brackets"
+          , href: Nothing
+          , txt: Nothing
+          },
+          { pref: Just "Original"
+          , href: Just "https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAATVEUf-E"
+          , txt: Just "Syntax"
           }
         ]
     }
   , { x: getName TWHNF
     , y:
-        [ { pref: ""
-          , href: "https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/State.hs#L129"
-          , txt: "Code"
+        [ { pref: Nothing
+          , href: Just "https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/State.hs#L129"
+          , txt: Just "Code"
           }
-        , { pref: "Results from"
-          , href: "https://drive.google.com/file/d/1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH/edit?disco=AAAASJgTzO0"
-          , txt: "Head reduction"
+        , { pref: Just "Results from"
+          , href: Just "https://drive.google.com/file/d/1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH/edit?disco=AAAASJgTzO0"
+          , txt: Just "Head reduction"
           } 
-        , { pref: ""
-          , href: "https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAASJgTzOc"
-          , txt: "Relation to TAP machine configuration"
+        , { pref: Nothing
+          , href: Just "https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAASJgTzOc"
+          , txt: Just "Relation to TAP machine configuration"
           }
         ]
     }
   , { x: getName TNF
     , y:
-        [ { pref: ""
-          , href: "https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/State.hs#L155"
-          , txt: "Code"
+        [ { pref: Nothing
+          , href: Just "https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/State.hs#L155"
+          , txt: Just "Code"
           }
-        , { pref: "Results from"
-          , href: "https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAASJgTzO4"
-          , txt: "Normal order reduction"
+        , { pref: Just "Results from"
+          , href: Just "https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAASJgTzO4"
+          , txt: Just "Normal order reduction"
           }
         ]
     }
   , { x: getName TCBNReduction
     , y:
-        [ { pref: ""
-          , href: "https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/State.hs#L98"
-          , txt: "Code"
+        [ { pref: Just "Call by Name Reduction"
+          , href: Nothing
+          , txt: Nothing
           }
-        , { pref: "Shows steps of"
-          , href: "https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAASJgTzO0"
-          , txt: "Head reduction"
+        , { pref: Nothing
+          , href: Just "https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/State.hs#L98"
+          , txt: Just "Code"
+          }
+        , { pref: Just "Shows steps of"
+          , href: Just "https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAASJgTzO0"
+          , txt: Just "Head reduction"
           }
         ]
     }
   , { x: getName TCBNWithTAP
     , y:
-        [ { pref: ""
-          , href: "https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/Machine/CallByName.hs#L85"
-          , txt: "Code"
+        [ { pref: Nothing
+          , href: Just "https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/Machine/CallByName.hs#L85"
+          , txt: Just "Code"
           }
-        , { pref: "TAP machine"
-          , href: "https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAASJgTzOk"
-          , txt: "definition"
+        , { pref: Just "TAP machine"
+          , href: Just "https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAASJgTzOk"
+          , txt: Just "definition"
           }
-        , { pref: "TAP machine"
-          , href: "https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAASJgTzOo"
-          , txt: "rules"
+        , { pref: Just "TAP machine"
+          , href: Just "https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAASJgTzOo"
+          , txt: Just "rules"
           }
         ]
     }
   , { x: getName TCBNWithGraph
     , y:
-        [ { pref: ""
-          , href: "https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/Machine/CallByName/Graph.hs#L77"
-          , txt: "Code"
+        [ { pref: Nothing
+          , href: Just "https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/Machine/CallByName/Graph.hs#L77"
+          , txt: Just "Code"
           }
-        , { pref: "It does apply"
-          , href: "https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAASJgTzOw"
-          , txt: "Decorated Instantiation"
+        , { pref: Just "It does apply"
+          , href: Just "https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAASJgTzOw"
+          , txt: Just "Decorated Instantiation"
           }
         ]
     }
-  , { x: "eo"
+  , { x: errorPopover
     , y:
-        [ { pref: "𝜑-term translated to EO"
-          , href: ""
-          , txt: ""
+        [ { pref: Just "For now, we only report syntactic errors"
+          , href: Nothing
+          , txt: Nothing
           }
         ]
     }
   ]
+
+errorPopover = "error"
 
 infoIcon :: forall a b. String -> HTML a b
 infoIcon infoId =
@@ -745,7 +804,7 @@ editorDiv ed ref =
                 [ HH.a [HP.href ref] [HH.text $ editorNamePretty ed <> " "],
                   HH.text "code",
                   -- FIXME edit popover
-                  infoIcon $ "info_"<> editorName ed <> "_editor"
+                  infoIcon $ mkInfo (editorName ed) # _editor
                 ]
               ]
             ],
@@ -797,7 +856,7 @@ cdns ∷ ∀ a b. HTML a b
 cdns =  
   HH.div_
     [ HH.link [HP.href "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css", HP.rel "stylesheet", HP.type_ textCSS],
-      HH.script [HP.src "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js", HP.type_ applicationJavascript] [],
+      -- HH.script [HP.src "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js", HP.type_ applicationJavascript] [],
       -- TODO insert into a separate tab
       -- TODO add tab switching with ctrl+tab
       HH.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/eo-editor@d58d13becead90f7aaf11e424df8663532e85a23/docs/eo-editor.js", U.attr_ "type" "module"] [],
@@ -808,8 +867,7 @@ cdns =
       
       HH.link [HP.href "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css", HP.rel "stylesheet", HP.type_ textCSS],
       HH.link [HP.href "https://www.yegor256.com/images/books/elegant-objects/cactus.png", HP.rel "shortcut icon"],
-      HH.link [HP.href "https://cdn.jsdelivr.net/gh/yegor256/tacit@gh-pages/tacit-css.min.css", HP.rel "stylesheet", HP.type_ textCSS],
-      HH.script [HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/try-phi@0.0.1/src/Site/scripts/init-popovers.js", HP.type_ applicationJavascript] []
+      HH.link [HP.href "https://cdn.jsdelivr.net/gh/yegor256/tacit@gh-pages/tacit-css.min.css", HP.rel "stylesheet", HP.type_ textCSS]
     ]
 
 data Term = Term String
@@ -836,11 +894,15 @@ type OkState = {
   graphTab :: GraphTab
 }
 
-data ErrorState = ErrorState {
+type ErrorState = {
   -- FIXME? parseerror is implicitly stored in tab
   parseError :: ParseError,
   errorTab :: Tab
 }
+
+getInfoIds :: Either ErrorState OkState -> Array String
+getInfoIds (Left st) = map (\(Tab t) -> mkInfo $ getName t.id) [st.errorTab]
+getInfoIds (Right st) = map (\(Tab t) -> mkInfo $ getName t.id) st.textTabs
 
 -- FIXME store the last editor even in case of parse errors
 -- then no need to store a flag about non-empty code, can use just an error
@@ -898,7 +960,7 @@ mkButton id = "button_" <> id
 mkContent ∷ String → String
 mkContent id = "content_" <> id
 mkInfo ∷ String → String
-mkInfo id = "info" <> id
+mkInfo id = "info_" <> id
 
 data TabId = TTerm | TWHNF | TNF | TCBNReduction | TCBNWithTAP | TCBNWithGraph | TError
 

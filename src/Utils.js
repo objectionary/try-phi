@@ -1,29 +1,5 @@
 'use strict'
-
-let getHTML = (node) => 'some html'
-
-let someText = (n) => 'some text'
-
-let getNewCode = (event) => (just) => (nothing) => {
-  if (event.detail !== null) {
-    if (event.detail.newCode !== null) {
-      return just(event.detail.newCode)
-    } else {
-      return nothing
-    }
-  }
-  return nothing
-}
-
-let getTab = (event) => (phiTab) => (eoTab) => (just) => (nothing) => {
-  if (event.eventName == 'phi-editor-code-changed') {
-    return just(phiTab)
-  } else if (event.eventName == 'eo-editor-code-changed') {
-    return just(eoTab)
-  } else {
-    return nothing
-  }
-}
+import { Popover } from 'bootstrap'
 
 let clipboard = (navigator) => () => navigator.clipboard
 
@@ -45,7 +21,6 @@ let makePermalink = (editor) => (s) => () => {
   return newRef
 }
 
-
 let setGlobalBoolean = (name) => (val) => () => {
   globalThis[name] = val
 }
@@ -57,55 +32,33 @@ let readGlobalBooleanImpl = (name) => (just) => (nothing) => () => {
   }
   return nothing
 }
-// TODO listen to onCreate for elements with popovers
 
-// var popoverList
+let createPopover = (id) => {
+  Popover.getOrCreateInstance(document.getElementById(id), {container: 'body', html: true, trigger: 'click'})
+}
 
-// function waitForElem(selector) {
-//   return new Promise((resolve) => {
-//     let e = document.getElementById(selector)
-//     if (e !== null) {
-//       return resolve(e)
-//     }
+let createPopovers = (ids) => () => {
+  ids.map((id) => createPopover(id))
+}
 
-//     const observer = new MutationObserver((mutations) => {
-//       let e = document.getElementById(selector)
-//       if (e !== null) {
-//         resolve(e)
-//         observer.disconnect()
-//       }
-//     })
+let removePopover = (id) => {
+  let p = Popover.getInstance(document.getElementById(id))
+  if (p !== null) {
+    p.dispose()
+  }
+}
 
-//     observer.observe(document.body, {
-//       childList: true,
-//       subtree: true,
-//     })
-//   })
-// }
-
-// waitForElem('phi-editor').then((elem) => {
-//   let popoverTriggerList = [].slice.call(
-//     document.querySelectorAll('[data-bs-toggle="popover"]')
-//   )
-
-//   popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
-//     return new bootstrap.Popover(popoverTriggerEl, {
-//       container: 'body',
-//       html: true,
-//     })
-//   })
-//   // console.log('Element is ready');
-//   // console.log(elem.textContent);
-// })
+let removePopoversImpl = (popovers) => (trueVal) => () => {
+  popovers.map((el) => removePopover(el))
+  return trueVal
+}
 
 export {
-  getHTML,
-  someText,
-  getNewCode,
-  getTab,
   clipboard,
   writeText,
   makePermalink,
   readGlobalBooleanImpl,
-  setGlobalBoolean
+  setGlobalBoolean,
+  createPopovers,
+  removePopoversImpl,
 }

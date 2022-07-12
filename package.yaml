@@ -21,7 +21,7 @@ dependencies:
   - eo-utils
   - fgl
   - insert-ordered-containers
-  # - lucid
+  - pretty-simple
   - phi-utils
   - prettyprinter
   - text

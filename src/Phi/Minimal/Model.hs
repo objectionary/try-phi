@@ -72,10 +72,10 @@ data DataValue =
 data Term
   -- TODO store a list of free attributes 
   -- and a map of attached attributes
-  = Obj (Object Term)
-  | Dot Term Attr
-  | App Term (Attr, Term)
-  | Loc Int
+  = Obj {body :: Object Term}
+  | Dot {t::Term, a::Attr}
+  | App {t::Term, at::(Attr, Term)}
+  | Loc {i::Int}
   | DataTerm DataValue
   deriving (Eq)
 

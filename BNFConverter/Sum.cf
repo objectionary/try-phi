@@ -1,3 +1,0 @@
-position token PIdent (letter (letter|digit|'_'|'\'')*) ;
-EInt.  Exp ::= PIdent;
-EPlus. Exp ::= Exp "+" Integer;

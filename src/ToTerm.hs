@@ -120,17 +120,17 @@ data Label
   = LName {n :: Text, ann :: Ann}
   | LAt {ann :: Ann}
   | LVarArg {t :: Text, ann :: Ann}
-  deriving (Data)
+  deriving (Data, Show)
 
 data LetterName = LetterName {n :: Text, ann :: Ann}
-  deriving (Data)
+  deriving (Data, Show)
 
 data Modifier
   = MCopy {ann :: Ann}
   | MInverseDot {ann :: Ann}
-  deriving (Data)
+  deriving (Data, Show)
 
-data HeadName = HeadName {n :: LetterName, m :: Maybe Modifier, ann :: Ann} deriving (Data)
+data HeadName = HeadName {n :: LetterName, m :: Maybe Modifier, ann :: Ann} deriving (Data, Show)
 
 -- TODO Question is not a terminal
 
@@ -139,7 +139,7 @@ data MethodName
   | MRho {ann :: Ann}
   | MAt {ann :: Ann}
   | MVertex {ann :: Ann}
-  deriving (Eq, Ord, Generic, Data, Hashable)
+  deriving (Eq, Ord, Generic, Data, Hashable, Show)
 
 -- AttachedOrArg
 -- Unpacked can be ^.x, not necessarily a name
@@ -151,15 +151,15 @@ data MethodName
 -- Name `a` in `a.b`
 --
 -- Number `3` in `3.a`
-data Head = Head {h :: Options3 HeadTerminal HeadName DataValue, unpacked :: Bool, ann :: Ann} deriving (Data)
+data Head = Head {h :: Options3 HeadTerminal HeadName DataValue, unpacked :: Bool, ann :: Ann} deriving (Data, Show)
 
-data DByte = DByte {byte :: Integer, ann :: Ann} deriving (Data)
+data DByte = DByte {byte :: Integer, ann :: Ann} deriving (Data, Show)
 
-data DLineBytes = DLineBytes {bs :: [DByte], ann :: Ann} deriving (Data)
+data DLineBytes = DLineBytes {bs :: [DByte], ann :: Ann} deriving (Data, Show)
 
-data DRegexBody = DRegexBody {b :: Text, ann :: Ann} deriving (Data)
+data DRegexBody = DRegexBody {b :: Text, ann :: Ann} deriving (Data, Show)
 
-data DRegexSuffix = DRegexSuffix {s :: Text, ann :: Ann} deriving (Data)
+data DRegexSuffix = DRegexSuffix {s :: Text, ann :: Ann} deriving (Data, Show)
 
 data DataValue
   = DBool {b :: Bool, ann :: Ann}
@@ -172,7 +172,7 @@ data DataValue
   | DString {s :: Text, ann :: Ann}
   | -- TODO save indentation of closing quotes
     DText {t :: Text, ann :: Ann}
-  deriving (Data)
+  deriving (Data, Show)
 
 -- TODO define when to throw exceptions
 -- TODO somehow pass problems with node conversion upwards
@@ -181,18 +181,18 @@ data DataValue
 data HasName
   = HName {t :: Text, ann :: Ann}
   | HAt {ann :: Ann}
-  deriving (Data)
+  deriving (Data, Show)
 
-newtype AbstrQuestion = AbstrQuestion {ann :: Ann} deriving (Data)
+newtype AbstrQuestion = AbstrQuestion {ann :: Ann} deriving (Data, Show)
 
 type ImportedName = Options2 LetterName AbstrQuestion
 
 data AttachedName = AttachedName {a :: SuffixName, imported :: Maybe ImportedName, ann :: Ann}
-  deriving (Data)
+  deriving (Data, Show)
 
 type AttachedOrArgName = Options2 AttachedName (Maybe HasName)
 
-data AttachedOrArgument = AttachedOrArgument {t :: Term, a :: [AttachedOrArgName], ann :: Ann} deriving (Data)
+data AttachedOrArgument = AttachedOrArgument {t :: Term, a :: [AttachedOrArgName], ann :: Ann} deriving (Data, Show)
 
 {-
 Not yet a full-fledged abstract attribute
@@ -208,7 +208,7 @@ Probably, such object is always anonymous
 
 otherwise, Abstraction should store AttachedName
 -}
-data Abstraction = Abstraction {attrs :: [Label], t :: Maybe AbstractionTail, ann :: Ann} deriving (Data)
+data Abstraction = Abstraction {attrs :: [Label], t :: Maybe AbstractionTail, ann :: Ann} deriving (Data, Show)
 
 {-
 -- TODO Don't distinguish between them?
@@ -229,7 +229,7 @@ data HeadTerminal
   | HeadXi {ann :: Ann}
   | HeadSigma {ann :: Ann}
   | HeadStar {ann :: Ann}
-  deriving (Data)
+  deriving (Data, Show)
 
 data Term
   = App {t :: AttachedOrArgument, args :: [AttachedOrArgument], ann :: Ann}
@@ -238,13 +238,13 @@ data Term
   | -- for cases like just `^` or `$`
     -- it doesn't need body
     HeadTerm {n :: Maybe Int, a :: Maybe Head, ann :: Ann}
-  deriving (Data)
+  deriving (Data, Show)
 
 -- newtype ReturnValue = ReturnValue {t :: Term} deriving (Data)
 
 -- newtype MyState = MyState {termId :: Int} deriving (Data)
 
-data SuffixName = SuffixName {n :: Label, isConst :: Bool, ann :: Ann} deriving (Data)
+data SuffixName = SuffixName {n :: Label, isConst :: Bool, ann :: Ann} deriving (Data, Show)
 
 getId :: (EpiAnn a) => a -> Int
 getId a = num $ get a
@@ -515,7 +515,7 @@ attachHead pt@THead {..} = ret
   where
     a' = composeHead pt
     b = dec pt HeadTerm {n = Nothing, a = Just a'}
-    ret = AttachedOrArgument {t = b, a = []}
+    ret = dec pt AttachedOrArgument {t = b, a = []}
 
 appendMaybeTail :: AttachedOrArgument -> (a -> [AttachedOrArgument]) -> Maybe a -> AttachedOrArgument
 appendMaybeTail a f h = applyTail a $ maybe [] f h

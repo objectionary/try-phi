@@ -228,9 +228,9 @@ cFALSE = "FALSE"
 
 -- Tokens
 
-data Options3 a b c = Opt3A a | Opt3B b | Opt3C c deriving (Data)
+data Options3 a b c = Opt3A a | Opt3B b | Opt3C c deriving (Data, Show)
 
-data Options2 a b = Opt2A a | Opt2B b deriving (Data)
+data Options2 a b = Opt2A a | Opt2B b deriving (Data, Show)
 
 data TProgram = TProgram {l :: Maybe TLicense, m :: Maybe TMetas, o :: TObjects, ann :: Ann} deriving (Data)
 

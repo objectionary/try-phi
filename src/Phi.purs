@@ -358,7 +358,7 @@ errorPopover = "error"
 getInfoIds :: Either ErrorState OkState -> Array String
 getInfoIds (Left st) = map (\(Tab t) -> mkInfo $ getName t.id) [ st.errorTab ]
 
-getInfoIds (Right st) = map (\(Tab t) -> mkInfo $ getName t.id) st.textTabs
+getInfoIds (Right st) = map (\(Tab t) -> mkInfo $ getName t.id) (st.graphTab : st.textTabs)
 
 mkButton ∷ String → String
 mkButton id = "button_" <> id

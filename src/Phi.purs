@@ -818,7 +818,7 @@ getGraphTabContent { graphTabState: GraphTab { states, graphs }, graphStep } =
     [ HH.div [ U.class_ "col-sm" ]
         [ stepButton PrevStep, stepButton NextStep
         , HH.pre_ [ HH.text $ maybe ("step error: " <> show graphStep) identity (states !! graphStep) ]
-        , HH.text $ show graphStep
+        -- , HH.text $ show graphStep
         ]
     , HH.div [ U.class_ "col-sm" ]
         [ HH.img

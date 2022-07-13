@@ -11,7 +11,6 @@ module PhiDefinitions
   , Request(..)
   , Response(..)
   , State
-  , Tab(..)
   , TabId(..)
   , TabMode(..)
   , Tag(..)
@@ -19,10 +18,12 @@ module PhiDefinitions
   , TextTabs
   , class IdGettable
   , class LogError
+  , err
+  , getId
+  , getName
   , log_
-  , textTabIds,
-  getName, getId,
-  err
+  , textTabIds
+  , Tab(..)
   )
   where
 
@@ -132,7 +133,8 @@ type TextTabs = Map TabId String
 type OkState = {
   textTabs :: Array Tab,
   graphStep :: Int,
-  graphTab :: GraphTab
+  graphTab :: Tab,
+  graphTabState :: GraphTab
 }
 
 type ErrorState = {

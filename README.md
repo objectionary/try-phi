@@ -1,5 +1,11 @@
 # Try-phi backend
 
+## Clone
+```sh
+git clone --recurse-submodules -j8 https://github.com/br4ch1st0chr0n3/try-phi-back
+cd try-phi-back
+```
+
 ## Run
 ```sh
 sh build.sh

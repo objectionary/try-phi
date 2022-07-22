@@ -16,6 +16,7 @@ import           Phi.Minimal.Graph                    (TermEdge (..),
                                                        TermNode (..),)
 import qualified Phi.Minimal.Machine.CallByName.Graph as CGraph
 import  Phi.Minimal.Model                    as Model
+import Phi.Minimal.Machine.CallByName.Graph (stepsFor)
 
 -- | convert configuration to GraphViz DOT graph
 --
@@ -208,6 +209,6 @@ renderAsColorfulDot :: Model.Term -> Text.Text
 renderAsColorfulDot term =
   renderAsDot @Gr $ last $ CGraph.steps (CGraph.initConfiguration term)
 
-renderList :: Model.Term -> [Text.Text]
-renderList term =
-  map (renderAsDot @Gr) $ CGraph.steps $ CGraph.initConfiguration term
+renderList :: Int -> Model.Term -> [Text.Text]
+renderList lim term =
+  map (renderAsDot @Gr) $ stepsFor @Gr lim term

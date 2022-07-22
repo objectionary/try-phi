@@ -39,12 +39,6 @@ newtype Object a = Object
   }
   deriving (Eq, Functor, Foldable, Traversable, IsList)
 
--- showObject :: Show a => Object a -> String
--- showObject o = show $ getobject o
-
--- instance Show a => Object a where
---   show o = showObject o
-
 (.?) :: Object a -> Attr -> Maybe (AttrValue a)
 Object o .? a = InsOrdHashMap.lookup a o
 

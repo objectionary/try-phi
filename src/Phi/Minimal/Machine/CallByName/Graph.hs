@@ -1,11 +1,13 @@
 {-# LANGUAGE LambdaCase      #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Phi.Minimal.Machine.CallByName.Graph where
 
 import           Data.List                  (unfoldr)
 
 import           Data.Graph.Inductive.Graph (DynGraph, Graph)
+import           Data.Graph.Inductive.PatriciaTree    (Gr)
 import qualified Data.Graph.Inductive.Graph as Graph
 
 import           Phi.Minimal.Graph
@@ -42,6 +44,9 @@ initConfiguration term =
   Configuration {actions = [], environment = [], currentNode = Just root, ..}
   where
     (root, graph) = toGraph term
+
+stepsFor :: DynGraph gr => Int -> Term -> [Configuration gr]
+stepsFor n term = take n $ steps (initConfiguration term)
 
 steps :: Graph gr => Configuration gr -> [Configuration gr]
 steps c = c : unfoldr (fmap dup . step) c

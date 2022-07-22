@@ -1,20 +1,20 @@
-{-# OPTIONS_GHC -Wall -fno-warn-orphans#-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE LambdaCase        #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards   #-}
-{-# LANGUAGE TypeApplications  #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TypeApplications #-}
+{-# OPTIONS_GHC -Wall -fno-warn-orphans #-}
 
 module Phi.Minimal.Pretty where
 
-import           Data.Graph.Inductive.PatriciaTree    (Gr)
-import           Data.HashMap.Strict.InsOrd           (InsOrdHashMap)
-import qualified Data.HashMap.Strict.InsOrd           as InsOrdHashMap
-
-import           Prettyprinter            as Doc
-import           Phi.Minimal.Machine.CallByName
+import Data.Graph.Inductive.PatriciaTree (Gr)
+import Data.HashMap.Strict.InsOrd (InsOrdHashMap)
+import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
+import Phi.Minimal.Machine.CallByName
+import Phi.Minimal.Machine.CallByName.Graph (stepsFor)
 import qualified Phi.Minimal.Machine.CallByName.Graph as Graph
-import           Phi.Minimal.Model
+import Phi.Minimal.Model
+import Prettyprinter as Doc
 
 instance Show Term where
   show = show . pretty
@@ -36,13 +36,13 @@ ppTerm =
     App t (a, u) -> ppTerm t <> parens (ppAttrWithValue (a, Attached u))
     Loc n -> ppLoc n
     DataTerm t ->
-      case t of 
+      case t of
         DataInteger i -> pretty i
         NoData -> pretty $ show NoData
 
 ppInt :: Integer -> Doc ann
 ppInt i = pretty i
-  
+
 encloseSepAfter :: Doc ann -> Doc ann -> Doc ann -> [Doc ann] -> Doc ann
 encloseSepAfter bra ket separator =
   \case
@@ -50,26 +50,28 @@ encloseSepAfter bra ket separator =
     [doc] -> bra <> doc <> ket
     docs -> bra <> mconcat (addSepAfter docs) <> ket
   where
-    addSepAfter []         = []
-    addSepAfter [doc]      = [doc]
-    addSepAfter (doc:docs) = (doc <> separator) : addSepAfter docs
+    addSepAfter [] = []
+    addSepAfter [doc] = [doc]
+    addSepAfter (doc : docs) = (doc <> separator) : addSepAfter docs
 
 ppObj :: Object Term -> Doc ann
 ppObj o
   | null (getObject o) = "⟦⟧"
   | otherwise =
-    group .
-    nest 2 .
-    encloseSepAfter ("⟦" <> line) (nest (-2) (line <> "⟧")) (comma <> line) .
-    map ppAttrWithValue . InsOrdHashMap.toList . getObject $
-    o
+    group
+      . nest 2
+      . encloseSepAfter ("⟦" <> line) (nest (-2) (line <> "⟧")) (comma <> line)
+      . map ppAttrWithValue
+      . InsOrdHashMap.toList
+      . getObject
+      $ o
 
 ppAttrWithValue :: (Attr, AttrValue Term) -> Doc ann
 ppAttrWithValue (a, value) =
   group $ group (ppAttr a <+> "↦") <+> ppAttrValue value
 
 ppAttr :: Attr -> Doc ann
-ppAttr a 
+ppAttr a
   | a == "@" = "𝜑"
   | otherwise = pretty a
 
@@ -86,7 +88,7 @@ ppLoc n = pretty ("ρ" <> n')
     toSuperscript c =
       case lookup c (zip "1234567890" "¹²³⁴⁵⁶⁷⁸⁹⁰") of
         Just c' -> c'
-        _       -> c
+        _ -> c
 
 ppWhnfSteps :: Term -> Doc ann
 ppWhnfSteps term =
@@ -95,10 +97,11 @@ ppWhnfSteps term =
     ppStep i t = Doc.fill 5 (Doc.brackets (pretty i)) <+> align (ppTerm t)
 
 -- * Call-by-name term reduction machine
+
 ppStepsFor :: Term -> Doc ann
 ppStepsFor term =
   encloseSepAfter "" "" hardline $
-  zipWith ppStep [1 :: Int ..] (steps (initConfiguration term))
+    zipWith ppStep [1 :: Int ..] (steps (initConfiguration term))
   where
     ppStep i conf =
       Doc.fill 5 (Doc.brackets (pretty i)) <+> align (ppConfiguration conf)
@@ -131,26 +134,22 @@ ppApplications :: InsOrdHashMap Attr (Term, Environment) -> Doc ann
 ppApplications o
   | null o = "⟦⟧"
   | otherwise =
-    group .
-    nest 2 .
-    encloseSepAfter ("⟦" <> line) (nest (-2) (line <> "⟧")) (comma <> line) .
-    map (ppAction . AppAction) . InsOrdHashMap.toList $
-    o
+    group
+      . nest 2
+      . encloseSepAfter ("⟦" <> line) (nest (-2) (line <> "⟧")) (comma <> line)
+      . map (ppAction . AppAction)
+      . InsOrdHashMap.toList
+      $ o
 
 -- * Call-by-name graph-assisted evaluation machine
-ppGraphStepsFor :: Term -> Int -> Doc ann
-ppGraphStepsFor term stepNumber =
-  encloseSepAfter "" "" hardline $
-  zipWith ppStep [1 :: Int ..] (Graph.steps (Graph.initConfiguration @Gr term))
+
+-- TODO produce for fixed lim
+ppGraphStepsFor :: Int -> Term -> [Doc ann]
+ppGraphStepsFor lim term =
+    ppStep <$> stepsFor @Gr lim term
   where
-    arrowPointer i =
-      Doc.pretty $
-      if i - 1 == stepNumber
-        then "->"
-        else "" :: String
-    ppStep i conf =
-      Doc.fill 5 (Doc.brackets (pretty i)) <+>
-      Doc.fill 5 (align (arrowPointer i)) <+> align (ppGraphConfiguration conf)
+    ppStep conf =
+        align (ppGraphConfiguration conf)
 
 ppGraphConfiguration' :: Graph.Configuration Gr -> Doc ann
 ppGraphConfiguration' Graph.Configuration {..} =
@@ -158,9 +157,9 @@ ppGraphConfiguration' Graph.Configuration {..} =
     "< "
     " >"
     (" " <> Doc.semi <> " ")
-    [ maybe "ɛ" pretty currentNode
-    , ppGraphActions actions
-    , ppGraphEnvironment environment
+    [ maybe "ɛ" pretty currentNode,
+      ppGraphActions actions,
+      ppGraphEnvironment environment
     ]
 
 ppGraphConfiguration :: Graph.Configuration gr -> Doc ann
@@ -169,9 +168,9 @@ ppGraphConfiguration Graph.Configuration {..} =
     "< "
     " >"
     (" " <> Doc.semi <> " ")
-    [ maybe "ɛ" pretty currentNode
-    , ppGraphActions actions
-    , ppGraphEnvironment environment
+    [ maybe "ɛ" pretty currentNode,
+      ppGraphActions actions,
+      ppGraphEnvironment environment
     ]
 
 ppGraphActions :: [Graph.Action] -> Doc ann

@@ -1,15 +1,12 @@
-{-# LANGUAGE LambdaCase #-}
+
 {-# LANGUAGE TypeApplications #-}
 module Common(ppPhiToEO, ppWHNF, ppWHNFSteps, ppNF, ppTapSteps, ppStates, ppGraphs, getTermFromPhi, getTermFromEO, ppEOSource, ppPhi, Common.ppPhiSource) where
 
 
 import Phi.Minimal as Phi
 
-import Phi.Minimal.ConfigurationDot(renderAsDot)
+import Phi.Minimal.ConfigurationDot(renderList)
 import qualified Data.Text.Lazy                       as T
-import           Data.Graph.Inductive.PatriciaTree    (Gr)
-import qualified Phi.Minimal.Machine.CallByName.Graph as CGraph
-import Phi.Minimal.Model as PM ( Term )
 
 import EOtoPhi(toMinimalTerm)
 import EOParser as EOP(parseTermProgram)
@@ -19,23 +16,6 @@ import PhiToEO as EP (ppTermTop)
 import Data.Text (pack)
 import Phi.Minimal.Parser as PMP(parseTerm)
 import Text.Megaparsec.Error(errorBundlePretty)
--- import Phi.Minimal.Print(ppPhiSource)
-
--- TODO send html, not text
--- import Lucid (Html, ToHtml (toHtml), br_, pre_)
-
--- import Prettyprinter.Render.Util.SimpleDocTree (SimpleDocTree (..))
-
--- renderHtml :: SimpleDocTree (Html () -> Html ()) -> Html ()
--- renderHtml =
---     let go = \case
---             STEmpty -> pure ()
---             STChar c -> toHtml $ T.singleton c
---             STText _ t -> toHtml t
---             STLine i -> br_ [] >> toHtml (T.replicate i $ T.singleton ' ')
---             STAnn ann content -> ann $ go content
---             STConcat contents -> foldMap go contents
---      in pre_ . go
 
 ppPhiSource :: Term -> String
 ppPhiSource = show . Phi.ppPhiSource
@@ -62,24 +42,19 @@ ppTapSteps :: Term -> String
 ppTapSteps = show . Phi.ppStepsFor
 
 -- | list of graph steps
-ppStates :: Term -> Int -> [String]
-ppStates
-    term
-    lim
-    = show . Phi.ppGraphStepsFor term <$> [0 .. lim]
+-- FIXME send a list of steps, render current step on front
+ppStates ::  Int -> Term -> [String]
+ppStates lim term = show <$> Phi.ppGraphStepsFor lim term
 
-ppGraphs :: PM.Term -> Int -> [String]
-ppGraphs term lim = T.unpack <$> map (renderAsDot @Gr) (take lim $ CGraph.steps $ CGraph.initConfiguration term)
+ppGraphs :: Int -> Term -> [String]
+ppGraphs lim term = T.unpack <$> renderList lim term
 
--- FIXME use Either
--- getTermFromEO :: String -> Either  PM.Term
--- getTermFromEO :: String -> Either (ParseErrorBundle Text Void) Term
 getTermFromEO :: String -> Either String Term
 getTermFromEO s = ret
     where
-        t = toMinimalTerm <$> parseTermProgram (pack s)
+        t1 = toMinimalTerm <$> parseTermProgram (pack s)
         ret =
-            case t of
+            case t1 of
                 Left l -> Left $ errorBundlePretty l
                 Right r -> Right r
 

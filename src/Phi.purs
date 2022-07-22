@@ -185,6 +185,7 @@ component =
                             , graphTabState = r.graphTab
                             }
                     handleAction UpdateGraphContent
+                    get >>= (\x -> log_ $ show x.info)
                     -- st <- H.get
                     -- case st.info of
                     --   Right { graphStep } -> log_ $ show graphStep

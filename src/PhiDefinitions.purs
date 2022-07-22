@@ -38,14 +38,16 @@ import Data.Generic.Rep (class Generic)
 import Data.Map (fromFoldable)
 import Data.Map.Internal (Map)
 import Data.Maybe (Maybe(..))
+import Data.Show.Generic (class GenericShow)
 import Data.Show.Generic (genericShow)
+import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff)
 import Effect.Console (log)
 import Halogen as H
 import Halogen.HTML (HTML, div_)
-import Data.Show.Generic(class GenericShow)
+import Type.Proxy (Proxy(..))
 
 -- / Types /
 
@@ -161,6 +163,23 @@ class IdGettable a where
   getName :: a -> String
   getId :: String -> Maybe a
 
+class ConstrName rep where
+  constrName' :: rep -> String
+
+instance IsSymbol name => ConstrName (Constructor name a) where
+  constrName' (Constructor _) = reflectSymbol (Proxy :: Proxy name)
+
+instance (ConstrName a, ConstrName b) => ConstrName (Sum a b) where
+  constrName' (Inl a) = constrName' a
+  constrName' (Inr b) = constrName' b
+
+instance (ConstrName a, ConstrName b) => ConstrName (Product a b) where
+  constrName' (Product a b) = constrName' a
+
+
+constrName :: forall a rep. Generic a rep => ConstrName rep => a -> String
+constrName a = constrName' $ from a
+
 -- / Instances /
 
 instance IdGettable TabId where
@@ -224,21 +243,15 @@ infixl 7 type Product as :*:
 -- Operator for the Product data constructor
 infixl 7 Product as :*:
 
-type TabRep = TabId :*: String :*: Boolean
-
-derive instance Generic GraphTab _
+type TabRep = Constructor "Tab" (TabId :*: String :*: Boolean)
 
 -- https://harry.garrood.me/blog/write-your-own-generics/#representing-data-types-as-sums-of-products
 instance Generic Tab TabRep where
-  from (Tab {id, buttonText, isActive}) = id :*: buttonText :*: isActive
-  to (id :*: buttonText :*: isActive) = (Tab {id, buttonText, isActive, tabContent : div_ []})
+  from (Tab {id, buttonText, isActive}) = Constructor (id :*: buttonText :*: isActive)
+  to (Constructor (id :*: buttonText :*: isActive)) = (Tab {id, buttonText, isActive, tabContent : div_ []})
 
 instance Show Tab where
-  show t = 
-    let 
-      id :*: buttonText :*: isActive = from t 
-    in 
-      show {id, buttonText, isActive}
+  show t@(Tab {id, buttonText, isActive}) = (constrName t) <> " " <> show {id, buttonText, isActive}
 
 instance DecodeJson GraphTab where
   decodeJson json = do

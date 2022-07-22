@@ -4,6 +4,7 @@ module Phi
   ) where
 
 import Prelude
+
 import Affjax as AX
 import Affjax.RequestBody (RequestBody(..))
 import Affjax.ResponseFormat as AXRF
@@ -13,7 +14,7 @@ import CSS.Size as CS
 import Data.Argonaut (encodeJson)
 import Data.Argonaut.Decode (JsonDecodeError) as AD
 import Data.Argonaut.Decode.Class (decodeJson)
-import Data.Array (length, (!!), (:))
+import Data.Array (length, (!!))
 import Data.Array as DA
 import Data.Either (Either(..), hush)
 import Data.Foldable (intercalate, traverse_)
@@ -27,7 +28,7 @@ import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
 import Effect.Aff (Aff)
 import Foreign (unsafeFromForeign)
-import Halogen (AttrName(..), Component)
+import Halogen (AttrName(..), Component, get)
 import Halogen as H
 import Halogen.HTML (HTML)
 import Halogen.HTML (button, header_, pre, pre_, section_, span, text) as HH
@@ -59,7 +60,7 @@ import Web.HTML.Window (navigator)
 import Web.URL.URLSearchParams as USP
 
 overTabs :: OkState -> (Tab -> Tab) -> OkState
-overTabs st f = st { textTabs = f <$> st.textTabs, graphTab = f st.graphTab }
+overTabs st f = st { textTabs = f <$> st.textTabs }
 
 -- / Component /
 component :: ∀ a b c. Component a b c Aff
@@ -90,8 +91,29 @@ component =
           setStatePopovers
         -- FIXME include graph tab
         SelectTab t1 -> updateInfo $ \x -> overTabs x (\t2@(Tab t) -> Tab (t { isActive = t1 == t2 }))
-        NextStep -> updateInfo $ \x -> x { graphStep = min (x.graphStep + 1) ((length ((\(GraphTab g) -> g.graphs) $ x.graphTabState)) - 1) }
-        PrevStep -> updateInfo $ \x -> x { graphStep = max (x.graphStep - 1) 0 }
+        -- TODO update graph content
+        UpdateGraphContent ->
+          updateInfo
+            $ \x ->
+                overTabs x
+                  ( \t1@(Tab t) -> case t.id of
+                      TCBNWithGraph -> Tab (t { tabContent = getGraphTabContent x.graphTabState })
+                      _ -> t1
+                  )
+        NextStep -> do
+          updateInfo
+            $ \x ->
+                flip updateGraphStep x
+                  ( \s -> min ((numberOfStates x.graphTabState) - 1) (s + 1)
+                  )
+          handleAction UpdateGraphContent
+        PrevStep -> do
+          updateInfo
+            $ \x ->
+                flip updateGraphStep x
+                  ( \s -> max (s - 1) 0
+                  )
+          handleAction UpdateGraphContent
         ListenEditorsCodeChanged -> forEditors ListenEditorCodeChanged
         ListenEditorCodeChanged e -> do
           document <- H.liftEffect $ Web.document =<< Web.window
@@ -153,16 +175,16 @@ component =
                             { textTabs =
                               ( \(Tab t) -> case Map.lookup t.id r.textTabs of
                                   Just cont -> Tab t { tabContent = HH.pre_ [ HH.text cont ] }
-                                  Nothing -> Tab t { tabContent = HH.pre_ [ HH.text "No response" ] }
+                                  Nothing ->
+                                    (\x -> Tab t { tabContent = HH.text x })
+                                      $ case t.id of
+                                          TCBNWithGraph -> "Waiting for " <> show TCBNWithGraph
+                                          _ -> "No response"
                               )
                                 <$> s.textTabs
                             , graphTabState = r.graphTab
-                            , graphStep = 0
                             }
-                            # \s1 ->
-                                s1
-                                  { graphTab = (\(Tab t) -> Tab t { tabContent = getGraphTabContent s1 }) s1.graphTab
-                                  }
+                    handleAction UpdateGraphContent
                     -- st <- H.get
                     -- case st.info of
                     --   Right { graphStep } -> log_ $ show graphStep
@@ -358,7 +380,7 @@ errorPopover = "error"
 getInfoIds :: Either ErrorState OkState -> Array String
 getInfoIds (Left st) = map (\(Tab t) -> mkInfo $ getName t.id) [ st.errorTab ]
 
-getInfoIds (Right st) = map (\(Tab t) -> mkInfo $ getName t.id) (st.graphTab : st.textTabs)
+getInfoIds (Right st) = map (\(Tab t) -> mkInfo $ getName t.id) st.textTabs
 
 mkButton ∷ String → String
 mkButton id = "button_" <> id
@@ -494,7 +516,7 @@ ics =
 -- / Constants /
 textTabIds ∷ Array TabId
 -- FIXME exclude cbnwithGraph
-textTabIds = [ TTerm, TWHNF, TNF, TCBNReduction, TCBNWithTAP ]
+textTabIds = [ TTerm, TWHNF, TNF, TCBNReduction, TCBNWithTAP, TCBNWithGraph ]
 
 errorTabId :: TabId
 errorTabId = TError
@@ -519,8 +541,7 @@ editorId s
 -- / State /
 defaultOk :: OkState
 defaultOk =
-  { graphStep: 1
-  , textTabs:
+  { textTabs:
       ( \( Tuple
             ( Tuple a b
           )
@@ -529,17 +550,17 @@ defaultOk =
           Tab { id: a, buttonText: b, isActive: c, tabContent: HH.div_ [] }
       )
         <$> DA.zip (DA.zip textTabIds btexts) isActives
-  , graphTab: Tab { id: TCBNWithGraph, buttonText: "CBN with Graph", isActive: false, tabContent: HH.div_ [] }
   , graphTabState:
       GraphTab
         { states: []
         , graphs: []
+        , step: 0
         }
   }
   where
   btexts = [ "Phi term", " WHNF", "NF", "CBN Reduction", "CBN With TAP", "CBN With Graph" ]
 
-  isActives = [ true, false, false, false, false, false, false ]
+  isActives = [ true, false, false, false, false, false ]
 
 defaultError :: ErrorState
 defaultError =
@@ -586,6 +607,15 @@ setTab (Tab t) pe = t'
 
   -- FIXME
   t' = Tab t { tabContent = showError pe }
+
+-- use lens and take OkState
+-- updateGraphStep :: (Int -> Int) -> GraphTab -> GraphTab
+-- updateGraphStep f (GraphTab g) = GraphTab g { step = f g.step }
+updateGraphStep :: (Int -> Int) -> OkState -> OkState
+updateGraphStep f ok@{ graphTabState: (GraphTab g) } = ok { graphTabState = GraphTab g { step = f g.step } }
+
+numberOfStates :: GraphTab -> Int
+numberOfStates (GraphTab { states }) = length states
 
 -- / Props /
 dataBsProp ∷ ∀ a b. String → String → IProp a b
@@ -788,7 +818,7 @@ tabContent (Tab tab) =
       []
 
 allTabs :: OkState -> Array Tab
-allTabs st = st.textTabs <> [ st.graphTab ]
+allTabs st = st.textTabs
 
 termTabs :: forall a. OkState -> HTML a Action
 termTabs st =
@@ -800,7 +830,7 @@ termTabs st =
         ]
     , HH.div
         [ U.class_ "tab-content", HP.id "nav-tabContent" ]
-        (tabContent <$> st.textTabs <> [(\(Tab t') -> Tab t' {tabContent = getGraphTabContent st}) st.graphTab])
+        (tabContent <$> st.textTabs)
     ]
 
 stepButton :: forall b. Action -> HTML b Action
@@ -812,17 +842,17 @@ stepButton a =
     ]
     [ HH.text $ textStepButton a ]
 
-getGraphTabContent :: forall b. OkState -> HTML b Action
-getGraphTabContent { graphTabState: GraphTab { states, graphs }, graphStep } =
+getGraphTabContent :: forall b. GraphTab -> HTML b Action
+getGraphTabContent (GraphTab { states, graphs, step }) =
   HH.div [ U.class_ "row" ]
     [ HH.div [ U.class_ "col-sm" ]
-        [ stepButton PrevStep, stepButton NextStep
-        , HH.pre_ [ HH.text $ maybe ("step error: " <> show graphStep) identity (states !! graphStep) ]
-        -- , HH.text $ show graphStep
+        [ stepButton PrevStep
+        , stepButton NextStep
+        , HH.pre_ [ HH.text $ maybe ("step error: " <> show step) identity (states !! step) ]
         ]
     , HH.div [ U.class_ "col-sm" ]
         [ HH.img
-            [ HP.src $ maybe ("step error: " <> show graphStep) ((<>) "https://quickchart.io/graphviz?layout=dot&format=svg&graph=") (graphs !! graphStep)
+            [ HP.src $ maybe ("step error: " <> show step) ((<>) "https://quickchart.io/graphviz?layout=dot&format=svg&graph=") (graphs !! step)
             ]
         ]
     ]

@@ -11,6 +11,7 @@ module PhiDefinitions
   , Request(..)
   , Response(..)
   , State
+  , Tab(..)
   , TabId(..)
   , TabMode(..)
   , Tag(..)
@@ -23,28 +24,28 @@ module PhiDefinitions
   , getName
   , log_
   , textTabIds
-  , Tab(..)
   )
   where
 
+import Data.Generic.Rep
 import Prelude
 
 import Data.Argonaut (class EncodeJson, JsonDecodeError(..), jsonEmptyObject, (.:), (:=), (~>))
 import Data.Argonaut.Decode.Class (class DecodeJson, decodeJson)
 import Data.Argonaut.Decode.Decoders (decodeString)
 import Data.Either (Either(..))
+import Data.Generic.Rep (class Generic)
 import Data.Map (fromFoldable)
 import Data.Map.Internal (Map)
 import Data.Maybe (Maybe(..))
+import Data.Show.Generic (genericShow)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff)
 import Effect.Console (log)
 import Halogen as H
-import Halogen.HTML (HTML)
--- import Phi (GraphTab(..))
-
-
+import Halogen.HTML (HTML, div_)
+import Data.Show.Generic(class GenericShow)
 
 -- / Types /
 
@@ -54,7 +55,8 @@ data Editor = EOEditor | PhiEditor
 
 data GraphTab = GraphTab
   { states :: Array String,
-    graphs :: Array String
+    graphs :: Array String,
+    step :: Int
   }
 
 data Request = Request { code :: String}
@@ -94,6 +96,7 @@ data Action
   | ListenEditorCreated Editor
   | InitEditorsFromLink
   | HandleError ParseError
+  | UpdateGraphContent
 
 
 data Term = Term String
@@ -110,6 +113,7 @@ data TabMode = Active | Disabled
 
 data TabId = TTerm | TWHNF | TNF | TCBNReduction | TCBNWithTAP | TCBNWithGraph | TError
 
+derive instance Generic TabId _
 
 data Tab = Tab {
   id :: TabId,
@@ -132,8 +136,6 @@ type TextTabs = Map TabId String
 
 type OkState = {
   textTabs :: Array Tab,
-  graphStep :: Int,
-  graphTab :: Tab,
   graphTabState :: GraphTab
 }
 
@@ -188,8 +190,6 @@ instance Show ParseError where
 
 derive instance Eq TabId
 derive instance Ord TabId
--- instance GenericShow TabId where
--- derive instance GenericShow TabId
 
 
 instance Show Term where
@@ -212,17 +212,33 @@ instance Show TabId where
 instance Show GraphTab where
   show (GraphTab t) = show t
 
--- instance Show TextTabs where
---   show (TextTabs t) = show t
-
 instance EncodeJson Request where
   encodeJson (Request r) = 
       "code" := r.code
       ~> jsonEmptyObject
 
--- FIXME
--- add error entry
+-- Type operators for Sum and Product
+infixl 6 type Sum as :+:
+infixl 7 type Product as :*:
 
+-- Operator for the Product data constructor
+infixl 7 Product as :*:
+
+type TabRep = TabId :*: String :*: Boolean
+
+derive instance Generic GraphTab _
+
+-- https://harry.garrood.me/blog/write-your-own-generics/#representing-data-types-as-sums-of-products
+instance Generic Tab TabRep where
+  from (Tab {id, buttonText, isActive}) = id :*: buttonText :*: isActive
+  to (id :*: buttonText :*: isActive) = (Tab {id, buttonText, isActive, tabContent : div_ []})
+
+instance Show Tab where
+  show t = 
+    let 
+      id :*: buttonText :*: isActive = from t 
+    in 
+      show {id, buttonText, isActive}
 
 instance DecodeJson GraphTab where
   decodeJson json = do
@@ -231,7 +247,9 @@ instance DecodeJson GraphTab where
     graphs <- x .: "graphs"
     pure $ GraphTab {
       states : states,
-      graphs : graphs
+      graphs : graphs,
+      -- TODO check isn't triggered occasionally
+      step : 0
     }
 
 
@@ -268,7 +286,7 @@ instance LogError HandleError where
   err NoPermalink = log_ "no permalink"
   err NoResponse = log_ "no response received!"
   err NoHrefPermalink = log_ "no href in permalink!"
-  err (EditorError e s) = log_ s
+  err (EditorError _ s) = log_ s
 
 textTabIds ∷ Array TabId
 -- FIXME exclude cbnwithGraph

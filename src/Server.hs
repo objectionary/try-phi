@@ -130,8 +130,8 @@ server = han PhiEditor :<|> han EOEditor
                       cbn_with_tap = ppTapSteps s
                     } 
                   gt = GraphTab { 
-                      states = ppStates s stepLimit,
-                      graphs = ppGraphs s stepLimit
+                      states = ppStates stepLimit s,
+                      graphs = ppGraphs stepLimit s
                     }
                   g' = 
                     case ed of 

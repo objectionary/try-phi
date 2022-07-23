@@ -4,7 +4,6 @@ module Phi
   ) where
 
 import Prelude
-
 import Affjax as AX
 import Affjax.RequestBody (RequestBody(..))
 import Affjax.ResponseFormat as AXRF
@@ -15,14 +14,14 @@ import Control.Monad.State (class MonadState)
 import Data.Argonaut (encodeJson)
 import Data.Argonaut.Decode (JsonDecodeError) as AD
 import Data.Argonaut.Decode.Class (decodeJson)
-import Data.Array (length, (!!))
+import Data.Array (findIndex, length, (!!))
 import Data.Array as DA
-import Data.Either (Either(..), hush)
+import Data.Either (Either(..), hush, isRight)
 import Data.Foldable (intercalate, traverse_)
 import Data.Int as DI
 import Data.Map.Internal (Map)
 import Data.Map.Internal as Map
-import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Maybe (Maybe(..), fromJust, fromMaybe, maybe)
 import Data.MediaType.Common (applicationJavascript, textCSS)
 import Data.String.Common (null)
 import Data.Tuple (Tuple(..))
@@ -99,10 +98,12 @@ component =
               KET.keyup
               (HTMLDocument.toEventTarget doc)
               (map (HandleKey sid) <<< KE.fromEvent)
-        -- FIXME include graph tab
-        SelectTab id -> do 
+          get >>= (\x -> handleAction $ SelectTab x.currentTab)
+        SelectTab id -> do
+          -- set current tab
           updateInfo $ \x -> overTabs x (\(Tab t) -> Tab (t { isActive = id == t.id }))
-          -- logState
+          -- update state
+          H.modify_ $ \x -> x { currentTab = id }
         -- TODO update graph content
         UpdateGraphContent ->
           updateInfo
@@ -253,21 +254,27 @@ component =
               -- handle code change when it is caused by user actions
               when (editor == editor') (handleAction (HandleEditorCodeChanged editor' snippet'))
             _ -> err NoSnippetOrEditor
-
         -- https://github.com/purescript-halogen/purescript-halogen/blob/847659d8b057ba03a992ced5b3e25e27a1e265ff/examples/keyboard-input/src/Main.purs
         -- FIXME don't catch keys when typing in an editor
         HandleKey sid ev -> do
-          -- logState
-          getActiveTabId >>= 
-            case _ of
-              Just TCBNWithGraph -> f
-              _ -> pure unit
+          getActiveTabId
+            >>= case _ of
+                Just TCBNWithGraph -> stepStates
+                _ -> pure unit
+          stepTabs
           where
-          f
+          stepStates
             | KE.key ev == "n" = handleAction NextStep
             | KE.key ev == "p" = handleAction PrevStep
             | otherwise = pure unit
 
+          stepTabs
+            | KE.key ev == "t" = handleAction NextTab
+            | otherwise = pure unit
+        -- FIXME
+        NextTab -> do
+          st <- get >>= (\x -> pure x.currentTab)
+          handleAction $ SelectTab (nextTab st)
         HandleError error -> do
           H.modify_ $ \s -> s { info = Left $ defaultError { parseError = error } }
           setStatePopovers
@@ -276,14 +283,13 @@ component =
   forEditors :: forall output. (Editor -> Action) -> H.HalogenM State Action () output Aff Unit
   forEditors f = traverse_ handleAction (map (\e -> f e) [ EOEditor, PhiEditor ])
 
-
 getActiveTabId ∷ ∀ (a ∷ Type). H.HalogenM State Action () a Aff (Maybe TabId)
 getActiveTabId = do
   h <- get
-  pure $
-    case h.info of
-      Right {textTabs} -> (DA.find (\(Tab t) -> t.isActive) textTabs) <#> (\(Tab t) -> t.id)
-      Left _ -> Nothing
+  pure
+    $ case h.info of
+        Right { textTabs } -> (DA.find (\(Tab t) -> t.isActive) textTabs) <#> (\(Tab t) -> t.id)
+        Left _ -> Nothing
 
 logState ∷ ∀ (a ∷ Type). H.HalogenM State Action () a Aff Unit
 logState = get >>= (\x -> log_ $ show x.info)
@@ -574,7 +580,7 @@ ics =
 
 -- / Constants /
 textTabIds ∷ Array TabId
-textTabIds = [ TTerm, TWHNF, TNF, TCBNReduction, TCBNWithTAP, TCBNWithGraph, TPhiLatex]
+textTabIds = [ TTerm, TWHNF, TNF, TCBNReduction, TCBNWithTAP, TCBNWithGraph, TPhiLatex ]
 
 errorTabId :: TabId
 errorTabId = TError
@@ -616,10 +622,9 @@ defaultOk =
         }
   }
   where
-  btexts = [ "Phi term", " WHNF", "NF", "CBN Reduction", "CBN With TAP", "CBN With Graph", "LaTeX-ed term"]
+  btexts = [ "Phi term", " WHNF", "NF", "CBN Reduction", "CBN With TAP", "CBN With Graph", "LaTeX-ed term" ]
 
   isActives = [ true, false, false, false, false, false, false ]
-
 
 defaultError :: ErrorState
 defaultError =
@@ -634,10 +639,12 @@ defaultError =
 md1 :: State
 md1 =
   { currentEditor: EOEditor
+  , currentTab: TTerm
   , info: Left defaultError
   }
 
 -- / Logic /
+-- FIXME name
 setTab :: forall a. Tab -> ParseError -> Tab
 setTab (Tab t) pe = t'
   where
@@ -666,6 +673,15 @@ setTab (Tab t) pe = t'
 
   -- FIXME
   t' = Tab t { tabContent = showError pe }
+
+nextTab :: TabId -> TabId
+nextTab i = case findIndex ((==) i) textTabIds of
+  Just i' -> case textTabIds !! ((i' + l + 1) `mod` l) of
+    Just i'' -> i''
+    _ -> i
+  _ -> i
+  where
+  l = length textTabIds
 
 -- use lens and take OkState
 -- updateGraphStep :: (Int -> Int) -> GraphTab -> GraphTab

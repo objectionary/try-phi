@@ -99,6 +99,7 @@ data Action
   | HandleError ParseError
   | UpdateGraphContent
   | HandleKey H.SubscriptionId KeyboardEvent
+  | NextTab
 
 
 data Term = Term String
@@ -151,6 +152,7 @@ type ErrorState = {
 -- then no need to store a flag about non-empty code, can use just an error
 type State = {
   currentEditor :: Editor,
+  currentTab :: TabId,
   info :: Either ErrorState OkState
 }
 

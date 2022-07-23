@@ -18,7 +18,8 @@ data TextTabs = TextTabs {
     whnf :: String,
     nf :: String,
     cbn_reduction :: String,
-    cbn_with_tap :: String
+    cbn_with_tap :: String,
+    phi_latex :: String
 } deriving (Show, Data, Typeable)
 
 data MyResponse
@@ -32,9 +33,9 @@ data MyResponse
       }
   deriving (Show, Data, Typeable)
 
-data MyRequest = MyRequest {code :: String} deriving (Eq, Show)
+newtype MyRequest = MyRequest {code :: String} deriving (Eq, Show)
 
-data TabId = TTerm | TWHNF | TNF | TCBNReduction | TCBNWithTAP | TCBNWithGraph
+data TabId = TTerm | TWHNF | TNF | TCBNReduction | TCBNWithTAP | TCBNWithGraph | TPhiLatex
 
 instance Show TabId where
   show TTerm = "original_term"
@@ -43,6 +44,7 @@ instance Show TabId where
   show TCBNReduction = "cbn_reduction"
   show TCBNWithTAP = "cbn_with_tap"
   show TCBNWithGraph = "cbn_with_graph"
+  show TPhiLatex = "phi_latex"
 
 modifyName :: String -> String
 modifyName s

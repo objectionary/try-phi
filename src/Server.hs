@@ -20,12 +20,9 @@ import Control.Monad.Trans.Except
 import Data.Aeson
 import Data.Aeson.TH
 import Data.Data
-import Data.Data (Typeable)
 import Data.Functor ((<&>))
 import Data.Text
 import Data.Text.IO as DT
--- import Faker
--- import qualified Faker.Yoda as Yoda
 import Network.Wai
 import Network.Wai.Handler.Warp
 import Network.Wai.Middleware.Cors (CorsResourcePolicy (corsMethods, corsOrigins, corsRequestHeaders), cors, simpleCors, simpleCorsResourcePolicy)
@@ -34,7 +31,6 @@ import System.Environment (getEnv)
 import System.IO.Error
 import System.Random
 import TH
--- import TH (MyResponse (textTabs), GraphTab(..),TextTabs(..),)
 import Text.StringRandom (stringRandomIO)
 import Data.Either.Combinators(rightToMaybe)
 import Common
@@ -47,7 +43,7 @@ import Common
       ppStates,
       ppTapSteps,
       ppWHNF,
-      ppWHNFSteps, ppEOSource, ppPhiSource )
+      ppWHNFSteps, ppEOSource, ppPhiSource, ppPhiToLatex)
 import EOParser (parseTermProgram)
 
 arr = ["eo", "original_term", "whnf", "nf", "cbn_reduction", "cbn_with_tap"]
@@ -109,11 +105,11 @@ server = han PhiEditor :<|> han EOEditor
     handle :: Editor -> MyRequest -> IO (Either ServerError MyResponse)
     handle ed (MyRequest r) =
       do
-        let phiTerm = 
+        let phiTerm =
               case ed of
                 EOEditor -> getTermFromEO r
                 PhiEditor -> getTermFromPhi r
-            
+
             editorPrefix = getStr' $
               case ed of
                 EOEditor -> "eo"
@@ -127,14 +123,15 @@ server = han PhiEditor :<|> han EOEditor
                       whnf = ppWHNF s,
                       nf = ppNF s,
                       cbn_reduction = ppWHNFSteps s,
-                      cbn_with_tap = ppTapSteps s
-                    } 
-                  gt = GraphTab { 
+                      cbn_with_tap = ppTapSteps s,
+                      phi_latex = ppPhiToLatex s
+                    }
+                  gt = GraphTab {
                       states = ppStates stepLimit s,
                       graphs = ppGraphs stepLimit s
                     }
-                  g' = 
-                    case ed of 
+                  g' =
+                    case ed of
                       PhiEditor -> ppEOSource s
                       EOEditor -> ppPhiSource s
               return $ OkResponse g' tt gt

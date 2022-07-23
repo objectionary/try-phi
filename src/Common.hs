@@ -1,6 +1,6 @@
 
 {-# LANGUAGE TypeApplications #-}
-module Common(ppPhiToEO, ppWHNF, ppWHNFSteps, ppNF, ppTapSteps, ppStates, ppGraphs, getTermFromPhi, getTermFromEO, ppEOSource, ppPhi, Common.ppPhiSource) where
+module Common(ppPhiToEO, ppWHNF, ppWHNFSteps, ppNF, ppTapSteps, ppStates, ppGraphs, getTermFromPhi, getTermFromEO, ppEOSource, ppPhi, Common.ppPhiSource, ppPhiToLatex) where
 
 
 import Phi.Minimal as Phi
@@ -16,6 +16,7 @@ import PhiToEO as EP (ppTermTop)
 import Data.Text (pack)
 import Phi.Minimal.Parser as PMP(parseTerm)
 import Text.Megaparsec.Error(errorBundlePretty)
+import Phi.Minimal.PPToLatex (Latex(..))
 
 ppPhiSource :: Term -> String
 ppPhiSource = show . Phi.ppPhiSource
@@ -28,6 +29,9 @@ ppPhi = show
 
 ppPhiToEO :: Term -> String
 ppPhiToEO = show . Phi.ppTerm
+
+ppPhiToLatex :: Term -> String
+ppPhiToLatex t = show (Latex t)
 
 ppWHNF :: Term -> String
 ppWHNF = show . Phi.whnf

@@ -26,7 +26,6 @@ module PhiDefinitions
   )
   where
 
-import Data.Generic.Rep (class Generic, Constructor(..), Product(..), Sum(..), from)
 import Prelude
 
 import Control.Alternative ((<|>))
@@ -35,6 +34,7 @@ import Data.Argonaut.Decode.Class (class DecodeJson, decodeJson)
 import Data.Argonaut.Decode.Decoders (decodeString)
 import Data.Array (foldl)
 import Data.Either (Either(..))
+import Data.Generic.Rep (class Generic, Constructor(..), Product(..), Sum(..), from)
 import Data.Map (fromFoldable)
 import Data.Map.Internal (Map)
 import Data.Maybe (Maybe(..))
@@ -46,6 +46,7 @@ import Effect.Console (log)
 import Halogen as H
 import Halogen.HTML (HTML, div_)
 import Type.Proxy (Proxy(..))
+import Web.UIEvent.KeyboardEvent (KeyboardEvent)
 
 -- / Types /
 
@@ -84,7 +85,7 @@ data Action
   = Init
   | NextStep
   | PrevStep
-  | SelectTab Tab
+  | SelectTab TabId
   | ListenEditorsCodeChanged
   | ListenEditorCodeChanged Editor
   | HandleEditorCodeChanged Editor String
@@ -97,6 +98,7 @@ data Action
   | InitEditorsFromLink
   | HandleError ParseError
   | UpdateGraphContent
+  | HandleKey H.SubscriptionId KeyboardEvent
 
 
 data Term = Term String
@@ -199,7 +201,6 @@ instance Show ParseError where
 
 derive instance Eq TabId
 derive instance Ord TabId
-
 
 instance Show Term where
   show (Term s) = s

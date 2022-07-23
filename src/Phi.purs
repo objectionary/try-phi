@@ -11,6 +11,7 @@ import Affjax.ResponseFormat as AXRF
 import Affjax.Web as AW
 import CSS.Geometry as CG
 import CSS.Size as CS
+import Control.Monad.State (class MonadState)
 import Data.Argonaut (encodeJson)
 import Data.Argonaut.Decode (JsonDecodeError) as AD
 import Data.Argonaut.Decode.Class (decodeJson)
@@ -57,6 +58,9 @@ import Web.HTML.HTMLDocument as HTMLDocument
 import Web.HTML.Location (search) as Web
 import Web.HTML.Window (document, location) as Web
 import Web.HTML.Window (navigator)
+import Web.UIEvent.KeyboardEvent (KeyboardEvent)
+import Web.UIEvent.KeyboardEvent as KE
+import Web.UIEvent.KeyboardEvent.EventTypes as KET
 import Web.URL.URLSearchParams as USP
 
 overTabs :: OkState -> (Tab -> Tab) -> OkState
@@ -89,8 +93,16 @@ component =
           handleAction ListenEditorsCodeChanged
           handleAction ListenEditorsCreated
           setStatePopovers
+          doc <- H.liftEffect $ Web.document =<< Web.window
+          H.subscribe' \sid ->
+            eventListener
+              KET.keyup
+              (HTMLDocument.toEventTarget doc)
+              (map (HandleKey sid) <<< KE.fromEvent)
         -- FIXME include graph tab
-        SelectTab t1 -> updateInfo $ \x -> overTabs x (\t2@(Tab t) -> Tab (t { isActive = t1 == t2 }))
+        SelectTab id -> do 
+          updateInfo $ \x -> overTabs x (\(Tab t) -> Tab (t { isActive = id == t.id }))
+          -- logState
         -- TODO update graph content
         UpdateGraphContent ->
           updateInfo
@@ -185,11 +197,6 @@ component =
                             , graphTabState = r.graphTab
                             }
                     handleAction UpdateGraphContent
-                    get >>= (\x -> log_ $ show x.info)
-                    -- st <- H.get
-                    -- case st.info of
-                    --   Right { graphStep } -> log_ $ show graphStep
-                    --   Left _ -> pure unit
                     setStatePopovers
                   Just (ErrorResponse r) ->
                     handleAction $ HandleError
@@ -246,6 +253,21 @@ component =
               -- handle code change when it is caused by user actions
               when (editor == editor') (handleAction (HandleEditorCodeChanged editor' snippet'))
             _ -> err NoSnippetOrEditor
+
+        -- https://github.com/purescript-halogen/purescript-halogen/blob/847659d8b057ba03a992ced5b3e25e27a1e265ff/examples/keyboard-input/src/Main.purs
+        -- FIXME don't catch keys when typing in an editor
+        HandleKey sid ev -> do
+          -- logState
+          getActiveTabId >>= 
+            case _ of
+              Just TCBNWithGraph -> f
+              _ -> pure unit
+          where
+          f
+            | KE.key ev == "n" = handleAction NextStep
+            | KE.key ev == "p" = handleAction PrevStep
+            | otherwise = pure unit
+
         HandleError error -> do
           H.modify_ $ \s -> s { info = Left $ defaultError { parseError = error } }
           setStatePopovers
@@ -253,6 +275,18 @@ component =
 
   forEditors :: forall output. (Editor -> Action) -> H.HalogenM State Action () output Aff Unit
   forEditors f = traverse_ handleAction (map (\e -> f e) [ EOEditor, PhiEditor ])
+
+
+getActiveTabId ∷ ∀ (a ∷ Type). H.HalogenM State Action () a Aff (Maybe TabId)
+getActiveTabId = do
+  h <- get
+  pure $
+    case h.info of
+      Right {textTabs} -> (DA.find (\(Tab t) -> t.isActive) textTabs) <#> (\(Tab t) -> t.id)
+      Left _ -> Nothing
+
+logState ∷ ∀ (a ∷ Type). H.HalogenM State Action () a Aff Unit
+logState = get >>= (\x -> log_ $ show x.info)
 
 setEditor :: forall output. Editor -> H.HalogenM State Action () output Aff Unit
 setEditor editor = H.modify_ $ \s -> s { currentEditor = editor }
@@ -502,6 +536,14 @@ ics =
               , href: Just "https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAASJgTzOw"
               , txt: Just "Decorated Instantiation"
               }
+            , { pref: Just "Press the button [Next step] or the key [n] to proceed to the next step"
+              , href: Nothing
+              , txt: Nothing
+              }
+            , { pref: Just "Press the button [Previous step] or the key [p] to return to the previous step"
+              , href: Nothing
+              , txt: Nothing
+              }
             ]
         }
       , { x: getName TPhiLatex
@@ -577,6 +619,7 @@ defaultOk =
   btexts = [ "Phi term", " WHNF", "NF", "CBN Reduction", "CBN With TAP", "CBN With Graph", "LaTeX-ed term"]
 
   isActives = [ true, false, false, false, false, false, false ]
+
 
 defaultError :: ErrorState
 defaultError =
@@ -799,7 +842,7 @@ tabButton t@(Tab tab) =
     , HA.role "tab"
     , U.attr_ "aria-controls" (mkContent id)
     , U.attr_ "aria-selected" selected
-    , HH.onClick $ \_ -> SelectTab t
+    , HH.onClick $ \_ -> SelectTab tab.id
     ]
     [ HC.text (" " <> tab.buttonText)
     , infoIcon (mkInfo id)

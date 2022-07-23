@@ -4,24 +4,24 @@ module Phi
   ) where
 
 import Prelude
+
 import Affjax as AX
 import Affjax.RequestBody (RequestBody(..))
 import Affjax.ResponseFormat as AXRF
 import Affjax.Web as AW
 import CSS.Geometry as CG
 import CSS.Size as CS
-import Control.Monad.State (class MonadState)
 import Data.Argonaut (encodeJson)
 import Data.Argonaut.Decode (JsonDecodeError) as AD
 import Data.Argonaut.Decode.Class (decodeJson)
 import Data.Array (findIndex, length, (!!))
 import Data.Array as DA
-import Data.Either (Either(..), hush, isRight)
+import Data.Either (Either(..), hush)
 import Data.Foldable (intercalate, traverse_)
 import Data.Int as DI
 import Data.Map.Internal (Map)
 import Data.Map.Internal as Map
-import Data.Maybe (Maybe(..), fromJust, fromMaybe, maybe)
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.MediaType.Common (applicationJavascript, textCSS)
 import Data.String.Common (null)
 import Data.Tuple (Tuple(..))
@@ -30,14 +30,12 @@ import Effect.Aff (Aff)
 import Foreign (unsafeFromForeign)
 import Halogen (AttrName(..), Component, get)
 import Halogen as H
-import Halogen.HTML (HTML)
-import Halogen.HTML (button, header_, pre, pre_, section_, span, text) as HH
+import Halogen.HTML (HTML, button, header_, pre, pre_, section_, span, text)
 import Halogen.HTML.CSS as CSS
 import Halogen.HTML.Core as HC
-import Halogen.HTML.Elements (a, div, div_, i, img, li_, link, nav_, p_, script, ul_, h3_) as HH
+import Halogen.HTML.Elements (a, div, div_, i, img, li_, link, nav_, p_, script, ul_, h3_, nav, h5)
 import Halogen.HTML.Events (onClick)
-import Halogen.HTML.Events (onClick) as HH
-import Halogen.HTML.Properties (ButtonType(..), IProp, style)
+import Halogen.HTML.Properties (ButtonType(..), IProp, style, id, type_, attr, href, src, alt, rel)
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties.ARIA (role) as HA
 import Halogen.Query.Event (eventListener)
@@ -57,7 +55,6 @@ import Web.HTML.HTMLDocument as HTMLDocument
 import Web.HTML.Location (search) as Web
 import Web.HTML.Window (document, location) as Web
 import Web.HTML.Window (navigator)
-import Web.UIEvent.KeyboardEvent (KeyboardEvent)
 import Web.UIEvent.KeyboardEvent as KE
 import Web.UIEvent.KeyboardEvent.EventTypes as KET
 import Web.URL.URLSearchParams as USP
@@ -65,7 +62,7 @@ import Web.URL.URLSearchParams as USP
 overTabs :: OkState -> (Tab -> Tab) -> OkState
 overTabs st f = st { textTabs = f <$> st.textTabs }
 
--- / Component /
+-- #Component
 component :: ∀ a b c. Component a b c Aff
 component =
   H.mkComponent
@@ -98,7 +95,7 @@ component =
               KET.keyup
               (HTMLDocument.toEventTarget doc)
               (map (HandleKey sid) <<< KE.fromEvent)
-          get >>= (\x -> handleAction $ SelectTab x.currentTab)
+          setCurrentTab
         SelectTab id -> do
           -- set current tab
           updateInfo $ \x -> overTabs x (\(Tab t) -> Tab (t { isActive = id == t.id }))
@@ -154,11 +151,12 @@ component =
                 -- do
                 if null code then
                   handleAction $ HandleError NoCode
-                else
+                else do
                   H.modify_
                     $ \s -> case s.info of
                         Left _ -> s { info = Right defaultOk }
                         Right _ -> s
+                  setCurrentTab
                 setEditor editor
                 handleAction $ UpdatePermalink editor code
                 -- request code from server
@@ -187,9 +185,9 @@ component =
                           s
                             { textTabs =
                               ( \(Tab t) -> case Map.lookup t.id r.textTabs of
-                                  Just cont -> Tab t { tabContent = HH.pre_ [ HH.text cont ] }
+                                  Just cont -> Tab t { tabContent = pre_ [ text cont ] }
                                   Nothing ->
-                                    (\x -> Tab t { tabContent = HH.text x })
+                                    (\x -> Tab t { tabContent = text x })
                                       $ case t.id of
                                           TCBNWithGraph -> "Waiting for " <> show TCBNWithGraph
                                           _ -> "No response"
@@ -268,10 +266,10 @@ component =
             | KE.key ev == "p" = handleAction PrevStep
             | otherwise = pure unit
 
+          -- FIXME separate action
           stepTabs
             | KE.key ev == "t" = handleAction NextTab
             | otherwise = pure unit
-        -- FIXME
         NextTab -> do
           st <- get >>= (\x -> pure x.currentTab)
           handleAction $ SelectTab (nextTab st)
@@ -282,6 +280,9 @@ component =
 
   forEditors :: forall output. (Editor -> Action) -> H.HalogenM State Action () output Aff Unit
   forEditors f = traverse_ handleAction (map (\e -> f e) [ EOEditor, PhiEditor ])
+
+  setCurrentTab :: forall output. H.HalogenM State Action () output Aff Unit
+  setCurrentTab = get >>= (\x -> handleAction $ SelectTab x.currentTab)
 
 getActiveTabId ∷ ∀ (a ∷ Type). H.HalogenM State Action () a Aff (Maybe TabId)
 getActiveTabId = do
@@ -321,7 +322,7 @@ textStepButton = case _ of
   NextStep -> "Next step"
   _ -> ""
 
--- / Stringification /
+-- #Stringification
 urlPrefix ∷ AppState -> String
 urlPrefix DevState = "http://localhost:8082/"
 
@@ -432,7 +433,7 @@ mkContent id = "content_" <> id
 mkInfo ∷ String → String
 mkInfo id = "info_" <> id
 
--- / Data /
+-- #Data
 ics ∷ Array { x ∷ String, y ∷ Array { href :: Maybe String, pref :: Maybe String, txt :: Maybe String } }
 ics =
   (\r@{ x: x } -> r { x = mkInfo x })
@@ -578,7 +579,9 @@ ics =
         }
       ]
 
--- / Constants /
+allTabs :: OkState -> Array Tab
+allTabs st = st.textTabs
+
 textTabIds ∷ Array TabId
 textTabIds = [ TTerm, TWHNF, TNF, TCBNReduction, TCBNWithTAP, TCBNWithGraph, TPhiLatex ]
 
@@ -602,7 +605,7 @@ editorId s
   | s == "phi" = Just PhiEditor
   | otherwise = Nothing
 
--- / State /
+-- #State
 defaultOk :: OkState
 defaultOk =
   { textTabs:
@@ -611,7 +614,7 @@ defaultOk =
           )
             c
         ) ->
-          Tab { id: a, buttonText: b, isActive: c, tabContent: HH.div_ [] }
+          Tab { id: a, buttonText: b, isActive: c, tabContent: div_ [] }
       )
         <$> DA.zip (DA.zip textTabIds btexts) isActives
   , graphTabState:
@@ -628,7 +631,7 @@ defaultOk =
 
 defaultError :: ErrorState
 defaultError =
-  { errorTab: Tab { id: errorTabId, isActive: isActive, buttonText: bText, tabContent: HH.div_ [] }
+  { errorTab: Tab { id: errorTabId, isActive: isActive, buttonText: bText, tabContent: div_ [] }
   , parseError: NoCode
   }
   where
@@ -643,7 +646,7 @@ md1 =
   , info: Left defaultError
   }
 
--- / Logic /
+-- #Logic
 -- FIXME name
 setTab :: forall a. Tab -> ParseError -> Tab
 setTab (Tab t) pe = t'
@@ -663,13 +666,13 @@ setTab (Tab t) pe = t'
           NoCode -> "empty editors'"
 
   ppParseError :: forall b. ParseError -> HTML b Action
-  ppParseError e = HH.div_ [ HH.pre [ style "white-space: pre-wrap" ] [ HH.text $ getMessage e ] ]
+  ppParseError e = div_ [ pre [ style "white-space: pre-wrap" ] [ text $ getMessage e ] ]
 
   ppErrorMessage :: forall b. ParseError -> HTML b Action
-  ppErrorMessage e = HH.div [ U.classes_ [] ] [ HH.h3_ [ HH.span [ HP.style "font-weight:normal" ] [ HH.text $ getEditor e ] ] ]
+  ppErrorMessage e = div [ U.classes_ [] ] [ h3_ [ span [ style "font-weight:normal" ] [ text $ getEditor e ] ] ]
 
   showError :: forall b. ParseError -> HTML b Action
-  showError e = HH.div [ U.classes_ [ "d-flex" ] ] [ HH.div_ [ ppErrorMessage e, ppParseError e ] ]
+  showError e = div [ U.classes_ [ "d-flex" ] ] [ div_ [ ppErrorMessage e, ppParseError e ] ]
 
   -- FIXME
   t' = Tab t { tabContent = showError pe }
@@ -692,39 +695,64 @@ updateGraphStep f ok@{ graphTabState: (GraphTab g) } = ok { graphTabState = Grap
 numberOfStates :: GraphTab -> Int
 numberOfStates (GraphTab { states }) = length states
 
--- / Props /
-dataBsProp ∷ ∀ a b. String → String → IProp a b
-dataBsProp propName value = HP.attr (AttrName ("data-bs-" <> propName)) value
+-- #Props
+propDataBs ∷ ∀ a b. String → String → IProp a b
+propDataBs propName value = prop ("data-bs-" <> propName) value
 
--- / HTML /
+propAria ∷ ∀ a b. String → String → IProp a b
+propAria propName value = prop ("aria-" <> propName) value
+
+prop ∷ ∀ a b. String → String → IProp a b
+prop propName value = attr (AttrName propName) value
+
+-- #HTML
 html ∷ ∀ a. State -> HTML a Action
 html state =
-  HH.div
+  div
     [ U.classes_ [ dGrid, "gap-1" ] ]
     $ divRow
     <$> [ cdns
       , eoLogoSection
-      , permalinkButton
+      , buttons
+      , guide
       , editorsDiv
       , infos state
       , pageFooter
       ]
   where
-  divRow x = HH.div [ U.classes_ [ "p-1" ] ] [ x ]
+  divRow x = div [ U.classes_ [ "p-1" ] ] [ x ]
 
 permalinkButton :: forall a. HTML a Action
 permalinkButton =
-  HH.div [ U.classes_ [ dFlex, justifyContentCenter ] ]
-    [ HH.button
-        [ HP.type_ ButtonButton
-        , U.classes_
-            [ "btn", "btn-warning"
-            ]
-        , HP.id permalink_
-        , onClick $ \_ -> CopyToClipboard
+  button
+    [ type_ ButtonButton
+    , U.classes_
+        [ "btn", "btn-warning"
         ]
-        [ HH.text $ "Copy permalink" ]
+    , id permalink_
+    , onClick $ \_ -> CopyToClipboard
     ]
+    [ text $ "Copy permalink" ]
+
+buttons ∷ ∀ a. HTML a Action
+buttons =
+  div
+    [ U.classes_ [ dFlex, justifyContentCenter ]
+    ]
+    [ permalinkButton, guideButton ]
+
+guideButton :: forall a. HTML a Action
+guideButton =
+  button
+    [ type_ ButtonButton
+    , U.classes_
+        [ "btn", "btn-success"
+        ]
+    , propDataBs "toggle" "offcanvas"
+    , propDataBs "target" "#offcanvasNavbar"
+    , prop "aria-controls" "offcanvasNavbar"
+    ]
+    [ text $ "Editor guide" ]
 
 infos :: ∀ a. State -> HTML a Action
 infos s = case s.info of
@@ -734,14 +762,14 @@ infos s = case s.info of
 errorTab :: forall a. ErrorState -> HTML a Action
 errorTab { parseError: pe, errorTab: et } =
   -- TODO where to set tab content?
-  HH.div_
-    [ HH.nav_
-        [ HH.div
-            [ U.classes_ [ "nav", "nav-tabs" ], HP.id "nav-tab", HA.role "tablist" ]
+  div_
+    [ nav_
+        [ div
+            [ U.classes_ [ "nav", "nav-tabs" ], id "nav-tab", HA.role "tablist" ]
             [ tabButton et' ]
         ]
-    , HH.div
-        [ U.class_ "tab-content", HP.id "nav-tabContent" ]
+    , div
+        [ U.class_ "tab-content", id "nav-tabContent" ]
         [ tabContent et' ]
     ]
   where
@@ -749,12 +777,12 @@ errorTab { parseError: pe, errorTab: et } =
 
 eoLogoSection ∷ ∀ a b. HTML a b
 eoLogoSection =
-  HH.section_
-    [ HH.header_
-        [ HH.div [ U.classes_ [ dFlex, justifyContentCenter ] ]
-            [ HH.a [ HP.href "https://www.eolang.org" ]
-                [ HH.img
-                    [ HP.src "https://www.yegor256.com/images/books/elegant-objects/cactus.png"
+  section_
+    [ header_
+        [ div [ U.classes_ [ dFlex, justifyContentCenter ] ]
+            [ a [ href "https://www.eolang.org" ]
+                [ img
+                    [ src "https://www.yegor256.com/images/books/elegant-objects/cactus.png"
                     , CSS.style do
                         CG.width (CS.px $ DI.toNumber 64)
                         CG.height (CS.px $ DI.toNumber 64)
@@ -766,41 +794,41 @@ eoLogoSection =
 
 infoIcon :: forall a b. String -> HTML a b
 infoIcon infoId =
-  HH.i
-    [ HP.id infoId
+  i
+    [ id infoId
     , U.classes_ [ "bi", "bi-info-square", "ms-2" ]
-    , dataBsProp "container" "body"
-    , dataBsProp "toggle" "popover"
-    , dataBsProp "placement" "top"
-    , dataBsProp "content" (getInfoContent infoId)
+    , propDataBs "container" "body"
+    , propDataBs "toggle" "popover"
+    , propDataBs "placement" "top"
+    , propDataBs "content" (getInfoContent infoId)
     ]
     []
 
 editorDiv :: forall a b. Editor -> String -> HTML a b
 editorDiv ed ref =
-  HH.div [ U.classes_ [ "col-sm-6" ] ]
-    [ HH.div [ U.class_ "row" ]
-        [ HH.div [ U.classes_ [ dFlex, justifyContentCenter ] ]
-            [ HH.p_
-                [ HH.a [ HP.href ref ] [ HH.text $ editorNamePretty ed <> " " ]
-                , HH.text "code"
+  div [ U.classes_ [ "col-sm-6" ] ]
+    [ div [ U.class_ "row" ]
+        [ div [ U.classes_ [ dFlex, justifyContentCenter ] ]
+            [ p_
+                [ a [ href ref ] [ text $ editorNamePretty ed <> " " ]
+                , text "code"
                 -- FIXME edit popover 
                 , infoIcon $ mkInfo (editorName ed) # _editor
                 ]
             ]
         ]
-    , HH.div [ U.classes_ [ dFlex, justifyContentCenter ] ]
-        [ HH.div [ U.class_ "row" ]
-            [ HH.div [ HP.id $ editorName ed <> "-editor" ] []
+    , div [ U.classes_ [ dFlex, justifyContentCenter ] ]
+        [ div [ U.class_ "row" ]
+            [ div [ id $ editorName ed <> "-editor" ] []
             ]
         ]
     ]
 
 editorsDiv :: forall a b. HTML a b
 editorsDiv =
-  HH.div
-    [ U.class_ "container-fluid", HP.id "cont" ]
-    [ HH.div
+  div
+    [ U.class_ "container-fluid", id "cont" ]
+    [ div
         [ U.class_ "row" ]
         [ editorDiv PhiEditor "https://arxiv.org/abs/2204.07454"
         , editorDiv EOEditor "https://www.eolang.org"
@@ -810,21 +838,21 @@ editorsDiv =
 -- pageFooter :: View action
 pageFooter ∷ ∀ a b. HTML a b
 pageFooter =
-  HH.nav_
-    [ HH.ul_
-        [ HH.li_
-            [ HH.text "Join our "
-            , HH.a [ HP.href "https://t.me/polystat_org" ] [ HH.text "Telegram group" ]
-            , HH.text " to discuss how 𝜑-calculus works"
+  nav_
+    [ ul_
+        [ li_
+            [ text "Join our "
+            , a [ href "https://t.me/polystat_org" ] [ text "Telegram group" ]
+            , text " to discuss how 𝜑-calculus works"
             ]
         ]
-    , HH.ul_
-        [ HH.li_
-            [ HH.a
-                [ HP.href "https://github.com/polystat/try-phi/stargazers" ]
-                [ HH.img
-                    [ HP.src "https://img.shields.io/github/stars/polystat/try-phi.svg?style=flat-square"
-                    , HP.alt "github stars"
+    , ul_
+        [ li_
+            [ a
+                [ href "https://github.com/polystat/try-phi/stargazers" ]
+                [ img
+                    [ src "https://img.shields.io/github/stars/polystat/try-phi.svg?style=flat-square"
+                    , alt "github stars"
                     ]
                 ]
             ]
@@ -833,32 +861,32 @@ pageFooter =
 
 cdns ∷ ∀ a b. HTML a b
 cdns =
-  HH.div_
-    [ HH.link [ HP.href "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css", HP.rel "stylesheet", HP.type_ textCSS ]
-    , HH.script [ HP.src "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js", HP.type_ applicationJavascript ] []
+  div_
+    [ link [ href "https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css", rel "stylesheet", type_ textCSS ]
+    , script [ src "https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js", type_ applicationJavascript ] []
     -- TODO insert into a separate tab 
     -- TODO add tab switching with ctrl+tab
-    , HH.script [ HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/eo-editor@d58d13becead90f7aaf11e424df8663532e85a23/docs/eo-editor.js", U.attr_ "type" "module" ] []
-    , HH.link [ HP.href "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/eo-editor@d58d13becead90f7aaf11e424df8663532e85a23/docs/eo-editor.css", HP.type_ textCSS ]
-    , HH.script [ HP.src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-editor@c04746d8040a6fcad2efd94b14014defeaccacf4/docs/phi-editor.js", U.attr_ "type" "module" ] []
-    , HH.link [ HP.href "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-editor@c04746d8040a6fcad2efd94b14014defeaccacf4/docs/phi-editor.css", HP.type_ textCSS ]
-    , HH.link [ HP.href "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css", HP.rel "stylesheet", HP.type_ textCSS ]
-    , HH.link [ HP.href "https://www.yegor256.com/images/books/elegant-objects/cactus.png", HP.rel "shortcut icon" ]
-    , HH.link [ HP.href "https://cdn.jsdelivr.net/gh/yegor256/tacit@gh-pages/tacit-css.min.css", HP.rel "stylesheet", HP.type_ textCSS ]
+    , script [ src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/eo-editor@d58d13becead90f7aaf11e424df8663532e85a23/docs/eo-editor.js", U.attr_ "type" "module" ] []
+    , link [ href "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/eo-editor@d58d13becead90f7aaf11e424df8663532e85a23/docs/eo-editor.css", type_ textCSS ]
+    , script [ src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-editor@c04746d8040a6fcad2efd94b14014defeaccacf4/docs/phi-editor.js", U.attr_ "type" "module" ] []
+    , link [ href "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-editor@c04746d8040a6fcad2efd94b14014defeaccacf4/docs/phi-editor.css", type_ textCSS ]
+    , link [ href "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css", rel "stylesheet", type_ textCSS ]
+    , link [ href "https://www.yegor256.com/images/books/elegant-objects/cactus.png", rel "shortcut icon" ]
+    , link [ href "https://cdn.jsdelivr.net/gh/yegor256/tacit@gh-pages/tacit-css.min.css", rel "stylesheet", type_ textCSS ]
     ]
 
 tabButton :: forall a. Tab -> HTML a Action
-tabButton t@(Tab tab) =
-  HH.button
+tabButton (Tab tab) =
+  button
     [ U.classes_ $ [ "nav-link" ] <> active
     , HP.id $ mkButton id
-    , dataBsProp "toggle" "tab"
-    , dataBsProp "target" ("#" <> mkContent id)
-    , HP.type_ ButtonButton
+    , propDataBs "toggle" "tab"
+    , propDataBs "target" ("#" <> mkContent id)
+    , type_ ButtonButton
     , HA.role "tab"
-    , U.attr_ "aria-controls" (mkContent id)
-    , U.attr_ "aria-selected" selected
-    , HH.onClick $ \_ -> SelectTab tab.id
+    , propAria "controls" (mkContent id)
+    , propAria "selected" selected
+    , onClick $ \_ -> SelectTab tab.id
     ]
     [ HC.text (" " <> tab.buttonText)
     , infoIcon (mkInfo id)
@@ -874,7 +902,7 @@ tabButton t@(Tab tab) =
 
 tabContent :: forall a. Tab -> HTML a Action
 tabContent (Tab tab) =
-  HH.div
+  div
     [ U.classes_ $ [ "tab-pane", "fade" ] <> active
     , U.class_ "pt-3"
     , HP.id id
@@ -892,42 +920,170 @@ tabContent (Tab tab) =
     else
       []
 
-allTabs :: OkState -> Array Tab
-allTabs st = st.textTabs
-
 termTabs :: forall a. OkState -> HTML a Action
 termTabs st =
-  HH.div_
-    [ HH.nav_
-        [ HH.div
-            [ U.classes_ [ "nav", "nav-tabs" ], HP.id "nav-tab", HA.role "tablist" ]
+  div_
+    [ nav_
+        [ div
+            [ U.classes_ [ "nav", "nav-tabs" ], id "nav-tab", HA.role "tablist" ]
             (tabButton <$> allTabs st)
         ]
-    , HH.div
-        [ U.class_ "tab-content", HP.id "nav-tabContent" ]
+    , div
+        [ U.class_ "tab-content", id "nav-tabContent" ]
         (tabContent <$> st.textTabs)
     ]
 
 stepButton :: forall b. Action -> HTML b Action
 stepButton a =
-  HH.button
-    [ HP.type_ ButtonButton
+  button
+    [ type_ ButtonButton
     , U.classes_ [ "btn", "btn-warning" ]
     , onClick $ \_ -> a
     ]
-    [ HH.text $ textStepButton a ]
+    [ text $ textStepButton a ]
 
 getGraphTabContent :: forall b. GraphTab -> HTML b Action
 getGraphTabContent (GraphTab { states, graphs, step }) =
-  HH.div [ U.class_ "row" ]
-    [ HH.div [ U.class_ "col-sm" ]
+  div [ U.class_ "row" ]
+    [ div [ U.class_ "col-sm" ]
         [ stepButton PrevStep
         , stepButton NextStep
-        , HH.pre_ [ HH.text $ maybe ("step error: " <> show step) identity (states !! step) ]
+        , pre_ [ text $ maybe ("step error: " <> show step) identity (states !! step) ]
         ]
-    , HH.div [ U.class_ "col-sm" ]
-        [ HH.img
-            [ HP.src $ maybe ("step error: " <> show step) ((<>) "https://quickchart.io/graphviz?layout=dot&format=svg&graph=") (graphs !! step)
+    , div [ U.class_ "col-sm" ]
+        [ img
+            [ src $ maybe ("step error: " <> show step) ((<>) "https://quickchart.io/graphviz?layout=dot&format=svg&graph=") (graphs !! step)
             ]
         ]
     ]
+
+-- FIXME need to double click outside to close 
+guide :: forall b. HTML b Action
+guide =
+  nav [ U.classes_ [ "navbar", "navbar-light" ] ]
+    [ div [ U.class_ "container-fluid" ]
+        [ div
+            [ U.classes_ [ "offcanvas", "offcanvas-start" ]
+            , prop "tabindex" "-1"
+            , id "offcanvasNavbar"
+            , propAria "labelledby" "offcanvasNavbarLabel"
+            , propDataBs "backdrop" "true"
+            ]
+            [ div [ U.class_ "offcanvas-header" ]
+                [ h5 [ U.class_ "offcanvas-title", id "offcanvasNavbarLabel" ]
+                    [ text "Editor guide"
+                    ],
+                  button [type_ ButtonButton, U.classes_ ["btn-close", "text-reset"], propDataBs "dismiss" "offcanvas", propAria "label" "Close"] []
+                ]
+            , div [ U.class_ "offcanvas-body" ]
+                [ 
+                  -- ul [ U.classes_ ["nav", "nav-tabs", "mb-3"], id "nav-tab" ]
+                  --   [ text "Editor guide"
+                  --   ]
+                  text "hey"
+                ]
+            ]
+        ]
+    ]
+
+{-
+
+<nav class="navbar navbar-light">
+    <div class="container-fluid">
+      <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar" aria-labelledby="offcanvasNavbarLabel">
+        <div class="offcanvas-header">
+          <h5 class="offcanvas-title" id="offcanvasNavbarLabel">Editor guide</h5>
+          <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+          <ul class="nav nav-tabs mb-3" id="nav-tab" role="tablist">
+            <li class="nav-item">
+              <button class="nav-link active" id="keybindings-tab" data-bs-toggle="pill" data-bs-target="#keybindings"
+                type="button" role="tab" aria-controls="keybindings" aria-selected="true">Keybindings</button>
+            </li>
+            <li class="nav-item" 0>
+              <button class="nav-link" id="diagnostics-tab" data-bs-toggle="pill" data-bs-target="#diagnostics"
+                type="button" role="tab" aria-controls="diagnostics" aria-selected="false">Diagnostics</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" id="links-tab" data-bs-toggle="pill" data-bs-target="#links" type="button"
+                role="tab" aria-controls="links" aria-selected="false">Links</button>
+            </li>
+          </ul>
+          <div class="tab-content" id="tabContent">
+            <div class="tab-pane fade show active" id="keybindings" role="tabpanel" aria-labelledby="keybindings-tab">
+              Use <span class="keys"><kbd class="kbd">⌘</kbd></span> on Mac instead of <span class="keys"><kbd
+                  class="kbd">Ctrl</kbd></span>
+              <table class="table table-hover wide-table">
+                <thead>
+                  <tr>
+                    <th class="table-header" scope="col">Action</th>
+                    <th class="table-header" scope="col">Keybinding</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Indent / Dedent (selection)</td>
+                    <td><span class="keys"><kbd class="kbd">Tab</kbd></span>/<span class="keys"><kbd
+                          class="kbd">Shift</kbd>+<kbd class="kbd">Tab</kbd></span></td>
+                  </tr>
+                  <tr>
+                    <td>Toggle parse tree in browser console</td>
+                    <td><span class="keys"><kbd class="kbd">Ctrl</kbd>+<kbd class="kbd">Shift</kbd>+<kbd
+                          class="kbd">L</kbd></span></td>
+                  </tr>
+                  <tr>
+                    <td>Undo the last action</td>
+                    <td><span class="keys"><kbd class="kbd">Ctrl</kbd>+<kbd class="kbd">Z</kbd></span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="tab-pane fade" id="diagnostics" role="tabpanel" aria-labelledby="diagnostics-tab">
+              <table class="table table-hover wide-table">
+                <thead>
+                  <tr>
+                    <th class="table-header" scope="col">Diagnostic</th>
+                    <th class="table-header" scope="col">Meaning</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Red triangle</td>
+                    <td>Position of a parsing error</td>
+                  </tr>
+                  <tr>
+                    <td>Red wavy underlines</td>
+                    <td>(Possibly) a part of an incorrect expression</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="tab-pane fade" id="links" role="tabpanel" aria-labelledby="links-tab">
+              <table class="table table-hover wide-table">
+                <tbody>
+                  <tr>
+                    <td><a href="https://github.com/br4ch1st0chr0n3/eo-editor">GitHub repo</a></td>
+                  </tr>
+                  <tr>
+                    <td><a href="https://github.com/cqfn/eo">EO repo</a></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      We use <a href="https://codemirror.net/6/">Codemirror 6</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      And <a href="https://lezer.codemirror.net/docs/guide/">Lezer</a> parse system
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+-}

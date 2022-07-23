@@ -4,7 +4,6 @@ module Phi
   ) where
 
 import Prelude
-
 import Affjax as AX
 import Affjax.RequestBody (RequestBody(..))
 import Affjax.ResponseFormat as AXRF
@@ -972,14 +971,17 @@ guide =
             [ div [ U.class_ "offcanvas-header" ]
                 [ h5 [ U.class_ "offcanvas-title", id "offcanvasNavbarLabel" ]
                     [ text "Editor guide"
-                    ],
-                  button [type_ ButtonButton, U.classes_ ["btn-close", "text-reset"], propDataBs "dismiss" "offcanvas", propAria "label" "Close"] []
+                    ]
+                , button
+                    [ type_ ButtonButton
+                    , U.classes_ [ "btn-close", "text-reset" ]
+                    , propDataBs "dismiss" "offcanvas"
+                    , propAria "label" "Close"
+                    ]
+                    []
                 ]
             , div [ U.class_ "offcanvas-body" ]
-                [ 
-                  -- ul [ U.classes_ ["nav", "nav-tabs", "mb-3"], id "nav-tab" ]
-                  --   [ text "Editor guide"
-                  --   ]
+                [ -- ul [ U.classes_ ["nav", "nav-tabs", "mb-3"], id "nav-tab" ] --   [ text "Editor guide" --   ]
                   text "hey"
                 ]
             ]

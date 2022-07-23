@@ -29,19 +29,24 @@ library
       Lambda.Pretty
       Phi.Minimal
       Phi.Minimal.ConfigurationDot
+      Phi.Minimal.Examples
       Phi.Minimal.Graph
       Phi.Minimal.Machine.CallByName
       Phi.Minimal.Machine.CallByName.Graph
       Phi.Minimal.Model
       Phi.Minimal.Parser
+      Phi.Minimal.PPToLatex
       Phi.Minimal.Pretty
       Phi.Minimal.Print
       Phi.Minimal.Translation.Lambda
       Phi.Utils.GraphBuilder
+      Spec
+      TestLatex.TestLatex
   other-modules:
       Paths_phi_utils
   hs-source-dirs:
       src
+      test
   build-depends:
       base >=4.7 && <5
     , containers
@@ -82,6 +87,7 @@ test-suite phi-utils-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      TestLatex.TestLatex
       Paths_phi_utils
   hs-source-dirs:
       test

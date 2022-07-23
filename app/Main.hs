@@ -1,5 +1,4 @@
 module Main where
 
-
 main :: IO ()
-main = print "ok"
+main = print "Hello!"

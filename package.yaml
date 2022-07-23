@@ -33,7 +33,9 @@ dependencies:
 - unordered-containers
 
 library:
-  source-dirs: src
+  source-dirs: 
+    - src
+    - test
 
 executables:
   phi-utils-exe:

@@ -152,7 +152,7 @@ ppAttrValue :: AttrValue Term -> Doc ann
 ppAttrValue =
   \case
     -- FIXME throw Exception
-    VoidAttr -> error "Shouldn't print a void attr"
+    VoidAttr -> "!Shouldn't print a value of an unattached attribute!"
     Attached t' -> ppTerm t'
 
 ppLoc :: Int -> Doc ann

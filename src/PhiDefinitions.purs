@@ -23,23 +23,21 @@ module PhiDefinitions
   , getId
   , getName
   , log_
-  , textTabIds
   )
   where
 
-import Data.Generic.Rep
+import Data.Generic.Rep (class Generic, Constructor(..), Product(..), Sum(..), from)
 import Prelude
 
+import Control.Alternative ((<|>))
 import Data.Argonaut (class EncodeJson, JsonDecodeError(..), jsonEmptyObject, (.:), (:=), (~>))
 import Data.Argonaut.Decode.Class (class DecodeJson, decodeJson)
 import Data.Argonaut.Decode.Decoders (decodeString)
+import Data.Array (foldl)
 import Data.Either (Either(..))
-import Data.Generic.Rep (class Generic)
 import Data.Map (fromFoldable)
 import Data.Map.Internal (Map)
 import Data.Maybe (Maybe(..))
-import Data.Show.Generic (class GenericShow)
-import Data.Show.Generic (genericShow)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
@@ -113,7 +111,7 @@ data ParseError = EOParseError String | PhiParseError String | NoCode
 
 data TabMode = Active | Disabled
 
-data TabId = TTerm | TWHNF | TNF | TCBNReduction | TCBNWithTAP | TCBNWithGraph | TError
+data TabId = TTerm | TWHNF | TNF | TCBNReduction | TCBNWithTAP | TCBNWithGraph | TError | TPhiLatex
 
 derive instance Generic TabId _
 
@@ -190,16 +188,8 @@ instance IdGettable TabId where
   getName TCBNWithTAP = "cbn_with_tap"
   getName TCBNWithGraph = "cbn_with_graph"
   getName TError = "error"
-  getId x
-    | x == "original_term" = Just TTerm
-    | x == "whnf" = Just TWHNF
-    | x == "nf" = Just TNF
-    | x == "cbn_reduction" = Just TCBNReduction
-    | x == "cbn_with_tap" = Just TCBNWithTAP
-    | x == "cbn_with_graph" = Just TCBNWithGraph
-    | x == "error" = Just TError
-    | otherwise = Nothing
-
+  getName TPhiLatex = "phi_latex"
+  getId x = foldl (<|>) Nothing ((\p -> if getName p == x then Just p else Nothing) <$> tabIds)
 
 instance Show ParseError where
   show (EOParseError s) = s
@@ -302,8 +292,10 @@ instance LogError HandleError where
   err (EditorError _ s) = log_ s
 
 textTabIds ∷ Array TabId
--- FIXME exclude cbnwithGraph
-textTabIds = [ TTerm, TWHNF, TNF, TCBNReduction, TCBNWithTAP]
+textTabIds = [ TTerm, TWHNF, TNF, TCBNReduction, TCBNWithTAP, TPhiLatex]
+
+tabIds ∷ Array TabId
+tabIds = [ TTerm, TWHNF, TNF, TCBNReduction, TCBNWithTAP, TCBNWithGraph, TError , TPhiLatex]
 
 log_ :: forall output. String -> H.HalogenM State Action () output Aff Unit
 log_ = H.liftEffect <<< log

@@ -504,6 +504,22 @@ ics =
               }
             ]
         }
+      , { x: getName TPhiLatex
+        , y:
+            [ { pref: Nothing
+              , href: Just "https://github.com/objectionary/eo/blob/546279ffc483e1be7decb85ad7e067631fbe8d72/paper/sections/calculus.tex#L347"
+              , txt: Just "Sample Latex"
+              }
+            , { pref: Just "Define a"
+              , href: Just "https://www.overleaf.com/learn/latex/Commands#Simple-Commands"
+              , txt: Just "new command"
+              }
+            , { pref: Just "With a new command, you may override the phi-specific commands"
+              , href: Nothing
+              , txt: Nothing
+              }
+            ]
+        }
       , { x: errorPopover
         , y:
             [ { pref: Just "For now, we only report syntactic errors"
@@ -516,8 +532,7 @@ ics =
 
 -- / Constants /
 textTabIds ∷ Array TabId
--- FIXME exclude cbnwithGraph
-textTabIds = [ TTerm, TWHNF, TNF, TCBNReduction, TCBNWithTAP, TCBNWithGraph ]
+textTabIds = [ TTerm, TWHNF, TNF, TCBNReduction, TCBNWithTAP, TCBNWithGraph, TPhiLatex]
 
 errorTabId :: TabId
 errorTabId = TError
@@ -559,9 +574,9 @@ defaultOk =
         }
   }
   where
-  btexts = [ "Phi term", " WHNF", "NF", "CBN Reduction", "CBN With TAP", "CBN With Graph" ]
+  btexts = [ "Phi term", " WHNF", "NF", "CBN Reduction", "CBN With TAP", "CBN With Graph", "LaTeX-ed term"]
 
-  isActives = [ true, false, false, false, false, false ]
+  isActives = [ true, false, false, false, false, false, false ]
 
 defaultError :: ErrorState
 defaultError =

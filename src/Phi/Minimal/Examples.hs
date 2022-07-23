@@ -10,6 +10,8 @@ import Phi.Minimal.Model
     Term (..),
   )
 
+import Phi.Minimal.Pretty
+
 -- * Examples
 
 -- | Empty object.
@@ -19,27 +21,44 @@ import Phi.Minimal.Model
 empty :: Term
 empty = Obj []
 
--- |
--- >>> ex1
--- ⟦ x ↦ ρ⁰ ⟧
+{- |
+>>> ex0
+3
+-}
 ex0 :: Term
 ex0 = DataTerm $ DataInteger 3
--- |
--- >>> ex1
+{- |
+>>> ex1
+⟦
+  x ↦ ρ³
+⟧
+-}
 ex1 :: Term
 ex1 = Obj [("x", Attached (Loc 3))]
 
--- |
--- >>> ex2
--- ⟦ x ↦ ⟦ y ↦ ρ¹ ⟧ ⟧.x.y
+{- |
+>>> ex2
+⟦
+  x ↦ ⟦
+    y ↦ ρ¹
+  ⟧
+⟧.x.y
+-}
 ex2 :: Term
 ex2 = Dot (Dot (Obj [("x", Attached (Obj [("y", Attached (Loc 1))]))]) "x") "y"
 
--- |
--- >>> ex3
--- ⟦ x ↦ ⟦ x ↦ ρ⁰ ⟧, y ↦ ⟦ x ↦ ⟦ y ↦ ρ¹ ⟧ ⟧.x.y ⟧
+{- |
+>>>ex3
+-}
 ex3 :: Term
 ex3 = Obj [("x", Attached ex1), ("y", Attached ex2)]
+
+{- |
+>>>ex20
+-}
+ex20 :: Term
+ex20 = Obj [("@", Attached (Obj [("y", VoidAttr), ("z", VoidAttr)]))]
+
 
 {- |
 >>>ex4

@@ -2,27 +2,26 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wall -fno-warn-orphans #-}
 
 module Phi.Minimal.PPToLatex (pretty, Latex (..)) where
 
+import Data.Function ((&))
 import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
-import Data.List (intercalate)
+import Data.List (intercalate, partition)
+import qualified Data.Text as T
 import Phi.Minimal.Model
   ( Attr,
     AttrValue (..),
     DataValue (..),
-    Object (getObject),
+    Object (Object, getObject),
     Term (..),
   )
+import Prettyprinter as Doc hiding (indent, line')
 
-import qualified Data.Text as T
+strip = T.unpack . T.strip . T.pack
 
-
-import Prettyprinter as Doc hiding (line', indent)
-import Data.Function ((&))
-
-strip  = T.unpack . T.strip . T.pack
 {-
 & \ff{book2}(\ff{isbn}) \mapsto \llbracket \br
 & \quad \ff{title} \mapsto \ff{"Object Thinking"}, \br
@@ -93,11 +92,14 @@ replicate' :: Int -> Doc ann -> Doc ann -> Doc ann
 replicate' n doc sep' = encloseSep "" "" sep' (replicate n doc)
 
 insertQuad :: Doc ann
-insertQuad = amp <> space <> nesting (\n -> 
-  if n == 0 
-    then ""
-  else 
-    replicate' (n `div` 2) quad space <> space)
+insertQuad =
+  amp <> space
+    <> nesting
+      ( \n ->
+          if n == 0
+            then ""
+            else replicate' (n `div` 2) quad space <> space
+      )
 
 line' :: Doc ann
 line' = space <> "\\phiBreak" <> line
@@ -106,33 +108,51 @@ ppObj :: Object Term -> Doc ann
 ppObj o
   | null (getObject o) = encBrackets ""
   | otherwise =
-        o
+    o
       & getObject
       & InsOrdHashMap.toList
+      & filter (\(_, v) -> v /= VoidAttr)
       & map (\x -> insertQuad <> ppAttrWithValue x)
-      & encloseSepAfter
-        (
-            llbracket <> line'
-        )
-        (nest (-2) (line' <> insertQuad <> rrbracket))
-        (comma <> line')
+      & (\l -> 
+          if null l 
+            then llbracket <+> rrbracket 
+            else encloseSepAfter
+              ( llbracket <> line'
+              )
+              (nest (-2) (line' <> insertQuad <> rrbracket))
+              (comma <> line') l)
       & nest 2
 
 ff :: Doc ann -> Doc ann
 ff = enclose "\\phiAttr{" "}"
 
 ppAttrWithValue :: (Attr, AttrValue Term) -> Doc ann
-ppAttrWithValue (a', value) = (ff (ppAttr a') <+> "\\mapsto") <+> ppAttrValue value
+ppAttrWithValue (a', value) =
+  ff (ppAttr a')
+    <+> ( case value of
+            Attached (Obj (Object o)) -> fas
+              where
+                (un, _) = partition ((==) VoidAttr . snd) (InsOrdHashMap.toList o)
+                un' = fst <$> un
+                fas
+                  | null un' = ""
+                  | otherwise = encloseSepAfter "("  ")" ", " (ppAttr <$> un')
+            _ -> ""
+        )
+    <+> "\\mapsto"
+    <+> ppAttrValue value
 
 ppAttr :: Attr -> Doc ann
 ppAttr a'
-  | a' == "@" = "𝜑"
+  | a' == "@" = "\\varphi"
   | otherwise = pretty a'
 
+-- TODO print void attrs in parentheses after attr name
 ppAttrValue :: AttrValue Term -> Doc ann
 ppAttrValue =
   \case
-    VoidAttr -> "ø"
+    -- FIXME throw Exception
+    VoidAttr -> error "Shouldn't print a void attr"
     Attached t' -> ppTerm t'
 
 ppLoc :: Int -> Doc ann

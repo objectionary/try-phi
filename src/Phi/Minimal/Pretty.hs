@@ -58,8 +58,7 @@ ppObj :: Object Term -> Doc ann
 ppObj o
   | null (getObject o) = "⟦⟧"
   | otherwise =
-    group
-      . nest 2
+        nest 2
       . encloseSepAfter ("⟦" <> line) (nest (-2) (line <> "⟧")) (comma <> line)
       . map ppAttrWithValue
       . InsOrdHashMap.toList
@@ -68,7 +67,7 @@ ppObj o
 
 ppAttrWithValue :: (Attr, AttrValue Term) -> Doc ann
 ppAttrWithValue (a, value) =
-  group $ group (ppAttr a <+> "↦") <+> ppAttrValue value
+  (ppAttr a <+> "↦") <+> ppAttrValue value
 
 ppAttr :: Attr -> Doc ann
 ppAttr a

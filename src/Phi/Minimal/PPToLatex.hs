@@ -1,24 +1,28 @@
+{-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DuplicateRecordFields #-}
 {-# OPTIONS_GHC -Wall -fno-warn-orphans #-}
-{-# LANGUAGE RecordWildCards #-}
 
-module Phi.Minimal.PPToLatex() where
+module Phi.Minimal.PPToLatex (pretty, Latex (..)) where
 
 import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
-import Phi.Minimal.Model
-    ( Term(..),
-      DataValue(..),
-      AttrValue(..),
-      Object(getObject),
-      Attr )
-import Prettyprinter as Doc hiding (indent)
 import Data.List (intercalate)
-import Control.Monad.State (State, MonadState (state, get))
+import Phi.Minimal.Model
+  ( Attr,
+    AttrValue (..),
+    DataValue (..),
+    Object (getObject),
+    Term (..),
+  )
+
+import qualified Data.Text as T
+
+
+import Prettyprinter as Doc hiding (line', indent)
 import Data.Function ((&))
 
+strip  = T.unpack . T.strip . T.pack
 {-
 & \ff{book2}(\ff{isbn}) \mapsto \llbracket \br
 & \quad \ff{title} \mapsto \ff{"Object Thinking"}, \br
@@ -26,109 +30,112 @@ import Data.Function ((&))
 & \rrbracket. \\
 
 https://arxiv.org/pdf/2111.13384.pdf#page=8
+
+https://github.com/objectionary/eo/blob/546279ffc483e1be7decb85ad7e067631fbe8d72/paper/sections/calculus.tex#L347
 -}
 
-data St ann = St { indent :: Int, result :: Res ann}
+newtype Latex a = Latex a
 
-newtype Res ann = Res {content :: Doc ann}
+instance Show (Latex Term) where
+  show s = unlines $ strip <$> lines (show $ amp' <> pretty s)
 
-type MyState ann = State (St ann) (Res ann)
+instance Pretty (Latex Term) where
+  pretty (Latex p) = ppTerm p
 
--- instance Show Term where
---   show = show . pretty
+instance Show (Latex (AttrValue Term)) where
+  show = show . pretty
 
--- instance Pretty Term where
---   pretty = ppTerm
+instance Pretty (Latex (AttrValue Term)) where
+  pretty (Latex p) = ppAttrValue p
 
--- instance Show (AttrValue Term) where
---   show = show . pretty
+ppTerm :: Term -> Doc ann
+ppTerm =
+  \case
+    Obj o -> ppObj o
+    Dot t a -> ppTerm t <> dot <> ppAttr a
+    App t (a, u) -> ppTerm t <> parens (ppAttrWithValue (a, Attached u))
+    Loc n -> ppLoc n
+    DataTerm t ->
+      case t of
+        DataInteger i -> pretty i
+        NoData -> pretty $ show NoData
 
--- instance Pretty (AttrValue Term) where
---   pretty = ppAttrValue
+encloseSepAfter :: Doc ann -> Doc ann -> Doc ann -> [Doc ann] -> Doc ann
+encloseSepAfter bra ket separator =
+  \case
+    [] -> bra <> ket
+    [doc] -> bra <> doc <> ket
+    docs -> bra <> mconcat (addSepAfter docs) <> ket
+  where
+    addSepAfter [] = []
+    addSepAfter [doc] = [doc]
+    addSepAfter (doc : docs) = (doc <> separator) : addSepAfter docs
 
--- ppTerm :: Term -> MyState ann
--- ppTerm =
---   \case
---     Obj o -> ppObj o
---     Dot t a -> ppTerm t <> dot <> ppAttr a
---     App t (a, u) -> ppTerm t <> parens (ppAttrWithValue (a, Attached u))
---     Loc n -> ppLoc n
---     DataTerm t ->
---       case t of
---         DataInteger i -> pretty i
---         NoData -> pretty $ show NoData
+llbracket :: Doc ann
+llbracket = "\\llbracket"
 
--- ppInt :: Integer -> MyState ann
--- ppInt = pretty
+rrbracket :: Doc ann
+rrbracket = "\\rrbracket"
 
--- encloseSepAfter :: Doc ann -> Doc ann -> Doc ann -> [Doc ann] -> MyState ann
--- encloseSepAfter bra ket separator =
---   \case
---     [] -> bra <> ket
---     [doc] -> bra <> doc <> ket
---     docs -> bra <> mconcat (addSepAfter docs) <> ket
---   where
---     addSepAfter [] = []
---     addSepAfter [doc] = [doc]
---     addSepAfter (doc : docs) = (doc <> separator) : addSepAfter docs
-
--- llbracket :: Doc ann
--- llbracket = "\\llbracket"
-
--- rrbracket :: Doc ann
--- rrbracket = "\\rrbracket"
-
--- encBrackets :: Doc ann -> MyState ann
--- encBrackets t = do 
-  
---   enclose llbracket rrbracket t
-
-pre :: Doc ann -> Doc ann -> Doc ann
-pre a b = a <+> b
+encBrackets :: Doc ann -> Doc ann
+encBrackets = enclose llbracket rrbracket
 
 amp :: Doc ann
 amp = "&"
 
+amp' :: Doc ann
+amp' = amp <> space
+
 quad :: Doc ann
 quad = "\\quad"
 
+replicate' :: Int -> Doc ann -> Doc ann -> Doc ann
+replicate' n doc sep' = encloseSep "" "" sep' (replicate n doc)
 
--- ppObj :: Object Term -> MyState ann
--- ppObj o
---   | null (getObject o) = encBrackets ""
---   | otherwise = return $
---     group
---       . nest 2
---       . encloseSepAfter (llbracket <> line <> amp) (nest (-2) (line <> rrbracket)) (comma <> line)
---       . map ppAttrWithValue
---       . InsOrdHashMap.toList
---       . getObject
---       $ o
+insertQuad :: Doc ann
+insertQuad = amp <> space <> nesting (\n -> 
+  if n == 0 
+    then ""
+  else 
+    replicate' (n `div` 2) quad space <> space)
 
--- ff :: Doc ann -> MyState ann
--- ff t = do
---   enclose "\\ff{" "}" t
+line' :: Doc ann
+line' = space <> "\\phiBreak" <> line
 
--- liftState :: (a -> a) -> MyState ann
--- liftState f = do
---   St {..} <- get
---   return _
+ppObj :: Object Term -> Doc ann
+ppObj o
+  | null (getObject o) = encBrackets ""
+  | otherwise =
+        o
+      & getObject
+      & InsOrdHashMap.toList
+      & map (\x -> insertQuad <> ppAttrWithValue x)
+      & encloseSepAfter
+        (
+            llbracket <> line'
+        )
+        (nest (-2) (line' <> insertQuad <> rrbracket))
+        (comma <> line')
+      & nest 2
 
--- ppAttrWithValue :: (Attr, AttrValue Term) -> MyState ann
--- ppAttrWithValue (a', value) = return $ group $ group (ff (ppAttr a') <+> "\\mapsto") <+> ppAttrValue value
+ff :: Doc ann -> Doc ann
+ff = enclose "\\phiAttr{" "}"
 
--- ppAttr :: Attr -> MyState ann
--- ppAttr a' = return f
---   where 
---     f
---       | a' == "@" = "𝜑"
---       | otherwise = pretty a
+ppAttrWithValue :: (Attr, AttrValue Term) -> Doc ann
+ppAttrWithValue (a', value) = (ff (ppAttr a') <+> "\\mapsto") <+> ppAttrValue value
 
-ppAttrValue :: AttrValue Term -> MyState ann
+ppAttr :: Attr -> Doc ann
+ppAttr a'
+  | a' == "@" = "𝜑"
+  | otherwise = pretty a'
+
+ppAttrValue :: AttrValue Term -> Doc ann
 ppAttrValue =
   \case
     VoidAttr -> "ø"
     Attached t' -> ppTerm t'
 
-ppLoc :: Int -> MyState ann
-ppLoc n = return $ Res {content = pretty (intercalate "." (replicate n "\\rho"))}
+ppLoc :: Int -> Doc ann
+ppLoc n
+  | n > 0 = pretty (intercalate "." (replicate n "\\rho"))
+  | otherwise = "\\xi"

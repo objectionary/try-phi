@@ -22,7 +22,8 @@ empty = Obj []
 -- |
 -- >>> ex1
 -- ⟦ x ↦ ρ⁰ ⟧
-
+ex0 :: Term
+ex0 = DataTerm $ DataInteger 3
 -- |
 -- >>> ex1
 ex1 :: Term

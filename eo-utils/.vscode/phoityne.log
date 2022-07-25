@@ -1,0 +1,43 @@
+2022-02-21 14:54:00.009427378000 [37024(ThreadId 13)] ERROR APP - user error (<getModule> loaded module can not find from path. </home/user/eo-parser/app/Main.hs> [("Main","/home/user/eo-parser/test/Spec.hs")])
+2022-02-21 14:56:41.047381954000 [37347(ThreadId 13)] ERROR APP - user error (<getModule> loaded module can not find from path. </home/user/eo-parser/app/Main.hs> [("Main","/home/user/eo-parser/test/Spec.hs")])
+2022-02-21 15:05:35.350852086000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-02-21 15:05:41.407908176000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-02-21 15:05:47.114481214000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-02-21 15:05:58.168060832000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-02-21 15:06:11.513237413000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-02-21 15:06:22.038043503000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-02-21 15:06:29.803226899000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-02-21 15:06:41.483261940000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-02-21 15:06:53.444489703000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-02-21 15:06:59.493630213000 [38628(ThreadId 12)] WARNING REQUEST - unsupported request command. {"command":"stepOut","arguments":{"threadId":0},"type":"request","seq":68}
+2022-02-21 15:07:03.625567808000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-02-21 15:07:04.816059341000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-02-21 15:07:05.824516781000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-02-21 15:07:08.287525410000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-02-21 15:07:09.447739732000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-02-21 15:07:10.634670676000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-02-21 15:07:11.955558625000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-02-21 15:07:12.973957045000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-02-21 15:07:13.682862279000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-02-21 15:07:14.826680891000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-02-21 15:07:16.071865971000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-02-21 15:07:17.093804737000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-02-21 15:07:18.018299076000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-02-21 15:07:18.985094597000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-02-21 15:07:19.771565307000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-02-21 15:07:20.367918608000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-02-21 15:07:21.319388991000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-02-21 15:07:21.737253831000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-02-21 15:07:22.481619325000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-02-21 15:07:23.007698173000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-02-21 15:07:23.573909552000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-02-21 15:07:24.159723013000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-02-21 15:07:24.646814780000 [38628(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-04-03 15:00:02.579774403000 [1717247(ThreadId 13)] ERROR APP - user error (<getModule> loaded module can not find from path. </home/user/eo-parser/grammars/eo.g4> [("EnumerateNodes","/home/user/eo-parser/src/EnumerateNodes.hs"),("Main","/home/user/eo-parser/app/Main.hs"),("ParseEO","/home/user/eo-parser/src/ParseEO.hs"),("PrettyPrintTerm","/home/user/eo-parser/src/PrettyPrintTerm.hs"),("PrettyPrintTree","/home/user/eo-parser/src/PrettyPrintTree.hs"),("ToTerm","/home/user/eo-parser/src/ToTerm.hs")])
+2022-04-03 16:05:02.866012283000 [1719324(ThreadId 13)] ERROR APP - user error (<getModule> loaded module can not find from path. </home/user/eo-parser/grammars/eo.g4> [("EnumerateNodes","/home/user/eo-parser/src/EnumerateNodes.hs"),("Main","/home/user/eo-parser/app/Main.hs"),("ParseEO","/home/user/eo-parser/src/ParseEO.hs"),("PrettyPrintTerm","/home/user/eo-parser/src/PrettyPrintTerm.hs"),("PrettyPrintTree","/home/user/eo-parser/src/PrettyPrintTree.hs"),("ToTerm","/home/user/eo-parser/src/ToTerm.hs")])
+2022-04-03 16:10:30.220478884000 [1719324(ThreadId 13)] ERROR APP - already at the beginning of the history
+2022-04-03 16:14:00.838359109000 [1719545(ThreadId 13)] ERROR APP - user error (<getModule> loaded module can not find from path. </home/user/eo-parser/grammars/eo.g4> [("EnumerateNodes","/home/user/eo-parser/src/EnumerateNodes.hs"),("Main","/home/user/eo-parser/app/Main.hs"),("ParseEO","/home/user/eo-parser/src/ParseEO.hs"),("PrettyPrintTerm","/home/user/eo-parser/src/PrettyPrintTerm.hs"),("PrettyPrintTree","/home/user/eo-parser/src/PrettyPrintTree.hs"),("ToTerm","/home/user/eo-parser/src/ToTerm.hs")])
+2022-04-03 16:22:00.115841019000 [1719895(ThreadId 13)] ERROR APP - user error (<getModule> loaded module can not find from path. </home/user/eo-parser/grammars/eo.g4> [("EnumerateNodes","/home/user/eo-parser/src/EnumerateNodes.hs"),("Main","/home/user/eo-parser/app/Main.hs"),("ParseEO","/home/user/eo-parser/src/ParseEO.hs"),("PrettyPrintTerm","/home/user/eo-parser/src/PrettyPrintTerm.hs"),("PrettyPrintTree","/home/user/eo-parser/src/PrettyPrintTree.hs"),("ToTerm","/home/user/eo-parser/src/ToTerm.hs")])
+2022-04-03 16:22:48.442203956000 [1719978(ThreadId 13)] ERROR APP - user error (<getModule> loaded module can not find from path. </home/user/eo-parser/grammars/eo.g4> [("EnumerateNodes","/home/user/eo-parser/src/EnumerateNodes.hs"),("Main","/home/user/eo-parser/app/Main.hs"),("ParseEO","/home/user/eo-parser/src/ParseEO.hs"),("PrettyPrintTerm","/home/user/eo-parser/src/PrettyPrintTerm.hs"),("PrettyPrintTree","/home/user/eo-parser/src/PrettyPrintTree.hs"),("ToTerm","/home/user/eo-parser/src/ToTerm.hs")])
+2022-04-03 16:38:14.092555078000 [1720393(ThreadId 13)] ERROR APP - user error (<getModule> loaded module can not find from path. </home/user/eo-parser/grammars/eo.g4> [("EnumerateNodes","/home/user/eo-parser/src/EnumerateNodes.hs"),("Main","/home/user/eo-parser/app/Main.hs"),("ParseEO","/home/user/eo-parser/src/ParseEO.hs"),("PrettyPrintTerm","/home/user/eo-parser/src/PrettyPrintTerm.hs"),("PrettyPrintTree","/home/user/eo-parser/src/PrettyPrintTree.hs"),("ToTerm","/home/user/eo-parser/src/ToTerm.hs")])
+2022-04-03 16:41:28.524094318000 [1720540(ThreadId 13)] ERROR APP - user error (<getModule> loaded module can not find from path. </home/user/eo-parser/grammars/eo.g4> [("EnumerateNodes","/home/user/eo-parser/src/EnumerateNodes.hs"),("Main","/home/user/eo-parser/app/Main.hs"),("ParseEO","/home/user/eo-parser/src/ParseEO.hs"),("PrettyPrintTerm","/home/user/eo-parser/src/PrettyPrintTerm.hs"),("PrettyPrintTree","/home/user/eo-parser/src/PrettyPrintTree.hs"),("ToTerm","/home/user/eo-parser/src/ToTerm.hs")])

@@ -23,8 +23,6 @@ resolver:
   # url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/19/13.yaml
   # url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/19/5.yaml
 
-
-
 # User packages to be built.
 # Various formats can be used as shown in the example below.
 #
@@ -35,14 +33,13 @@ resolver:
 #   - auto-update
 #   - wai
 packages:
-- .
-- try-phi-language-utils
-- try-phi-language-utils/eo-utils
-- try-phi-language-utils/phi-utils
-
+  - .
+  - language-utils
+  - language-utils/eo-utils
+  - language-utils/phi-utils
 
 ghc-options:
-  '$everything': -haddock
+  "$everything": -haddock
 # Dependency packages to be pulled from upstream that are not in the resolver.
 # These entries can reference officially published versions as well as
 # forks / in-progress versions pinned to a git hash. For example:

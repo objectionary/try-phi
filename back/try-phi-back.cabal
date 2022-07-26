@@ -35,13 +35,13 @@ library
     , base >=4.7 && <5
     , either
     , eo-utils
+    , language-utils
     , phi-utils
     , random
     , servant-server
     , string-random
     , text
     , transformers
-    , try-phi-language-utils
     , wai
     , wai-cors
     , warp
@@ -59,6 +59,7 @@ executable try-phi-back-exe
     , base
     , either
     , eo-utils
+    , language-utils
     , phi-utils
     , random
     , servant-server
@@ -66,7 +67,6 @@ executable try-phi-back-exe
     , text
     , transformers
     , try-phi-back
-    , try-phi-language-utils
     , wai
     , wai-cors
     , warp
@@ -88,6 +88,7 @@ test-suite try-phi-back-test
     , hspec
     , hspec-wai
     , hspec-wai-json
+    , language-utils
     , phi-utils
     , random
     , servant-server
@@ -95,7 +96,6 @@ test-suite try-phi-back-test
     , text
     , transformers
     , try-phi-back
-    , try-phi-language-utils
     , wai
     , wai-cors
     , warp

@@ -16,48 +16,48 @@ cradle:
             - path: "./test"
               component: "try-phi-back:test:try-phi-back-test"
 
-            - path: "try-phi-language-utils/eo-utils/src"
+            - path: "language-utils/eo-utils/src"
               component: "eo-utils:lib"
 
-            - path: "try-phi-language-utils/eo-utils/app/Main.hs"
+            - path: "language-utils/eo-utils/app/Main.hs"
               component: "eo-utils:exe:eo-utils"
 
-            - path: "try-phi-language-utils/eo-utils/app/Paths_eo_utils.hs"
+            - path: "language-utils/eo-utils/app/Paths_eo_utils.hs"
               component: "eo-utils:exe:eo-utils"
 
-            - path: "try-phi-language-utils/eo-utils/test"
+            - path: "language-utils/eo-utils/test"
               component: "eo-utils:test:doctests"
 
-            - path: "try-phi-language-utils/eo-utils/test"
+            - path: "language-utils/eo-utils/test"
               component: "eo-utils:test:spec"
 
-            - path: "try-phi-language-utils/phi-utils/src"
+            - path: "language-utils/phi-utils/src"
               component: "phi-utils:lib"
 
-            - path: "try-phi-language-utils/phi-utils/app/Main.hs"
+            - path: "language-utils/phi-utils/app/Main.hs"
               component: "phi-utils:exe:phi-utils-exe"
 
-            - path: "try-phi-language-utils/phi-utils/app/Paths_phi_utils.hs"
+            - path: "language-utils/phi-utils/app/Paths_phi_utils.hs"
               component: "phi-utils:exe:phi-utils-exe"
 
-            - path: "try-phi-language-utils/phi-utils/test"
+            - path: "language-utils/phi-utils/test"
               component: "phi-utils:test:phi-utils-test"
 
-            - path: "try-phi-language-utils/src"
-              component: "try-phi-language-utils:lib"
+            - path: "language-utils/src"
+              component: "language-utils:lib"
 
-            - path: "try-phi-language-utils/app/Main.hs"
-              component: "try-phi-language-utils:exe:try-phi-language-utils"
+            - path: "language-utils/app/Main.hs"
+              component: "language-utils:exe:language-utils"
 
-            - path: "try-phi-language-utils/app/Paths_try_phi_language_utils.hs"
-              component: "try-phi-language-utils:exe:try-phi-language-utils"
+            - path: "language-utils/app/Paths_try_phi_language_utils.hs"
+              component: "language-utils:exe:language-utils"
 
-            - path: "try-phi-language-utils/test"
-              component: "try-phi-language-utils:test:doctests"
+            - path: "language-utils/test"
+              component: "language-utils:test:doctests"
 
-            - path: "try-phi-language-utils/test"
-              component: "try-phi-language-utils:test:spec"
-              
+            - path: "language-utils/test"
+              component: "language-utils:test:spec"
+
     - path: "./Setup.hs"
       config:
         cradle:

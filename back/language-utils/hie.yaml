@@ -5,19 +5,19 @@ cradle:
         cradle:
           stack:
             - path: "./src"
-              component: "try-phi-language-utils:lib"
+              component: "language-utils:lib"
 
             - path: "./app/Main.hs"
-              component: "try-phi-language-utils:exe:try-phi-language-utils"
+              component: "language-utils:exe:language-utils"
 
             - path: "./app/Paths_try_phi_language_utils.hs"
-              component: "try-phi-language-utils:exe:try-phi-language-utils"
+              component: "language-utils:exe:language-utils"
 
             - path: "./test"
-              component: "try-phi-language-utils:test:doctests"
+              component: "language-utils:test:doctests"
 
             - path: "./test"
-              component: "try-phi-language-utils:test:spec"
+              component: "language-utils:test:spec"
 
             - path: "eo-utils/src"
               component: "eo-utils:lib"
@@ -45,7 +45,7 @@ cradle:
 
             - path: "phi-utils/test"
               component: "phi-utils:test:phi-utils-test"
-              
+
     - path: "./Setup.hs"
       config:
         cradle:

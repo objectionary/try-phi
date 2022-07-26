@@ -5,23 +5,29 @@ Right now we implement it as a term rewriting system.
 
 It is combined with [EO](https://github.com/objectionary/eo) editor. EO is based on 𝜑-calculus.
 
+## Usage
+* The online playground is available [here](https://br4ch1st0chr0n3.github.io/try-phi-front/?editor=eo&snippet=3%20%3E%20a%0A4%20%3E%20b%0A)
+
 ## Components
+* [Frontend](./front/)
+* [Backend](./back/)
 
-* The online-editor is available [here](https://br4ch1st0chr0n3.github.io/try-phi-front/?editor=eo&snippet=3%20%3E%20a%0A4%20%3E%20b%0A)
-* Source codes are in separate repositories:
-    * [Frontend](https://github.com/br4ch1st0chr0n3/try-phi-front)
-    * [Backend](https://github.com/br4ch1st0chr0n3/try-phi-back)
 
+<!-- TODO rename executables haskell -->
 
 ## Development
-* Clone with [submodules](https://stackoverflow.com/a/4438292)
-```sh
-git clone --recurse-submodules -j8 https://github.com/br4ch1st0chr0n3/try-phi
-cd try-phi
-```
-* Run both server and frontend
+* Install the dependencies
+    <!-- TODO -->
+    * [Back-end](./back/dependencies) 
+    
+* Build the server and front-end
     ```sh
-    sh init.sh
+    sh build.sh
+    ```
+* Run the server and front-end in separate terminals to see separate logs:
+    ```sh
+    sh run_server.sh
+    sh run_front.sh
     ```
 
 * You will need `stack` and `npm` for that. Check more detailed instructions in the corresponding [components](#components)

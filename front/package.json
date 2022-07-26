@@ -11,7 +11,7 @@
   },
   "scripts": {
     "build": "spago build",
-    "init": "npm i && npm run build && npm run dev",
+    "init": "npm i && npm run build",
     "test": "spago test",
     "dev": "parcel dev/index.html --open",
     "build-prod": "mkdir -p prod && cp dev/index.html prod/ && rm -rf dist && spago bundle-app --to prod/index.js && parcel build prod/index.html",

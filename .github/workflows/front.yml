@@ -7,6 +7,9 @@ on:
 
 jobs:
   build:
+    defaults:
+        run:
+          working-directory: front
     runs-on: ubuntu-latest
 
     steps:
@@ -53,6 +56,3 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: docs
           force_orphan: true
-      
-      - name: Check docs dir
-        run: ls ./docs

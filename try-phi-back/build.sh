@@ -1,0 +1,1 @@
+stack build --exec try-phi-back-exe

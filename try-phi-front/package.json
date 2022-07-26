@@ -1,0 +1,25 @@
+{
+  "private": true,
+  "devDependencies": {
+    "buffer": "^6.0.3",
+    "gh-pages": "^4.0.0",
+    "parcel": "2.5.0",
+    "process": "^0.11.10",
+    "purescript": "^0.15.2",
+    "spago": "^0.20.9",
+    "util": "^0.12.4"
+  },
+  "scripts": {
+    "build": "spago build",
+    "init": "npm i && npm run build && npm run dev",
+    "test": "spago test",
+    "dev": "parcel dev/index.html --open",
+    "build-prod": "mkdir -p prod && cp dev/index.html prod/ && rm -rf dist && spago bundle-app --to prod/index.js && parcel build prod/index.html",
+    "deploy": "npm run build-prod && mkdir -p docs && cp dev/* docs && esbuild --minify prod/index.js --outfile=docs/index.js && gh-pages -d docs"
+  },
+  "dependencies": {
+    "@popperjs/core": "^2.11.5",
+    "bootstrap": "^5.1.3",
+    "esbuild": "^0.14.43"
+  }
+}

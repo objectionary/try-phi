@@ -36,3 +36,4 @@ It is combined with [EO](https://github.com/objectionary/eo) editor. EO is based
 * [Add](https://git-scm.com/book/en/v2/Git-Tools-Submodules) a submodule
 * Clone [nested submodules](https://stackoverflow.com/a/6562038)
 * Convert a submodule to a folder while preserving its history: [src](https://medium.com/walkme-engineering/how-to-merge-a-git-submodule-into-its-main-repository-d83a215a319c)
+* Info about forks: [gitpop3](https://andremiras.github.io/gitpop3/)

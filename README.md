@@ -38,3 +38,4 @@ It is combined with [EO](https://github.com/objectionary/eo) editor. EO is based
 * Convert a submodule to a folder while preserving its history: [src](https://medium.com/walkme-engineering/how-to-merge-a-git-submodule-into-its-main-repository-d83a215a319c)
 * Get info about forks: [gitpop3](https://andremiras.github.io/gitpop3/)
 * "[Automating](https://brandonchinn178.github.io/blog/2022/05/19/automating-fourmolu-releases-with-github-actions.html) Fourmolu releases" - use Python for CI
+* Build a subdirectory: [buildpack](https://elements.heroku.com/buildpacks/timanovsky/subdir-heroku-buildpack)

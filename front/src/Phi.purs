@@ -865,10 +865,10 @@ cdns =
     , script [ src "https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js", type_ applicationJavascript ] []
     -- TODO insert into a separate tab 
     -- TODO add tab switching with ctrl+tab
-    , script [ src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/eo-editor@d58d13becead90f7aaf11e424df8663532e85a23/docs/eo-editor.js", U.attr_ "type" "module" ] []
-    , link [ href "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/eo-editor@d58d13becead90f7aaf11e424df8663532e85a23/docs/eo-editor.css", type_ textCSS ]
-    , script [ src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-editor@c04746d8040a6fcad2efd94b14014defeaccacf4/docs/phi-editor.js", U.attr_ "type" "module" ] []
-    , link [ href "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-editor@c04746d8040a6fcad2efd94b14014defeaccacf4/docs/phi-editor.css", type_ textCSS ]
+    , script [ src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/eo-editor@e974857b00a510ba8f1286b7d6e15c5e3f193267/docs/eo-editor.js", U.attr_ "type" "module" ] []
+    , link [ href "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/eo-editor@e974857b00a510ba8f1286b7d6e15c5e3f193267/docs/eo-editor.css", type_ textCSS ]
+    , script [ src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-editor@32829a4e1b29a203ee014f3d84a18cd88edda98e/docs/phi-editor.js", U.attr_ "type" "module" ] []
+    , link [ href "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-editor@32829a4e1b29a203ee014f3d84a18cd88edda98e/docs/phi-editor.css", type_ textCSS ]
     , link [ href "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css", rel "stylesheet", type_ textCSS ]
     , link [ href "https://www.yegor256.com/images/books/elegant-objects/cactus.png", rel "shortcut icon" ]
     , link [ href "https://cdn.jsdelivr.net/gh/yegor256/tacit@gh-pages/tacit-css.min.css", rel "stylesheet", type_ textCSS ]

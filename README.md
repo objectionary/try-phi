@@ -13,6 +13,8 @@ It is combined with [EO](https://github.com/objectionary/eo) editor. EO is based
 
 - [Back end](./back/)
 - [Front end](./front/)
+- [EO editor](https://github.com/br4ch1st0chr0n3/eo-editor)
+- [Phi editor](https://github.com/br4ch1st0chr0n3/phi-editor)
 
 ## Development
 

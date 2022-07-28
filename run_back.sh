@@ -1,2 +1,2 @@
 cd back
-stack build --exec back-exe
+stack build --exec try-phi-back-exe

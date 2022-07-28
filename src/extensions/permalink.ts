@@ -1,5 +1,6 @@
 import { ViewPlugin, ViewUpdate } from '@codemirror/view'
-import { EditorState, EditorView } from '@codemirror/basic-setup'
+import { EditorView } from 'codemirror'
+import {EditorState} from '@codemirror/state'
 
 const linkId = 'eo-permalink'
 const attributeHref = 'href'

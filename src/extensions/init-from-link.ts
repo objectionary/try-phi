@@ -1,4 +1,4 @@
-import { EditorView } from '@codemirror/basic-setup'
+import { EditorView } from 'codemirror'
 
 export function initFromLink(view: EditorView){
   const params = new URLSearchParams(window.location.search);

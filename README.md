@@ -11,15 +11,15 @@ It is combined with [EO](https://github.com/objectionary/eo) editor. EO is based
 
 ## Components
 
-- [Front end](./front/)
 - [Back end](./back/)
+- [Front end](./front/)
 
 ## Development
 
 - Install dependencies
 
   - [Back end](./back/README.md#dependencies)
-  - [Front end](./back/README.md#dependencies)
+  - [Front end](./front/README.md#dependencies)
 
 - Build the server and front end
 
@@ -30,7 +30,7 @@ It is combined with [EO](https://github.com/objectionary/eo) editor. EO is based
 - Run the server and front end in separate terminals to see separate logs:
 
   ```sh
-  sh run_server.sh
+  sh run_back.sh
   sh run_front.sh
   ```
 

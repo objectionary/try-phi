@@ -1,0 +1,120 @@
+cabal-version: 1.24
+
+-- This file has been generated from package.yaml by hpack version 0.34.4.
+--
+-- see: https://github.com/sol/hpack
+
+name:           language-utils
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/fizruk/try-phi#readme>
+homepage:       https://github.com/br4ch1st0chr0n3/language-utils#readme
+bug-reports:    https://github.com/br4ch1st0chr0n3/language-utils/issues
+author:         Nikolai Kudasov, Danila Danko
+maintainer:     nickolay.kudasov@gmail.com, br4ch1st0chr0n3@gmail.com
+copyright:      2021 Nikolai Kudasov
+license:        BSD3
+build-type:     Custom
+extra-source-files:
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/br4ch1st0chr0n3/language-utils
+
+custom-setup
+  setup-depends:
+      Cabal
+    , base
+    , cabal-doctest >=1.0.2 && <1.1
+
+library
+  exposed-modules:
+      Common
+      Test
+  other-modules:
+      EOtoPhi
+      PhiToEO
+      Paths_language_utils
+  hs-source-dirs:
+      src
+  ghc-options: -Wall -fno-warn-type-defaults -O2
+  build-depends:
+      base >=4.7 && <5
+    , directory
+    , eo-utils
+    , fgl
+    , insert-ordered-containers
+    , megaparsec
+    , phi-utils
+    , pretty-simple
+    , prettyprinter
+    , text
+  default-language: Haskell2010
+
+executable language-utils
+  main-is: Main.hs
+  other-modules:
+      Paths_language_utils
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -fno-warn-type-defaults -O2 -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , directory
+    , eo-utils
+    , fgl
+    , insert-ordered-containers
+    , language-utils
+    , megaparsec
+    , phi-utils
+    , pretty-simple
+    , prettyprinter
+    , text
+  default-language: Haskell2010
+
+test-suite doctests
+  type: exitcode-stdio-1.0
+  main-is: doctests.hs
+  hs-source-dirs:
+      test
+  ghc-options: -Wall -fno-warn-type-defaults -O2
+  build-depends:
+      Glob
+    , QuickCheck
+    , base
+    , directory
+    , doctest
+    , eo-utils
+    , fgl
+    , insert-ordered-containers
+    , megaparsec
+    , phi-utils
+    , pretty-simple
+    , prettyprinter
+    , template-haskell
+    , text
+  default-language: Haskell2010
+
+test-suite spec
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_language_utils
+  hs-source-dirs:
+      test
+  ghc-options: -Wall -fno-warn-type-defaults -O2 -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      QuickCheck
+    , base >=4.7 && <5
+    , directory
+    , eo-utils
+    , fgl
+    , hspec
+    , insert-ordered-containers
+    , language-utils
+    , megaparsec
+    , phi-utils
+    , pretty-simple
+    , prettyprinter
+    , text
+  default-language: Haskell2010

@@ -1,23 +1,26 @@
 # Try-phi backend
 
-## Clone
-```sh
-git clone --recurse-submodules -j8 https://github.com/br4ch1st0chr0n3/try-phi-back
-cd try-phi-back
-```
+## Dependencies
+
+- Install [stack](https://docs.haskellstack.org/en/stable/README/)
 
 ## Run
-```sh
-sh build.sh
-```
+
+* Build and execute
+
+  ```sh
+  sh run.sh
+  ```
 
 ## Deploy to Heroku?
-* Read [this](https://hackernoon.com/for-all-the-world-to-see-deploying-haskell-with-heroku-7ea46f827ce) till `web: run-server`
 
-* Select a port when running locally:
+- Read [this](https://hackernoon.com/for-all-the-world-to-see-deploying-haskell-with-heroku-7ea46f827ce) till `web: run-server`
+
+- Select a port when running locally:
+
 ```haskell
 startApp :: IO ()
-startApp = catchIOError 
+startApp = catchIOError
   (do
     port <- read <$> getEnv "Port"
     print port
@@ -25,11 +28,11 @@ startApp = catchIOError
   (\_ -> run 8082 app)
 ```
 
-* Next, add a `Procfile` and [commit](https://devcenter.heroku.com/articles/procfile#deploying-to-heroku) it to `heroku`
+- Next, add a `Procfile` and [commit](https://devcenter.heroku.com/articles/procfile#deploying-to-heroku) it to `heroku`
 
-* Return to the [guide](https://hackernoon.com/for-all-the-world-to-see-deploying-haskell-with-heroku-7ea46f827ce)
+- Return to the [guide](https://hackernoon.com/for-all-the-world-to-see-deploying-haskell-with-heroku-7ea46f827ce)
 
-* `push` and get
+- `push` and get
 
 ```sh
 2022-06-25T14:39:52.239150+00:00 heroku[web.1]: State changed from crashed to starting
@@ -40,3 +43,5 @@ startApp = catchIOError
 2022-06-25T14:40:54.215588+00:00 heroku[web.1]: State changed from starting to crashed
 
 ```
+
+- Due to a GitHub action, this specific folder will be pushed to Heroku as a separate project

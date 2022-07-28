@@ -7,7 +7,7 @@ It is combined with [EO](https://github.com/objectionary/eo) editor. EO is based
 
 ## Usage
 
-- The online playground is available [here](https://br4ch1st0chr0n3.github.io/try-phi/?editor=phi&snippet=%5B%0A%20%20a%20-%3E%203%2C%0A%20%20b%20-%3E%20%5E0.a%0A%5D.b)
+- The online playground is available [here](https://www.objectionary.com/try-phi/?editor=phi&snippet=%5B%0A%20%20a%20-%3E%203%2C%0A%20%20b%20-%3E%20%5E0.a%0A%5D.b)
 
 ## Components
 

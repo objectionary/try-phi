@@ -475,7 +475,7 @@ ics =
       , { x: getName TWHNF
         , y:
             [ { pref: Nothing
-              , href: Just "https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/State.hs#L129"
+              , href: Just "https://github.com/objectionary/try-phi/blob/9eb9879c46decc4eb1e6f34beaa6a2736224b649/back/language-utils/phi-utils/src/Phi/Minimal/Model.hs#L156"
               , txt: Just "Code"
               }
             , { pref: Just "Results from"
@@ -491,7 +491,7 @@ ics =
       , { x: getName TNF
         , y:
             [ { pref: Nothing
-              , href: Just "https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/State.hs#L155"
+              , href: Just "https://github.com/objectionary/try-phi/blob/9eb9879c46decc4eb1e6f34beaa6a2736224b649/back/language-utils/phi-utils/src/Phi/Minimal/Model.hs#L183"
               , txt: Just "Code"
               }
             , { pref: Just "Results from"
@@ -507,7 +507,7 @@ ics =
               , txt: Nothing
               }
             , { pref: Nothing
-              , href: Just "https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/State.hs#L98"
+              , href: Just "https://github.com/objectionary/try-phi/blob/9eb9879c46decc4eb1e6f34beaa6a2736224b649/back/language-utils/phi-utils/src/Phi/Minimal/Pretty.hs#L92"
               , txt: Just "Code"
               }
             , { pref: Just "Shows steps of"
@@ -519,7 +519,7 @@ ics =
       , { x: getName TCBNWithTAP
         , y:
             [ { pref: Nothing
-              , href: Just "https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/Machine/CallByName.hs#L85"
+              , href: Just "https://github.com/objectionary/try-phi/blob/9eb9879c46decc4eb1e6f34beaa6a2736224b649/back/language-utils/phi-utils/src/Phi/Minimal/Pretty.hs#L100"
               , txt: Just "Code"
               }
             , { pref: Just "TAP machine"
@@ -535,7 +535,7 @@ ics =
       , { x: getName TCBNWithGraph
         , y:
             [ { pref: Nothing
-              , href: Just "https://github.com/br4ch1st0chr0n3/try-phi/blob/c738694f771c10ffa11f34fa23bf54220d2653c7/src/Phi/Minimal/Machine/CallByName/Graph.hs#L77"
+              , href: Just "https://github.com/objectionary/try-phi/blob/9eb9879c46decc4eb1e6f34beaa6a2736224b649/back/language-utils/phi-utils/src/Phi/Minimal/Pretty.hs#L146"
               , txt: Just "Code"
               }
             , { pref: Just "It does apply"

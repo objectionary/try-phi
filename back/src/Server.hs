@@ -75,15 +75,14 @@ corsPolicy = cors (const $ Just policy)
     policy =
       simpleCorsResourcePolicy
         { corsMethods = ["GET", "POST", "PUT", "OPTIONS"],
-          corsOrigins =
-            Just
-              ( [ "https://br4ch1st0chr0n3.github.io/try-phi-front",
-                  "https://br4ch1st0chr0n3.github.io/",
-                  "https://br4ch1st0chr0n3.github.io",
-                  "http://localhost:1234"
-                ],
-                True
-              ),
+          corsOrigins = Nothing,
+            -- Just
+            --   ( [ "https://br4ch1st0chr0n3.github.io",
+            --       "https://objectionary.github.io",
+            --       "http://localhost:1234"
+            --     ],
+            --     True
+            --   ),
           corsRequestHeaders = ["authorization", "content-type"]
         }
 

@@ -1,11 +1,8 @@
 import { parser } from '../grammar/parser'
-import { LRLanguage } from '@codemirror/language'
-import {
-  HighlightStyle,
-  styleTags,
-  tags as t,
-  tags,
-} from '@codemirror/highlight'
+import { LRLanguage, syntaxHighlighting } from '@codemirror/language'
+import { HighlightStyle } from '@codemirror/language'
+
+import { styleTags, tags as t } from '@lezer/highlight'
 
 export const phiLanguage = LRLanguage.define({
   parser: parser.configure({
@@ -16,7 +13,7 @@ export const phiLanguage = LRLanguage.define({
 
         Name: t.attributeName,
         Decorator: t.labelName,
-                
+
         Mapsto: t.operatorKeyword,
         DOT: t.operatorKeyword,
 
@@ -25,13 +22,13 @@ export const phiLanguage = LRLanguage.define({
         BYTES: t.integer,
         HEX: t.integer,
         FLOAT: t.integer,
-        
+
         REGEX: t.regexp,
 
         STRING: t.string,
         TEXT: t.string,
         CHAR: t.string,
-        
+
         LP: t.paren,
         RP: t.paren,
 
@@ -46,22 +43,22 @@ export const phiLanguage = LRLanguage.define({
 })
 
 export const phiHighlighting = HighlightStyle.define([
-  { tag: tags.keyword, color: '#7826e2' },
-  { tag: tags.attributeName, color: '#000000' },
-  { tag: tags.operatorKeyword, color: '#A626A4' },
-  { tag: tags.labelName, color: '#986801' },
-  { tag: tags.paren, color: '#383A42' },
-  { tag: tags.squareBracket, color: '#383A42' },
+  { tag: t.keyword, color: '#7826e2' },
+  { tag: t.attributeName, color: '#000000' },
+  { tag: t.operatorKeyword, color: '#A626A4' },
+  { tag: t.labelName, color: '#986801' },
+  { tag: t.paren, color: '#383A42' },
+  { tag: t.squareBracket, color: '#383A42' },
 
-  { tag: tags.integer, color: '#986801' },
-  { tag: tags.number, color: '#986801' },
-  { tag: tags.float, color: '#986801' },
-  { tag: tags.bool, color: '#0184BC' },
-  { tag: tags.regexp, color: '#0184BC' },
-  { tag: tags.string, color: '#598559' },
-  { tag: tags.character, color: '#598559' },
+  { tag: t.integer, color: '#986801' },
+  { tag: t.number, color: '#986801' },
+  { tag: t.float, color: '#986801' },
+  { tag: t.bool, color: '#0184BC' },
+  { tag: t.regexp, color: '#0184BC' },
+  { tag: t.string, color: '#598559' },
+  { tag: t.character, color: '#598559' },
 ])
 
 export function phi() {
-  return [phiLanguage, phiHighlighting]
+  return [phiLanguage, syntaxHighlighting(phiHighlighting)]
 }

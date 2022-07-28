@@ -1,9 +1,8 @@
-import { Text } from '@codemirror/text'
-import { EditorView } from '@codemirror/basic-setup'
+import { Text } from '@codemirror/state' 
+import { EditorView } from 'codemirror'
 import { syntaxTree } from '@codemirror/language'
 import { ViewUpdate } from '@codemirror/view'
 import { Input, NodeType, SyntaxNode, Tree, TreeCursor } from '@lezer/common'
-import { StateEffect, StateField } from '@codemirror/state'
 
 class StringInput implements Input {
   constructor(private readonly input: string) {}
@@ -80,7 +79,7 @@ export function traverseTree(
   }: TreeTraversalOptions
 ): void {
   if (!(cursor instanceof TreeCursor))
-    cursor = cursor instanceof Tree ? cursor.cursor() : cursor.cursor
+    cursor = cursor instanceof Tree ? cursor.cursor() : cursor.cursor()
   for (;;) {
     let node = cursorNode(cursor)
     let leave = false
@@ -262,7 +261,7 @@ export function logTree(
   console.log(printTree(tree, input, options))
 }
 
-import { EditorState } from '@codemirror/basic-setup'
+import { EditorState } from '@codemirror/state'
 
 function logToConsole(state: EditorState) {
   console.clear()

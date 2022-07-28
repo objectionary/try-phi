@@ -1,5 +1,6 @@
 import { ViewPlugin, ViewUpdate } from '@codemirror/view'
-import { EditorState, EditorView } from '@codemirror/basic-setup'
+import { EditorView } from 'codemirror'
+import {EditorState} from '@codemirror/state'
 import {Annotation, Transaction} from '@codemirror/state'
 
 const defaultEvent = new CustomEvent('phi-editor-code-changed', {

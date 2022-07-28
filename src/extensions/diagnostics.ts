@@ -1,15 +1,16 @@
 import { linter, Diagnostic } from '@codemirror/lint'
 import { syntaxTree } from '@codemirror/language'
 import { EditorView } from '@codemirror/view'
+import { SyntaxNodeRef } from '@lezer/common'
 
 function lintExample(view: EditorView): readonly Diagnostic[] {
   const diagnostics: Diagnostic[] = []
   syntaxTree(view.state).iterate({
-    enter: (type, from, to) => {
-      if (type.isError) {
+    enter: (node: SyntaxNodeRef) => {
+      if (node.type.isError) {
         diagnostics.push({
-          from,
-          to,
+          from: node.from,
+          to: node.to,
           severity: 'error',
           message: 'Parsing error!',
         })

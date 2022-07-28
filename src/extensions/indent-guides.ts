@@ -6,7 +6,7 @@ import {
   ViewPlugin,
 } from '@codemirror/view'
 import { IndentContext } from '@codemirror/language'
-import { RangeSetBuilder } from '@codemirror/rangeset'
+import { RangeSetBuilder } from '@codemirror/state'
 
 const indentMark = Decoration.mark({ class: 'cm-tab' })
 

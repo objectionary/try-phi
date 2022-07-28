@@ -10,23 +10,23 @@
   },
   "license": "Unlicense",
   "dependencies": {
-    "@lezer/lr": "^0.15.5",
-    "copy-to-clipboard": "^3.3.1",
-    "esbuild": "^0.14.39",
+    "@lezer/lr": "^1.2.0",
+    "@lezer/common": "^1.0.0",
+    "esbuild": "^0.14.50",
     "esbuild-node-externals": "^1.4.1",
     "esm": "^3.2.25",
-    "parcel": "^2.5.0"
+    "parcel": "^2.6.2"
   },
   "devDependencies": {
-    "@codemirror/basic-setup": "^0.19.1",
-    "@codemirror/commands": "^0.19.6",
-    "@codemirror/highlight": "^0.19.7",
-    "@codemirror/language": "^0.19.7",
-    "@codemirror/lint": "^0.19.3",
-    "@codemirror/rangeset": "^0.19.6",
-    "@codemirror/view": "^0.19.37",
-    "@lezer/generator": "^0.15.2",
-    "nodemon": "^2.0.16",
+    "@codemirror/state": "^6.1.0",
+    "codemirror": "^6.0.1",
+    "@codemirror/commands": "^6.0.1",
+    "@codemirror/language": "^6.2.1",
+    "@codemirror/lint": "^6.0.0",
+    "@codemirror/view": "^6.1.2",
+    "@lezer/highlight": "^1.0.0",
+    "@lezer/generator": "^1.1.0",
+    "nodemon": "^2.0.19",
     "npm-run-all": "^4.1.5",
     "process": "^0.11.10"
   }

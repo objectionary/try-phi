@@ -1,5 +1,10 @@
 # Try-phi
 
+<img alt="logo" src="https://www.objectionary.com/cactus.svg" height="100px" />
+
+[![Hits-of-Code](https://hitsofcode.com/github/objectionary/try-phi?branch=main)](https://hitsofcode.com/view/github/objectionary/try-phi?branch=main)
+![Lines of code](https://img.shields.io/tokei/lines/github/objectionary/try-phi?style=flat-square)
+
 This is an experimental interpreter for a variant of 𝜑-calculus.
 Right now we implement it as a term rewriting system.
 

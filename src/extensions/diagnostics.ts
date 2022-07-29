@@ -3,8 +3,8 @@ import { syntaxTree } from '@codemirror/language'
 import { EditorView } from '@codemirror/view'
 import { SyntaxNodeRef } from '@lezer/common'
 
-function lintExample(view: EditorView): readonly Diagnostic[] {
-  const diagnostics: Diagnostic[] = []
+function lintDiagnostic(view: EditorView): Diagnostic[] {
+  let diagnostics: Diagnostic[] = []
   syntaxTree(view.state).iterate({
     enter: (node: SyntaxNodeRef) => {
       if (node.type.isError) {
@@ -21,4 +21,5 @@ function lintExample(view: EditorView): readonly Diagnostic[] {
   return diagnostics
 }
 
-export const parseErrors = linter(lintExample)
+
+export const parseErrors = linter(lintDiagnostic)

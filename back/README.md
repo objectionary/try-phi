@@ -12,7 +12,7 @@
   sh run.sh
   ```
 
-## Deploy to Heroku?
+## Deploy to Heroku
 
 - Read [this](https://hackernoon.com/for-all-the-world-to-see-deploying-haskell-with-heroku-7ea46f827ce) till `web: run-server`
 
@@ -43,5 +43,3 @@ startApp = catchIOError
 2022-06-25T14:40:54.215588+00:00 heroku[web.1]: State changed from starting to crashed
 
 ```
-
-- Due to a GitHub action, this specific folder will be pushed to Heroku as a separate project

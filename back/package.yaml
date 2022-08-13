@@ -46,7 +46,6 @@ executables:
       - -rtsopts
       - -with-rtsopts=-N
     dependencies:
-      - base
       - try-phi-back
 
 tests:

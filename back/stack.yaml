@@ -17,11 +17,13 @@
 #
 # resolver: ./custom-snapshot.yaml
 # resolver: https://example.com/snapshots/2018-01-01.yaml
-resolver:
-  # url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2022/6/22.yaml
-  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/28.yaml
-  # url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/19/13.yaml
-  # url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/19/5.yaml
+# resolver: nightly-2022-08-04
+resolver: lts-19.18
+# resolver:
+# url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2022/6/22.yaml
+# url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/28.yaml
+# url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/19/13.yaml
+# url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/19/5.yaml
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -44,7 +46,10 @@ ghc-options:
 # These entries can reference officially published versions as well as
 # forks / in-progress versions pinned to a git hash. For example:
 #
-# extra-deps:
+extra-deps:
+  - graphviz-2999.20.1.0
+  - bytestring-0.10.12.1
+  - text-2.0.1
 # - acme-missiles-0.3
 # - git: https://github.com/commercialhaskell/stack.git
 #   commit: e7b331f14bcffb8367cd58fbfc8b40ec7642100a

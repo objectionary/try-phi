@@ -17,10 +17,11 @@
 #
 # resolver: ./custom-snapshot.yaml
 # resolver: https://example.com/snapshots/2018-01-01.yaml
-resolver:
-  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/28.yaml
-  # url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/14/27.yaml
-
+# resolver:
+#   url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/28.yaml
+# url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/14/27.yaml
+# resolver: nightly-2022-08-04
+resolver: lts-19.18
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -32,19 +33,18 @@ resolver:
 #   - auto-update
 #   - wai
 packages:
-- .
+  - .
 # Dependency packages to be pulled from upstream that are not in the resolver.
 # These entries can reference officially published versions as well as
 # forks / in-progress versions pinned to a git hash. For example:
 #
-extra-deps:
+# extra-deps:
 # - fgl-5.7.0.3@sha256:a5970bb2d6835e2479380ca822ac43436ffef050770391f21802ed4610e1d5b8,3648
 #
 # extra-deps: []
 
 ghc-options:
-  '$everything': -haddock
-
+  "$everything": -haddock
 # Override default flag values for local packages and extra-deps
 # flags: {}
 

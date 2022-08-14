@@ -3,11 +3,31 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages: []
+packages:
+- completed:
+    pantry-tree:
+      sha256: 1ea7b8528a0ba4c9890a64dbb387677ec6b81bfce196f1c456ee36ba87abcc31
+      size: 4322
+    hackage: graphviz-2999.20.1.0@sha256:fac315d1a260d1625a938e5164362b080c9110f02aa0a71b7b77b25173cf7e77,7703
+  original:
+    hackage: graphviz-2999.20.1.0
+- completed:
+    pantry-tree:
+      sha256: 119f151ee88539f3287276f087f2576b46a1792247e4dac288a930359710f70e
+      size: 2140
+    hackage: bytestring-0.10.12.1@sha256:82dba4c2de4fdd8b419ed28aec2c14cfe4a3f43d1d6e2263ab26962e7398048e,6254
+  original:
+    hackage: bytestring-0.10.12.1
+- completed:
+    pantry-tree:
+      sha256: 2a661574e5663d733c08f4c34e1bdaaa9fd530be551aef0db99f1689541839c8
+      size: 7359
+    hackage: text-2.0.1@sha256:907ecca6d20c42dafceb709ebac546f5d72e8b7dda3c39b286888c2f09e3bad8,9262
+  original:
+    hackage: text-2.0.1
 snapshots:
 - completed:
-    size: 590100
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/28.yaml
-    sha256: 428ec8d5ce932190d3cbe266b9eb3c175cd81e984babf876b64019e2cbe4ea68
-  original:
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/28.yaml
+    sha256: 656fa7a1ff5ddd147cce5a0aabd6fd70255f2ac60fd1294a1228b00a19b1731f
+    size: 628888
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2022/8/4.yaml
+  original: nightly-2022-08-04

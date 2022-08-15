@@ -33,6 +33,8 @@ dependencies:
   - eo-utils
   - phi-utils
   - either
+  - graphviz
+  - bytestring
 
 library:
   source-dirs: src

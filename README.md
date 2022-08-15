@@ -23,20 +23,40 @@ It is combined with [EO](https://github.com/objectionary/eo) editor. EO is based
 
 ## Development
 
-- Install dependencies
-
-  - [Back end](./back/README.md#dependencies)
-  - [Front end](./front/README.md#dependencies)
-
-- Build the server and front end
-
+- Install [Nix](https://nixos.org/download.html) (Single-user installation)
   ```sh
-  sh build.sh
+  sh <(curl -L https://nixos.org/nix/install) --no-daemon
   ```
 
-- Run the server and front end in separate terminals to see separate logs:
+- Install [direnv](https://nix.dev/tutorials/declarative-and-reproducible-developer-environments#direnv-automatically-activating-the-environment-on-directory-change) - steps 1, 2
 
+- For [VS Code](https://code.visualstudio.com/)
+  - Install extensions
   ```sh
-  sh run_back.sh
-  sh run_front.sh
+  code --install-extension mkhl.direnv --install-extension haskell.haskell --install-extension nwolverson.ide-purescript
   ```
+  - Open workspace in `.vscode/try-phi.code-workspace`
+
+- In separate terminals:
+  - backend dev
+    ```sh
+    cd back
+    # for the first time
+    direnv allow
+    # start the server
+    nix run
+    ```
+  - front
+    ```sh
+    cd front
+    # for the first time
+    direnv allow
+    # open app in a browser
+    npm run dev
+    # or any other commands from package.json
+    ```
+
+- If in VS Code, reload the window (`Ctrl`+`Shift`+`P` -> `Developer: Reload window`) and repeat previous commands to start the server and the client
+
+- For Haskell, your shell will have [haskell-language-server](https://github.com/haskell/haskell-language-server)
+- For Purescript - [purescript-language-server](https://github.com/nwolverson/purescript-language-server)

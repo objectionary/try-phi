@@ -30,7 +30,10 @@
             ]) ++ (with easy-ps; [
               purs
               spago
+              purescript-language-server
+              purs-tidy
+              psa
             ]);
-          };
+          } // {shellHooks = "spago build";};
       });
 }

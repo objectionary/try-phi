@@ -1,6 +1,8 @@
-.*
-!.gitignore
-!.github
+.parcel-cache
+.spago
+
+.gitignore
+.github
 
 output
 generated-docs

@@ -16,7 +16,7 @@
 # a snapshot provided as a file might change, whereas a url resource does not.
 #
 # resolver: nightly-2022-08-04
-resolver: lts-19.18
+resolver: lts-18.28
 # resolver: https://example.com/snapshots/2018-01-01.yaml
 # resolver:
 # url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/28.yaml

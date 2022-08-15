@@ -86,10 +86,17 @@
   inputs =
     {
       flake-utils.url = "github:numtide/flake-utils";
-      haskellNix.url = "github:input-output-hk/haskell.nix";
+
+      nix-filter.url = "https://github.com/numtide/nix-filter/archive/3c9e33ed627e009428197b07216613206f06ed80.tar.gz";
+      # nix-filter.url = "github:numtide/nix-filter";
+      # nix-filter.follows = "haskellNix/nixpkgs-unstable";
+
+      haskellNix.url = "github:input-output-hk/haskell.nix/hkm/hls-ghc92";
       nixpkgs.follows = "haskellNix/nixpkgs-unstable";
-      hls.url = "github:haskell/haskell-language-server";
-      hls.follows = "haskellNix/nixpkgs-unstable";
+
+      # hls.url = "github:haskell/haskell-language-server";
+      # hls.follows = "haskellNix/nixpkgs-unstable";
+
       # hls.follows = "github:NixOS/nixpkgs/nixpkgs-unstable";
     };
 
@@ -104,62 +111,227 @@
     , nixpkgs
     , flake-utils
     , haskellNix
-    , hls
+      # , hls
+    , nix-filter
     , ...
     }:
     flake-utils.lib.eachSystem [ "x86_64-linux" ] (system:
     let
       compiler-version = "902";
       compiler-nix-name = "ghc${compiler-version}";
-      index-state = "2022-08-08T00:00:00Z";
+      # index-state = "2022-08-08T00:00:00Z";
+      # pkgs = import nixpkgs {
+      #   system = "x86_64-linux";
+      # };
 
-      overlays = [
-        haskellNix.overlay
-        (self: super: {
-          phi-utils = self.haskell-nix.project' {
-            src = self.haskell-nix.haskellLib.cleanSourceWith {
-              name = "phi-utils";
-              src = ./language-utils/phi-utils;
-            };
-            inherit compiler-nix-name index-state;
-            # materialized = ./nix/materialized/try-phi-back;
-          };
-        })
-        haskellNix.overlay
-        (self: super: {
-          try-phi-back = self.haskell-nix.project' {
-            src = self.haskell-nix.haskellLib.cleanSourceWith {
-              name = "try-phi-back-source";
-              src = ./.;
-            };
-            inherit compiler-nix-name index-state;
-            # materialized = ./nix/materialized/try-phi-back;
-          };
-        })
-      ];
+      # defaultDerivation = pkgs.stdenv.mkDerivation { name = "default"; src = "https://github.com/numtide/flake-utils"; };
 
+      # projectPackages = [
+      #   { name' = "phi-utils"; src' = ./language-utils/phi-utils; }
+      # ];
+
+      # for = xs: f: builtins.map f xs;
+      # toAttr = name: value: builtins.listToAttrs [{ inherit name value; }];
+      # overlays = for projectPackages
+      #   (
+      #     { name', src' }:
+      #     haskellNix.overlay
+      #       (self: super: toAttr name' (
+      #         self.haskell-nix.cabalProject' {
+      #           src = self.haskell-nix.haskellLib.cleanSourceWith {
+      #             name = name';
+      #             src = src';
+      #           };
+      #           inherit compiler-nix-name index-state;
+      #           # materialized = ./nix/materialized/phi-utils;
+      #         }))
+      #   );
+
+      # hsPkgs = pkgs.haskell-nix.cabalProject {
+      #   src = nix-filter {
+      #     root = ./.;
+      #     name = "try-phi";
+      #     include = [
+      # ./language-utils/eo-utils/eo-utils.cabal
+      # ./language-utils/phi-utils/phi-utils.cabal
+      # ./language-utils/language-utils.cabal
+      # ./try-phi-back.cabal
+      #     ];
+      #   };
+      # };
+
+      # hsPkgs = pkgs.haskell-nix.cabalProject {
+      #   src = nix-filter {
+      #     root = ./.;
+      #     name = "try-phi-back";
+      #     include = [
+      #       ./language-utils/eo-utils/eo-utils.cabal
+      #       ./language-utils/phi-utils/phi-utils.cabal
+      #       ./language-utils/language-utils.cabal
+      #       ./try-phi-back.cabal
+      #       ./cabal.project
+      #     ];
+      #   };
+
+      #   modules = [
+      #     {
+      #       packages = {
+      #         try-phi-back.src = ./.;
+      #         language-utils.src = ./language-utils;
+      #         eo-utils.src = ./language-utils/eo-utils;
+      #         phi-utils.src = ./language-utils/phi-utils;
+      #       };
+      #     }
+      #   ];
+      # };
+
+
+      overlays =
+        [
+          haskellNix.overlay
+          (self: super: {
+            # ({
+            try-phi-back = self.haskell-nix.project' {
+              src = (import nix-filter) {
+                root = ./.;
+                name = "try-phi-back";
+                # include = [
+                #   # ./language-utils/eo-utils/eo-utils.cabal
+                #   # ./language-utils/phi-utils/phi-utils.cabal
+                #   # ./language-utils/language-utils.cabal
+                #   # ./try-phi-back.cabal
+                #   # ./cabal.project
+                #   ./language-utils/eo-utils
+                #   ./language-utils/phi-utils
+                #   ./language-utils
+                # ];
+              };
+
+              modules = [
+                {
+                  packages = {
+                    try-phi-back.src = ./.;
+                    language-utils.src = ./language-utils;
+                    eo-utils.src = ./language-utils/eo-utils;
+                    phi-utils.src = ./language-utils/phi-utils;
+                  };
+                }
+              ];
+              # phi-utils = self.haskell-nix.cabalProject' {
+              # phi-utils = {
+              # src = ./.;
+              name = "try-phi-back";
+              # src = nix-filter
+              #   {
+              #     root = ./.;
+              #     name = "try-phi-back";
+              #     include = [
+              #       ./language-utils/eo-utils/eo-utils.cabal
+              #       ./language-utils/phi-utils/phi-utils.cabal
+              #       ./language-utils/language-utils.cabal
+              #       ./try-phi-back.cabal
+              #     ];
+              #   };
+              # src = self.haskell-nix.haskellLib.cleanSourceWith {
+              #   # src = {
+              #   name = "phi-utils";
+              #   src = ./language-utils/phi-utils;
+              # };
+              inherit compiler-nix-name;
+              # index-state;
+              # materialized = ./nix/materialized/phi-utils;
+            };
+          })
+        ];
+      #     haskellNix.overlay
+      #     (self: super: {
+      #       # ({
+
+      #       eo-utils = self.haskell-nix.cabalProject' {
+      #         # phi-utils = {
+      #         src = self.haskell-nix.haskellLib.cleanSourceWith {
+      #           # src = {
+      #           name = "eo-utils";
+      #           src = ./language-utils/eo-utils;
+      #         };
+      #         inherit compiler-nix-name index-state;
+      #         # materialized = ./nix/materialized/phi-utils;
+      #       };
+      #     })
+      #     haskellNix.overlay
+      #     (self: super: {
+      #       language-utils = self.haskell-nix.cabalProject' {
+      #         src = self.haskell-nix.haskellLib.cleanSourceWith {
+      #           name = "language-utils";
+      #           src = ./language-utils;
+      #         };
+      #         inherit compiler-nix-name index-state;
+      #         # materialized = ./nix/materialized/try-phi-back;
+      #       };
+      #       # shell.tools = [
+      #       #   super.eo-utils
+      #       #   super.phi-utils
+      #       # ];
+      #     })
+      #     # haskellNix.overlay
+      #     # (self: super: {
+      #     #   try-phi-back = self.haskell-nix.cabalProject' {
+      #     #     src = self.haskell-nix.haskellLib.cleanSourceWith {
+      #     #       name = "try-phi-back";
+      #     #       src = ./.;
+      #     #     };
+      #     #     inherit compiler-nix-name index-state;
+      #     #     # materialized = ./nix/materialized/try-phi-back;
+      #     #   };
+      #     # })
+      #   ];
+
+      # pkgsSrc = import haskellNix.nixpkgs-unstable;
+
+      # pkgs = (import nixpkgs) (haskellNix.nixpkgsArgs // { inherit system; });
       pkgs = import nixpkgs {
+        # inherit system;
         inherit system overlays;
         inherit (haskellNix) config;
       };
+
+      # flake = pkgs.language-utils.flake { };
+      # flake = hsPkgs.try-phi-back.flake { };
       flake = pkgs.try-phi-back.flake { };
+      # flake = pkgs.phi-utils.flake { };
+      # flake = { };
 
     in
+    # hsPkgs // {
     flake // {
+      # packages.default = hsPkgs.try-phi-back.components.exes.try-phi-back-exe;
+      # flake.packages."language-utils:exe:language-utils-exe";
+      # packages.default = flake.packages."language-utils:exe:language-utils-exe";
+      # packages.default = flake.packages.try-phi-back;
+      # "try-phi-back:exe:try-phi-back-exe";
       packages.default = flake.packages."try-phi-back:exe:try-phi-back-exe";
-      devShells.default = pkgs.try-phi-back.shellFor {
-        # tools.hoogle = {
-        #   version = "5.0.18.3";
-        #   index-state = "2022-08-04T00:00:00Z";
-        #   materialized = ./nix/materialized/hoogle;
-        # };
-        nativeBuildInputs = with pkgs; [
-          cabal-install
-          hpack
-          haskell-language-server
-          # hls.packages."x86_64-linux"."haskell-language-server-${compiler-version}"
-        ];
-        exactDeps = true;
-      };
+      # packages.default = flake.packages."phi-utils:exe:phi-utils-exe";
+      # defaultPackage = defaultDerivation;
+      # packages.default = defaultDerivation;
+      # devShells.default = defaultDerivation;
+      # packages.default = flake.packages.;
+      # ps = pkgs;
+      # devShells.default = pkgs.language-utils.shellFor {
+      #   # devShells.default = pkgs.try-phi-back.shellFor {
+      #   # devShells.default = pkgs.phi-utils.shellFor {
+
+      #   # tools.hoogle = {
+      #   #   version = "5.0.18.3";
+      #   #   index-state = "2022-08-04T00:00:00Z";
+      #   #   materialized = ./nix/materialized/hoogle;
+      #   # };
+      #   nativeBuildInputs = with pkgs; [
+      #     cabal-install
+      #     hpack
+      #     haskell-language-server
+      #     # hls.packages."x86_64-linux"."haskell-language-server-${compiler-version}"
+      #   ];
+      #   exactDeps = true;
+      # };
     });
 }

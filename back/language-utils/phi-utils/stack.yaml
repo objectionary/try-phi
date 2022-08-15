@@ -20,7 +20,7 @@
 # resolver:
 #   url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts//28.yaml
 # resolver: nightly-2022-08-04
-resolver: lts-19.18
+resolver: lts-18.28
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.

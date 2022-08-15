@@ -18,7 +18,7 @@
 # resolver: ./custom-snapshot.yaml
 # resolver: https://example.com/snapshots/2018-01-01.yaml
 # resolver: nightly-2022-08-04
-resolver: lts-19.18
+resolver: lts-18.28
 # resolver:
 # url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2022/6/22.yaml
 # url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/28.yaml

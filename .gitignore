@@ -1,1 +1,3 @@
 .psc*
+.direnv
+result

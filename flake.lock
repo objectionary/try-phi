@@ -29,11 +29,11 @@
       "locked": {
         "lastModified": 1,
         "narHash": "sha256-c6H0Ae1S5gErP0PIzOg6lIVbn/W/WgWCqo1FOq0amR0=",
-        "path": "/nix/store/n62mdpdzyz515jnrbqmbl5d39sp2iv0x-source/back",
+        "path": "/nix/store/1sccrxq3rn05hygj09ndp5pfpkyijn81-source/back",
         "type": "path"
       },
       "original": {
-        "path": "/nix/store/n62mdpdzyz515jnrbqmbl5d39sp2iv0x-source/back",
+        "path": "/nix/store/1sccrxq3rn05hygj09ndp5pfpkyijn81-source/back",
         "type": "path"
       }
     },
@@ -189,11 +189,11 @@
       "locked": {
         "lastModified": 1,
         "narHash": "sha256-YQLCTcFI+gxD0iUXm0jXDFKla9YNpuQqj3XbD4TcxVc=",
-        "path": "/nix/store/n62mdpdzyz515jnrbqmbl5d39sp2iv0x-source/front",
+        "path": "/nix/store/1sccrxq3rn05hygj09ndp5pfpkyijn81-source/front",
         "type": "path"
       },
       "original": {
-        "path": "/nix/store/n62mdpdzyz515jnrbqmbl5d39sp2iv0x-source/front",
+        "path": "/nix/store/1sccrxq3rn05hygj09ndp5pfpkyijn81-source/front",
         "type": "path"
       }
     },

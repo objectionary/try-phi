@@ -1,14 +1,14 @@
-name:                eo-utils
-version:             0.1.0.0
-github:              "br4ch1st0chr0n3/eo-utils"
-license:             BSD3
-author:              "Danila Danko"
-maintainer:          "br4ch1st0chr0n3@gmail.com"
-copyright:           "2022 Danila Danko"
+name: eo-utils
+version: 0.1.0.0
+github: "br4ch1st0chr0n3/eo-utils"
+license: BSD3
+author: "Danila Danko"
+maintainer: "br4ch1st0chr0n3@gmail.com"
+copyright: "2022 Danila Danko"
 
 extra-source-files:
-- README.md
-- ChangeLog.md
+  - README.md
+  - ChangeLog.md
 
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
@@ -17,7 +17,7 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/br4ch1st0chr0n3/eo-utils#readme>
+description: Please see the README on GitHub at <https://github.com/br4ch1st0chr0n3/eo-utils#readme>
 
 custom-setup:
   dependencies:
@@ -26,61 +26,57 @@ custom-setup:
     - cabal-doctest >=1.0.2 && <1.1
 
 ghc-options:
-- -Wall -fno-warn-type-defaults -O2
+  - -Wall -fno-warn-type-defaults -O2
 
 dependencies:
-- base >= 4.7 && < 5
-# - bound
-# - containers
-- hashable
-- insert-ordered-containers
-- mtl
-- text
-# - unordered-containers
-- megaparsec
-- scientific
-- template-haskell
-- microlens
-- pretty-simple
+  - base >= 4.7 && < 5
+  - hashable
+  - insert-ordered-containers
+  - mtl
+  - text
+  - megaparsec
+  - scientific
+  - template-haskell
+  - microlens
+  - pretty-simple
 
 library:
   source-dirs: src
   exposed-modules:
-  - EOParser
-  - PrettyPrintTerm
+    - EOParser
+    - PrettyPrintTerm
 
 executables:
-  eo-utils:
-    main:                Main.hs
-    source-dirs:         app
+  eo-utils-exe:
+    main: Main.hs
+    source-dirs: app
     ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
     dependencies:
-    - eo-utils
-    
+      - eo-utils
+
 tests:
   spec:
-    main:                Spec.hs
-    source-dirs:         test
+    main: Spec.hs
+    source-dirs: test
     ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
     dependencies:
-    - eo-utils
-    - hspec
-    - QuickCheck
+      - eo-utils
+      - hspec
+      - QuickCheck
 
   doctests:
     source-dirs: test
     main: doctests.hs
     other-modules: []
     dependencies:
-    - base
-    - doctest
-    - Glob
-    - QuickCheck
-    - template-haskell
-
+      - base
+      - doctest
+      - Glob
+      - QuickCheck
+      - template-haskell

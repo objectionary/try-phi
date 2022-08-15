@@ -33,7 +33,7 @@ library:
     - Common
     - Test
 executables:
-  language-utils:
+  language-utils-exe:
     main: Main.hs
     source-dirs: app
     ghc-options:

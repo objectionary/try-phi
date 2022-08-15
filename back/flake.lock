@@ -172,17 +172,17 @@
         "stackage": "stackage"
       },
       "locked": {
-        "lastModified": 1660545842,
-        "narHash": "sha256-6/lbYlAhKxJ6Pf2YLYAFYiRMe16i4/MA5aJ0jFv7J+8=",
+        "lastModified": 1660554603,
+        "narHash": "sha256-J7z1qCpsFPlZCgIWvEhjNXABWOCFHRIuBcHsRGiwWm4=",
         "owner": "input-output-hk",
         "repo": "haskell.nix",
-        "rev": "8b23323c10b5eb94b5356b012b11f8088b8cfb32",
+        "rev": "9c697ee23a78af9326b5c8849e675a380e46a69a",
         "type": "github"
       },
       "original": {
         "owner": "input-output-hk",
-        "ref": "hkm/hls-ghc92",
         "repo": "haskell.nix",
+        "rev": "9c697ee23a78af9326b5c8849e675a380e46a69a",
         "type": "github"
       }
     },
@@ -260,17 +260,6 @@
         "ref": "2.6.0",
         "repo": "nix",
         "type": "github"
-      }
-    },
-    "nix-filter": {
-      "locked": {
-        "narHash": "sha256-BOkm3eKT45Dk4NNxJT0xL9NnyYeZcF+t79zPnJkggac=",
-        "type": "tarball",
-        "url": "https://github.com/numtide/nix-filter/archive/3c9e33ed627e009428197b07216613206f06ed80.tar.gz"
-      },
-      "original": {
-        "type": "tarball",
-        "url": "https://github.com/numtide/nix-filter/archive/3c9e33ed627e009428197b07216613206f06ed80.tar.gz"
       }
     },
     "nix-tools": {
@@ -420,7 +409,6 @@
       "inputs": {
         "flake-utils": "flake-utils",
         "haskellNix": "haskellNix",
-        "nix-filter": "nix-filter",
         "nixpkgs": [
           "haskellNix",
           "nixpkgs-unstable"

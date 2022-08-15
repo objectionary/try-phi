@@ -1,14 +1,14 @@
-name:                phi-utils
-version:             0.1.0.1
-github:              "value/phi-utils"
-license:             BSD3
-author:              "value"
-maintainer:          "value"
-copyright:           "value"
+name: phi-utils
+version: 0.1.0.1
+github: "value/phi-utils"
+license: BSD3
+author: "value"
+maintainer: "value"
+copyright: "value"
 
 extra-source-files:
-- README.md
-- ChangeLog.md
+  - README.md
+  - ChangeLog.md
 
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
@@ -17,44 +17,44 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/value/phi-utils#readme>
+description: Please see the README on GitHub at <https://github.com/value/phi-utils#readme>
 
 dependencies:
-- base >= 4.7 && < 5
-- containers
-- fgl
-- graphviz
-- insert-ordered-containers
-- mtl
-- parsers
-- prettyprinter
-- text
-- trifecta
-- unordered-containers
+  - base >= 4.7 && < 5
+  - containers
+  - fgl
+  - graphviz
+  - insert-ordered-containers
+  - mtl
+  - parsers
+  - prettyprinter
+  - text
+  - trifecta
+  - unordered-containers
 
 library:
-  source-dirs: 
+  source-dirs:
     - src
     - test
 
 executables:
   phi-utils-exe:
-    main:                Main.hs
-    source-dirs:         app
+    main: Main.hs
+    source-dirs: app
     ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
     dependencies:
-    - phi-utils
+      - phi-utils
 
 tests:
   phi-utils-test:
-    main:                Spec.hs
-    source-dirs:         test
+    main: Spec.hs
+    source-dirs: test
     ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
     dependencies:
-    - phi-utils
+      - phi-utils

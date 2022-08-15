@@ -59,6 +59,8 @@ It is combined with [EO](https://github.com/objectionary/eo) editor. EO is based
     cd back
     # for the first time
     direnv allow
+    # build for HLS
+    nix build
     # start the server
     nix run
     ```

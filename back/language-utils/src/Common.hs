@@ -1,9 +1,17 @@
 
-{-# LANGUAGE TypeApplications #-}
+
 module Common(ppPhiToEO, ppWHNF, ppWHNFSteps, ppNF, ppTapSteps, ppStates, ppGraphs, getTermFromPhi, getTermFromEO, ppEOSource, ppPhi, Common.ppPhiSource, ppPhiToLatex) where
 
 
 import Phi.Minimal as Phi
+    ( nf,
+      whnf,
+      Term,
+      ppGraphStepsFor,
+      ppStepsFor,
+      ppTerm,
+      ppWhnfSteps,
+      ppPhiSource )
 
 import Phi.Minimal.ConfigurationDot(renderList)
 import qualified Data.Text.Lazy                       as T

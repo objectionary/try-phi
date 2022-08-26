@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.5.
+-- This file has been generated from package.yaml by hpack version 0.34.7.
 --
 -- see: https://github.com/sol/hpack
 
@@ -40,13 +40,11 @@ library
       Phi.Minimal.Print
       Phi.Minimal.Translation.Lambda
       Phi.Utils.GraphBuilder
-      Spec
-      TestLatex.TestLatex
   other-modules:
       Paths_phi_utils
   hs-source-dirs:
       src
-      test
+  ghc-options: -Wall -fno-warn-type-defaults -O2
   build-depends:
       base >=4.7 && <5
     , containers
@@ -67,7 +65,7 @@ executable phi-utils-exe
       Paths_phi_utils
   hs-source-dirs:
       app
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -fno-warn-type-defaults -O2 -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
     , containers
@@ -83,20 +81,21 @@ executable phi-utils-exe
     , unordered-containers
   default-language: Haskell2010
 
-test-suite phi-utils-test
+test-suite spec
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      TestLatex.TestLatex
       Paths_phi_utils
   hs-source-dirs:
       test
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -fno-warn-type-defaults -O2 -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      QuickCheck
+    , base >=4.7 && <5
     , containers
     , fgl
     , graphviz
+    , hspec
     , insert-ordered-containers
     , mtl
     , parsers

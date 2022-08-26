@@ -21,12 +21,28 @@ It is combined with [EO](https://github.com/objectionary/eo) editor. EO is based
 - [EO editor](https://github.com/br4ch1st0chr0n3/eo-editor)
 - [Phi editor](https://github.com/br4ch1st0chr0n3/phi-editor)
 
-## Development
+## Prerequisits
 
 - Install [Nix](https://nixos.org/download.html) (Single-user installation)
   ```sh
   sh <(curl -L https://nixos.org/nix/install) --no-daemon
   ```
+
+- Enter the repo
+  ```sh
+  git clone https://github.com/objectionary/try-phi
+  cd try-phi
+  ```
+
+## Quick start
+
+- Run back and front in separate tereminals
+  ```console
+  nix develop .#back
+  nix develop .#front
+  ```
+
+## Development
 
 - Install [direnv](https://nix.dev/tutorials/declarative-and-reproducible-developer-environments#direnv-automatically-activating-the-environment-on-directory-change) - steps 1, 2
 
@@ -53,8 +69,8 @@ It is combined with [EO](https://github.com/objectionary/eo) editor. EO is based
     direnv allow
     # open app in a browser
     npm run dev
-    # or any other commands from package.json
     ```
+    - Or run any other command from [package.json](package.json)
 
 - If in VS Code, reload the window (`Ctrl`+`Shift`+`P` -> `Developer: Reload window`) and repeat previous commands to start the server and the client
 

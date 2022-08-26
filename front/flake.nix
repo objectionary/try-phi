@@ -1,8 +1,8 @@
 {
-  description = "RealWorld spec in the PureScript Halogen framework";
+  description = "Try-phi front end";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-21.11";
+    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     easy-purescript-nix = {
       url = "github:justinwoo/easy-purescript-nix";
       flake = false;
@@ -24,16 +24,27 @@
           in
           pkgs.mkShell {
             inherit name;
-            buildInputs = (with pkgs; [
+            buildInputs = let 
+              inherit (pkgs) nodejs-16_x nixpkgs-fmt dhall-lsp-server;
+              inherit (easy-ps) purs-0_15_4 spago purescript-language-server;
+            in [
               nodejs-16_x
               nixpkgs-fmt
-            ]) ++ (with easy-ps; [
-              purs
+              purs-0_15_4
               spago
               purescript-language-server
-              purs-tidy
-              psa
-            ]);
+              dhall-lsp-server
+            ];
+            # (with pkgs; [
+            #   nodejs-16_x
+            #   nixpkgs-fmt
+            # ]) ++ (with easy-ps; [
+            #   purs-0_15_4
+            #   spago
+            #   purescript-language-server
+            #   purs-tidy
+            #   psa
+            # ]);
           } // {shellHooks = "spago build";};
       });
 }

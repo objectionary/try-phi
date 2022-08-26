@@ -1,3 +1,11 @@
 {
-    "haskell.serverExecutablePath": "haskell-language-server-wrapper"
+    "haskell.serverExecutablePath": "haskell-language-server",
+    "todo-tree.regex.regex": "((--\\s*($TAGS))|\\{-\\s($TAGS).*(\\n.*)*-})",
+    "files.watcherExclude": {
+        "**/.spago/**": true
+    },
+    "purescript.outputDirectory": "./front/output/",
+    "purescript.packagePath": "./front",
+    "purescript.sourcePath": "./front/src",
+    "vscode-dhall-lsp-server.executable": "dhall-lsp-server"
 }

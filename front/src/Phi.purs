@@ -731,7 +731,7 @@ permalinkButton =
     , id permalink_
     , onClick $ \_ -> CopyToClipboard
     ]
-    [ text $ "Copy permalink" ]
+    [ text $ "Copy permalin" ]
 
 buttons ∷ ∀ a. HTML a Action
 buttons =

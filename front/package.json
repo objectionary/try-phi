@@ -1,12 +1,15 @@
 {
+  "name" : "try-phi",
   "private": true,
+  "engines" : { 
+    "npm" : ">=7.0.0",
+    "node" : ">=16.0.0"
+  },
   "devDependencies": {
     "buffer": "^6.0.3",
     "gh-pages": "^4.0.0",
     "parcel": "2.5.0",
     "process": "^0.11.10",
-    "purescript": "^0.15.4",
-    "spago": "^0.20.9",
     "util": "^0.12.4"
   },
   "scripts": {

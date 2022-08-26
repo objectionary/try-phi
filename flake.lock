@@ -71,6 +71,7 @@
       "original": {
         "owner": "justinwoo",
         "repo": "easy-purescript-nix",
+        "rev": "5926981701ac781f08b02e31e4705e46b799299d",
         "type": "github"
       }
     },
@@ -167,11 +168,12 @@
         ],
         "nixpkgs": [
           "nixpkgs"
-        ]
+        ],
+        "npmlock2nix_": "npmlock2nix_"
       },
       "locked": {
         "lastModified": 1,
-        "narHash": "sha256-EeDYbfy4xrVB5d25+VUNi2MLz6urS8OB+UI8lmCWSRQ=",
+        "narHash": "sha256-VvE4QVmst1UbUtc3FdR+Fe8Sfef83fLH87fhVKJ/o4Q=",
         "path": "./front",
         "type": "path"
       },
@@ -429,6 +431,23 @@
         "owner": "NixOS",
         "repo": "nixpkgs",
         "rev": "cd8bbdd4fdb15f7758fd3c8df531e9d42bee239d",
+        "type": "github"
+      }
+    },
+    "npmlock2nix_": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1654775747,
+        "narHash": "sha256-9pXHDpIjmsK5390wmpGHu9aA4QOPpegPBvThHeBlef4=",
+        "owner": "nix-community",
+        "repo": "npmlock2nix",
+        "rev": "5c4f247688fc91d665df65f71c81e0726621aaa8",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "npmlock2nix",
+        "rev": "5c4f247688fc91d665df65f71c81e0726621aaa8",
         "type": "github"
       }
     },

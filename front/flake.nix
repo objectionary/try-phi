@@ -9,8 +9,8 @@
     };
     flake-utils.url = "github:numtide/flake-utils/c0e246b9b83f637f4681389ecabcb2681b4f3af0";
     npmlock2nix_ = {
-      # url = "github:nix-community/npmlock2nix/5c4f247688fc91d665df65f71c81e0726621aaa8";
-      url = "github:tlxzilia/npmlock2nix/f63dc087b144fb608e99e6239ceb69c68449482b";
+      url = "github:nix-community/npmlock2nix/5c4f247688fc91d665df65f71c81e0726621aaa8";
+      # url = "github:tlxzilia/npmlock2nix/f63dc087b144fb608e99e6239ceb69c68449482b";
       flake = false;
     };
   };
@@ -40,10 +40,11 @@
       {
         devShells =
           {
-            default = pkgs.mkShell {
-              buildInputs = myTools;
-            };
-            node =
+            default = 
+            # pkgs.mkShell {
+            #   buildInputs = myTools;lo
+            # };
+            # node =
               (npmlock2nix.shell {
                 src = ./.;
               }).overrideAttrs
@@ -55,4 +56,13 @@
                 );
           };
       });
+
+  nixConfig = {
+    extra-substituters = [
+      "https://cache.nixos.org/"
+    ];
+    extra-trusted-public-keys = [
+      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+    ];
+  };
 }

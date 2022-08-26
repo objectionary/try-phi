@@ -173,7 +173,7 @@
       },
       "locked": {
         "lastModified": 1,
-        "narHash": "sha256-VvE4QVmst1UbUtc3FdR+Fe8Sfef83fLH87fhVKJ/o4Q=",
+        "narHash": "sha256-AA9HTOYFJFmgOIgveFEYTeG1ki5aQ/P0tz2HA7PGWU0=",
         "path": "./front",
         "type": "path"
       },
@@ -437,17 +437,17 @@
     "npmlock2nix_": {
       "flake": false,
       "locked": {
-        "lastModified": 1654775747,
-        "narHash": "sha256-9pXHDpIjmsK5390wmpGHu9aA4QOPpegPBvThHeBlef4=",
-        "owner": "nix-community",
+        "lastModified": 1660587508,
+        "narHash": "sha256-oY1fdmFLRLCtZ5vxlQgVtxhqlXGu9F8jVVZ/kzhIHLg=",
+        "owner": "tlxzilia",
         "repo": "npmlock2nix",
-        "rev": "5c4f247688fc91d665df65f71c81e0726621aaa8",
+        "rev": "f63dc087b144fb608e99e6239ceb69c68449482b",
         "type": "github"
       },
       "original": {
-        "owner": "nix-community",
+        "owner": "tlxzilia",
         "repo": "npmlock2nix",
-        "rev": "5c4f247688fc91d665df65f71c81e0726621aaa8",
+        "rev": "f63dc087b144fb608e99e6239ceb69c68449482b",
         "type": "github"
       }
     },

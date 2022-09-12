@@ -18,6 +18,9 @@ extra-source-files:
 # common to point users to the README.md file.
 description: Please see the README on GitHub at <https://github.com/githubuser/try-phi-back#readme>
 
+ghc-options:
+  - -Wunused-packages
+
 dependencies:
   - base >= 4.7 && < 5
   - aeson
@@ -49,19 +52,3 @@ executables:
       - -with-rtsopts=-N
     dependencies:
       - try-phi-back
-
-tests:
-  try-phi-back-test:
-    main: Spec.hs
-    source-dirs: test
-    ghc-options:
-      - -threaded
-      - -rtsopts
-      - -with-rtsopts=-N
-    dependencies:
-      - base
-      - try-phi-back
-      - hspec
-      - hspec-wai
-      - hspec-wai-json
-      - aeson

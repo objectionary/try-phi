@@ -79,6 +79,8 @@ component =
 
   render s = html s
 
+-- TODO 
+
   handleAction :: forall output. Action -> H.HalogenM State Action () output Aff Unit
   handleAction ac = do
     do
@@ -731,7 +733,7 @@ permalinkButton =
     , id permalink_
     , onClick $ \_ -> CopyToClipboard
     ]
-    [ text $ "Copy permalin" ]
+    [ text $ "Copy permalink" ]
 
 buttons ∷ ∀ a. HTML a Action
 buttons =

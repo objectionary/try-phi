@@ -17,7 +17,6 @@
         "fenix": "fenix",
         "flakeCompat": "flakeCompat",
         "nixpkgs": [
-          "common-flake",
           "dream2nix",
           "nixpkgs"
         ]
@@ -46,31 +45,6 @@
       "original": {
         "type": "tarball",
         "url": "https://hackage.haskell.org/package/brittany-0.13.1.2/brittany-0.13.1.2.tar.gz"
-      }
-    },
-    "common-flake": {
-      "inputs": {
-        "dream2nix": "dream2nix",
-        "easy-purescript-nix": "easy-purescript-nix",
-        "flake-utils": "flake-utils",
-        "gitignore": "gitignore",
-        "my-codium": "my-codium",
-        "nixpkgs": "nixpkgs_4"
-      },
-      "locked": {
-        "dir": "common-flake",
-        "lastModified": 1663170679,
-        "narHash": "sha256-d2/Qqrp6oCUdZ49kjbb+ZHCau3PxK1A4KqtuZHtZxiQ=",
-        "owner": "objectionary",
-        "repo": "try-phi",
-        "rev": "f1eb7f9e0c19af51d668632ffd9901a46e9c301d",
-        "type": "github"
-      },
-      "original": {
-        "dir": "common-flake",
-        "owner": "objectionary",
-        "repo": "try-phi",
-        "type": "github"
       }
     },
     "constraints-extras": {
@@ -181,7 +155,6 @@
     "fenix": {
       "inputs": {
         "nixpkgs": [
-          "common-flake",
           "dream2nix",
           "alejandra",
           "nixpkgs"
@@ -345,7 +318,6 @@
     "gitignore": {
       "inputs": {
         "nixpkgs": [
-          "common-flake",
           "nixpkgs"
         ]
       },
@@ -367,7 +339,6 @@
     "gitignore_2": {
       "inputs": {
         "nixpkgs": [
-          "common-flake",
           "my-codium",
           "nixpkgs"
         ]
@@ -564,14 +535,12 @@
       "inputs": {
         "easy-purescript-nix": "easy-purescript-nix_2",
         "flake-utils": [
-          "common-flake",
           "flake-utils"
         ],
         "gitignore": "gitignore_2",
         "haskell-language-server": "haskell-language-server",
         "nix-vscode-marketplace": "nix-vscode-marketplace",
         "nixpkgs": [
-          "common-flake",
           "nixpkgs"
         ],
         "vscodium-extensions": "vscodium-extensions"
@@ -613,13 +582,35 @@
     "nix-vscode-marketplace": {
       "inputs": {
         "flake-utils": [
-          "common-flake",
           "my-codium",
           "flake-utils"
         ],
         "nixpkgs": [
-          "common-flake",
           "my-codium",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1663138299,
+        "narHash": "sha256-xBpobt7zvE8EJlENwvA7dL/wuZWuNDsclqmajVzJtQY=",
+        "owner": "AmeerTaweel",
+        "repo": "nix-vscode-marketplace",
+        "rev": "e6b8eb76872a6d1401bae61f93f0f87f16301463",
+        "type": "github"
+      },
+      "original": {
+        "owner": "AmeerTaweel",
+        "repo": "nix-vscode-marketplace",
+        "rev": "e6b8eb76872a6d1401bae61f93f0f87f16301463",
+        "type": "github"
+      }
+    },
+    "nix-vscode-marketplace_2": {
+      "inputs": {
+        "flake-utils": [
+          "flake-utils"
+        ],
+        "nixpkgs": [
           "nixpkgs"
         ]
       },
@@ -740,12 +731,10 @@
     "pre-commit-hooks": {
       "inputs": {
         "flake-utils": [
-          "common-flake",
           "dream2nix",
           "flake-utils-pre-commit"
         ],
         "nixpkgs": [
-          "common-flake",
           "dream2nix",
           "nixpkgs"
         ]
@@ -790,23 +779,13 @@
     },
     "root": {
       "inputs": {
-        "common-flake": "common-flake",
-        "flake-utils": [
-          "common-flake",
-          "flake-utils"
-        ],
-        "gitignore": [
-          "common-flake",
-          "gitignore"
-        ],
-        "my-codium": [
-          "common-flake",
-          "my-codium"
-        ],
-        "nixpkgs": [
-          "common-flake",
-          "nixpkgs"
-        ]
+        "dream2nix": "dream2nix",
+        "easy-purescript-nix": "easy-purescript-nix",
+        "flake-utils": "flake-utils",
+        "gitignore": "gitignore",
+        "my-codium": "my-codium",
+        "nix-vscode-marketplace": "nix-vscode-marketplace_2",
+        "nixpkgs": "nixpkgs_4"
       }
     },
     "rust-analyzer-src": {
@@ -858,12 +837,10 @@
     "vscodium-extensions": {
       "inputs": {
         "flake-utils": [
-          "common-flake",
           "my-codium",
           "flake-utils"
         ],
         "nixpkgs": [
-          "common-flake",
           "my-codium",
           "nixpkgs"
         ]

@@ -1,33 +1,74 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/cd8bbdd4fdb15f7758fd3c8df531e9d42bee239d";
-    flake-utils.url = "github:numtide/flake-utils";
+    common-flake.url = "github:objectionary/try-phi?dir=common-flake";
+    nixpkgs.follows = "common-flake/nixpkgs";
+    flake-utils.follows = "common-flake/flake-utils";
+    my-codium.follows = "common-flake/my-codium";
+    nix-vscode-marketplace.follows = "common-flake/nix-vscode-marketplace";
     backend = {
-      url = "path:./back";
-      inputs.flake-utils.follows = "flake-utils";
-      inputs.nixpkgs.follows = "nixpkgs";
+      url = path:./back;
     };
     frontend = {
-      url = "path:./front";
-      inputs.flake-utils.follows = "flake-utils";
-      inputs.nixpkgs.follows = "nixpkgs";
+      url = path:./front;
     };
   };
-  outputs = { self, backend, frontend, flake-utils, nixpkgs }:
+  outputs =
+    { self
+    , backend
+    , frontend
+    , flake-utils
+    , nixpkgs
+    , my-codium
+    , common-flake
+    , nix-vscode-marketplace
+    }:
     flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = nixpkgs.legacyPackages.${system};
-        backShell = backend.devShells.${system}.default;
-        frontShell = frontend.devShells.${system}.default;
-        back = backend.packages.${system}.default;
-        front = frontend.packages.${system}.default;
-      in
-      {
-        devShells = {
+    let
+      pkgs = nixpkgs.legacyPackages.${system};
+      inherit (my-codium.tools.${system})
+        writeSettingsJson
+        settingsNix
+        shellTools
+        toList
+        mkCodium
+        extensions
+        toolsGHC
+        ;
+      tools902 = builtins.attrValues ({
+        inherit (toolsGHC "902") hls stack;
+      });
+      codium =
+        let
+          inherit (nix-vscode-marketplace.packages.${system}) vscode open-vsx;
+        in
+        mkCodium (extensions //
+          {
+            add = {
+              inherit (open-vsx.cschleiden) vscode-github-actions;
+            };
+          }
+        );
+      tools = pkgs.lib.lists.flatten [
+        (toList shellTools)
+        codium
+        tools902
+      ];
+
+      settings = settingsNix // {
+        yaml = {
+          "yaml.schemas" = {
+            "https://json.schemastore.org/github-workflow" = "/.githhub/workflows/**/*.yml";
+            "https://json.schemastore.org/github-action" = "/.githhub/actions/**/action.yml";
+          };
+        };
+      };
+    in
+    {
+      devShells =
+        {
           default = pkgs.mkShell {
-            buildInputs = backShell.buildInputs ++ frontShell.buildInputs;
-            inherit (backShell) LD_LIBRARY_PATH;
-            shellHook = "${backShell.shellHook}\n${frontShell.shellHook}";
+            buildInputs = tools;
+            LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath tools;
           };
           front = pkgs.mkShell {
             shellHook = "(cd front && npm run dev)";
@@ -35,6 +76,25 @@
           back = pkgs.mkShell {
             shellHook = "(cd back && nix run)";
           };
+
+          # nix develop .#write-settings
+          # will write the settings.json file
+          write-settings = pkgs.mkShell {
+            buildInputs = [ (writeSettingsJson settings) ];
+            shellHook = "write-settings";
+          };
         };
-      });
+    });
+  nixConfig = {
+    extra-substituters = [
+      "https://nix-community.cachix.org"
+      https://br4ch1st0chr0n3-nix-managed.cachix.org
+      "https://br4ch1st0chr0n3-flakes.cachix.org"
+    ];
+    extra-trusted-public-keys = [
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+      "br4ch1st0chr0n3-nix-managed.cachix.org-1:sDKsfgu5fCCxNwVhZg+AWeGvbLlEtZoyzkSNKRM/KAo="
+      "br4ch1st0chr0n3-flakes.cachix.org-1:Dyc2yLlRIkdbq8CtfOe24QQhQVduQaezkyV8J9RhuZ8="
+    ];
+  };
 }

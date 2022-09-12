@@ -1,13 +1,12 @@
 {
-  "name" : "try-phi",
+  "name": "try-phi-front",
   "private": true,
-  "engines" : { 
-    "npm" : ">=7.0.0",
-    "node" : ">=16.0.0"
-  },
   "devDependencies": {
     "buffer": "^6.0.3",
-    "gh-pages": "^4.0.0",
+    "esbuild": "^0.14.43",
+    "gh-pages": "3.2.3",
+    "http-server": "^14.1.1",
+    "npx": "^10.2.2",
     "parcel": "2.5.0",
     "process": "^0.11.10",
     "util": "^0.12.4"
@@ -16,11 +15,9 @@
     "build": "spago build",
     "dev": "parcel dev/index.html --open",
     "test": "spago test",
-    "build:init": "npm i && npm run build",
-    "prequick-start": "npm i",
     "quick-start": "npm run build",
     "postquick-start": "npm run dev",
-    "prebuild:min": "npm i && rm -rf min && mkdir min && cp dev/* min/",
+    "prebuild:min": "rm -rf min && mkdir min && cp dev/* min/",
     "build:min": "spago bundle-app --to min/index.js --minify && parcel build min/index.html",
     "build:gh-pages": "npm run build:min && cp -TR min docs",
     "build:prod": "npm run build:min && cp -TR min prod",
@@ -28,9 +25,6 @@
   },
   "dependencies": {
     "@popperjs/core": "^2.11.5",
-    "bootstrap": "^5.1.3",
-    "esbuild": "^0.14.43",
-    "http-server": "^14.1.1",
-    "npx": "^10.2.2"
+    "bootstrap": "^5.1.3"
   }
 }

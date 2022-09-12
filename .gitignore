@@ -1,3 +1,5 @@
 .psc*
 .direnv
 result
+node_modules
+.parcel-cache

@@ -45,6 +45,26 @@
       "type": "shell",
       "label": "haskell watch",
       "command": "stack build --test --no-run-tests --file-watch"
+    },
+    {
+      "label": "Client run",
+      "command": "nix",
+      "args": ["develop", ".#front"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "Server run",
+      "command": "nix",
+      "args": ["develop", ".#back"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "Start app",
+      "dependsOn": ["Client run", "Server run"]
     }
   ]
 }

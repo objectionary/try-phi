@@ -58,7 +58,8 @@ type API =
     :<|> "eo" :> ReqBody '[JSON] MyRequest :> Put '[JSON] MyResponse
 
 startApp :: IO ()
-startApp =
+startApp = do
+  Prelude.putStrLn "Server started"
   catchIOError
     ( do
         port <- read <$> getEnv "PORT"
@@ -76,13 +77,6 @@ corsPolicy = cors (const $ Just policy)
       simpleCorsResourcePolicy
         { corsMethods = ["GET", "POST", "PUT", "OPTIONS"],
           corsOrigins = Nothing,
-            -- Just
-            --   ( [ "https://br4ch1st0chr0n3.github.io",
-            --       "https://objectionary.github.io",
-            --       "http://localhost:1234"
-            --     ],
-            --     True
-            --   ),
           corsRequestHeaders = ["authorization", "content-type"]
         }
 

@@ -2,7 +2,7 @@ module Test(test, test') where
 
 import EOtoPhi(toMinimalTerm)
 import Phi.Minimal.Pretty ()
-import EOParser ( pprintTermProgram, parseTermProgram, pack, pprintCST, parseCSTProgram )
+import EOParser ( pprintTermProgram, parseTermProgram, pack )
 import System.Directory(getCurrentDirectory)
 import Data.Function ((&))
 import Text.Megaparsec (errorBundlePretty)

@@ -21,44 +21,62 @@ It is combined with [EO](https://github.com/objectionary/eo) editor. EO is based
 - [EO editor](https://github.com/br4ch1st0chr0n3/eo-editor)
 - [Phi editor](https://github.com/br4ch1st0chr0n3/phi-editor)
 
-## Development
+## Prerequisits
 
 - Install [Nix](https://nixos.org/download.html) (Single-user installation)
   ```sh
   sh <(curl -L https://nixos.org/nix/install) --no-daemon
   ```
 
+- Enable [flakes](https://nixos.wiki/wiki/Flakes#Permanent)
+
+- Enter the repo
+  ```sh
+  git clone https://github.com/objectionary/try-phi
+  cd try-phi
+  ```
+
+## Quick start
+
+- Run back and front in separate terminals
+  ```console
+  nix develop .#back
+  nix develop .#front
+  ```
+
+## Development
+
 - Install [direnv](https://nix.dev/tutorials/declarative-and-reproducible-developer-environments#direnv-automatically-activating-the-environment-on-directory-change) - steps 1, 2
 
-- For [VS Code](https://code.visualstudio.com/)
-  - Install extensions
+- Allow direnv in flake folders
   ```sh
-  code --install-extension mkhl.direnv --install-extension haskell.haskell --install-extension nwolverson.ide-purescript
+  direnv allow
+  (cd front && direnv allow)
+  (cd back && direnv allow)
   ```
-  - Open workspace in `.vscode/try-phi.code-workspace`
+
+- Open Codium
+  ```console
+  nix develop .#codium
+  codium .
+  ```
 
 - In separate terminals:
   - backend dev
     ```sh
     cd back
-    # for the first time
-    direnv allow
-    # build for HLS
-    nix build
-    # start the server
     nix run
     ```
   - front
     ```sh
     cd front
-    # for the first time
     direnv allow
-    # open app in a browser
     npm run dev
-    # or any other commands from package.json
     ```
+    - Or run any other command from [package.json](package.json)
 
-- If in VS Code, reload the window (`Ctrl`+`Shift`+`P` -> `Developer: Reload window`) and repeat previous commands to start the server and the client
+- In case of problems reload the window (`Ctrl`+`Shift`+`P` -> `Developer: Reload window`) and repeat previous commands to start the server and the client
 
-- For Haskell, your shell will have [haskell-language-server](https://github.com/haskell/haskell-language-server)
-- For Purescript - [purescript-language-server](https://github.com/nwolverson/purescript-language-server)
+<!-- TODO https://code.visualstudio.com/docs/editor/tasks#_compound-tasks
+
+start server and client in different terminals -->

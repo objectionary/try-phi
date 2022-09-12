@@ -19,6 +19,9 @@ extra-source-files:
 # common to point users to the README.md file.
 description: Please see the README on GitHub at <https://github.com/value/phi-utils#readme>
 
+ghc-options:
+  - -Wall -fno-warn-type-defaults -O2
+
 dependencies:
   - base >= 4.7 && < 5
   - containers
@@ -35,7 +38,6 @@ dependencies:
 library:
   source-dirs:
     - src
-    - test
 
 executables:
   phi-utils-exe:
@@ -49,7 +51,7 @@ executables:
       - phi-utils
 
 tests:
-  phi-utils-test:
+  spec:
     main: Spec.hs
     source-dirs: test
     ghc-options:
@@ -58,3 +60,6 @@ tests:
       - -with-rtsopts=-N
     dependencies:
       - phi-utils
+      - hspec
+      - QuickCheck
+

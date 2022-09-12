@@ -8,11 +8,11 @@
       flake = false;
     };
     flake-utils.url = "github:numtide/flake-utils/c0e246b9b83f637f4681389ecabcb2681b4f3af0";
-    npmlock2nix_ = {
-      url = "github:nix-community/npmlock2nix/5c4f247688fc91d665df65f71c81e0726621aaa8";
-      # url = "github:tlxzilia/npmlock2nix/f63dc087b144fb608e99e6239ceb69c68449482b";
-      flake = false;
+    gitignore = {
+      url = "github:hercules-ci/gitignore.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
+    dream2nix.url = "github:nix-community/dream2nix";
   };
 
   outputs =
@@ -20,49 +20,17 @@
     , nixpkgs
     , easy-purescript-nix
     , flake-utils
-    , npmlock2nix_
+    , gitignore
+    , dream2nix
     }:
-      with flake-utils.lib;
-      eachSystem [ system.x86_64-linux ] (system:
-      let
-        pkgs = nixpkgs.legacyPackages.${system};
-        myTools =
-          let
-            easy-ps = import easy-purescript-nix { inherit pkgs; };
-          in
-          builtins.attrValues {
-            inherit (pkgs) nodejs-16_x dhall-lsp-server node2nix;
-            inherit (easy-ps) purs-0_15_4 spago purescript-language-server;
-          };
-        myShellHook = "spago build";
-        npmlock2nix = import npmlock2nix_ { inherit pkgs; };
-      in
-      {
-        devShells =
-          {
-            default = 
-            # pkgs.mkShell {
-            #   buildInputs = myTools;lo
-            # };
-            # node =
-              (npmlock2nix.shell {
-                src = ./.;
-              }).overrideAttrs
-                (final: prev:
-                  {
-                    buildInputs = prev.buildInputs ++ myTools;
-                    shellHooks = "${prev.shellHooks or ""}\n${myShellHook}";
-                  }
-                );
-          };
-      });
-
-  nixConfig = {
-    extra-substituters = [
-      "https://cache.nixos.org/"
-    ];
-    extra-trusted-public-keys = [
-      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-    ];
-  };
+    dream2nix.lib.makeFlakeOutputs {
+      systems = flake-utils.lib.defaultSystems;
+      config.projectRoot = ./.;
+      source = gitignore.lib.gitignoreSource ./.;
+      settings = [
+        {
+          subsystemInfo.nodejs = 16;
+        }
+      ];
+    };
 }

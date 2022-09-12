@@ -1,9 +1,9 @@
 {
-  "name" : "try-phi",
+  "name": "try-phi-front",
   "private": true,
-  "engines" : { 
-    "npm" : ">=7.0.0",
-    "node" : ">=16.0.0"
+  "engines": {
+    "npm": ">=7.0.0",
+    "node": ">=16.0.0"
   },
   "devDependencies": {
     "buffer": "^6.0.3",

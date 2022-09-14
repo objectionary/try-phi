@@ -11,6 +11,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-utils.follows = "flake-utils";
     };
+    easy-purescript-nix = {
+      url = "github:justinwoo/easy-purescript-nix/5926981701ac781f08b02e31e4705e46b799299d";
+      flake = false;
+    };
+    dream2nix.url = "github:nix-community/dream2nix/26083c3a2ea6f5cc0da6540b51b2affb8c38be49";
   };
-  outputs = inp: { };
+  outputs = inputs: { };
 }

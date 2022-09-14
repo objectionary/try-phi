@@ -539,26 +539,26 @@
         ],
         "gitignore": "gitignore_2",
         "haskell-language-server": "haskell-language-server",
-        "nix-vsode-marketplace": "nix-vsode-marketplace",
+        "nix-vscode-marketplace": "nix-vscode-marketplace",
         "nixpkgs": [
           "nixpkgs"
         ],
-        "vscode-marketplace": "vscode-marketplace"
+        "vscodium-extensions": "vscodium-extensions"
       },
       "locked": {
         "dir": "codium",
-        "lastModified": 1663065952,
-        "narHash": "sha256-3h8SGYABH7crlWo7L0sjQys3Sn0yePxPmE1T0kaFNV8=",
+        "lastModified": 1663166051,
+        "narHash": "sha256-AsRUNKMen+5LjkSURVfmH3ajSK8VO6YbYOiO59PWfB0=",
         "owner": "br4ch1st0chr0n3",
         "repo": "flakes",
-        "rev": "644841e48b858417353b85c97dfc06e234025145",
+        "rev": "348e827ef643d205130d27a265865bd6e224b112",
         "type": "github"
       },
       "original": {
         "dir": "codium",
         "owner": "br4ch1st0chr0n3",
         "repo": "flakes",
-        "rev": "644841e48b858417353b85c97dfc06e234025145",
+        "rev": "348e827ef643d205130d27a265865bd6e224b112",
         "type": "github"
       }
     },
@@ -579,7 +579,7 @@
         "type": "github"
       }
     },
-    "nix-vsode-marketplace": {
+    "nix-vscode-marketplace": {
       "inputs": {
         "flake-utils": [
           "my-codium",
@@ -591,17 +591,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1661966948,
-        "narHash": "sha256-x7W1E9RmurdVWnVESv//2TAkxYMiw/kXMb6H9PZf6Wc=",
-        "owner": "br4ch1st0chr0n3",
+        "lastModified": 1663138299,
+        "narHash": "sha256-xBpobt7zvE8EJlENwvA7dL/wuZWuNDsclqmajVzJtQY=",
+        "owner": "AmeerTaweel",
         "repo": "nix-vscode-marketplace",
-        "rev": "d567fba043784bb456407f60c21230ea4d82253f",
+        "rev": "e6b8eb76872a6d1401bae61f93f0f87f16301463",
         "type": "github"
       },
       "original": {
-        "owner": "br4ch1st0chr0n3",
+        "owner": "AmeerTaweel",
         "repo": "nix-vscode-marketplace",
-        "rev": "d567fba043784bb456407f60c21230ea4d82253f",
+        "rev": "e6b8eb76872a6d1401bae61f93f0f87f16301463",
         "type": "github"
       }
     },
@@ -809,7 +809,7 @@
         "url": "https://hackage.haskell.org/package/stylish-haskell-0.14.2.0/stylish-haskell-0.14.2.0.tar.gz"
       }
     },
-    "vscode-marketplace": {
+    "vscodium-extensions": {
       "inputs": {
         "flake-utils": [
           "my-codium",
@@ -821,17 +821,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1661482953,
-        "narHash": "sha256-eLRiaRHQjHtr/aUu085EODxHfPXlaJS5V7kBiGr7VDo=",
-        "owner": "AmeerTaweel",
-        "repo": "nix-vscode-marketplace",
-        "rev": "499969e5c64daf3d20cb077a6230438d490200c1",
+        "lastModified": 1662937225,
+        "narHash": "sha256-KA4Ade0H6xqrVypF6SbV6J34VXG3V5vQvdgizxWwdFw=",
+        "owner": "br4ch1st0chr0n3",
+        "repo": "vscodium-extensions",
+        "rev": "cb21ecd83d378aea1372b043c74a9c1f18cfc499",
         "type": "github"
       },
       "original": {
-        "owner": "AmeerTaweel",
-        "repo": "nix-vscode-marketplace",
-        "rev": "499969e5c64daf3d20cb077a6230438d490200c1",
+        "owner": "br4ch1st0chr0n3",
+        "repo": "vscodium-extensions",
+        "rev": "cb21ecd83d378aea1372b043c74a9c1f18cfc499",
         "type": "github"
       }
     }

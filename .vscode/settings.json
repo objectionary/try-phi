@@ -24,7 +24,6 @@
     "purescript.sourcePath": "./front/src",
     "todo-tree.regex.regex": "((--\\s*($TAGS))|\\{-\\s($TAGS).*(\\n.*)*-})",
     "vscode-dhall-lsp-server.executable": "dhall-lsp-server",
-    "window.zoomLevel": 0.5,
     "workbench.colorTheme": "Monokai",
     "workbench.sideBar.location": "right"
 }

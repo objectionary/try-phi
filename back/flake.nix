@@ -1,18 +1,11 @@
 {
   description = "Try-phi back end";
   inputs = {
-    # common-flake.url = "github:objectionary/try-phi?dir=common-flake";
-    nixpkgs.url = "github:NixOS/nixpkgs/cd8bbdd4fdb15f7758fd3c8df531e9d42bee239d";
-    flake-utils.url = "github:numtide/flake-utils";
-    gitignore = {
-      url = "github:hercules-ci/gitignore.nix/a20de23b925fd8264fd7fad6454652e142fd7f73";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    my-codium = {
-      url = "github:br4ch1st0chr0n3/flakes?dir=codium&rev=644841e48b858417353b85c97dfc06e234025145";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "flake-utils";
-    };
+    common-flake.url = "github:objectionary/try-phi/common-flake?dir=common-flake";
+    nixpkgs.follows = "common-flake/nixpkgs";
+    flake-utils.follows = "common-flake/flake-utils";
+    gitignore.follows = "common-flake/gitignore";
+    my-codium.follows = "common-flake/my-codium";
   };
 
   outputs =
@@ -21,7 +14,7 @@
     , flake-utils
     , gitignore
     , my-codium
-    # , common-flake
+    , common-flake
     }:
     flake-utils.lib.eachDefaultSystem (system:
     let

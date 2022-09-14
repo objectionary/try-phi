@@ -1,23 +1,14 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/c97e777ff06fcb8d37dcdf5e21e9eff1f34f0e90";
-    flake-utils.url = "github:numtide/flake-utils/c0e246b9b83f637f4681389ecabcb2681b4f3af0";
+    common-flake.url = "github:objectionary/try-phi/common-flake?dir=common-flake";
+    nixpkgs.follows = "common-flake/nixpkgs";
+    flake-utils.follows = "common-flake/flake-utils";
+    my-codium.follows = "common-flake/my-codium";
     backend = {
-      url = "path:./back";
-      inputs.flake-utils.follows = "flake-utils";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.my-codium.follows = "my-codium";
+      url = path:./back;
     };
     frontend = {
-      url = "path:./front";
-      inputs.flake-utils.follows = "flake-utils";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.my-codium.follows = "my-codium";
-    };
-    my-codium = {
-      url = "github:br4ch1st0chr0n3/flakes?dir=codium&rev=0e18f2af853e9cd5094f689bc1d0eb94de30356d";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "flake-utils";
+      url = path:./front;
     };
   };
   outputs =
@@ -27,25 +18,26 @@
     , flake-utils
     , nixpkgs
     , my-codium
+    , common-flake
     }:
     flake-utils.lib.eachDefaultSystem (system:
     let
       pkgs = nixpkgs.legacyPackages.${system};
-      inherit (my-codium.packages.${system})
+      inherit (my-codium.tools.${system})
         writeSettingsJson
         settingsNix
-        extensions
         codium
-        mergeValues
-        allShellTools
-        haskellTools
         shellTools
         toList
+        toolsGHC
         ;
-      l = (writeSettingsJson settingsNix);
+      tools902 = builtins.attrValues ({
+        inherit (toolsGHC "902") hls stack;
+      });
       tools = pkgs.lib.lists.flatten [
         (toList shellTools)
         codium
+        tools902
         (writeSettingsJson settingsNix)
       ];
     in
@@ -66,6 +58,5 @@
             shellHook = "(cd back && nix run)";
           };
         };
-      inherit l;
     });
 }

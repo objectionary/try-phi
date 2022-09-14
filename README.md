@@ -52,7 +52,7 @@ It is combined with [EO](https://github.com/objectionary/eo) editor. EO is based
   ```sh
   direnv allow
   (cd front && direnv allow)
-  (cd back && direnv allow)
+  (cd back && direnv allow && stack build)
   ```
 
 - Open Codium

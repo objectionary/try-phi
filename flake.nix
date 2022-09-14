@@ -1,6 +1,6 @@
 {
   inputs = {
-    common-flake.url = "github:objectionary/try-phi/common-flake?dir=common-flake";
+    common-flake.url = "github:objectionary/try-phi?dir=common-flake";
     nixpkgs.follows = "common-flake/nixpkgs";
     flake-utils.follows = "common-flake/flake-utils";
     my-codium.follows = "common-flake/my-codium";

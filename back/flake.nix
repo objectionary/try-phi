@@ -1,7 +1,7 @@
 {
   description = "Try-phi back end";
   inputs = {
-    common-flake.url = "github:objectionary/try-phi/common-flake?dir=common-flake";
+    common-flake.url = "github:objectionary/try-phi?dir=common-flake";
     nixpkgs.follows = "common-flake/nixpkgs";
     flake-utils.follows = "common-flake/flake-utils";
     gitignore.follows = "common-flake/gitignore";

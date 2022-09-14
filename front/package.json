@@ -1,14 +1,10 @@
 {
   "name": "try-phi-front",
   "private": true,
-  "engines": {
-    "npm": ">=7.0.0",
-    "node": ">=16.0.0"
-  },
   "devDependencies": {
     "buffer": "^6.0.3",
     "esbuild": "^0.14.43",
-    "gh-pages": "^4.0.0",
+    "gh-pages": "3.2.3",
     "http-server": "^14.1.1",
     "npx": "^10.2.2",
     "parcel": "2.5.0",

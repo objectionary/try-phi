@@ -62,4 +62,16 @@
           };
         };
     });
+  nixConfig = {
+    extra-substituters = [
+      "https://nix-community.cachix.org"
+      https://br4ch1st0chr0n3-nix-managed.cachix.org
+      "https://br4ch1st0chr0n3-flakes.cachix.org"
+    ];
+    extra-trusted-public-keys = [
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+      "br4ch1st0chr0n3-nix-managed.cachix.org-1:sDKsfgu5fCCxNwVhZg+AWeGvbLlEtZoyzkSNKRM/KAo="
+      "br4ch1st0chr0n3-flakes.cachix.org-1:Dyc2yLlRIkdbq8CtfOe24QQhQVduQaezkyV8J9RhuZ8="
+    ];
+  };
 }

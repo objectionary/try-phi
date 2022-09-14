@@ -38,7 +38,6 @@
         (toList shellTools)
         codium
         tools902
-        (writeSettingsJson settingsNix)
       ];
     in
     {
@@ -47,15 +46,19 @@
           default = pkgs.mkShell {
             buildInputs = tools;
             LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath tools;
-            shellHook = ''
-              write-settings
-            '';
           };
           front = pkgs.mkShell {
             shellHook = "(cd front && npm run dev)";
           };
           back = pkgs.mkShell {
             shellHook = "(cd back && nix run)";
+          };
+
+          # nix develop .#write-settings
+          # will write the settings.json file
+          write-settings = pkgs.mkShell {
+            buildInputs = [ (writeSettingsJson settingsNix) ];
+            shellHook = "write-settings";
           };
         };
     });

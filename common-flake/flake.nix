@@ -12,5 +12,5 @@
       inputs.flake-utils.follows = "flake-utils";
     };
   };
-  outputs = inp: { };
+  outputs = { flake-utils, ... }: flake-utils.lib.eachDefaultSystem (system: { });
 }

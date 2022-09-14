@@ -16,14 +16,14 @@ jobs:
         cache: [br4ch1st0chr0n3-nix-managed]
     runs-on: ${{ matrix.os }}
     steps:
-      # Nix
-      - uses: actions/checkout@v3
-      - uses: cachix/install-nix-action@v17
-        with:
-          extra_nix_config: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-            substituters = https://br4ch1st0chr0n3-nix-managed.cachix.org https://br4ch1st0chr0n3-acpoj.cachix.org https://br4ch1st0chr0n3-flakes.cachix.org https://cache.nixos.org/ https://hydra.iohk.io https://nix-community.cachix.org
-            trusted-public-keys = br4ch1st0chr0n3-nix-managed.cachix.org-1:sDKsfgu5fCCxNwVhZg+AWeGvbLlEtZoyzkSNKRM/KAo= br4ch1st0chr0n3-acpoj.cachix.org-1:OYzTMty0XgyEIcm+o9tjKotr9ZjNeC4JCWmc0P0nx3U= br4ch1st0chr0n3-flakes.cachix.org-1:Dyc2yLlRIkdbq8CtfOe24QQhQVduQaezkyV8J9RhuZ8= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
+      # # Nix
+      # - uses: actions/checkout@v3
+      # - uses: cachix/install-nix-action@v17
+      #   with:
+      #     extra_nix_config: |
+      #       access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+      #       substituters = https://br4ch1st0chr0n3-nix-managed.cachix.org https://br4ch1st0chr0n3-flakes.cachix.org https://cache.nixos.org/ https://hydra.iohk.io https://nix-community.cachix.org
+      #       trusted-public-keys = br4ch1st0chr0n3-nix-managed.cachix.org-1:sDKsfgu5fCCxNwVhZg+AWeGvbLlEtZoyzkSNKRM/KAo= br4ch1st0chr0n3-flakes.cachix.org-1:Dyc2yLlRIkdbq8CtfOe24QQhQVduQaezkyV8J9RhuZ8= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
       
       # Node
       - uses: actions/checkout@v3
@@ -51,10 +51,12 @@ jobs:
             ${{ runner.os }}-
       - name: Install NPM dependencies
         run: npm install
-      - name: Nix develop
-        run: nix develop
+      # - name: Nix develop
+      #   run: nix develop
       - name: Build the project
         run: |
+          npm install -g spago@0.20.9
+          npm install -g purescript@0.15.4
           npm run build:gh-pages
       - name: GitHub Pages action
         uses: peaceiris/actions-gh-pages@v3.7.3

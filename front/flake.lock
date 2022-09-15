@@ -59,11 +59,11 @@
       },
       "locked": {
         "dir": "common-flake",
-        "lastModified": 1663170679,
-        "narHash": "sha256-d2/Qqrp6oCUdZ49kjbb+ZHCau3PxK1A4KqtuZHtZxiQ=",
+        "lastModified": 1663232816,
+        "narHash": "sha256-fE1BhT7mz7qey9BpKuuOXvBSskUz+OkyTYkdEJ6PzBg=",
         "owner": "objectionary",
         "repo": "try-phi",
-        "rev": "f1eb7f9e0c19af51d668632ffd9901a46e9c301d",
+        "rev": "d57f383d64d3f274fddfbc99a21b227a69fc13fc",
         "type": "github"
       },
       "original": {

@@ -87,7 +87,8 @@ jobs:
       - name: Build with Nix
         run: |
           cd back
-          nix develop
+          nix-shell
+          # nix develop
           which back
           # cp $(which back) ./back
       - name: Build with stack
@@ -95,7 +96,7 @@ jobs:
           cd back
           stack build
           readlink result/bin/back
-          # cp $(readlink result/bin/back) .
+          cp $(readlink result/bin/back) .
       - uses: akhileshns/heroku-deploy@v3.12.12 # This is the action
         with:
           heroku_api_key: ${{secrets.HEROKU_API_KEY}}

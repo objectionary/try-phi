@@ -66,7 +66,7 @@
 
       devShells = {
         default = pkgs.mkShell {
-          buildInputs = tools;
+          buildInputs = tools ++ [back];
 
           # https://stackoverflow.com/a/63751678
           shellHook = ''

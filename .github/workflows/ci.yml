@@ -16,50 +16,35 @@ jobs:
         cache: [br4ch1st0chr0n3-nix-managed]
     runs-on: ${{ matrix.os }}
     steps:
-      # Nix
       - uses: actions/checkout@v3
-      - uses: cachix/install-nix-action@v17
+      - name: Set up Node toolchain
+        uses: actions/setup-node@v1
         with:
-          extra_nix_config: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-            substituters = https://br4ch1st0chr0n3-nix-managed.cachix.org https://br4ch1st0chr0n3-flakes.cachix.org https://cache.nixos.org/ https://hydra.iohk.io https://nix-community.cachix.org
-            trusted-public-keys = br4ch1st0chr0n3-nix-managed.cachix.org-1:sDKsfgu5fCCxNwVhZg+AWeGvbLlEtZoyzkSNKRM/KAo= br4ch1st0chr0n3-flakes.cachix.org-1:Dyc2yLlRIkdbq8CtfOe24QQhQVduQaezkyV8J9RhuZ8= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
-      
-      # Node
-      # - uses: actions/checkout@v3
-      # - name: Set up Node toolchain
-      #   uses: actions/setup-node@v1
-      #   with:
-      #     node-version: "16.x"
-      # - name: Cache PureScript dependencies
-      #   uses: actions/cache@v2
-      #   with:
-      #     key: ${{ runner.os }}-spago-${{ hashFiles('**/*.dhall') }}
-      #     path: |
-      #       .spago
-      #       output
-      # - name: Cache NPM dependencies
-      #   uses: actions/cache@v2
-      #   env:
-      #     cache-name: cache-node-modules
-      #   with:
-      #     path: ~/.npm
-      #     key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package.json') }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-build-${{ env.cache-name }}-
-      #       ${{ runner.os }}-build-
-      #       ${{ runner.os }}-
-      # - name: Install NPM dependencies
-      #   run: npm install
-      - name: Nix develop
-        run: |
-          nix develop
-          which spago
-          which purs
+          node-version: "16.x"
+      - name: Cache PureScript dependencies
+        uses: actions/cache@v2
+        with:
+          key: ${{ runner.os }}-spago-${{ hashFiles('**/*.dhall') }}
+          path: |
+            .spago
+            output
+      - name: Cache NPM dependencies
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-node-modules
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+      - name: Install NPM dependencies
+        run: npm install
       - name: Build the project
         run: |
-          # npm install -g spago@0.20.9
-          # npm install -g purescript@0.15.4
+          npm install -g spago@0.20.9
+          npm install -g purescript@0.15.4
           npm run build:gh-pages
       - name: GitHub Pages action
         uses: peaceiris/actions-gh-pages@v3.7.3
@@ -71,9 +56,39 @@ jobs:
           force_orphan: true
 
   back:
+    # defaults:
+    #   run:
+    #     working-directory: back
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+      - uses: cachix/install-nix-action@v17
+        with:
+          extra_nix_config: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            substituters = https://br4ch1st0chr0n3-nix-managed.cachix.org https://br4ch1st0chr0n3-acpoj.cachix.org https://br4ch1st0chr0n3-flakes.cachix.org https://cache.nixos.org/ https://hydra.iohk.io https://nix-community.cachix.org
+            trusted-public-keys = br4ch1st0chr0n3-nix-managed.cachix.org-1:sDKsfgu5fCCxNwVhZg+AWeGvbLlEtZoyzkSNKRM/KAo= br4ch1st0chr0n3-acpoj.cachix.org-1:OYzTMty0XgyEIcm+o9tjKotr9ZjNeC4JCWmc0P0nx3U= br4ch1st0chr0n3-flakes.cachix.org-1:Dyc2yLlRIkdbq8CtfOe24QQhQVduQaezkyV8J9RhuZ8= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
+      # - uses: cachix/cachix-action@v10
+      #   with:
+      #     name: ${{ matrix.cache }}
+      #     # If you chose API tokens for write access OR if you have a private cache
+      #     authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+      # - name: Push inputs to cachix
+      #   run: |
+      #     # https://docs.cachix.org/pushing#flakes
+
+      #     nix flake archive --json \
+      #       | jq -r '.path,(.inputs|to_entries[].value.path)' \
+      #       | cachix push ${{ matrix.cache }}
+      # - name: Push devshell to cachix
+      #   run: |
+      #     nix develop --profile dev-profile
+      #     cachix push ${{ matrix.cache }} dev-profile
+      - name: Build app
+        run: |
+          cd back
+          nix develop
+          cp $(which back) .
       - uses: akhileshns/heroku-deploy@v3.12.12 # This is the action
         with:
           heroku_api_key: ${{secrets.HEROKU_API_KEY}}

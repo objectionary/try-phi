@@ -52,7 +52,10 @@ jobs:
       - name: Install NPM dependencies
         run: npm install
       - name: Nix develop
-        run: nix develop
+        run: |
+          nix develop
+          which spago
+          which purs
       - name: Build the project
         run: |
           # npm install -g spago@0.20.9

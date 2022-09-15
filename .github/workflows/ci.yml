@@ -12,7 +12,7 @@ jobs:
         working-directory: front
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-22.04]
         cache: [br4ch1st0chr0n3-nix-managed]
     runs-on: ${{ matrix.os }}
     steps:

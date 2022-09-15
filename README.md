@@ -21,7 +21,7 @@ It is combined with [EO](https://github.com/objectionary/eo) editor. EO is based
 - [EO editor](https://github.com/br4ch1st0chr0n3/eo-editor)
 - [Phi editor](https://github.com/br4ch1st0chr0n3/phi-editor)
 
-## Prerequisits
+## Prerequisites
 
 - Install [Nix](https://nixos.org/download.html) (Single-user installation)
   ```sh

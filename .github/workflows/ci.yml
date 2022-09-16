@@ -56,9 +56,6 @@ jobs:
           force_orphan: true
 
   back:
-    defaults:
-      run:
-        working-directory: back
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -68,7 +65,7 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
             substituters = https://br4ch1st0chr0n3-nix-managed.cachix.org https://br4ch1st0chr0n3-flakes.cachix.org https://cache.nixos.org/ https://hydra.iohk.io https://nix-community.cachix.org
             trusted-public-keys = br4ch1st0chr0n3-nix-managed.cachix.org-1:sDKsfgu5fCCxNwVhZg+AWeGvbLlEtZoyzkSNKRM/KAo= br4ch1st0chr0n3-flakes.cachix.org-1:Dyc2yLlRIkdbq8CtfOe24QQhQVduQaezkyV8J9RhuZ8= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
-          nix_path: nixpkgs=channel:nixos-unstable
+
       # - uses: cachix/cachix-action@v10
       #   with:
       #     name: ${{ matrix.cache }}
@@ -87,11 +84,21 @@ jobs:
       #     cachix push ${{ matrix.cache }} dev-profile
       - name: Build with Nix
         run: |
+          cd back
           nix build
           cp result/bin/back .
-      - uses: akhileshns/heroku-deploy@v3.12.12 # This is the action
+      - name: Push git subdirectory as a branch
+        uses: s0/git-publish-subdir-action@v2.5.1
+        env:
+          REPO: self
+          BRANCH: back-artifacts
+          FOLDER: back
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CLEAR_GLOBS_FILE: back/.clear-globs-file
+      - name: Deploy to Heroku
+        uses: akhileshns/heroku-deploy@v3.12.12 # This is the action
         with:
           heroku_api_key: ${{secrets.HEROKU_API_KEY}}
-          heroku_app_name: "try-phi-back" #Must be unique in Heroku
-          heroku_email: "${{secrets.HEROKU_EMAIL}}"
-          appdir: "back" # <- This will point to the api folder in your project
+          heroku_app_name: try-phi-back #Must be unique in Heroku
+          heroku_email: ${{secrets.HEROKU_EMAIL}}
+          branch: back-artifacts

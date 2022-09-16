@@ -1,3 +1,4 @@
-*
-!back
-!Procfile
+**/*
+!.git
+!back/back
+!back/Procfile

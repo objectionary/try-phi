@@ -85,27 +85,13 @@ jobs:
       #   run: |
       #     nix develop --profile dev-profile
       #     cachix push ${{ matrix.cache }} dev-profile
-      - name: Enter Nix shell
-        run: nix-shell
-      - name: Check back
-        run: which back
-      # - name: Build with Nix
-      #   run: |
-      #     # cd back
-      #     # nix build
-      #     # nix develop
-      #     nix-shell
-      #     # which back
-      #     cp $(which back) .
-      # - name: Build with stack
-      #   run: |
-      #     cd back
-      #     stack build
-      #     readlink result/bin/back
-      #     cp $(readlink result/bin/back) .
-      # - uses: akhileshns/heroku-deploy@v3.12.12 # This is the action
-      #   with:
-      #     heroku_api_key: ${{secrets.HEROKU_API_KEY}}
-      #     heroku_app_name: "try-phi-back" #Must be unique in Heroku
-      #     heroku_email: "${{secrets.HEROKU_EMAIL}}"
-      #     appdir: "back" # <- This will point to the api folder in your project
+      - name: Build with Nix
+        run: |
+          nix build
+          cp result/bin/back .
+      - uses: akhileshns/heroku-deploy@v3.12.12 # This is the action
+        with:
+          heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+          heroku_app_name: "try-phi-back" #Must be unique in Heroku
+          heroku_email: "${{secrets.HEROKU_EMAIL}}"
+          appdir: "back" # <- This will point to the api folder in your project

@@ -92,14 +92,19 @@ jobs:
       #   run: |
       #     nix build
       #     cp result/bin/back ./back
+      - name: Prepare dir
+        run: |
+          mkdir artifacts
+          cd artifacts
+          touch back
       - name: Push git subdirectory as a branch
         uses: s0/git-publish-subdir-action@v2.5.1
         env:
           REPO: self
           BRANCH: back-artifacts
-          FOLDER: back
+          FOLDER: back/artifacts
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CLEAR_GLOBS_FILE: back/.clear-globs-file
+          # CLEAR_GLOBS_FILE: back/.clear-globs-file
       # - name: Deploy to Heroku
       #   uses: akhileshns/heroku-deploy@v3.12.12 # This is the action
       #   with:

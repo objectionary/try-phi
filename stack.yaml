@@ -1,0 +1,14 @@
+resolver: lts-19.18
+
+packages:
+  - .
+  - language-utils
+  - language-utils/eo-utils
+  - language-utils/phi-utils
+
+nix:
+  enable: true
+  packages: [zlib]
+
+ghc-options:
+  "$everything": -haddock

@@ -1,0 +1,9 @@
+resolver: lts-19.18
+
+packages:
+  - .
+  - eo-utils
+  - phi-utils
+
+ghc-options:
+  "$everything": -haddock

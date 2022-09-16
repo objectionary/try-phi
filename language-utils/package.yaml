@@ -1,0 +1,67 @@
+name: language-utils
+version: 0.1.0.0
+github: br4ch1st0chr0n3/language-utils
+license: BSD3
+author: Nikolai Kudasov, Danila Danko
+maintainer: nickolay.kudasov@gmail.com, br4ch1st0chr0n3@gmail.com
+copyright: 2021 Nikolai Kudasov
+extra-source-files:
+  - README.md
+description: Please see the README on GitHub at <https://github.com/fizruk/try-phi#readme>
+custom-setup:
+  dependencies:
+    - base
+    - Cabal
+    # - cabal-doctest >=1.0.2 && <1.1
+ghc-options:
+  - "-Wall -fno-warn-type-defaults -O2"
+dependencies:
+  - base >= 4.7 && < 5
+  - directory
+  - eo-utils
+  - fgl
+  - insert-ordered-containers
+  - pretty-simple
+  - phi-utils
+  - prettyprinter
+  - text
+  - megaparsec
+
+library:
+  source-dirs: src
+  exposed-modules:
+    - Common
+    - Test
+executables:
+  language-utils-exe:
+    main: Main.hs
+    source-dirs: app
+    ghc-options:
+      - "-threaded"
+      - "-rtsopts"
+      - "-with-rtsopts=-N"
+    dependencies:
+      - language-utils
+
+tests:
+  spec:
+    main: Spec.hs
+    source-dirs: test
+    ghc-options:
+      - "-threaded"
+      - "-rtsopts"
+      - "-with-rtsopts=-N"
+    dependencies:
+      - language-utils
+      - hspec
+      - QuickCheck
+  # doctests:
+  #   source-dirs: test
+  #   main: doctests.hs
+  #   other-modules: []
+  #   dependencies:
+  #     - base
+  #     - doctest
+  #     - Glob
+  #     - QuickCheck
+  #     - template-haskell

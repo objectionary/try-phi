@@ -88,11 +88,11 @@ jobs:
       - name: Build with Nix
         run: |
           cd back
-          nix build
-          # nix develop
+          # nix build
+          nix develop
           # nix-shell
           # which back
-          # cp $(which back) ./back
+          cp $(which back) .
       # - name: Build with stack
       #   run: |
       #     cd back

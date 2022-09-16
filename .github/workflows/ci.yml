@@ -99,7 +99,8 @@ jobs:
       - name: Prepare dir
         run: |
           mkdir artifacts
-          cp result/bin/back Procfile ./artifacts
+          cp result/bin/back Procfile artifacts
+          printf "%s" '{ "name": "appname", "version": "0.0.1", "dependencies": {} }' > artifacts/package.json
 
       - name: Push git subdirectory as a branch
         uses: s0/git-publish-subdir-action@v2.5.1

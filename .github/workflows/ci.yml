@@ -86,7 +86,7 @@ jobs:
       #     nix develop --profile dev-profile
       #     cachix push ${{ matrix.cache }} dev-profile
       - name: Enter Nix shell
-        run: nix develop
+        run: nix-shell
       - name: Check back
         run: which back
       # - name: Build with Nix

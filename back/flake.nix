@@ -61,7 +61,8 @@
     in
     {
       packages = {
-        default = back;
+        default = try-phi-back;
+        # default = back;
       };
 
       devShells = {

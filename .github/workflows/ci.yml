@@ -68,12 +68,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: cachix/install-nix-action@v17
-        with:
-          extra_nix_config: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-            substituters = https://br4ch1st0chr0n3-nix-managed.cachix.org https://br4ch1st0chr0n3-flakes.cachix.org https://cache.nixos.org/ https://hydra.iohk.io https://nix-community.cachix.org
-            trusted-public-keys = br4ch1st0chr0n3-nix-managed.cachix.org-1:sDKsfgu5fCCxNwVhZg+AWeGvbLlEtZoyzkSNKRM/KAo= br4ch1st0chr0n3-flakes.cachix.org-1:Dyc2yLlRIkdbq8CtfOe24QQhQVduQaezkyV8J9RhuZ8= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
+      # - uses: cachix/install-nix-action@v17
+      #   with:
+      #     extra_nix_config: |
+      #       access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+      #       substituters = https://br4ch1st0chr0n3-nix-managed.cachix.org https://br4ch1st0chr0n3-flakes.cachix.org https://cache.nixos.org/ https://hydra.iohk.io https://nix-community.cachix.org
+      #       trusted-public-keys = br4ch1st0chr0n3-nix-managed.cachix.org-1:sDKsfgu5fCCxNwVhZg+AWeGvbLlEtZoyzkSNKRM/KAo= br4ch1st0chr0n3-flakes.cachix.org-1:Dyc2yLlRIkdbq8CtfOe24QQhQVduQaezkyV8J9RhuZ8= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
 
       # - uses: cachix/cachix-action@v10
       #   with:
@@ -92,28 +92,47 @@ jobs:
       #     nix develop --profile dev-profile
       #     cachix push ${{ matrix.cache }} dev-profile
 
-      - name: Build with Nix
-        run: |
-          nix build
+      # - name: Build with Nix
+      #   run: |
+      #     nix build
 
-      - name: Prepare dir
-        run: |
-          mkdir artifacts
-          cp result/bin/back Procfile artifacts
-          printf "%s" '{ "name": "appname", "version": "0.0.1", "dependencies": {} }' > artifacts/package.json
+      # - name: Prepare dir
+      #   run: |
+      #     mkdir artifacts
+      #     cp result/bin/back Procfile artifacts
+      #     printf "%s" '{ "name": "appname", "version": "0.0.1", "dependencies": {} }' > artifacts/package.json
 
-      - name: Push git subdirectory as a branch
-        uses: s0/git-publish-subdir-action@v2.5.1
+      # - name: Push git subdirectory as a branch
+      #   uses: s0/git-publish-subdir-action@v2.5.1
+      #   env:
+      #     REPO: self
+      #     BRANCH: back-artifacts
+      #     FOLDER: back/artifacts
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Deploy to Heroku
+      - name: Heroku login credentials
         env:
-          REPO: self
-          BRANCH: back-artifacts
-          FOLDER: back/artifacts
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Deploy to Heroku
-        uses: akhileshns/heroku-deploy@v3.12.12
-        with:
-          heroku_api_key: ${{secrets.HEROKU_API_KEY}}
-          heroku_app_name: try-phi-back
-          heroku_email: ${{secrets.HEROKU_EMAIL}}
-          branch: back-artifacts
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+          HEROKU_EMAIL: ${{secrets.HEROKU_EMAIL}}
+        run: |
+          cat > ~/.netrc <<EOF
+            machine api.heroku.com
+              login $HEROKU_EMAIL
+              password $HEROKU_API_KEY
+            machine git.heroku.com
+              login $HEROKU_EMAIL
+              password $HEROKU_API_KEY
+          EOF
+      - name: Add Heroku remote
+        run: heroku git:remote --app $HEROKU_APP_NAME
+        env:
+          HEROKU_APP_NAME: try-phi-back
+      - name: Push to Heroku
+        run: git push heroku back-artifacts:main
+        # uses: akhileshns/heroku-deploy@v3.12.12
+        # with:
+        #   heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+        #   heroku_app_name: try-phi-back
+        #   heroku_email: ${{secrets.HEROKU_EMAIL}}
+        #   branch: back-artifacts

@@ -8,28 +8,36 @@ on:
 
 jobs:
   front:
-    defaults:
-      run:
-        working-directory: front
     strategy:
       matrix:
         os: [ubuntu-22.04]
-        cache: [br4ch1st0chr0n3-nix-managed]
     runs-on: ${{ matrix.os }}
+    env:
+      ROOT: front
+      CACHE: br4ch1st0chr0n3-nix-managed
+      ARTIFACTS_BRANCH: front-artifacts
+      ARTIFACTS_DIR: artifacts
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout main
+        uses: actions/checkout@v3
 
-      - uses: cachix/install-nix-action@v17
+      - name: Prepare Nix
+        uses: ./.github/workflows/prepare-nix.yml
         with:
-          extra_nix_config: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-            substituters = https://br4ch1st0chr0n3-nix-managed.cachix.org https://br4ch1st0chr0n3-flakes.cachix.org https://cache.nixos.org/ https://hydra.iohk.io https://nix-community.cachix.org
-            trusted-public-keys = br4ch1st0chr0n3-nix-managed.cachix.org-1:sDKsfgu5fCCxNwVhZg+AWeGvbLlEtZoyzkSNKRM/KAo= br4ch1st0chr0n3-flakes.cachix.org-1:Dyc2yLlRIkdbq8CtfOe24QQhQVduQaezkyV8J9RhuZ8= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
+          ROOT: ${{ env.ROOT }}
+          CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      # - name: Install Nix
+      #   uses: cachix/install-nix-action@v17
+      #   with:
+      #     extra_nix_config: |
+      #       access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+      #       substituters = https://br4ch1st0chr0n3-nix-managed.cachix.org https://br4ch1st0chr0n3-flakes.cachix.org https://cache.nixos.org/ https://hydra.iohk.io https://nix-community.cachix.org
+      #       trusted-public-keys = br4ch1st0chr0n3-nix-managed.cachix.org-1:sDKsfgu5fCCxNwVhZg+AWeGvbLlEtZoyzkSNKRM/KAo= br4ch1st0chr0n3-flakes.cachix.org-1:Dyc2yLlRIkdbq8CtfOe24QQhQVduQaezkyV8J9RhuZ8= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
 
       # - uses: cachix/cachix-action@v10
       #   with:
       #     name: ${{ matrix.cache }}
-      #     # If you chose API tokens for write access OR if you have a private cache
       #     authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
       # - name: Push inputs to cachix
       #   run: |
@@ -57,90 +65,76 @@ jobs:
           force_orphan: true
 
   back:
-    runs-on: ubuntu-latest
-    # defaults:
-    #   run:
-    #     working-directory: back
-    # strategy:
-    #   matrix:
-    #     os: [ubuntu-22.04]
+    strategy:
+      matrix:
+        os: [ubuntu-22.04]
+    runs-on: ${{ matrix.os }}
     env:
-      CD_BACK: cd back
+      ROOT: back
       CACHE: br4ch1st0chr0n3-nix-managed
-      BRANCH_ARTIFACTS: back-artifacts
+      ARTIFACTS_BRANCH: back-artifacts
+      ARTIFACTS_DIR: artifacts
+      APP_NAME: try-phi-back
     steps:
       - uses: actions/checkout@v3
 
-      # - uses: cachix/install-nix-action@v17
-      #   with:
-      #     extra_nix_config: |
-      #       access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-      #       substituters = https://br4ch1st0chr0n3-nix-managed.cachix.org https://br4ch1st0chr0n3-flakes.cachix.org https://cache.nixos.org/ https://hydra.iohk.io https://nix-community.cachix.org
-      #       trusted-public-keys = br4ch1st0chr0n3-nix-managed.cachix.org-1:sDKsfgu5fCCxNwVhZg+AWeGvbLlEtZoyzkSNKRM/KAo= br4ch1st0chr0n3-flakes.cachix.org-1:Dyc2yLlRIkdbq8CtfOe24QQhQVduQaezkyV8J9RhuZ8= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
+      - uses: cachix/install-nix-action@v17
+        with:
+          extra_nix_config: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            substituters = https://br4ch1st0chr0n3-nix-managed.cachix.org https://br4ch1st0chr0n3-flakes.cachix.org https://cache.nixos.org/ https://hydra.iohk.io https://nix-community.cachix.org
+            trusted-public-keys = br4ch1st0chr0n3-nix-managed.cachix.org-1:sDKsfgu5fCCxNwVhZg+AWeGvbLlEtZoyzkSNKRM/KAo= br4ch1st0chr0n3-flakes.cachix.org-1:Dyc2yLlRIkdbq8CtfOe24QQhQVduQaezkyV8J9RhuZ8= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
 
-      # - uses: cachix/cachix-action@v10
+      # - name: Log in to cachix
+      #   uses: cachix/cachix-action@v10
       #   with:
       #     name: $CACHE
-      #     # If you chose API tokens for write access OR if you have a private cache
       #     authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+
       # - name: Push inputs to cachix
+      #   # https://docs.cachix.org/pushing#flakes
       #   run: |
-      #     # https://docs.cachix.org/pushing#flakes
-      #     $CD_BACK
+      #     cd ${{ env.ROOT }}
       #     nix flake archive --json \
       #       | jq -r '.path,(.inputs|to_entries[].value.path)' \
       #       | cachix push ${{ matrix.cache }}
+
       # - name: Push devshell to cachix
       #   run: |
-      #     $CD_BACK
+      #     cd ${{ env.ROOT }}
       #     nix develop --profile dev-profile
       #     cachix push ${{ matrix.cache }} dev-profile
 
       # - name: Build with Nix
       #   run: |
-      #     $CD_BACK
+      #     cd ${{ env.ROOT }}
       #     nix build
 
-      # - name: Prepare dir
-      #   run: |
-      #     $CD_BACK
-      #     mkdir artifacts
-      #     cp result/bin/back Procfile artifacts
-      #     printf "%s" '{ "name": "appname", "version": "0.0.1", "dependencies": {} }' > artifacts/package.json
+      - name: Prepare ${{ env.ARTIFACTS_DIR }} dir
+        run: |
+          cd ${{ env.ROOT }}
+          mkdir ${{ env.ARTIFACTS_DIR }}
+          cp result/bin/back Procfile ${{ env.ARTIFACTS_DIR }}
+          printf "%s" '{ "name": "appname", "version": "0.0.1", "dependencies": {} }' > ${{ env.ARTIFACTS_DIR }}/package.json
 
-      # - name: Push git subdirectory as a branch
-      #   uses: s0/git-publish-subdir-action@v2.5.1
-      #   env:
-      #     REPO: self
-      #     BRANCH: $BRANCH_ARTIFACTS
-      #     FOLDER: back/artifacts
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push ${{ env.ARTIFACTS_DIR }} dir to ${{ env.ARTIFACTS_BRANCH }}
+        uses: s0/git-publish-subdir-action@v2.5.1
+        env:
+          REPO: self
+          BRANCH: ${{ env.ARTIFACTS_BRANCH }}
+          FOLDER: ${{ env.ROOT }}/${{ env.ARTIFACTS_DIR }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Deploy to Heroku
-      # - name: Heroku login credentials
-      #   env:
-      #     HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-      #     HEROKU_EMAIL: ${{secrets.HEROKU_EMAIL}}
-      #   run: |
-      #     cat > ~/.netrc <<EOF
-      #       machine api.heroku.com
-      #         login $HEROKU_EMAIL
-      #         password $HEROKU_API_KEY
-      #       machine git.heroku.com
-      #         login $HEROKU_EMAIL
-      #         password $HEROKU_API_KEY
-      #     EOF
-      # - name: Add Heroku remote
-      #   env:
-      #     HEROKU_APP_NAME: try-phi-back
-      #   run: heroku git:remote --app $HEROKU_APP_NAME
-      - uses: actions/checkout@v3
+      - name: Checkout ${{ env.ARTIFACTS_BRANCH }}
+        uses: actions/checkout@v3
         with:
-          ref: back-artifacts
+          ref: ${{ env.ARTIFACTS_BRANCH }}
+          
       - name: Push to Heroku
         uses: akhileshns/heroku-deploy@v3.12.12
         with:
-          heroku_api_key: ${{secrets.HEROKU_API_KEY}}
-          heroku_app_name: try-phi-back
-          heroku_email: ${{secrets.HEROKU_EMAIL}}
-          branch: back-artifacts
+          heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
+          heroku_app_name: ${{ env.APP_NAME }}
+          heroku_email: ${{ secrets.HEROKU_EMAIL }}
+          branch: ${{ env.ARTIFACTS_BRANCH }}

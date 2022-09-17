@@ -136,7 +136,7 @@ jobs:
         run: heroku git:remote --app $HEROKU_APP_NAME
       - uses: actions/checkout@v3
         with:
-          ref: '$BRANCH_ARTIFACTS'
+          ref: back-artifacts
       - name: List branches
         run: git branch
       - name: Push to Heroku

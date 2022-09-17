@@ -125,11 +125,14 @@ jobs:
               password $HEROKU_API_KEY
           EOF
       - name: Add Heroku remote
-        run: heroku git:remote --app $HEROKU_APP_NAME
         env:
           HEROKU_APP_NAME: try-phi-back
+        run: heroku git:remote --app $HEROKU_APP_NAME
+      - uses: actions/checkout@v3
+        with:
+          ref: back-artifacts
       - name: Push to Heroku
-        run: git push heroku back-artifacts:main
+        run: git push heroku main
         # uses: akhileshns/heroku-deploy@v3.12.12
         # with:
         #   heroku_api_key: ${{secrets.HEROKU_API_KEY}}

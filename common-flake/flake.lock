@@ -605,6 +605,30 @@
         "type": "github"
       }
     },
+    "nix-vscode-marketplace_2": {
+      "inputs": {
+        "flake-utils": [
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1663138299,
+        "narHash": "sha256-xBpobt7zvE8EJlENwvA7dL/wuZWuNDsclqmajVzJtQY=",
+        "owner": "AmeerTaweel",
+        "repo": "nix-vscode-marketplace",
+        "rev": "e6b8eb76872a6d1401bae61f93f0f87f16301463",
+        "type": "github"
+      },
+      "original": {
+        "owner": "AmeerTaweel",
+        "repo": "nix-vscode-marketplace",
+        "rev": "e6b8eb76872a6d1401bae61f93f0f87f16301463",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1657638268,
@@ -760,6 +784,7 @@
         "flake-utils": "flake-utils",
         "gitignore": "gitignore",
         "my-codium": "my-codium",
+        "nix-vscode-marketplace": "nix-vscode-marketplace_2",
         "nixpkgs": "nixpkgs_4"
       }
     },

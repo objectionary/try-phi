@@ -15,7 +15,14 @@
       url = "github:justinwoo/easy-purescript-nix/5926981701ac781f08b02e31e4705e46b799299d";
       flake = false;
     };
-    dream2nix.url = "github:nix-community/dream2nix/26083c3a2ea6f5cc0da6540b51b2affb8c38be49";
+    dream2nix = {
+      url = "github:nix-community/dream2nix/26083c3a2ea6f5cc0da6540b51b2affb8c38be49";
+    };
+    nix-vscode-marketplace = {
+      url = "github:AmeerTaweel/nix-vscode-marketplace/e6b8eb76872a6d1401bae61f93f0f87f16301463";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
+    };
   };
   outputs = inputs: { };
 }

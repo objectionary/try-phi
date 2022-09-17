@@ -1,0 +1,33 @@
+{
+  "name": "phi-grammar",
+  "type": "module",
+  "scripts": {
+    "build:parser": "lezer-generator --output src/grammar/parser src/grammar/phi.grammar",
+    "dev:parser": "nodemon --watch src/grammar/*.grammar --exec \"npm run build:parser\"",
+    "dev:build": "node esbuild.config.js",
+    "dev:browser": "parcel docs/index.html --open",
+    "dev": "npm run build:parser && run-p --aggregate-output dev:parser dev:build dev:browser"
+  },
+  "license": "Unlicense",
+  "dependencies": {
+    "@lezer/lr": "^1.2.0",
+    "@lezer/common": "^1.0.0",
+    "esbuild": "^0.14.50",
+    "esbuild-node-externals": "^1.4.1",
+    "esm": "^3.2.25",
+    "parcel": "^2.6.2"
+  },
+  "devDependencies": {
+    "@codemirror/state": "^6.1.0",
+    "codemirror": "^6.0.1",
+    "@codemirror/commands": "^6.0.1",
+    "@codemirror/language": "^6.2.1",
+    "@codemirror/lint": "^6.0.0",
+    "@codemirror/view": "^6.1.2",
+    "@lezer/highlight": "^1.0.0",
+    "@lezer/generator": "^1.1.0",
+    "nodemon": "^2.0.19",
+    "npm-run-all": "^4.1.5",
+    "process": "^0.11.10"
+  }
+}

@@ -1,0 +1,79 @@
+.kbd {
+  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.1);
+  background: whitesmoke;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+  font-size: 0.75em;
+  text-transform: uppercase;
+  color: black;
+}
+
+.wide-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-header {
+  text-transform: uppercase;
+  text-align: left;
+  font-weight: bold;
+}
+
+.keys {
+  padding: 2px 5px;
+  position: relative;
+  top: -2px;
+  font-family: var(--code-font);
+}
+
+.cm-tab {
+  background-position: right;
+  background-repeat: no-repeat;
+  border-left: 1px solid rgba(138, 134, 134, 0.356);
+  background-image: none;
+}
+
+.cm-tab-active {
+  border-left: 1px solid rgba(138, 134, 134, 0.756);
+}
+
+.cm-editor {
+  border: 1px solid gray;
+}
+
+.btn-yellow,
+.btn-yellow:hover,
+.btn-yellow:active,
+.btn-yellow:visited {
+  background-color: #eab42b;
+}
+
+.btn-yellow:focus{
+  border-color: #eab42b;
+  box-shadow: 0 0 0 0.2rem #eab42b7c;
+}
+
+.btn-green,
+.btn-green:hover,
+.btn-green:active,
+.btn-green:visited {
+  background-color: #54c234;
+}
+
+.btn-green:focus{
+  border-color: #54c234;
+  box-shadow: 0 0 0 0.2rem #55c23480;
+}
+
+.nav > li > button {
+  color: black !important;
+}
+
+.nav > li > button:active,
+.nav > li > button:hover {
+  color: #54c234 !important;
+}
+
+.image-link {
+  text-decoration: none;
+}

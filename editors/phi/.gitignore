@@ -1,0 +1,5 @@
+node_modules/
+/src/grammar/parser*
+/docs/build/*.map
+dist
+.parcel-cache

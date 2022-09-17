@@ -134,11 +134,11 @@ jobs:
         env:
           HEROKU_APP_NAME: try-phi-back
         run: heroku git:remote --app $HEROKU_APP_NAME
+      - uses: actions/checkout@v3
+        with:
+          ref: '$BRANCH_ARTIFACTS'
       - name: List branches
         run: git branch
-      # - uses: actions/checkout@v3
-      #   with:
-      #     ref: '$BRANCH_ARTIFACTS'
       - name: Push to Heroku
         run: git push -f heroku back-artifacts:main
         # uses: akhileshns/heroku-deploy@v3.12.12

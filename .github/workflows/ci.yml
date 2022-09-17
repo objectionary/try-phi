@@ -134,6 +134,8 @@ jobs:
         env:
           HEROKU_APP_NAME: try-phi-back
         run: heroku git:remote --app $HEROKU_APP_NAME
+      - name: List branches
+        run: git branch
       # - uses: actions/checkout@v3
       #   with:
       #     ref: '$BRANCH_ARTIFACTS'

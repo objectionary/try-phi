@@ -15,6 +15,8 @@ jobs:
     env:
       CACHE: br4ch1st0chr0n3-nix-managed
     steps:
+      - name: Checkout main
+        uses: actions/checkout@v3
       - name: Install Nix
         uses: cachix/install-nix-action@v17
         with:

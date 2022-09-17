@@ -1,0 +1,336 @@
+@precedence {left @left, right @right}
+
+@top   PhiGrammar {PROGRAM}
+
+@tokens {  
+  
+  ARRAY_STAR{ "*"}
+  CONST{ "!"}
+  COLON{ ":"}
+  // COPY{ "\'"}
+  // VERTEX{ "<"}
+  // ROOT{ 'Q'}
+  SIGMA{ "&"}
+  XI{ "$"}
+  // QUESTION{ "?"}
+  DOTS{ "..."}
+  SLASH{ "/"}
+  ARROW{ ">"}
+  PLUS{ "+"}
+  MINUS{ "-"}
+  DOT{ "."}
+  AT{ "@"}
+  RHO{ "^"}
+  HASH{ "#"}
+  
+  EOL {"\n"}
+  space{" "}
+  
+  LSQ[closedBy="RSQ"]{ "[" }
+  RSQ[openedBy="LSQ"]{ "]"}
+  LB[closedBy="RB"]{ "("}
+  RB[openedBy="LB"]{ ")"}
+  
+  COMMENT{ HASH ![\r\n]*}
+  META{ PLUS FREE_NAME (space ![\r\n]+)?}
+  
+  REGEX{ SLASH ![\r\n]+ SLASH}
+  BYTE{ ($[0-9A-F])($[0-9A-F])}
+  EMPTY_BYTES { MINUS MINUS}
+  LINE_BYTES { BYTE (MINUS BYTE)*}
+  
+  BYTES {
+    EMPTY_BYTES
+    | LINE_BYTES
+  }
+  
+  
+  INT { (PLUS | MINUS)? ($[0-9] | $[1-9] $[0-9]+)}
+  
+  EXP { "e" (PLUS | MINUS)? $[0-9]+ }
+
+  FLOAT { INT DOT $[0-9]* EXP?}
+
+  BOOL{ "TRUE" | "FALSE"}
+  CHAR{  "\'" (!["\\\r\n] | ESCAPE_SEQUENCE) "\'"}
+  STRING{ "\"" (!["\\\r\n] | ESCAPE_SEQUENCE)* "\""}
+  ESCAPE_SEQUENCE {
+        "\\" $[btnfr"'\\]
+      | "\\" ($[01]$[0-9]$[0-9] | "2"$[0-4]$[0-9] | "25" $[0-5])
+      | "\\" "u" BYTE BYTE
+  }
+  
+  HEX{ "0x" ($[0-9a-f])+}
+
+  FREE_NAME{ $[a-z] ($[a-z0-9A-Z]| $[_-])*}
+  FOREIGN_NAME {$[a-z] ($[a-z0-9]| $[_-])*}
+
+  TEXT_MARK{ "\"\"\""}
+  TEXT{
+      TEXT_MARK ("\n" | "\r\n")
+      (![\\] | ESCAPE_SEQUENCE)*
+      TEXT_MARK
+  }
+
+
+  @precedence {FLOAT, INT, HEX, BYTES, META}
+  @precedence {TEXT, STRING}
+  @precedence {REGEX, SLASH}
+  // @precedence {FREE_NAME, DOT_NAME, AT, RHO, XI, SIGMA}
+}
+
+LICENSE
+{
+  (
+    (!left COMMENT)
+    EOL
+  )+
+}
+
+METAS
+{
+  (
+    META
+    EOL
+  )+
+}
+
+DATA
+{
+  BYTES
+  |
+  BOOL
+  |
+  TEXT
+  |
+  STRING
+  |
+  INT
+  |
+  FLOAT
+  |
+  HEX
+  |
+  CHAR
+  |
+  REGEX
+}
+
+PROGRAM
+{
+  LICENSE?
+  METAS?
+  EOL?
+  OBJECTS
+}
+
+OBJECTS
+{
+  (
+    (
+      !left
+      COMMENT 
+      EOL
+    )*
+    TABS?
+    OBJECT
+    (
+      !left
+      EOL
+    )*
+  )+
+}
+
+tab
+{
+  space
+  space
+}
+
+// a sequence of spaces
+TABS {
+  (
+    !left 
+    tab
+  )+
+}
+
+
+// ordinary object or class attribute
+OBJECT
+{
+  DECLARATION
+  EOL
+  (
+    TABS
+    DEFINITION
+  )*
+}
+
+// есть declaration, а есть anonymous 
+// различие в том, что declaration заканчивается стрелкой и атрибутом
+
+// first line in an object
+DECLARATION
+{
+  (
+    FREE_LIST
+    |
+    INLINE_TOKEN
+    (
+      !left
+      space
+      INLINE_TOKEN
+    )*
+  )
+  space
+  ARROW
+  space
+  ATTR_NAME
+}
+
+// any name
+DOT_NAME
+{
+  AT
+  |
+  RHO
+  |
+  XI
+  |
+  SIGMA
+  |
+  FREE_NAME
+}
+
+
+// attribute name
+ATTR_NAME
+{
+  DOT_NAME
+  CONST?
+  (
+    (
+      space 
+      SLASH
+      FOREIGN_NAME
+    )
+  )?
+}
+
+APPLICATION
+{
+  DOT_NAME
+  (
+    DOT
+    DOT_NAME
+  )*
+}
+
+DOT_ACCESS
+{
+  (
+    DOT
+    DOT_NAME
+  )+
+}
+
+INVERSE_DOT
+{
+  DOT_NAME
+  DOT
+}
+
+// list of free attributes
+// [name1 name2...]
+FREE_LIST
+{
+  LSQ
+  (
+    FREE_NAME
+    (
+      space
+      FREE_NAME
+    )*
+    DOTS?
+  )?
+  RSQ
+}
+
+// [] (p > a)
+// * a b
+ANONYMOUS
+{
+  FREE_LIST
+  (
+    !left
+    space
+    LB
+    DECLARATION
+    RB
+  )*
+  |
+  ARRAY_STAR
+  INLINE?
+}
+
+// part of an object after declaration
+DEFINITION
+{
+  OBJECT
+  |
+  INLINE
+
+  EOL
+}
+
+
+PARENTHESIZED
+{
+  LB
+  (
+    INLINE
+    |
+    ANONYMOUS
+  )
+  RB
+}
+
+INLINE_TOKEN
+{
+  (
+    (
+      PARENTHESIZED
+      |
+      DATA
+    )
+    (
+      !left
+      DOT
+      DOT_NAME
+    )*
+    |
+    DOT_ACCESS
+    |
+    INVERSE_DOT
+    |
+    APPLICATION
+    |
+    ANONYMOUS
+  )
+  !left
+  (
+    COLON
+    DOT_NAME
+  )?
+}
+
+INLINE
+{
+  INLINE_TOKEN
+  (
+    !left
+    space
+    INLINE_TOKEN
+  )*
+}

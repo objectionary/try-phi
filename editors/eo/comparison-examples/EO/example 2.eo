@@ -1,0 +1,15 @@
++package sandbox
++alias org.eolang.io.stdout
++alias org.eolang.txt.sprintf
+
+[args...] > app
+  memory > x
+  and. > @
+    x.write 2
+    while.
+      x.less 6
+      [i]
+        seq > @
+          stdout
+            sprintf "%dx%d = %d\n" x x (x.pow 2)
+          x.write (x.add 1)

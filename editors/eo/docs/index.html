@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>EO editor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;700&display=swap" rel="stylesheet" />
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css">
+<link rel="shortcut icon" href="https://www.yegor256.com/images/books/elegant-objects/cactus.png" />
+<script src="https://cdn.jsdelivr.net/npm/fontawesome@5.6.3/index.min.js"></script>
+
+<link rel="stylesheet" href="./eo-editor.css">
+<script type="module" src="eo-editor.js"></script>
+<style>
+  body {
+    max-width: 100%;
+    margin: auto;
+    padding: 8px 16px;
+  }
+</style>
+
+<body>
+  <section>
+    <header>
+      <center><a href="https://www.eolang.org"><img
+            src="https://www.yegor256.com/images/books/elegant-objects/cactus.png"
+            style="height: 64px; width: 64px;"></a></center>
+    </header>
+  </section>
+
+  <div class="pt-3" style="text-align: center;">
+    <h2>EO editor</h2>
+    <div class="col-3"></div>
+    <button type="button" class="btn btn-yellow me-2" id="eo-permalink" onclick="copyLink()">Copy permalink</button>
+    <a href="https://github.com/br4ch1st0chr0n3/eo-editor" class="image-link me-2">
+      <img src="assets/gh.png" style="height: 40px; width: 40px;" />
+    </a>
+    <button class="btn btn-green me-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar"
+      aria-controls="offcanvasNavbar">Editor guide
+    </button>
+  </div>
+  <br />
+  <nav class="navbar navbar-light">
+    <div class="container-fluid">
+      <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar" aria-labelledby="offcanvasNavbarLabel">
+        <div class="offcanvas-header">
+          <h5 class="offcanvas-title" id="offcanvasNavbarLabel">Editor guide</h5>
+          <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+          <ul class="nav nav-tabs mb-3" id="nav-tab" role="tablist">
+            <li class="nav-item">
+              <button class="nav-link active" id="keybindings-tab" data-bs-toggle="pill" data-bs-target="#keybindings"
+                type="button" role="tab" aria-controls="keybindings" aria-selected="true">Keybindings</button>
+            </li>
+            <li class="nav-item" 0>
+              <button class="nav-link" id="diagnostics-tab" data-bs-toggle="pill" data-bs-target="#diagnostics"
+                type="button" role="tab" aria-controls="diagnostics" aria-selected="false">Diagnostics</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" id="links-tab" data-bs-toggle="pill" data-bs-target="#links" type="button"
+                role="tab" aria-controls="links" aria-selected="false">Links</button>
+            </li>
+          </ul>
+          <div class="tab-content" id="tabContent">
+            <div class="tab-pane fade show active" id="keybindings" role="tabpanel" aria-labelledby="keybindings-tab">
+              Use <span class="keys"><kbd class="kbd">⌘</kbd></span> on Mac instead of <span class="keys"><kbd
+                  class="kbd">Ctrl</kbd></span>
+              <table class="table table-hover wide-table">
+                <thead>
+                  <tr>
+                    <th class="table-header" scope="col">Action</th>
+                    <th class="table-header" scope="col">Keybinding</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Indent / Dedent (selection)</td>
+                    <td><span class="keys"><kbd class="kbd">Tab</kbd></span>/<span class="keys"><kbd
+                          class="kbd">Shift</kbd>+<kbd class="kbd">Tab</kbd></span></td>
+                  </tr>
+                  <tr>
+                    <td>Toggle parse tree in browser console</td>
+                    <td><span class="keys"><kbd class="kbd">Ctrl</kbd>+<kbd class="kbd">Shift</kbd>+<kbd
+                          class="kbd">L</kbd></span></td>
+                  </tr>
+                  <tr>
+                    <td>Undo the last action</td>
+                    <td><span class="keys"><kbd class="kbd">Ctrl</kbd>+<kbd class="kbd">Z</kbd></span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="tab-pane fade" id="diagnostics" role="tabpanel" aria-labelledby="diagnostics-tab">
+              <table class="table table-hover wide-table">
+                <thead>
+                  <tr>
+                    <th class="table-header" scope="col">Diagnostic</th>
+                    <th class="table-header" scope="col">Meaning</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Red triangle</td>
+                    <td>Position of a parsing error</td>
+                  </tr>
+                  <tr>
+                    <td>Red wavy underlines</td>
+                    <td>(Possibly) a part of an incorrect expression</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="tab-pane fade" id="links" role="tabpanel" aria-labelledby="links-tab">
+              <table class="table table-hover wide-table">
+                <tbody>
+                  <tr>
+                    <td><a href="https://github.com/br4ch1st0chr0n3/eo-editor">GitHub repo</a></td>
+                  </tr>
+                  <tr>
+                    <td><a href="https://github.com/cqfn/eo">EO repo</a></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      We use <a href="https://codemirror.net/6/">Codemirror 6</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      And <a href="https://lezer.codemirror.net/docs/guide/">Lezer</a> parse system
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="row">
+    <div class="d-flex justify-content-center">
+      <div class="col-7">
+        <div id="eo-editor"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function copyLink() {
+      permalink = document.getElementById("eo-permalink")
+      navigator.clipboard.writeText(permalink.getAttribute('href'))
+    }
+  </script>
+  
+  <script type="module">
+    import {setInitialCode} from './eo-editor.js'
+    setInitialCode()
+    document.addEventListener("eo-editor-created", (e) => {setInitialCode()})
+  </script>
+</body>

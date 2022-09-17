@@ -1,0 +1,4 @@
+node_modules/
+src/grammar/*.js
+dist
+.parcel-cache

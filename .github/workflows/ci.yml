@@ -117,33 +117,30 @@ jobs:
       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Deploy to Heroku
-      - name: Heroku login credentials
-        env:
-          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-          HEROKU_EMAIL: ${{secrets.HEROKU_EMAIL}}
-        run: |
-          cat > ~/.netrc <<EOF
-            machine api.heroku.com
-              login $HEROKU_EMAIL
-              password $HEROKU_API_KEY
-            machine git.heroku.com
-              login $HEROKU_EMAIL
-              password $HEROKU_API_KEY
-          EOF
-      - name: Add Heroku remote
-        env:
-          HEROKU_APP_NAME: try-phi-back
-        run: heroku git:remote --app $HEROKU_APP_NAME
+      # - name: Heroku login credentials
+      #   env:
+      #     HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+      #     HEROKU_EMAIL: ${{secrets.HEROKU_EMAIL}}
+      #   run: |
+      #     cat > ~/.netrc <<EOF
+      #       machine api.heroku.com
+      #         login $HEROKU_EMAIL
+      #         password $HEROKU_API_KEY
+      #       machine git.heroku.com
+      #         login $HEROKU_EMAIL
+      #         password $HEROKU_API_KEY
+      #     EOF
+      # - name: Add Heroku remote
+      #   env:
+      #     HEROKU_APP_NAME: try-phi-back
+      #   run: heroku git:remote --app $HEROKU_APP_NAME
       - uses: actions/checkout@v3
         with:
           ref: back-artifacts
-      - name: List branches
-        run: git branch
       - name: Push to Heroku
-        run: git push -f heroku back-artifacts:main
-        # uses: akhileshns/heroku-deploy@v3.12.12
-        # with:
-        #   heroku_api_key: ${{secrets.HEROKU_API_KEY}}
-        #   heroku_app_name: try-phi-back
-        #   heroku_email: ${{secrets.HEROKU_EMAIL}}
-        #   branch: back-artifacts
+        uses: akhileshns/heroku-deploy@v3.12.12
+        with:
+          heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+          heroku_app_name: try-phi-back
+          heroku_email: ${{secrets.HEROKU_EMAIL}}
+          branch: back-artifacts

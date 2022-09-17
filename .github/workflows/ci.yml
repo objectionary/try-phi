@@ -58,13 +58,16 @@ jobs:
 
   back:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: back
-    strategy:
-      matrix:
-        os: [ubuntu-22.04]
-        cache: [br4ch1st0chr0n3-nix-managed]
+    # defaults:
+    #   run:
+    #     working-directory: back
+    # strategy:
+    #   matrix:
+    #     os: [ubuntu-22.04]
+    env:
+      CD_BACK: cd back
+      CACHE: br4ch1st0chr0n3-nix-managed
+      BRANCH_ARTIFACTS: back-artifacts
     steps:
       - uses: actions/checkout@v3
 
@@ -77,27 +80,30 @@ jobs:
 
       # - uses: cachix/cachix-action@v10
       #   with:
-      #     name: ${{ matrix.cache }}
+      #     name: $CACHE
       #     # If you chose API tokens for write access OR if you have a private cache
       #     authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
       # - name: Push inputs to cachix
       #   run: |
       #     # https://docs.cachix.org/pushing#flakes
-
+      #     $CD_BACK
       #     nix flake archive --json \
       #       | jq -r '.path,(.inputs|to_entries[].value.path)' \
       #       | cachix push ${{ matrix.cache }}
       # - name: Push devshell to cachix
       #   run: |
+      #     $CD_BACK
       #     nix develop --profile dev-profile
       #     cachix push ${{ matrix.cache }} dev-profile
 
       # - name: Build with Nix
       #   run: |
+      #     $CD_BACK
       #     nix build
 
       # - name: Prepare dir
       #   run: |
+      #     $CD_BACK
       #     mkdir artifacts
       #     cp result/bin/back Procfile artifacts
       #     printf "%s" '{ "name": "appname", "version": "0.0.1", "dependencies": {} }' > artifacts/package.json
@@ -106,7 +112,7 @@ jobs:
       #   uses: s0/git-publish-subdir-action@v2.5.1
       #   env:
       #     REPO: self
-      #     BRANCH: back-artifacts
+      #     BRANCH: $BRANCH_ARTIFACTS
       #     FOLDER: back/artifacts
       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -130,7 +136,7 @@ jobs:
         run: heroku git:remote --app $HEROKU_APP_NAME
       - uses: actions/checkout@v3
         with:
-          ref: back-artifacts
+          ref: $BRANCH_ARTIFACTS
       - name: Push to Heroku
         run: git push heroku main
         # uses: akhileshns/heroku-deploy@v3.12.12

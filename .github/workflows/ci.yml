@@ -138,7 +138,7 @@ jobs:
       #   with:
       #     ref: '$BRANCH_ARTIFACTS'
       - name: Push to Heroku
-        run: git push heroku back-artifacts:main
+        run: git push -f heroku back-artifacts:main
         # uses: akhileshns/heroku-deploy@v3.12.12
         # with:
         #   heroku_api_key: ${{secrets.HEROKU_API_KEY}}

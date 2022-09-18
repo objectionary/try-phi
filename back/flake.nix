@@ -1,11 +1,11 @@
 {
   description = "Try-phi back end";
   inputs = {
-    common-flake.url = "github:objectionary/try-phi?dir=common-flake";
-    nixpkgs.follows = "common-flake/nixpkgs";
-    flake-utils.follows = "common-flake/flake-utils";
-    gitignore.follows = "common-flake/gitignore";
-    my-codium.follows = "common-flake/my-codium";
+    inputs.url = "github:br4ch1st0chr0n3/flakes?dir=inputs";
+    nixpkgs.follows = "inputs/nixpkgs";
+    flake-utils.follows = "inputs/flake-utils";
+    gitignore.follows = "inputs/gitignore";
+    my-codium.follows = "inputs/my-codium";
   };
 
   outputs =
@@ -14,7 +14,7 @@
     , flake-utils
     , gitignore
     , my-codium
-    , common-flake
+    , inputs
     }:
     flake-utils.lib.eachDefaultSystem (system:
     let

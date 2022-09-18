@@ -1,10 +1,10 @@
 {
   inputs = {
-    common-flake.url = "github:objectionary/try-phi?dir=common-flake";
-    nixpkgs.follows = "common-flake/nixpkgs";
-    flake-utils.follows = "common-flake/flake-utils";
-    my-codium.follows = "common-flake/my-codium";
-    nix-vscode-marketplace.follows = "common-flake/nix-vscode-marketplace";
+    inputs.url = "github:br4ch1st0chr0n3/flakes?dir=inputs";
+    nixpkgs.follows = "inputs/nixpkgs";
+    flake-utils.follows = "inputs/flake-utils";
+    my-codium.follows = "inputs/my-codium";
+    nix-vscode-marketplace.follows = "inputs/nix-vscode-marketplace";
     backend = {
       url = path:./back;
     };
@@ -19,7 +19,7 @@
     , flake-utils
     , nixpkgs
     , my-codium
-    , common-flake
+    , inputs
     , nix-vscode-marketplace
     }:
     flake-utils.lib.eachDefaultSystem (system:
@@ -30,27 +30,21 @@
         settingsNix
         shellTools
         toList
-        mkCodium
+        # mkCodium
+        codium
         extensions
         toolsGHC
         ;
       tools902 = builtins.attrValues ({
         inherit (toolsGHC "902") hls stack;
       });
-      codium =
-        let
-          inherit (nix-vscode-marketplace.packages.${system}) vscode open-vsx;
-        in
-        mkCodium (extensions //
-          {
-            add = {
-              inherit (open-vsx.cschleiden) vscode-github-actions;
-            };
-          }
-        );
+      # codium =
+      #   let
+      #     inherit (nix-vscode-marketplace.packages.${system}) vscode open-vsx;
+      #   in
+      #   mkCodium extensions;
       tools = pkgs.lib.lists.flatten [
         (toList shellTools)
-        codium
         tools902
       ];
 
@@ -82,6 +76,17 @@
           write-settings = pkgs.mkShell {
             buildInputs = [ (writeSettingsJson settings) ];
             shellHook = "write-settings";
+          };
+          codium = pkgs.mkShell {
+            buildInputs = codium;
+            shellHook = "codium .";
+          };
+          update-flakes = pkgs.mkShell {
+            shellHook = ''
+              (cd front && nix flake update)
+              (cd back && nix flake update)
+              nix flake update
+            '';
           };
         };
     });

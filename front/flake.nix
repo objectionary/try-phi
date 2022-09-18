@@ -2,17 +2,17 @@
   description = "Try-phi front end";
 
   inputs = {
-    common-flake.url = "github:objectionary/try-phi?dir=common-flake";
-    nixpkgs.follows = "common-flake/nixpkgs";
-    flake-utils.follows = "common-flake/flake-utils";
-    gitignore.follows = "common-flake/gitignore";
-    easy-purescript-nix.follows = "common-flake/easy-purescript-nix"; 
-    dream2nix.follows = "common-flake/dream2nix";
+    inputs.url = "github:br4ch1st0chr0n3/flakes?dir=inputs";
+    nixpkgs.follows = "inputs/nixpkgs";
+    flake-utils.follows = "inputs/flake-utils";
+    gitignore.follows = "inputs/gitignore";
+    easy-purescript-nix.follows = "inputs/easy-purescript-nix"; 
+    dream2nix.follows = "inputs/dream2nix";
   };
 
   outputs =
     { self
-    , common-flake
+    , inputs
     , nixpkgs
     , easy-purescript-nix
     , flake-utils

@@ -30,57 +30,46 @@
         settingsNix
         shellTools
         toList
-        # mkCodium
         codium
-        extensions
         toolsGHC
         ;
       tools902 = builtins.attrValues ({
         inherit (toolsGHC "902") hls stack;
       });
-      # codium =
-      #   let
-      #     inherit (nix-vscode-marketplace.packages.${system}) vscode open-vsx;
-      #   in
-      #   mkCodium extensions;
       tools = pkgs.lib.lists.flatten [
         (toList shellTools)
         tools902
       ];
-
-      settings = settingsNix // {
-        yaml = {
-          "yaml.schemas" = {
-            "https://json.schemastore.org/github-workflow" = "/.githhub/workflows/**/*.yml";
-            "https://json.schemastore.org/github-action" = "/.githhub/actions/**/action.yml";
-          };
-        };
-      };
     in
     {
       devShells =
         {
+          # load shell tools
           default = pkgs.mkShell {
             buildInputs = tools;
             LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath tools;
           };
+
+          # run front
           front = pkgs.mkShell {
             shellHook = "(cd front && npm run dev)";
           };
+
+          # run server
           back = pkgs.mkShell {
             shellHook = "(cd back && nix run)";
           };
 
-          # nix develop .#write-settings
-          # will write the settings.json file
-          write-settings = pkgs.mkShell {
-            buildInputs = [ (writeSettingsJson settings) ];
-            shellHook = "write-settings";
-          };
+          # write the settings.json file
+          write-settings = writeSettingsJson settingsNix;
+          
+          # start codium
           codium = pkgs.mkShell {
             buildInputs = codium;
             shellHook = "codium .";
           };
+
+          # update all flakes
           update-flakes = pkgs.mkShell {
             shellHook = ''
               (cd front && nix flake update)
@@ -92,14 +81,14 @@
     });
   nixConfig = {
     extra-substituters = [
-      "https://nix-community.cachix.org"
+      https://nix-community.cachix.org
       https://br4ch1st0chr0n3-nix-managed.cachix.org
-      "https://br4ch1st0chr0n3-flakes.cachix.org"
+      https://br4ch1st0chr0n3-flakes.cachix.org
     ];
     extra-trusted-public-keys = [
-      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
-      "br4ch1st0chr0n3-nix-managed.cachix.org-1:sDKsfgu5fCCxNwVhZg+AWeGvbLlEtZoyzkSNKRM/KAo="
-      "br4ch1st0chr0n3-flakes.cachix.org-1:Dyc2yLlRIkdbq8CtfOe24QQhQVduQaezkyV8J9RhuZ8="
+      nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
+      br4ch1st0chr0n3-nix-managed.cachix.org-1:sDKsfgu5fCCxNwVhZg+AWeGvbLlEtZoyzkSNKRM/KAo=
+      br4ch1st0chr0n3-flakes.cachix.org-1:Dyc2yLlRIkdbq8CtfOe24QQhQVduQaezkyV8J9RhuZ8=
     ];
   };
 }

@@ -27,7 +27,7 @@
     "workbench.colorTheme": "Monokai",
     "workbench.sideBar.location": "right",
     "yaml.schemas": {
-        "https://json.schemastore.org/github-action": "./.githhub/actions/**/action.yml",
-        "https://json.schemastore.org/github-workflow": "./.githhub/workflows/**/*.yml"
+        "https://json.schemastore.org/github-action.json": "actions/**/action.yml",
+        "https://json.schemastore.org/github-workflow.json": "workflows/**/*.yml"
     }
 }

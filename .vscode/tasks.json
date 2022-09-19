@@ -1,7 +1,5 @@
-
 {
   // Automatically created by phoityne-vscode extension.
-
   "version": "2.0.0",
   "presentation": {
     "reveal": "always",
@@ -9,62 +7,66 @@
   },
   "tasks": [
     {
-      // F7
       "group": {
         "kind": "build",
         "isDefault": true
       },
       "label": "haskell build",
       "type": "shell",
-      //"command": "cabal configure && cabal build"
       "command": "stack build"
     },
     {
-      // F6
       "group": "build",
       "type": "shell",
       "label": "haskell clean & build",
-      //"command": "cabal clean && cabal configure && cabal build"
       "command": "stack clean && stack build"
-      //"command": "stack clean ; stack build"  // for powershell
     },
     {
-      // F8
-      "group": {
-        "kind": "test",
-        "isDefault": true
-      },
+      "group": "test",
       "type": "shell",
       "label": "haskell test",
-      //"command": "cabal test"
-      "command": "stack test"
+      "command": "stack test",
+      "problemMatcher": []
     },
     {
-      // F6
       "isBackground": true,
       "type": "shell",
       "label": "haskell watch",
       "command": "stack build --test --no-run-tests --file-watch"
     },
     {
-      "label": "Client run",
+      "label": "Start client",
       "command": "nix",
-      "args": ["develop", ".#front"],
+      "args": [
+        "develop",
+        ".#front"
+      ],
       "options": {
         "cwd": "${workspaceFolder}"
       }
     },
     {
-      "label": "Server run",
+      "label": "Start server",
       "command": "nix",
-      "args": ["develop", ".#back"],
+      "args": [
+        "develop",
+        ".#back"
+      ],
       "options": {
         "cwd": "${workspaceFolder}"
       }
     },
     {
       "label": "Start app",
-      "dependsOn": ["Client run", "Server run"]
+      "dependsOn": [
+        "Start server",
+        "Start client"
+      ],
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
     }
   ]
 }

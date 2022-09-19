@@ -24,6 +24,7 @@ It is combined with [EO](https://github.com/objectionary/eo) editor. EO is based
 ## Prerequisites
 
 - Install [Nix](https://nixos.org/download.html) (Single-user installation)
+
   ```sh
   sh <(curl -L https://nixos.org/nix/install) --no-daemon
   ```
@@ -31,6 +32,7 @@ It is combined with [EO](https://github.com/objectionary/eo) editor. EO is based
 - Enable [flakes](https://nixos.wiki/wiki/Flakes#Permanent)
 
 - Enter the repo
+
   ```sh
   git clone https://github.com/objectionary/try-phi
   cd try-phi
@@ -39,6 +41,7 @@ It is combined with [EO](https://github.com/objectionary/eo) editor. EO is based
 ## Quick start
 
 - Run back and front in separate terminals
+
   ```console
   nix develop .#back
   nix develop .#front
@@ -48,7 +51,10 @@ It is combined with [EO](https://github.com/objectionary/eo) editor. EO is based
 
 - Install [direnv](https://nix.dev/tutorials/declarative-and-reproducible-developer-environments#direnv-automatically-activating-the-environment-on-directory-change) - steps 1, 2
 
+- Hotkey for `Command palette` - `Ctrl` (`Cmd`) + `Shift` + `P`
+
 - Allow direnv in flake folders
+
   ```sh
   direnv allow
   (cd front && direnv allow)
@@ -56,27 +62,16 @@ It is combined with [EO](https://github.com/objectionary/eo) editor. EO is based
   ```
 
 - Open Codium
+
   ```console
   nix develop .#codium
   codium .
   ```
 
-- In separate terminals:
-  - backend dev
-    ```sh
-    cd back
-    nix run
-    ```
-  - front
-    ```sh
-    cd front
-    direnv allow
-    npm run dev
-    ```
-    - Or run any other command from [package.json](package.json)
+- Start app - a browser window should open
+  - Command palette -> `Tasks: Run Task` -> `Start app`
 
-- In case of problems reload the window (`Ctrl`+`Shift`+`P` -> `Developer: Reload window`) and repeat previous commands to start the server and the client
+- Terminate app
+  - Command palette -> `Tasks: Terminate Task` -> `All Running Tasks`>
 
-<!-- TODO https://code.visualstudio.com/docs/editor/tasks#_compound-tasks
-
-start server and client in different terminals -->
+- In case of problems reload the window (`Ctrl` + `Shift` + `P` -> `Developer: Reload window`) and repeat previous commands to start the server and the client

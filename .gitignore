@@ -4,3 +4,4 @@ result
 node_modules
 .parcel-cache
 dev-profile*
+.vscode/settings.json

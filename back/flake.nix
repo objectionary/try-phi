@@ -25,9 +25,9 @@
         toolsGHC
         justStaticExecutables
         ;
-      
+
       inherit (toolsGHC ghcVersion) stack callCabal;
-      
+
       try-phi-back =
         let
           eo-utils = callCabal "eo-utils" ./language-utils/eo-utils { };
@@ -66,7 +66,7 @@
 
       devShells = {
         default = pkgs.mkShell {
-          buildInputs = tools ++ [back];
+          buildInputs = tools ++ [ back ];
 
           # https://stackoverflow.com/a/63751678
           shellHook = ''

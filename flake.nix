@@ -44,10 +44,12 @@
     {
       devShells =
         {
+          # TODO gitignore settings.json
+          # add write tasks.json via json2nix
+          # add TODO tree template for Nix
           # load shell tools
           default = pkgs.mkShell {
             buildInputs = tools;
-            LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath tools;
           };
 
           # run front
@@ -60,13 +62,14 @@
             shellHook = "(cd back && nix run)";
           };
 
-          # write the settings.json file
-          write-settings = writeSettingsJson settingsNix;
-          
-          # start codium
+          # start codium and 
+          # write settings.json
           codium = pkgs.mkShell {
-            buildInputs = codium;
-            shellHook = "codium .";
+            buildInputs = [ codium (writeSettingsJson settingsNix) ];
+            shellHook = ''
+              write-settings-json
+              codium .
+            '';
           };
 
           # update all flakes

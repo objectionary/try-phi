@@ -68,6 +68,9 @@ It is combined with [EO](https://github.com/objectionary/eo) editor. EO is based
   codium .
   ```
 
+- Build `front`
+  - Command palette -> `Tasks: Run Task` -> `Build front`
+
 - Start app - a browser window should open
   - Command palette -> `Tasks: Run Task` -> `Start app`
 

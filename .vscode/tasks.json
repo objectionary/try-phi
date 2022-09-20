@@ -1,11 +1,11 @@
 {
-  // Automatically created by phoityne-vscode extension.
   "version": "2.0.0",
   "presentation": {
     "reveal": "always",
     "panel": "new"
   },
   "tasks": [
+    // Haskell
     {
       "group": {
         "kind": "build",
@@ -34,8 +34,17 @@
       "label": "haskell watch",
       "command": "stack build --test --no-run-tests --file-watch"
     },
+
+    // PureScript
     {
-      "label": "Start client",
+      "isBackground": true,
+      "group": "build",
+      "type": "shell",
+      "label": "Build front",
+      "command": "cd front && spago build"
+    },
+    {
+      "label": "Start front",
       "command": "nix",
       "args": [
         "develop",
@@ -46,7 +55,7 @@
       }
     },
     {
-      "label": "Start server",
+      "label": "Start back",
       "command": "nix",
       "args": [
         "develop",
@@ -56,6 +65,8 @@
         "cwd": "${workspaceFolder}"
       }
     },
+
+    // App
     {
       "label": "Start app",
       "dependsOn": [

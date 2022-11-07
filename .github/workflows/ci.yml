@@ -1,8 +1,11 @@
 name: CI
 
 on:
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    # https://crontab.guru/#30_5,17_*_*_*
+    - cron: "0 0 * * *"
   push:
-    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -60,12 +63,12 @@ jobs:
           ROOT: ${{ env.ROOT }}
           CACHE: ${{ env.CACHE }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Build with Nix
         run: |
           cd ${{ env.ROOT }}
           nix build
-      
+
       - name: Prepare ${{ env.ARTIFACTS_DIR }} dir
         run: |
           cd ${{ env.ROOT }}

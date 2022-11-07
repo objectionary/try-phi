@@ -39,17 +39,19 @@
               }
             ];
           };
-        pursTools = purescript-tools.packages.${system};
+        shellTools = purescript-tools.toolSets.${system}.shellTools;
         inherit (drv-tools.functions.${system}) mkShellApps;
         scripts = mkShellApps {
           default = {
             text = "npm run quick-start";
-            runtimeInputs = [ pursTools.nodejs-16_x ];
+            runtimeInputs = [ shellTools.nodejs-16_x ];
           };
         };
       in
       {
         packages = scripts;
-        devShells.default = nodeOutputs.devShells.${system}.default;
+        devShells.default = nodeOutputs.devShells.${system}.default.overrideAttrs (fin: prev: {
+          buildInputs = prev.buildInputs ++ (builtins.attrValues shellTools);
+        });
       });
 }

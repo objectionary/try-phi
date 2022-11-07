@@ -79,7 +79,7 @@ component =
 
   render s = html s
 
--- TODO 
+-- TODO
 
   handleAction :: forall output. Action -> H.HalogenM State Action () output Aff Unit
   handleAction ac = do

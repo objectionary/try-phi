@@ -1,97 +1,98 @@
 {
   inputs = {
-    inputs.url = "github:br4ch1st0chr0n3/flakes?dir=inputs";
-    nixpkgs.follows = "inputs/nixpkgs";
-    flake-utils.follows = "inputs/flake-utils";
-    my-codium.follows = "inputs/my-codium";
-    nix-vscode-marketplace.follows = "inputs/nix-vscode-marketplace";
-    backend = {
-      url = path:./back;
-    };
-    frontend = {
-      url = path:./front;
-    };
+    nixpkgs_.url = github:br4ch1st0chr0n3/flakes?dir=source-flake/nixpkgs;
+    nixpkgs.follows = "nixpkgs_/nixpkgs";
+    flake-utils_.url = github:br4ch1st0chr0n3/flakes?dir=source-flake/flake-utils;
+    flake-utils.follows = "flake-utils_/flake-utils";
+    flake-tools.url = github:br4ch1st0chr0n3/flakes?dir=flake-tools;
+    my-codium.url = github:br4ch1st0chr0n3/flakes?dir=codium;
+    drv-tools.url = github:br4ch1st0chr0n3/flakes?dir=drv-tools;
+    vscode-extensions_.url = github:br4ch1st0chr0n3/flakes?dir=source-flake/vscode-extensions;
+    vscode-extensions.follows = "vscode-extensions_/vscode-extensions";
+    haskell-tools.url = github:br4ch1st0chr0n3/flakes?dir=language-tools/haskell;
+    purescript-tools.url = github:br4ch1st0chr0n3/flakes?dir=language-tools/purescript;
   };
   outputs =
     { self
-    , backend
-    , frontend
     , flake-utils
     , nixpkgs
+    , flake-tools
     , my-codium
-    , inputs
-    , nix-vscode-marketplace
+    , vscode-extensions
+    , drv-tools
+    , haskell-tools
+    , purescript-tools
+    , ...
     }:
     flake-utils.lib.eachDefaultSystem (system:
     let
       pkgs = nixpkgs.legacyPackages.${system};
-      inherit (my-codium.tools.${system})
-        writeSettingsJson
-        settingsNix
-        shellTools
+      ghcVersion = "902";
+      inherit (my-codium.functions.${system})
+        writeSettingsJSON
+        mkCodium
+        ;
+      inherit (drv-tools.functions.${system})
         toList
-        codium
+        mkBin
+        mkShellApps
+        mkShellApp
+        ;
+      inherit (flake-tools.functions.${system})
+        mkFlakesUtils
+        ;
+      inherit (my-codium.configs.${system})
+        extensions
+        settingsNix
+        ;
+      inherit (haskell-tools.functions.${system})
         toolsGHC
         ;
-      tools902 = builtins.attrValues ({
-        inherit (toolsGHC "902") hls stack;
-      });
-      tools = pkgs.lib.lists.flatten [
-        (toList shellTools)
-        tools902
-      ];
+      inherit (toolsGHC ghcVersion)
+        stack
+        hls
+        ;
+      haskellTools = builtins.attrValues haskell-tools.toolSets.${system}.shellTools;
+      pursTools = builtins.attrValues purescript-tools.toolSets.${system}.shellTools;
+
+      codium = mkCodium {
+        extensions = { inherit (extensions) nix haskell misc github markdown purescript; };
+        runtimeDependencies = [ stack hls pursTools haskellTools ];
+      };
+
+      writeSettings = writeSettingsJSON settingsNix;
+
+      scripts = mkShellApps {
+        back = {
+          text = "cd back && nix run";
+        };
+        front = {
+          text = "cd front && nix run";
+        };
+      };
+      flakesUtils = mkFlakesUtils [ "." ];
     in
     {
-      devShells =
-        {
-          # TODO gitignore settings.json
-          # add write tasks.json via json2nix
-          # add TODO tree template for Nix
-          # load shell tools
-          default = pkgs.mkShell {
-            buildInputs = tools;
-          };
-
-          # run front
-          front = pkgs.mkShell {
-            shellHook = "(cd front && npm run dev)";
-          };
-
-          # run server
-          back = pkgs.mkShell {
-            shellHook = "(cd back && nix run)";
-          };
-
-          # start codium and 
-          # write settings.json
-          codium = pkgs.mkShell {
-            buildInputs = [ codium (writeSettingsJson settingsNix) ];
-            shellHook = ''
-              write-settings-json
-              codium .
-            '';
-          };
-
-          # update all flakes
-          update-flakes = pkgs.mkShell {
-            shellHook = ''
-              (cd front && nix flake update)
-              (cd back && nix flake update)
-              nix flake update
-            '';
-          };
-        };
+      packages = {
+        default = codium;
+        inherit writeSettings;
+        pushToCachix = flakesUtils.flakesPushToCachix;
+        updateLocks = flakesUtils.flakesUpdate;
+      } // scripts;
     });
+
   nixConfig = {
     extra-substituters = [
+      https://haskell-language-server.cachix.org
       https://nix-community.cachix.org
-      https://br4ch1st0chr0n3-nix-managed.cachix.org
-      https://br4ch1st0chr0n3-flakes.cachix.org
+      https://hydra.iohk.io
+      https://br4ch1st0chr0n3.cachix.org
     ];
     extra-trusted-public-keys = [
+      haskell-language-server.cachix.org-1:juFfHrwkOxqIOZShtC4YC1uT1bBcq2RSvC7OMKx0Nz8=
       nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
-      br4ch1st0chr0n3-nix-managed.cachix.org-1:sDKsfgu5fCCxNwVhZg+AWeGvbLlEtZoyzkSNKRM/KAo=
-      br4ch1st0chr0n3-flakes.cachix.org-1:Dyc2yLlRIkdbq8CtfOe24QQhQVduQaezkyV8J9RhuZ8=
+      hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=
+      br4ch1st0chr0n3.cachix.org-1:o1FA93L5vL4LWi+jk2ECFk1L1rDlMoTH21R1FHtSKaU=
     ];
   };
 }

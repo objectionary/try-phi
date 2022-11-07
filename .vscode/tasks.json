@@ -5,49 +5,11 @@
     "panel": "new"
   },
   "tasks": [
-    // Haskell
     {
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      },
-      "label": "haskell build",
-      "type": "shell",
-      "command": "stack build"
-    },
-    {
-      "group": "build",
-      "type": "shell",
-      "label": "haskell clean & build",
-      "command": "stack clean && stack build"
-    },
-    {
-      "group": "test",
-      "type": "shell",
-      "label": "haskell test",
-      "command": "stack test",
-      "problemMatcher": []
-    },
-    {
-      "isBackground": true,
-      "type": "shell",
-      "label": "haskell watch",
-      "command": "stack build --test --no-run-tests --file-watch"
-    },
-
-    // PureScript
-    {
-      "isBackground": true,
-      "group": "build",
-      "type": "shell",
-      "label": "Build front",
-      "command": "cd front && spago build"
-    },
-    {
-      "label": "Start front",
+      "label": "Run front",
       "command": "nix",
       "args": [
-        "develop",
+        "run",
         ".#front"
       ],
       "options": {
@@ -55,23 +17,22 @@
       }
     },
     {
-      "label": "Start back",
+      "label": "Run back",
       "command": "nix",
       "args": [
-        "develop",
+        "run",
         ".#back"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
       }
     },
-
     // App
     {
-      "label": "Start app",
+      "label": "Run app",
       "dependsOn": [
-        "Start server",
-        "Start client"
+        "Run front",
+        "Run back"
       ],
       "problemMatcher": [],
       "group": {

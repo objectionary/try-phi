@@ -2,34 +2,32 @@
   description = "Try-phi front end";
 
   inputs = {
-    inputs.url = "github:br4ch1st0chr0n3/flakes?dir=inputs";
-    nixpkgs.follows = "inputs/nixpkgs";
-    flake-utils.follows = "inputs/flake-utils";
-    gitignore.follows = "inputs/gitignore";
-    easy-purescript-nix.follows = "inputs/easy-purescript-nix"; 
-    dream2nix.follows = "inputs/dream2nix";
+    nixpkgs_.url = github:br4ch1st0chr0n3/flakes?dir=source-flake/nixpkgs;
+    nixpkgs.follows = "nixpkgs_/nixpkgs";
+    flake-utils_.url = github:br4ch1st0chr0n3/flakes?dir=source-flake/flake-utils;
+    flake-utils.follows = "flake-utils_/flake-utils";
+    gitignore_.url = github:br4ch1st0chr0n3/flakes?dir=source-flake/gitignore;
+    gitignore.follows = "gitignore_/gitignore";
+    dream2nix_.url = github:br4ch1st0chr0n3/flakes?dir=source-flake/dream2nix;
+    dream2nix.follows = "dream2nix_/dream2nix";
+    drv-tools.url = github:br4ch1st0chr0n3/flakes?dir=drv-tools;
+    purescript-tools.url = github:br4ch1st0chr0n3/flakes?dir=language-tools/purescript;
   };
 
   outputs =
     { self
-    , inputs
     , nixpkgs
-    , easy-purescript-nix
     , flake-utils
     , gitignore
     , dream2nix
+    , drv-tools
+    , purescript-tools
+    , ...
     }:
       with flake-utils.lib;
       eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        myTools =
-          let
-            easy-ps = import easy-purescript-nix { inherit pkgs; };
-          in
-          builtins.attrValues {
-            inherit (easy-ps) purs-0_15_4 spago;
-          };
         nodeOutputs =
           dream2nix.lib.makeFlakeOutputs {
             systems = [ system ];
@@ -41,10 +39,17 @@
               }
             ];
           };
+        pursTools = purescript-tools.packages.${system};
+        inherit (drv-tools.functions.${system}) mkShellApps;
+        scripts = mkShellApps {
+          default = {
+            text = "npm run quick-start";
+            runtimeInputs = [ pursTools.nodejs-16_x ];
+          };
+        };
       in
       {
-        devShells.default = nodeOutputs.devShells.${system}.default.overrideAttrs (fin: prev: {
-          buildInputs = prev.buildInputs ++ myTools;
-        });
+        packages = scripts;
+        devShells.default = nodeOutputs.devShells.${system}.default;
       });
 }

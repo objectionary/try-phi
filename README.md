@@ -43,15 +43,15 @@ It is combined with [EO](https://github.com/objectionary/eo) editor. EO is based
 - Run back and front in separate terminals
 
   ```console
-  nix develop .#back
-  nix develop .#front
+  nix run .#back
+  nix run .#front
   ```
 
 ## Development
 
 - Install [direnv](https://nix.dev/tutorials/declarative-and-reproducible-developer-environments#direnv-automatically-activating-the-environment-on-directory-change) - steps 1, 2
 
-- Hotkey for `Command palette` - `Ctrl` (`Cmd`) + `Shift` + `P`
+- [Enable flakes](https://nixos.wiki/wiki/Flakes#Enable_flakes)
 
 - Allow direnv in flake folders
 
@@ -64,15 +64,12 @@ It is combined with [EO](https://github.com/objectionary/eo) editor. EO is based
 - Open Codium
 
   ```console
-  nix develop .#codium
-  codium .
+  nix run .# .
   ```
-
-- Build `front`
-  - Command palette -> `Tasks: Run Task` -> `Build front`
+- Hotkey for `Command palette` - `Ctrl` (`Cmd`) + `Shift` + `P`
 
 - Start app - a browser window should open
-  - Command palette -> `Tasks: Run Task` -> `Start app`
+  - Command palette -> `Tasks: Run Task` -> `Run app`
 
 - Terminate app
   - Command palette -> `Tasks: Terminate Task` -> `All Running Tasks`>

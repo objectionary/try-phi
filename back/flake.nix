@@ -1,11 +1,14 @@
 {
   description = "Try-phi back end";
   inputs = {
-    inputs.url = "github:br4ch1st0chr0n3/flakes?dir=inputs";
-    nixpkgs.follows = "inputs/nixpkgs";
-    flake-utils.follows = "inputs/flake-utils";
-    gitignore.follows = "inputs/gitignore";
-    my-codium.follows = "inputs/my-codium";
+    nixpkgs_.url = github:br4ch1st0chr0n3/flakes?dir=source-flake/nixpkgs;
+    nixpkgs.follows = "nixpkgs_/nixpkgs";
+    flake-utils_.url = github:br4ch1st0chr0n3/flakes?dir=source-flake/flake-utils;
+    flake-utils.follows = "flake-utils_/flake-utils";
+    gitignore_.url = github:br4ch1st0chr0n3/flakes?dir=source-flake/gitignore;
+    gitignore.follows = "gitignore_/gitignore";
+    drv-tools.url = github:br4ch1st0chr0n3/flakes?dir=drv-tools;
+    haskell-tools.url = github:br4ch1st0chr0n3/flakes?dir=language-tools/haskell;
   };
 
   outputs =
@@ -13,20 +16,18 @@
     , nixpkgs
     , flake-utils
     , gitignore
-    , my-codium
-    , inputs
+    , drv-tools
+    , haskell-tools
+    , ...
     }:
     flake-utils.lib.eachDefaultSystem (system:
     let
       pkgs = nixpkgs.legacyPackages.${system};
       ghcVersion = "902";
-      inherit (my-codium.tools.${system})
-        allShellTools
+      inherit (haskell-tools.functions.${system})
         toolsGHC
-        justStaticExecutables
         ;
-
-      inherit (toolsGHC ghcVersion) stack callCabal;
+      inherit (toolsGHC ghcVersion) stack callCabal justStaticExecutables;
 
       try-phi-back =
         let
@@ -50,14 +51,6 @@
           ln -s ${try-phi-back}/bin/try-phi-back-exe $out/bin/back
         ";
       };
-
-      tools = builtins.attrValues {
-        inherit (allShellTools)
-          implicit-hie
-          ghcid
-          ;
-        inherit stack;
-      };
     in
     {
       packages = {
@@ -66,9 +59,6 @@
 
       devShells = {
         default = pkgs.mkShell {
-          buildInputs = tools ++ [ back ];
-
-          # https://stackoverflow.com/a/63751678
           shellHook = ''
             export LANG="C.UTF-8";
           '';

@@ -68,9 +68,11 @@
       scripts = mkShellApps {
         back = {
           text = "cd back && nix run";
+          description = "run back end";
         };
         front = {
           text = "cd front && nix run";
+          description = "run frontend";
         };
       };
       flakesTools = mkFlakesTools [ "." ];
@@ -90,18 +92,18 @@
             category = "ide";
           }
           {
-            name = "write-settings-json";
-            help = "write `.vscode/settings.json`";
+            name = writeSettings.name;
+            help = writeSettings.meta.description;
             category = "ide";
           }
           {
-            name = "back";
+            name = scripts.back.name;
             help = "run backend";
             category = "project";
           }
           {
             name = "front";
-            help = "run frontend";
+            help = scripts.front.meta.description;
             category = "project";
           }
         ];

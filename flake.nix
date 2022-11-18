@@ -4,7 +4,7 @@
     nixpkgs.follows = "nixpkgs_/nixpkgs";
     flake-utils_.url = github:br4ch1st0chr0n3/flakes?dir=source-flake/flake-utils;
     flake-utils.follows = "flake-utils_/flake-utils";
-    flake-tools.url = github:br4ch1st0chr0n3/flakes?dir=flake-tools;
+    flakes-tools.url = github:br4ch1st0chr0n3/flakes?dir=flakes-tools;
     my-codium.url = github:br4ch1st0chr0n3/flakes?dir=codium;
     my-devshell.url = github:br4ch1st0chr0n3/flakes?dir=devshell;
     drv-tools.url = github:br4ch1st0chr0n3/flakes?dir=drv-tools;
@@ -17,7 +17,7 @@
     { self
     , flake-utils
     , nixpkgs
-    , flake-tools
+    , flakes-tools
     , my-codium
     , vscode-extensions
     , drv-tools
@@ -40,7 +40,7 @@
         mkShellApps
         mkShellApp
         ;
-      inherit (flake-tools.functions.${system})
+      inherit (flakes-tools.functions.${system})
         mkFlakesTools
         ;
       inherit (my-codium.configs.${system})
@@ -85,10 +85,24 @@
         packages = builtins.attrValues (scripts // { inherit codium writeSettings; });
         commands = [
           {
-            name = "codium, ${writeSettings.name}";
+            name = "codium";
+            help = "ide with Haskell extensions and executables";
+            category = "ide";
           }
           {
-            name = "back, front";
+            name = "write-settings-json";
+            help = "write `.vscode/settings.json`";
+            category = "ide";
+          }
+          {
+            name = "back";
+            help = "run backend";
+            category = "project";
+          }
+          {
+            name = "front";
+            help = "run frontend";
+            category = "project";
           }
         ];
       };

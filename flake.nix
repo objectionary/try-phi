@@ -6,6 +6,7 @@
     flake-utils.follows = "flake-utils_/flake-utils";
     flake-tools.url = github:br4ch1st0chr0n3/flakes?dir=flake-tools;
     my-codium.url = github:br4ch1st0chr0n3/flakes?dir=codium;
+    my-devshell.url = github:br4ch1st0chr0n3/flakes?dir=devshell;
     drv-tools.url = github:br4ch1st0chr0n3/flakes?dir=drv-tools;
     vscode-extensions_.url = github:br4ch1st0chr0n3/flakes?dir=source-flake/vscode-extensions;
     vscode-extensions.follows = "vscode-extensions_/vscode-extensions";
@@ -22,6 +23,7 @@
     , drv-tools
     , haskell-tools
     , purescript-tools
+    , my-devshell
     , ...
     }:
     flake-utils.lib.eachDefaultSystem (system:
@@ -39,7 +41,7 @@
         mkShellApp
         ;
       inherit (flake-tools.functions.${system})
-        mkFlakesUtils
+        mkFlakesTools
         ;
       inherit (my-codium.configs.${system})
         extensions
@@ -62,6 +64,7 @@
 
       writeSettings = writeSettingsJSON settingsNix;
 
+      devshell = my-devshell.devshell.${system};
       scripts = mkShellApps {
         back = {
           text = "cd back && nix run";
@@ -70,15 +73,25 @@
           text = "cd front && nix run";
         };
       };
-      flakesUtils = mkFlakesUtils [ "." ];
+      flakesTools = mkFlakesTools [ "." ];
     in
     {
       packages = {
-        default = codium;
-        inherit writeSettings;
-        pushToCachix = flakesUtils.flakesPushToCachix;
-        updateLocks = flakesUtils.flakesUpdate;
+        pushToCachix = flakesTools.pushToCachix;
+        updateLocks = flakesTools.update;
       } // scripts;
+
+      devShells.default = devshell.mkShell {
+        packages = builtins.attrValues (scripts // { inherit codium writeSettings; });
+        commands = [
+          {
+            name = "codium, ${writeSettings.name}";
+          }
+          {
+            name = "back, front";
+          }
+        ];
+      };
     });
 
   nixConfig = {

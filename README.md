@@ -64,8 +64,10 @@ It is combined with [EO](https://github.com/objectionary/eo) editor. EO is based
 - Open Codium
 
   ```console
-  nix run .# .
+  nix develop
+  codium .
   ```
+
 - Hotkey for `Command palette` - `Ctrl` (`Cmd`) + `Shift` + `P`
 
 - Start app - a browser window should open

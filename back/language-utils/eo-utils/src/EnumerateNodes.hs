@@ -120,7 +120,7 @@ instance Enumerable TObject where
     cs' <- mapM enum cs
     a' <- enum a
     t' <- enum t
-    -- TODO
+    -- TO-DO
     let g pt1@TObjectTail {m = m, h = h, s = suff, t = t1} = dec pt1 MObjectTail $
           do
             m1 <- enum m

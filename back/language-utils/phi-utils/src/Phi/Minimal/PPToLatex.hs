@@ -147,7 +147,7 @@ ppAttr a'
   | a' == "@" = "\\varphi"
   | otherwise = pretty a'
 
--- TODO print void attrs in parentheses after attr name
+-- TO-DO print void attrs in parentheses after attr name
 ppAttrValue :: AttrValue Term -> Doc ann
 ppAttrValue =
   \case

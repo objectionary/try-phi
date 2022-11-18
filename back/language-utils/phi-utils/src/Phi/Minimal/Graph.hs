@@ -38,7 +38,7 @@ toGraphBuilder =
         sub <- toGraphBuilder subterm
         edgeFromTo node (AttrEdge attr) sub
       return node
-    -- TODO put locators, data, not strings on edges
+    -- TO-DO put locators, data, not strings on edges
     Loc n -> do
       node1 <- freshNode SomeNode
       node2 <- freshNode SomeNode

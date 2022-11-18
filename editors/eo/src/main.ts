@@ -105,7 +105,7 @@ function waitForElement(id: string) {
   })
 }
 
-// TODO
+// TO-DO
 // code changes triggered by another editor
 // shouldn't trigger messages from this editor
 

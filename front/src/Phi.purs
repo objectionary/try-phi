@@ -102,7 +102,7 @@ component =
           updateInfo $ \x -> overTabs x (\(Tab t) -> Tab (t { isActive = id == t.id }))
           -- update state
           H.modify_ $ \x -> x { currentTab = id }
-        -- TODO update graph content
+        -- TO-DO update graph content
         UpdateGraphContent ->
           updateInfo
             $ \x ->
@@ -762,7 +762,7 @@ infos s = case s.info of
 
 errorTab :: forall a. ErrorState -> HTML a Action
 errorTab { parseError: pe, errorTab: et } =
-  -- TODO where to set tab content?
+  -- TO-DO where to set tab content?
   div_
     [ nav_
         [ div
@@ -865,8 +865,8 @@ cdns =
   div_
     [ link [ href "https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css", rel "stylesheet", type_ textCSS ]
     , script [ src "https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js", type_ applicationJavascript ] []
-    -- TODO insert into a separate tab 
-    -- TODO add tab switching with ctrl+tab
+    -- TO-DO insert into a separate tab
+    -- TO-DO add tab switching with ctrl+tab
     , script [ src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/eo-editor@e974857b00a510ba8f1286b7d6e15c5e3f193267/docs/eo-editor.js", U.attr_ "type" "module" ] []
     , link [ href "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/eo-editor@e974857b00a510ba8f1286b7d6e15c5e3f193267/docs/eo-editor.css", type_ textCSS ]
     , script [ src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-editor@32829a4e1b29a203ee014f3d84a18cd88edda98e/docs/phi-editor.js", U.attr_ "type" "module" ] []

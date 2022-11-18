@@ -60,14 +60,14 @@ toMinimalTerm = \case
       where
         t1 = toMinimalTerm t
         g EO.AttachedOrArgument {t = t3, a = xs} =
-          -- TODO report errors
+          -- TO-DO report errors
           -- uses only the first bound name
           case filter (\case Opt2B _ -> True; _ -> False) xs of
             [] -> Nothing
             Opt2B (Just y) : _ ->
               (,) (toMinimalTerm t3)
                 <$> case y of
-                  -- TODO use special names for attributes
+                  -- TO-DO use special names for attributes
                   -- not just @ and all others
                   HName {t = y'} -> Just (unpack y')
                   HAt {} -> Just "@"
@@ -96,11 +96,11 @@ toMinimalTerm = \case
             <&> (\case LName {n = txt} -> unpack txt; LAt {} -> "@"; _ -> error "LVarArg here!")
             <&> (,VoidAttr)
         g EO.AttachedOrArgument {t = t', a = a'} =
-          -- TODO partition to not allow incorrect attachments
+          -- TO-DO partition to not allow incorrect attachments
           case filter (\case Opt2A _ -> True; _ -> False) a' of
             [] -> Nothing
-            -- TODO support imports
-            -- TODO handle list end
+            -- TO-DO support imports
+            -- TO-DO handle list end
             Opt2A AttachedName {a = SuffixName {n = y}} : _ ->
               (,toMinimalTerm t')
                 <$> case y of
@@ -158,7 +158,7 @@ toMinimalTerm = \case
             Opt3C a -> Right . DataTerm $
               case a of
                 DInt {i} -> DataInteger i
-                -- TODO support more data types
+                -- TO-DO support more data types
                 i -> NoData
         t =
           case (loc, h') of

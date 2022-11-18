@@ -113,7 +113,7 @@ ppInt a i =
     Nothing -> pretty i
 
 
--- TODO several or number?
+-- TO-DO several or number?
 ppLoc :: Int -> Doc ann
 ppLoc n
   | n == 0 = pretty ("$"::String)
@@ -152,7 +152,7 @@ ppDotAttr a (t, b) separator =
   ppTerm t
 
 
--- TODO support application to object?
+-- TO-DO support application to object?
 ppAppAttr :: Maybe Attr -> (Term, (Maybe Attr, Term)) -> Separator -> Doc ann
 ppAppAttr a (t1, (b, t2)) separator = 
   ppTermAttr a t1 separator <> 

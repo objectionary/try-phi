@@ -142,7 +142,7 @@ ppApplications o
 
 -- * Call-by-name graph-assisted evaluation machine
 
--- TODO produce for fixed lim
+-- TO-DO produce for fixed lim
 ppGraphStepsFor :: Int -> Term -> [Doc ann]
 ppGraphStepsFor lim term =
     ppStep <$> stepsFor @Gr lim term

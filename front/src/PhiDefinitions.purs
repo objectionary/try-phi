@@ -105,10 +105,10 @@ data Action
 data Term = Term String
 
 
--- | TODO EO and Phi tabs are synced
+-- | TO-DO EO and Phi tabs are synced
 -- | Phi code is translated into EO code (and vice-versa) on a server
 -- | Currently, the state will store just the parse errors, including
--- TODO provide error message
+-- TO-DO provide error message
 data ParseError = EOParseError String | PhiParseError String | NoCode
 
 
@@ -254,7 +254,7 @@ instance DecodeJson GraphTab where
     pure $ GraphTab {
       states : states,
       graphs : graphs,
-      -- TODO check isn't triggered occasionally
+      -- TO-DO check isn't triggered occasionally
       step : 0
     }
 

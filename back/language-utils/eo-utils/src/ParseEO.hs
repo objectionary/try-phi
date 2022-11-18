@@ -291,7 +291,7 @@ newtype TDots = TDots {ann :: Ann} deriving (Data)
 
 newtype TConst = TConst {ann :: Ann} deriving (Data)
 
--- TODO prohibit dots before data
+-- TO-DO prohibit dots before data
 data THead = THead {dots :: Maybe TDots, t :: Options3 THeadTerminal THeadName TData, ann :: Ann} deriving (Data)
 
 data THeadTerminal
@@ -541,7 +541,7 @@ tObject ind = dec $ do
   s <- manyTry {-debug "object:after tail"-} g1
   return TObject {cs = comments, a = a, t = t, s = s}
 
--- TODO use separate parser for free attributes
+-- TO-DO use separate parser for free attributes
 
 tAbstraction :: Parser TAbstraction
 tAbstraction = dec $ do
@@ -549,7 +549,7 @@ tAbstraction = dec $ do
   t <- optional $ try tAbstractionTail
   return TAbstraction {as = attrs, t = t}
 
--- TODO Use separate terminal for question
+-- TO-DO Use separate terminal for question
 
 tAbstractionTail :: Parser TAbstractionTail
 tAbstractionTail = dec $ do
@@ -620,7 +620,7 @@ tLabel = dec $ do
         Opt2B
           <$> ( do
                   name {-debug "label:name"-} <- tName
-                  -- TODO move dots to abstraction end (before csq)
+                  -- TO-DO move dots to abstraction end (before csq)
                   dots <- optional ({-debug "label:..."-} tTerminal cDOTS TDots)
                   return (name, dots)
               )
@@ -643,7 +643,7 @@ tSuffix = dec $ do
   c <- optional ({-debug "suffix:const"-} tTerminal cCONST TConst)
   return TSuffix {l = label, c = c}
 
--- TODO separate set of terminals for Method
+-- TO-DO separate set of terminals for Method
 
 tMethod :: Parser TMethod
 tMethod = dec $ do
@@ -730,7 +730,7 @@ tHead = dec $ do
       ]
   return THead {dots = dots, t = t}
 
--- TODO lookahead EOL
+-- TO-DO lookahead EOL
 
 -- | head name with a
 --
@@ -787,7 +787,7 @@ tMetaSuffix = dec $ do
   suffix {-debug "meta:suffix"-} <- (pack <$> (string cSPACE *> some printChar))
   return TMetaSuffix {s = suffix}
 
--- TODO Regex nodes
+-- TO-DO Regex nodes
 
 tRegex :: Parser TRegex
 tRegex = dec $ do
@@ -835,7 +835,7 @@ tBytes = dec $ do
       return (Opt2A byte)
     parser4 = do
       _ <- string cMINUS
-      -- TODO guard indentation
+      -- TO-DO guard indentation
       e <- tEOLTabMany
       tLineBytes
     parser3 = do

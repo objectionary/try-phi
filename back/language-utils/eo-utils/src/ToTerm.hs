@@ -106,7 +106,7 @@ import ToTermTH
 
 -- type a = Ann a Annotation
 
--- TODO convert inverse dot to dot
+-- TO-DO convert inverse dot to dot
 
 -- Attribute names
 -- if a constructor is composite
@@ -132,7 +132,7 @@ data Modifier
 
 data HeadName = HeadName {n :: LetterName, m :: Maybe Modifier, ann :: Ann} deriving (Data, Show)
 
--- TODO Question is not a terminal
+-- TO-DO Question is not a terminal
 
 data MethodName
   = MName {n :: Text, ann :: Ann}
@@ -170,12 +170,12 @@ data DataValue
   | DInt {i :: Integer, ann :: Ann}
   | DRegex {rb :: DRegexBody, rs :: DRegexSuffix, ann :: Ann}
   | DString {s :: Text, ann :: Ann}
-  | -- TODO save indentation of closing quotes
+  | -- TO-DO save indentation of closing quotes
     DText {t :: Text, ann :: Ann}
   deriving (Data, Show)
 
--- TODO define when to throw exceptions
--- TODO somehow pass problems with node conversion upwards
+-- TO-DO define when to throw exceptions
+-- TO-DO somehow pass problems with node conversion upwards
 -- probably need to use exceptions or Either Id Term
 
 data HasName
@@ -199,7 +199,7 @@ Not yet a full-fledged abstract attribute
 Might not have a name
 or attributes that will come later in the next lines
 
--- TODO better type
+-- TO-DO better type
 
 -- IDK
 should it be different from AttachedOrArg?
@@ -211,7 +211,7 @@ otherwise, Abstraction should store AttachedName
 data Abstraction = Abstraction {attrs :: [Label], t :: Maybe AbstractionTail, ann :: Ann} deriving (Data, Show)
 
 {-
--- TODO Don't distinguish between them?
+-- TO-DO Don't distinguish between them?
 -}
 -- type AttachedOrArg = Options2 AttachedOrArg AttachedOrArg
 
@@ -313,7 +313,7 @@ composeObjects pt@TObjects {..} = dec pt ret
     ret = Obj {freeAttrs = [], attrs = os'}
 
 {-
--- TODO also handle cases like
+-- TO-DO also handle cases like
   [x] a > b
     .c
   .d > e
@@ -338,7 +338,7 @@ composeObject pt@TObject {..} = dec pt ret
     t' = appendMaybeTail a' composeTail t
     ret = foldl appendObjectTail t' s
 
--- TODO correctly handle tail, not ignore it
+-- TO-DO correctly handle tail, not ignore it
 
 composeAbstraction :: TAbstraction -> AttachedOrArgument
 composeAbstraction pt@TAbstraction {..} = dec pt ret
@@ -382,7 +382,7 @@ composeApplication1 t TApplication1 {..} =
     Just x -> composeApplication1Elem t x
     Nothing -> t
 
--- TODO use runtime ids from state, not Nothing?
+-- TO-DO use runtime ids from state, not Nothing?
 -- initAnn :: a -> a
 -- initAnn x = Ann {term = x, ann = IDs {treeId = Nothing, runtimeId = Nothing}}
 
@@ -428,7 +428,7 @@ composeApplication1Elem t TApplication1Elem {..} = ret
         -- append method name to an application
         Opt3A b -> applyDot t b
         -- append optional argument name to a term
-        -- TODO don't append has twice
+        -- TO-DO don't append has twice
         Opt3B b -> appendHas t b
         -- no imported name since it's an application
         Opt3C b -> appendMaybeSuffix t (Just b) Nothing
@@ -456,7 +456,7 @@ appendHas pt@AttachedOrArgument {a = a1} ps@THas {..} = ret
   where
     TName {n = n1} = n
     h = dec ps (HName {t = n1})
-    -- TODO don't append name?
+    -- TO-DO don't append name?
     ret = pt {a = a1 <> [Opt2B (Just h)]} :: AttachedOrArgument
 
 -- | append suffix name with possibly imported name to a term
@@ -529,7 +529,7 @@ composeHtail THtail {..} = ret
         Opt3A a -> attachHead a
         -- it's an application in parentheses
         Opt3B a -> composeApplication a
-        -- TODO add case for explicit construction of Opts
+        -- TO-DO add case for explicit construction of Opts
         Opt3C a -> composeAbstraction a
     ret = f <$> t
 
@@ -747,7 +747,7 @@ head
 
 head can be stored inside `AttachedOrArg` without a name
   its term can always be extracted
--- TODO maybe need a separate type for head?
+-- TO-DO maybe need a separate type for head?
 
 a method `c` can be applied on application like this
 

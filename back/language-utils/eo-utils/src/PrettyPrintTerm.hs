@@ -174,7 +174,7 @@ instance PPTermInline Head where
         | unpacked = unpack cDOTS
         | otherwise = ""
 
--- TODO print datavalue indented
+-- TO-DO print datavalue indented
 
 printHead :: Maybe Int -> Maybe Head -> String
 printHead s t =
@@ -185,7 +185,7 @@ printHead s t =
     _ -> ""
 
 
--- TODO print dot before methodname
+-- TO-DO print dot before methodname
 
 instance PPTermInline AttachedOrArgName where
   pprint' (Opt2A a) = pprint' a
@@ -213,7 +213,7 @@ lessParens s =
     [t] -> t
     t -> parens $ unwords t
 
--- TODO improve performance
+-- TO-DO improve performance
 withLessParens' :: (PPTermInline a, PPTermInline x) => x -> a -> String -> String
 withLessParens' x a y = printf "%s" (lessParens (pprint' x <> y <> pprint' a))
 
@@ -251,7 +251,7 @@ isInlineContiguous s =
 
 {-| takes indentation level, term, name of this term and produces a string
 
--- TODO don't parenthesize top level expressions
+-- TO-DO don't parenthesize top level expressions
 -- (a) > t
 --   b
 -}

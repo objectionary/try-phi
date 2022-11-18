@@ -62,7 +62,7 @@ data DataValue =
 
 
 data Term
-  -- TODO store a list of free attributes 
+  -- TO-DO store a list of free attributes
   -- and a map of attached attributes
   = Obj {body :: Object Term}
   | Dot {t::Term, a::Attr}

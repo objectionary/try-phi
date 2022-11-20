@@ -6,7 +6,7 @@ let additions =
       { purescript-web-url =
         { dependencies = [ "maybe", "partial", "prelude", "spec", "tuples" ]
         , version = "d854fb18cadf828310328f6535f5c934ca22b312"
-        , repo = "https://github.com/br4ch1st0chr0n3/purescript-web-url.git"
+        , repo = "https://github.com/deemp/purescript-web-url.git"
         }
       }
 

@@ -1,6 +1,6 @@
 <img src="https://www.yegor256.com/images/books/elegant-objects/cactus.svg" height="100px" />
 
-Try [𝜑-calculus](https://arxiv.org/abs/2204.07454) online: [click here](https://br4ch1st0chr0n3.github.io/try-phi/). (WIP)
+Try [𝜑-calculus](https://arxiv.org/abs/2204.07454) online: [click here](https://deemp.github.io/try-phi/). (WIP)
 
 1. We support [this syntax](https://bnfplayground.pauliankline.com/?bnf=%3Cterm%3E%20%3A%3A%3D%20%3Cterm%3E%20%22.%22%20%3Cattribute%3E%20%7C%20%3Cterm%3E%20%22(%22%20%3Csp%3E%20%3Carrow%3E%20%3Csp%3E%20%22)%22%20%7C%20%22%5E%22%20%3Clevel%3E%20%7C%20%22%5B%22%20%3Csp%3E%20%3Clist%3E%20%3Csp%3E%20%22%5D%22%0A%3Csp%3E%20%3A%3A%3D%20%22%20%22*%0A%3Cvoid%3E%20%3A%3A%3D%20%22%3F%22%20%7C%20%22%5B%22%20%3Csp%3E%20%22%5D%22%0A%3Carrow%3E%20%3A%3A%3D%20%3Cattribute%3E%20%3Csp%3E%20%22-%3E%22%20%3Csp%3E%20%3Cterm%3E%0A%3Clist%3E%20%3A%3A%3D%20%3Cattribute%3E%20%3Csp%3E%20%22-%3E%22%20%3Csp%3E%20%3Cvoid%3E%20%7C%20%3Carrow%3E%20%7C%20%3Clist%3E%20%3Csp%3E%20%22%2C%22%20%3Csp%3E%20%3Clist%3E%0A%3Cattribute%3E%20%3A%3A%3D%20(%5Ba-z%5D%20(%5Ba-z%5D%20%7C%20%5B0-9%5D)*%20%7C%20%22%40%22)%0A%3Clevel%3E%20%3A%3A%3D%20%220%22%20%7C%20%5B1-9%5D%20%5B0-9%5D*&name=Target%20Minimal%20Phi). Examples:
 
@@ -18,7 +18,7 @@ Try [𝜑-calculus](https://arxiv.org/abs/2204.07454) online: [click here](https
 
 * Clone this repository
 ```sh
-git clone --recurse-submodules -j8 https://github.com/br4ch1st0chr0n3/try-phi
+git clone --recurse-submodules -j8 https://github.com/deemp/try-phi
 cd try-phi
 ```
  

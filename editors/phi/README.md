@@ -4,7 +4,7 @@
 * EO [repo](https://github.com/cqfn/eo)
 
 ## Try online
-* [Here](https://br4ch1st0chr0n3.github.io/eo-editor/)
+* [Here](https://deemp.github.io/eo-editor/)
 
 ## Features
 * Syntax highlighting

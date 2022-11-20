@@ -867,10 +867,10 @@ cdns =
     , script [ src "https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js", type_ applicationJavascript ] []
     -- TO-DO insert into a separate tab
     -- TO-DO add tab switching with ctrl+tab
-    , script [ src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/eo-editor@e974857b00a510ba8f1286b7d6e15c5e3f193267/docs/eo-editor.js", U.attr_ "type" "module" ] []
-    , link [ href "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/eo-editor@e974857b00a510ba8f1286b7d6e15c5e3f193267/docs/eo-editor.css", type_ textCSS ]
-    , script [ src "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-editor@32829a4e1b29a203ee014f3d84a18cd88edda98e/docs/phi-editor.js", U.attr_ "type" "module" ] []
-    , link [ href "https://cdn.jsdelivr.net/gh/br4ch1st0chr0n3/phi-editor@32829a4e1b29a203ee014f3d84a18cd88edda98e/docs/phi-editor.css", type_ textCSS ]
+    , script [ src "https://cdn.jsdelivr.net/gh/deemp/eo-editor@e974857b00a510ba8f1286b7d6e15c5e3f193267/docs/eo-editor.js", U.attr_ "type" "module" ] []
+    , link [ href "https://cdn.jsdelivr.net/gh/deemp/eo-editor@e974857b00a510ba8f1286b7d6e15c5e3f193267/docs/eo-editor.css", type_ textCSS ]
+    , script [ src "https://cdn.jsdelivr.net/gh/deemp/phi-editor@32829a4e1b29a203ee014f3d84a18cd88edda98e/docs/phi-editor.js", U.attr_ "type" "module" ] []
+    , link [ href "https://cdn.jsdelivr.net/gh/deemp/phi-editor@32829a4e1b29a203ee014f3d84a18cd88edda98e/docs/phi-editor.css", type_ textCSS ]
     , link [ href "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css", rel "stylesheet", type_ textCSS ]
     , link [ href "https://www.yegor256.com/images/books/elegant-objects/cactus.png", rel "shortcut icon" ]
     , link [ href "https://cdn.jsdelivr.net/gh/yegor256/tacit@gh-pages/tacit-css.min.css", rel "stylesheet", type_ textCSS ]
@@ -1067,7 +1067,7 @@ guide =
               <table class="table table-hover wide-table">
                 <tbody>
                   <tr>
-                    <td><a href="https://github.com/br4ch1st0chr0n3/eo-editor">GitHub repo</a></td>
+                    <td><a href="https://github.com/deemp/eo-editor">GitHub repo</a></td>
                   </tr>
                   <tr>
                     <td><a href="https://github.com/cqfn/eo">EO repo</a></td>

@@ -17,7 +17,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       ROOT: front
-      CACHE: br4ch1st0chr0n3-nix-managed
+      CACHE: deemp
       ARTIFACTS_BRANCH: front-artifacts
       ARTIFACTS_DIR: artifacts
     steps:
@@ -51,7 +51,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       ROOT: back
-      CACHE: br4ch1st0chr0n3-nix-managed
+      CACHE: deemp
       ARTIFACTS_BRANCH: back-artifacts
       ARTIFACTS_DIR: artifacts
       APP_NAME: try-phi-back

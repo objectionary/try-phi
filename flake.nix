@@ -30,83 +30,61 @@
     let
       pkgs = nixpkgs.legacyPackages.${system};
       ghcVersion = "902";
-      inherit (my-codium.functions.${system})
-        writeSettingsJSON
-        mkCodium
-        ;
-      inherit (drv-tools.functions.${system})
-        toList
-        mkBin
-        mkShellApps
-        mkShellApp
-        ;
-      inherit (flakes-tools.functions.${system})
-        mkFlakesTools
-        ;
-      inherit (my-codium.configs.${system})
-        extensions
-        settingsNix
-        ;
-      inherit (haskell-tools.functions.${system})
-        toolsGHC
-        ;
-      inherit (toolsGHC ghcVersion)
-        stack
-        hls
-        ;
-      haskellTools = builtins.attrValues haskell-tools.toolSets.${system}.shellTools;
-      pursTools = builtins.attrValues purescript-tools.toolSets.${system}.shellTools;
+      inherit (my-codium.functions.${system}) writeSettingsJSON mkCodium;
+      inherit (drv-tools.functions.${system}) mkShellApps;
+      inherit (flakes-tools.functions.${system}) mkFlakesTools;
+      inherit (my-codium.configs.${system}) extensions settingsNix;
+      inherit (haskell-tools.functions.${system}) toolsGHC;
 
-      codium = mkCodium {
-        extensions = { inherit (extensions) nix haskell misc github markdown purescript; };
-        runtimeDependencies = [ stack hls pursTools haskellTools ];
-      };
+      haskellTools = { inherit (toolsGHC ghcVersion) stack hls; };
+      pursTools = purescript-tools.toolSets.${system}.shellTools;
+      devshell = my-devshell.devshell.${system};
+      inherit (my-devshell.functions.${system}) mkCommands;
 
       writeSettings = writeSettingsJSON settingsNix;
-
-      devshell = my-devshell.devshell.${system};
       scripts = mkShellApps {
         back = {
           text = "cd back && nix run";
-          description = "run back end";
+          description = "run backend";
         };
         front = {
           text = "cd front && nix run";
           description = "run frontend";
         };
       };
+      codiumTools = builtins.attrValues (
+        scripts // {
+          inherit (pkgs) heroku;
+          inherit (haskellTools) stack;
+          inherit (pursTools)
+            nodejs-16_x
+            purescript
+            spago
+            ;
+        }
+      );
+      codium = mkCodium {
+        extensions = { inherit (extensions) nix haskell misc github markdown purescript; };
+        runtimeDependencies =
+          codiumTools ++
+          (builtins.attrValues {
+            inherit (pursTools) dhall-lsp-server purescript-language-server purs-tidy;
+            inherit (haskellTools) hls;
+          });
+      };
       flakesTools = mkFlakesTools [ "." ];
+      tools = codiumTools ++ [ codium ];
     in
     {
       packages = {
         pushToCachix = flakesTools.pushToCachix;
         updateLocks = flakesTools.update;
-      } // scripts;
+        inherit haskellTools pursTools;
+      };
 
       devShells.default = devshell.mkShell {
-        packages = builtins.attrValues (scripts // { inherit codium writeSettings; });
-        commands = [
-          {
-            name = "codium";
-            help = "ide with Haskell extensions and executables";
-            category = "ide";
-          }
-          {
-            name = writeSettings.name;
-            help = writeSettings.meta.description;
-            category = "ide";
-          }
-          {
-            name = scripts.back.name;
-            help = "run backend";
-            category = "project";
-          }
-          {
-            name = "front";
-            help = scripts.front.meta.description;
-            category = "project";
-          }
-        ];
+        packages = tools;
+        commands = mkCommands "tools" tools;
       };
     });
 
@@ -114,7 +92,7 @@
     extra-substituters = [
       "https://haskell-language-server.cachix.org"
       "https://nix-community.cachix.org"
-      "https://hydra.iohk.io"
+      "https://cache.iog.io"
       "https://deemp.cachix.org"
     ];
     extra-trusted-public-keys = [

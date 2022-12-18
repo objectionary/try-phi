@@ -97,3 +97,8 @@ jobs:
           heroku_app_name: ${{ env.APP_NAME }}
           heroku_email: ${{ secrets.HEROKU_EMAIL }}
           branch: ${{ env.ARTIFACTS_BRANCH }}
+
+  ci:
+    name: CI
+    uses: deemp/workflows/.github/workflows/nix-ci.yaml@main
+    secrets: inherit

@@ -13,8 +13,9 @@
   },
   "scripts": {
     "build": "spago build",
-    "dev": "parcel dev/index.html --open",
+    "dev": "npx parcel dev/index.html --open",
     "test": "spago test",
+    "prequick-start": "npm i",
     "quick-start": "npm run build",
     "postquick-start": "npm run dev",
     "prebuild:min": "rm -rf min && mkdir min && cp dev/* min/",

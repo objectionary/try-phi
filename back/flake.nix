@@ -23,11 +23,8 @@
     flake-utils.lib.eachDefaultSystem (system:
     let
       pkgs = nixpkgs.legacyPackages.${system};
-      ghcVersion = "902";
-      inherit (haskell-tools.functions.${system})
-        toolsGHC
-        ;
-      inherit (toolsGHC ghcVersion) stack callCabal justStaticExecutables;
+      inherit (haskell-tools.functions.${system}) toolsGHC;
+      inherit (toolsGHC "902") stack callCabal justStaticExecutables;
 
       try-phi-back =
         let
@@ -62,6 +59,7 @@
           shellHook = ''
             export LANG="C.UTF-8";
           '';
+          buildInputs = [ back ];
         };
       };
     });

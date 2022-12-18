@@ -72,7 +72,7 @@
             inherit (haskellTools) hls;
           });
       };
-      flakesTools = mkFlakesTools [ "." ];
+      flakesTools = mkFlakesTools [ "front" "back" "." ];
       tools = codiumTools ++ [ codium ];
     in
     {

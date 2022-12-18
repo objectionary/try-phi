@@ -78,7 +78,7 @@
     {
       packages = {
         pushToCachix = flakesTools.pushToCachix;
-        updateLocks = flakesTools.update;
+        updateLocks = flakesTools.updateLocks;
         inherit haskellTools pursTools;
       };
 

@@ -36,31 +36,51 @@
       inherit (my-codium.configs.${system}) extensions settingsNix;
       inherit (haskell-tools.functions.${system}) toolsGHC;
 
-      haskellTools = { inherit (toolsGHC ghcVersion) stack hls; };
+      haskellTools = { inherit (toolsGHC ghcVersion) stack hls ghc; };
       pursTools = purescript-tools.toolSets.${system}.shellTools;
       devshell = my-devshell.devshell.${system};
       inherit (my-devshell.functions.${system}) mkCommands;
 
       writeSettings = writeSettingsJSON settingsNix;
+      backDir = "back";
+      frontDir = "front";
       scripts = mkShellApps {
         back = {
-          text = "cd back && nix run";
+          text = "cd ${backDir} && nix run";
           description = "run backend";
         };
         front = {
-          text = "cd front && nix run";
+          text = "cd ${frontDir} && nix run";
           description = "run frontend";
         };
+        backDocker =
+          let
+            result = "result";
+            name = "back";
+            port = "8082";
+            host = "127.0.0.1";
+            tag = "latest";
+          in
+          {
+            text = ''
+              nix build -o ${result} ./${backDir}#images.${system}.${name}
+              docker load < ${result}
+              docker run -p ${host}:${port}:${port} ${name}:${tag} ${name}
+            '';
+            runtimeInputs = [ pkgs.docker ];
+            description = "run back in a docker container";
+          };
       };
       codiumTools = builtins.attrValues (
         scripts // {
           inherit (pkgs) heroku;
-          inherit (haskellTools) stack;
+          inherit (haskellTools) stack ghc;
           inherit (pursTools)
             nodejs-16_x
             purescript
             spago
             ;
+          inherit writeSettings;
         }
       );
       codium = mkCodium {
@@ -79,8 +99,7 @@
       packages = {
         pushToCachix = flakesTools.pushToCachix;
         updateLocks = flakesTools.updateLocks;
-        inherit haskellTools pursTools;
-      };
+      } // scripts;
 
       devShells.default = devshell.mkShell {
         packages = tools;

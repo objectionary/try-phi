@@ -1,32 +1,37 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module TH (newOptions, MyResponse (..), MyRequest (..), GraphTab (..), TabId (..), TextTabs (..)) where
+module TH (newOptions, MyResponse (..), MyRequest (..), GraphTab (..), TabId (..), TextTabs (..), GetResponse (..)) where
 
 import Data.Aeson (Options (constructorTagModifier), defaultOptions)
+import Data.Aeson.Types
 import Data.Data (Data (toConstr), Typeable)
 
 -- CBN with graph
 data GraphTab = GraphTab
-  { states :: [String],
-    graphs :: [String]
+  { states :: [String]
+  , graphs :: [String]
   }
   deriving (Show, Data, Typeable)
 
-data TextTabs = TextTabs {
-    original_term :: String,
-    whnf :: String,
-    nf :: String,
-    cbn_reduction :: String,
-    cbn_with_tap :: String,
-    phi_latex :: String
-} deriving (Show, Data, Typeable)
+data TextTabs = TextTabs
+  { original_term :: String
+  , whnf :: String
+  , nf :: String
+  , cbn_reduction :: String
+  , cbn_with_tap :: String
+  , phi_latex :: String
+  }
+  deriving (Show, Data, Typeable)
+
+newtype GetResponse = GetResponse {resp :: String} deriving (ToJSON)
 
 data MyResponse
   = OkResponse
-      { code :: String,
-        textTabs :: TextTabs,
-        graphTab :: GraphTab
+      { code :: String
+      , textTabs :: TextTabs
+      , graphTab :: GraphTab
       }
   | ErrorResponse
       { error :: String
@@ -48,8 +53,8 @@ instance Show TabId where
 
 modifyName :: String -> String
 modifyName s
-  | s == show (toConstr (OkResponse {})) = "ok"
-  | s == show (toConstr (ErrorResponse {})) = "error"
+  | s == show (toConstr (OkResponse{})) = "ok"
+  | s == show (toConstr (ErrorResponse{})) = "error"
   | otherwise = "unknown"
 
 {-
@@ -57,4 +62,4 @@ modifyName s
 "error"
 -}
 
-newOptions = defaultOptions {constructorTagModifier = modifyName}
+newOptions = defaultOptions{constructorTagModifier = modifyName}

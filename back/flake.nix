@@ -7,7 +7,6 @@
     flake-utils.follows = "flake-utils_/flake-utils";
     gitignore_.url = github:deemp/flakes?dir=source-flake/gitignore;
     gitignore.follows = "gitignore_/gitignore";
-    drv-tools.url = github:deemp/flakes?dir=drv-tools;
     haskell-tools.url = github:deemp/flakes?dir=language-tools/haskell;
   };
 
@@ -16,7 +15,6 @@
     , nixpkgs
     , flake-utils
     , gitignore
-    , drv-tools
     , haskell-tools
     , ...
     }:
@@ -33,11 +31,11 @@
           language-utils = callCabal "language-utils" ./language-utils {
             inherit phi-utils eo-utils;
           };
-          back = callCabal "try-phi-back" ./. {
+          back_ = callCabal "try-phi-back" ./. {
             inherit language-utils phi-utils eo-utils;
           };
         in
-        justStaticExecutables back;
+        justStaticExecutables back_;
 
       back = pkgs.stdenv.mkDerivation {
         buildInputs = [ try-phi-back ];
@@ -47,6 +45,12 @@
           mkdir -p $out/bin
           ln -s ${try-phi-back}/bin/try-phi-back-exe $out/bin/back
         ";
+      };
+
+      backDocker = pkgs.dockerTools.buildLayeredImage {
+        name = back.name;
+        tag = "latest";
+        contents = [ back ];
       };
     in
     {
@@ -61,6 +65,10 @@
           '';
           buildInputs = [ back ];
         };
+      };
+
+      images = {
+        back = backDocker;
       };
     });
 

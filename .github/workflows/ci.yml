@@ -50,45 +50,45 @@ jobs:
         os: [ubuntu-22.04]
     runs-on: ${{ matrix.os }}
     env:
-      ROOT: back
+      APP_DIR: back
       CACHE: deemp
       ARTIFACTS_BRANCH: back-artifacts
       ARTIFACTS_DIR: artifacts
       APP_NAME: try-phi-back
     steps:
       - uses: actions/checkout@v3
-      - name: Prepare Nix
-        uses: ./.github/actions/prepare-nix
-        with:
-          ROOT: ${{ env.ROOT }}
-          CACHE: ${{ env.CACHE }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Prepare Nix
+      #   uses: ./.github/actions/prepare-nix
+      #   with:
+      #     ROOT: ${{ env.ROOT }}
+      #     CACHE: ${{ env.CACHE }}
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build with Nix
-        run: |
-          cd ${{ env.ROOT }}
-          nix build
+      # - name: Build with Nix
+      #   run: |
+      #     cd ${{ env.ROOT }}
+      #     nix build
 
-      - name: Prepare ${{ env.ARTIFACTS_DIR }} dir
-        run: |
-          cd ${{ env.ROOT }}
-          mkdir ${{ env.ARTIFACTS_DIR }}
-          cp result/bin/back Procfile ${{ env.ARTIFACTS_DIR }}
-          printf "%s" '{ "name": "appname", "version": "0.0.1", "dependencies": {} }' > ${{ env.ARTIFACTS_DIR }}/package.json
+      # - name: Prepare ${{ env.ARTIFACTS_DIR }} dir
+      #   run: |
+      #     cd ${{ env.ROOT }}
+      #     mkdir ${{ env.ARTIFACTS_DIR }}
+      #     cp result/bin/back Procfile ${{ env.ARTIFACTS_DIR }}
+      #     printf "%s" '{ "name": "appname", "version": "0.0.1", "dependencies": {} }' > ${{ env.ARTIFACTS_DIR }}/package.json
 
-      - name: Push ${{ env.ARTIFACTS_DIR }} dir to ${{ env.ARTIFACTS_BRANCH }}
-        uses: s0/git-publish-subdir-action@v2.6.0
-        env:
-          REPO: self
-          BRANCH: ${{ env.ARTIFACTS_BRANCH }}
-          FOLDER: ${{ env.ROOT }}/${{ env.ARTIFACTS_DIR }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Push ${{ env.ARTIFACTS_DIR }} dir to ${{ env.ARTIFACTS_BRANCH }}
+      #   uses: s0/git-publish-subdir-action@v2.6.0
+      #   env:
+      #     REPO: self
+      #     BRANCH: ${{ env.ARTIFACTS_BRANCH }}
+      #     FOLDER: ${{ env.ROOT }}/${{ env.ARTIFACTS_DIR }}
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Deploy to Heroku
-      - name: Checkout ${{ env.ARTIFACTS_BRANCH }}
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ env.ARTIFACTS_BRANCH }}
+      # # Deploy to Heroku
+      # - name: Checkout ${{ env.ARTIFACTS_BRANCH }}
+      #   uses: actions/checkout@v3
+      #   with:
+      #     ref: ${{ env.ARTIFACTS_BRANCH }}
 
       - name: Push to Heroku
         uses: akhileshns/heroku-deploy@v3.12.12
@@ -96,7 +96,7 @@ jobs:
           heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
           heroku_app_name: ${{ env.APP_NAME }}
           heroku_email: ${{ secrets.HEROKU_EMAIL }}
-          branch: ${{ env.ARTIFACTS_BRANCH }}
+          appdir: ${{ env.APP_DIR }}
 
   ci:
     name: CI

@@ -54,5 +54,5 @@ jobs:
 
   ci:
     name: CI
-    uses: deemp/workflows/.github/workflows/nix-ci.yaml@main
+    uses: deemp/workflows/.github/workflows/nix-ci.yaml
     secrets: inherit

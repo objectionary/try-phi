@@ -22,17 +22,21 @@ jobs:
     steps:
       - name: Checkout main
         uses: actions/checkout@v3
-      - uses: deemp/workflows/.github/actions/prepare-nix
+      - name: Checkout workflows
+        uses: actions/checkout@v3
+        with:
+          path: .actions
+          repository: deemp/workflows
+      - name: Checkout workflows repo
+        uses: ./.actions/.github/actions/prepare-nix
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Build with Nix
         run: |
           cd ${{ env.ROOT }}
           nix develop -c bash -c '
             npm run build:gh-pages
           '
-
       - name: GitHub Pages action
         uses: peaceiris/actions-gh-pages@v3.7.3
         with:

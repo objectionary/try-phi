@@ -53,22 +53,30 @@
           text = "cd ${frontDir} && nix run";
           description = "run frontend";
         };
-        backDocker =
+        backDockerBuild =
           let
             result = "result";
+            name = "back";
+          in
+          {
+            text = ''
+              nix build -o ${result} ./${backDir}#images.${system}.${name}
+              docker load < ${result}
+            '';
+            runtimeInputs = [ pkgs.docker ];
+            description = "nix build an image and load it to docker";
+          };
+        backDockerRun =
+          let
             name = "back";
             port = "8082";
             host = "127.0.0.1";
             tag = "latest";
           in
           {
-            text = ''
-              nix build -o ${result} ./${backDir}#images.${system}.${name}
-              docker load < ${result}
-              docker run -p ${host}:${port}:${port} ${name}:${tag} ${name}
-            '';
+            text = "docker run -p ${host}:${port}:${port} ${name}:${tag} ${name}";
             runtimeInputs = [ pkgs.docker ];
-            description = "run back in a docker container";
+            description = "run ${name} in a docker container";
           };
       };
       codiumTools = builtins.attrValues (

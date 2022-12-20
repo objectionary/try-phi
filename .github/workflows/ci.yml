@@ -17,17 +17,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       ROOT: front
-      CACHE: deemp
       ARTIFACTS_BRANCH: front-artifacts
       ARTIFACTS_DIR: artifacts
     steps:
       - name: Checkout main
         uses: actions/checkout@v3
-      - name: Prepare Nix
-        uses: ./.github/actions/prepare-nix
+      - uses: deemp/workflows/.github/actions/prepare-nix
         with:
-          ROOT: ${{ env.ROOT }}
-          CACHE: ${{ env.CACHE }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build with Nix

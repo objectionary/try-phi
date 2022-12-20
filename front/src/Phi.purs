@@ -327,9 +327,7 @@ textStepButton = case _ of
 -- #Stringification
 urlPrefix ∷ AppState -> String
 urlPrefix DevState = "http://localhost:8082/"
--- urlPrefix DevState = "http://51.250.11.82:8082/"
--- urlPrefix DevState = "https://try-phi.deemp.fun"
-urlPrefix DeployState = "https://try-phi.deemp.fun"
+urlPrefix DeployState = "http://try-phi.deemp.fun:8082/"
 
 _editor ∷ String → String
 _editor x = x <> "_editor"

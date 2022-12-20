@@ -22,12 +22,12 @@ jobs:
     steps:
       - name: Checkout main
         uses: actions/checkout@v3
-      - name: Checkout workflows
+      - name: Checkout workflows repo
         uses: actions/checkout@v3
         with:
           path: .actions
           repository: deemp/workflows
-      - name: Checkout workflows repo
+      - name: Prepare Nix
         uses: ./.actions/.github/actions/prepare-nix
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -48,12 +48,12 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
-      - name: Checkout workflows
+      - name: Checkout workflows repo
         uses: actions/checkout@v3
         with:
           path: .actions
           repository: deemp/workflows
-      - name: Checkout workflows repo
+      - name: Prepare Nix
         uses: ./.actions/.github/actions/prepare-nix
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

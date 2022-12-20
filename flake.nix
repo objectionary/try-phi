@@ -44,41 +44,50 @@
       writeSettings = writeSettingsJSON settingsNix;
       backDir = "back";
       frontDir = "front";
-      scripts = mkShellApps {
-        back = {
-          text = "cd ${backDir} && nix run";
-          description = "run backend";
-        };
-        front = {
-          text = "cd ${frontDir} && nix run";
-          description = "run frontend";
-        };
-        backDockerBuild =
-          let
-            result = "result";
-            name = "back";
-          in
-          {
-            text = ''
-              nix build -o ${result} ./${backDir}#images.${system}.${name}
-              docker load < ${result}
-            '';
-            runtimeInputs = [ pkgs.docker ];
-            description = "nix build an image and load it to docker";
+      scripts =
+        let
+          dockerHubImage = "try-phi-back";
+          host = "127.0.0.1";
+          name = "back";
+          port = "8082";
+          result = "result";
+          tag = "latest";
+          username = "deemp";
+        in
+        mkShellApps {
+          back = {
+            text = "cd ${backDir} && nix run";
+            description = "run backend";
           };
-        backDockerRun =
-          let
-            name = "back";
-            port = "8082";
-            host = "127.0.0.1";
-            tag = "latest";
-          in
-          {
-            text = "docker run -p ${host}:${port}:${port} ${name}:${tag} ${name}";
-            runtimeInputs = [ pkgs.docker ];
-            description = "run ${name} in a docker container";
+          front = {
+            text = "cd ${frontDir} && nix run";
+            description = "run frontend";
           };
-      };
+          backDockerBuild =
+            {
+              text = ''
+                nix build -o ${result} ./${backDir}#images.${system}.${name}
+                docker load < ${result}
+              '';
+              runtimeInputs = [ pkgs.docker ];
+              description = "nix build an image and load it to docker";
+            };
+          backDockerRun =
+            {
+              text = "docker run -p ${host}:${port}:${port} ${name}:${tag} ${name}";
+              runtimeInputs = [ pkgs.docker ];
+              description = "run ${name} in a docker container";
+            };
+          backDockerPush =
+            {
+              text = ''
+                docker tag ${name}:${tag} ${username}/${dockerHubImage}:${tag}
+                docker push ${username}/${dockerHubImage}:${tag}
+              '';
+              runtimeInputs = [ pkgs.docker ];
+              description = "Push ${name} to Docker Hub";
+            };
+        };
       codiumTools = builtins.attrValues (
         scripts // {
           inherit (pkgs) heroku;

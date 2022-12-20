@@ -48,13 +48,24 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
-      - name: Push to Heroku
-        uses: akhileshns/heroku-deploy@v3.12.12
+      - name: Checkout workflows
+        uses: actions/checkout@v3
         with:
-          heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
-          heroku_email: ${{ secrets.HEROKU_EMAIL }}
-          heroku_app_name: try-phi-back
-          appdir: back
+          path: .actions
+          repository: deemp/workflows
+      - name: Checkout workflows repo
+        uses: ./.actions/.github/actions/prepare-nix
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build a container
+        run: nix run .#backDockerBuild
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          password: ${{ secrets.DOCKER_HUB_PAT }}
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+      - name: Push to Docker Hub
+        run: nix run .#backDockerPush
 
   ci:
     name: CI

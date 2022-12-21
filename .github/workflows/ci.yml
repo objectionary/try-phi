@@ -67,7 +67,7 @@ jobs:
       - name: Release app on Heroku
         run: nix run .#backReleaseHeroku
 
-  # ci:
-  #   name: CI
-  #   uses: deemp/workflows/.github/workflows/nix-ci.yaml@main
-  #   secrets: inherit
+  ci:
+    name: CI
+    uses: deemp/workflows/.github/workflows/nix-ci.yaml@main
+    secrets: inherit

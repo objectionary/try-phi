@@ -57,15 +57,15 @@ jobs:
         uses: ./.actions/.github/actions/prepare-nix
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build a container
-        run: nix run .#backDockerBuild
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
+      - name: Log in to Heroku
+        uses: akhileshns/heroku-deploy@v3.12.12
         with:
-          password: ${{ secrets.DOCKER_HUB_PAT }}
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-      - name: Push to Docker Hub
-        run: nix run .#backDockerPush
+          heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
+          heroku_email: ${{ secrets.HEROKU_EMAIL }}
+          heroku_app_name: try-phi-back
+          justlogin: true
+      - name: Release app on Heroku
+        run: nix run .#backReleaseHeroku
 
   ci:
     name: CI

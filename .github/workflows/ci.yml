@@ -58,7 +58,9 @@ jobs:
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Log in to Heroku
-        uses: akhileshns/heroku-deploy@v3.12.12
+        # TODO switch to AkhileshNS/heroku-deploy
+        # https://github.com/AkhileshNS/heroku-deploy/pull/151
+        uses: deemp/heroku-deploy@master
         with:
           heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
           heroku_email: ${{ secrets.HEROKU_EMAIL }}

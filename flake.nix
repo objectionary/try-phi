@@ -30,83 +30,118 @@
     let
       pkgs = nixpkgs.legacyPackages.${system};
       ghcVersion = "902";
-      inherit (my-codium.functions.${system})
-        writeSettingsJSON
-        mkCodium
-        ;
-      inherit (drv-tools.functions.${system})
-        toList
-        mkBin
-        mkShellApps
-        mkShellApp
-        ;
-      inherit (flakes-tools.functions.${system})
-        mkFlakesTools
-        ;
-      inherit (my-codium.configs.${system})
-        extensions
-        settingsNix
-        ;
-      inherit (haskell-tools.functions.${system})
-        toolsGHC
-        ;
-      inherit (toolsGHC ghcVersion)
-        stack
-        hls
-        ;
-      haskellTools = builtins.attrValues haskell-tools.toolSets.${system}.shellTools;
-      pursTools = builtins.attrValues purescript-tools.toolSets.${system}.shellTools;
+      inherit (my-codium.functions.${system}) writeSettingsJSON mkCodium;
+      inherit (drv-tools.functions.${system}) mkShellApps mkBin;
+      inherit (flakes-tools.functions.${system}) mkFlakesTools;
+      inherit (my-codium.configs.${system}) extensions settingsNix;
+      inherit (haskell-tools.functions.${system}) toolsGHC;
 
-      codium = mkCodium {
-        extensions = { inherit (extensions) nix haskell misc github markdown purescript; };
-        runtimeDependencies = [ stack hls pursTools haskellTools ];
-      };
+      haskellTools = { inherit (toolsGHC ghcVersion) stack hls ghc; };
+      pursTools = purescript-tools.toolSets.${system}.shellTools;
+      devshell = my-devshell.devshell.${system};
+      inherit (my-devshell.functions.${system}) mkCommands;
 
       writeSettings = writeSettingsJSON settingsNix;
-
-      devshell = my-devshell.devshell.${system};
-      scripts = mkShellApps {
-        back = {
-          text = "cd back && nix run";
-          description = "run back end";
-        };
-        front = {
-          text = "cd front && nix run";
-          description = "run frontend";
-        };
+      backDir = "back";
+      frontDir = "front";
+      scripts =
+        let
+          dockerHubImage = "try-phi-back";
+          appName = "try-phi-back";
+          host = "127.0.0.1";
+          name = "back";
+          port = "8082";
+          result = "result";
+          tag = "latest";
+          username = "deemp";
+          apps1 =
+            mkShellApps {
+              back = {
+                text = "cd ${backDir} && nix run";
+                description = "Run backend";
+              };
+              front = {
+                text = "cd ${frontDir} && nix run";
+                description = "Run frontend";
+              };
+              backDockerBuild =
+                {
+                  text = ''
+                    nix build -o ${result} ./${backDir}#images.${system}.${name}
+                    docker load < ${result}
+                  '';
+                  runtimeInputs = [ pkgs.docker ];
+                  description = "nix build an image and load it to docker";
+                };
+            };
+          apps2 = mkShellApps {
+            backDockerRun =
+              {
+                text = ''
+                  ${mkBin apps1.backDockerBuild}
+                  docker run -p ${host}:${port}:${port} ${name}:${tag}
+                '';
+                runtimeInputs = [ pkgs.docker ];
+                description = "Run ${name} in a docker container";
+              };
+            backDockerPush =
+              {
+                text = ''
+                  ${mkBin apps1.backDockerBuild}
+                  docker tag ${name}:${tag} ${username}/${dockerHubImage}:${tag}
+                  docker push ${username}/${dockerHubImage}:${tag}
+                '';
+                runtimeInputs = [ pkgs.docker ];
+                description = "Push ${name} to Docker Hub";
+              };
+            backReleaseHeroku =
+              {
+                text = ''
+                  ${mkBin apps1.backDockerBuild}
+                  docker login --username=_ --password=$(heroku auth:token) registry.heroku.com
+                  docker tag ${name}:${tag} registry.heroku.com/${appName}/web
+                  docker push registry.heroku.com/${appName}/web
+                  heroku container:release web -a ${appName}
+                '';
+                runtimeInputs = [ pkgs.docker ];
+                description = "Release to ${name} on Heroku";
+              };
+          };
+        in
+        apps1 // apps2;
+      codiumTools = builtins.attrValues (
+        scripts // {
+          inherit (pkgs) heroku;
+          inherit (haskellTools) stack ghc;
+          inherit (pursTools)
+            nodejs-16_x
+            purescript
+            spago
+            ;
+          inherit writeSettings;
+        }
+      );
+      codium = mkCodium {
+        extensions = { inherit (extensions) nix haskell misc github markdown purescript; };
+        runtimeDependencies =
+          codiumTools ++
+          (builtins.attrValues {
+            inherit (pursTools) dhall-lsp-server purescript-language-server purs-tidy;
+            inherit (haskellTools) hls;
+          });
       };
-      flakesTools = mkFlakesTools [ "." ];
+      flakesTools = mkFlakesTools [ "front" "back" "." ];
+      tools = codiumTools ++ [ codium ];
     in
     {
       packages = {
         pushToCachix = flakesTools.pushToCachix;
-        updateLocks = flakesTools.update;
+        updateLocks = flakesTools.updateLocks;
       } // scripts;
 
       devShells.default = devshell.mkShell {
-        packages = builtins.attrValues (scripts // { inherit codium writeSettings; });
-        commands = [
-          {
-            name = "codium";
-            help = "ide with Haskell extensions and executables";
-            category = "ide";
-          }
-          {
-            name = writeSettings.name;
-            help = writeSettings.meta.description;
-            category = "ide";
-          }
-          {
-            name = scripts.back.name;
-            help = "run backend";
-            category = "project";
-          }
-          {
-            name = "front";
-            help = scripts.front.meta.description;
-            category = "project";
-          }
-        ];
+        packages = tools;
+        commands = mkCommands "tools" tools;
       };
     });
 
@@ -114,7 +149,7 @@
     extra-substituters = [
       "https://haskell-language-server.cachix.org"
       "https://nix-community.cachix.org"
-      "https://hydra.iohk.io"
+      "https://cache.iog.io"
       "https://deemp.cachix.org"
     ];
     extra-trusted-public-keys = [

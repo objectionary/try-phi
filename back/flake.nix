@@ -7,7 +7,6 @@
     flake-utils.follows = "flake-utils_/flake-utils";
     gitignore_.url = github:deemp/flakes?dir=source-flake/gitignore;
     gitignore.follows = "gitignore_/gitignore";
-    drv-tools.url = github:deemp/flakes?dir=drv-tools;
     haskell-tools.url = github:deemp/flakes?dir=language-tools/haskell;
   };
 
@@ -16,18 +15,14 @@
     , nixpkgs
     , flake-utils
     , gitignore
-    , drv-tools
     , haskell-tools
     , ...
     }:
     flake-utils.lib.eachDefaultSystem (system:
     let
       pkgs = nixpkgs.legacyPackages.${system};
-      ghcVersion = "902";
-      inherit (haskell-tools.functions.${system})
-        toolsGHC
-        ;
-      inherit (toolsGHC ghcVersion) stack callCabal justStaticExecutables;
+      inherit (haskell-tools.functions.${system}) toolsGHC;
+      inherit (toolsGHC "902") stack callCabal justStaticExecutables;
 
       try-phi-back =
         let
@@ -36,11 +31,11 @@
           language-utils = callCabal "language-utils" ./language-utils {
             inherit phi-utils eo-utils;
           };
-          back = callCabal "try-phi-back" ./. {
+          back_ = callCabal "try-phi-back" ./. {
             inherit language-utils phi-utils eo-utils;
           };
         in
-        justStaticExecutables back;
+        justStaticExecutables back_;
 
       back = pkgs.stdenv.mkDerivation {
         buildInputs = [ try-phi-back ];
@@ -50,6 +45,13 @@
           mkdir -p $out/bin
           ln -s ${try-phi-back}/bin/try-phi-back-exe $out/bin/back
         ";
+      };
+
+      backDocker = pkgs.dockerTools.buildLayeredImage {
+        name = back.name;
+        tag = "latest";
+        contents = [ back ];
+        config.Entrypoint = [ "back" ];
       };
     in
     {
@@ -62,7 +64,12 @@
           shellHook = ''
             export LANG="C.UTF-8";
           '';
+          buildInputs = [ back ];
         };
+      };
+
+      images = {
+        back = backDocker;
       };
     });
 

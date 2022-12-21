@@ -79,7 +79,7 @@ component =
 
   render s = html s
 
--- TODO
+  -- TODO
 
   handleAction :: forall output. Action -> H.HalogenM State Action () output Aff Unit
   handleAction ac = do
@@ -185,22 +185,23 @@ component =
                       $ \s ->
                           s
                             { textTabs =
-                              ( \(Tab t) -> case Map.lookup t.id r.textTabs of
-                                  Just cont -> Tab t { tabContent = pre_ [ text cont ] }
-                                  Nothing ->
-                                    (\x -> Tab t { tabContent = text x })
-                                      $ case t.id of
-                                          TCBNWithGraph -> "Waiting for " <> show TCBNWithGraph
-                                          _ -> "No response"
-                              )
-                                <$> s.textTabs
+                                ( \(Tab t) -> case Map.lookup t.id r.textTabs of
+                                    Just cont -> Tab t { tabContent = pre_ [ text cont ] }
+                                    Nothing ->
+                                      (\x -> Tab t { tabContent = text x })
+                                        $ case t.id of
+                                            TCBNWithGraph -> "Waiting for " <> show TCBNWithGraph
+                                            _ -> "No response"
+                                )
+                                  <$> s.textTabs
                             , graphTabState = r.graphTab
                             }
                     handleAction UpdateGraphContent
                     setStatePopovers
                   Just (ErrorResponse r) ->
                     handleAction $ HandleError
-                      $ ( r.error
+                      $
+                        ( r.error
                             # case editor of
                                 EOEditor -> EOParseError
                                 PhiEditor -> PhiParseError
@@ -258,8 +259,8 @@ component =
         HandleKey sid ev -> do
           getActiveTabId
             >>= case _ of
-                Just TCBNWithGraph -> stepStates
-                _ -> pure unit
+              Just TCBNWithGraph -> stepStates
+              _ -> pure unit
           stepTabs
           where
           stepStates
@@ -325,8 +326,7 @@ textStepButton = case _ of
 
 -- #Stringification
 urlPrefix ∷ AppState -> String
-urlPrefix DevState = "http://localhost:8082/"
-
+urlPrefix DevState = "http://127.0.0.1:8082/"
 -- urlPrefix DevState = "https://try-phi-back.herokuapp.com/"
 urlPrefix DeployState = "https://try-phi-back.herokuapp.com/"
 
@@ -438,7 +438,8 @@ mkInfo id = "info_" <> id
 ics ∷ Array { x ∷ String, y ∷ Array { href :: Maybe String, pref :: Maybe String, txt :: Maybe String } }
 ics =
   (\r@{ x: x } -> r { x = mkInfo x })
-    <$> [ { x: editorName PhiEditor # _editor
+    <$>
+      [ { x: editorName PhiEditor # _editor
         , y:
             [ { pref: Just "Original"
               , href: Just "https://drive.google.com/open?id=1ZxlI0npXn4qLQj9hzCQtH3-O5xnrAsJH&disco=AAAATVEUf-E"
@@ -611,10 +612,10 @@ defaultOk :: OkState
 defaultOk =
   { textTabs:
       ( \( Tuple
-            ( Tuple a b
-          )
-            c
-        ) ->
+             ( Tuple a b
+             )
+             c
+         ) ->
           Tab { id: a, buttonText: b, isActive: c, tabContent: div_ [] }
       )
         <$> DA.zip (DA.zip textTabIds btexts) isActives
@@ -712,14 +713,15 @@ html state =
   div
     [ U.classes_ [ dGrid, "gap-1" ] ]
     $ divRow
-    <$> [ cdns
-      , eoLogoSection
-      , buttons
-      , guide
-      , editorsDiv
-      , infos state
-      , pageFooter
-      ]
+        <$>
+          [ cdns
+          , eoLogoSection
+          , buttons
+          , guide
+          , editorsDiv
+          , infos state
+          , pageFooter
+          ]
   where
   divRow x = div [ U.classes_ [ "p-1" ] ] [ x ]
 
@@ -728,7 +730,8 @@ permalinkButton =
   button
     [ type_ ButtonButton
     , U.classes_
-        [ "btn", "btn-warning"
+        [ "btn"
+        , "btn-warning"
         ]
     , id permalink_
     , onClick $ \_ -> CopyToClipboard
@@ -747,7 +750,8 @@ guideButton =
   button
     [ type_ ButtonButton
     , U.classes_
-        [ "btn", "btn-success"
+        [ "btn"
+        , "btn-success"
         ]
     , propDataBs "toggle" "offcanvas"
     , propDataBs "target" "#offcanvasNavbar"

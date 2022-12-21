@@ -51,6 +51,7 @@
         name = back.name;
         tag = "latest";
         contents = [ back ];
+        config.Entrypoint = [ "back" ];
       };
     in
     {

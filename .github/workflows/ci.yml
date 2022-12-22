@@ -9,12 +9,65 @@ on:
   pull_request:
   workflow_dispatch:
 
+env:
+  action: |
+    git pull --rebase --autostash
+    nix run .#{0}
+    git commit -a -m "action: {1}" && git push || echo ""
+
 jobs:
-  front:
+  update-locks:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Checkout workflows repo
+        uses: actions/checkout@v3
+        with:
+          path: .actions
+          repository: deemp/workflows
+      - uses: ./.actions/.github/actions/prepare-nix
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: config git
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+      - name: Update locks
+        env:
+          command: updateLocks
+          msg: update locks
+        run: ${{ format(env.action, env.command, env.msg) }}
+
+  cache:
+    needs: update-locks
+    name: Build on ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-22.04]
+        os: [ubuntu-20.04, ubuntu-22.04, macos-11, macos-12]
     runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Checkout workflows repo
+        uses: actions/checkout@v3
+        with:
+          path: .actions
+          repository: deemp/workflows
+      - uses: ./.actions/.github/actions/prepare-nix
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: cachix/cachix-action@v12
+        with:
+          name: ${{ secrets.CACHIX_CACHE }}
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Push flakes to cachix
+        env:
+          CACHIX_CACHE: ${{ secrets.CACHIX_CACHE }}
+        run: nix run .#pushToCachix
+
+
+  front:
+    runs-on: ubuntu-22.04
+    needs: update-locks
     env:
       ROOT: front
       ARTIFACTS_BRANCH: front-artifacts
@@ -45,6 +98,7 @@ jobs:
           force_orphan: true
 
   back:
+    needs: update-locks
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
@@ -68,8 +122,3 @@ jobs:
           justlogin: true
       - name: Release app on Heroku
         run: nix run .#backReleaseHeroku
-
-  ci:
-    name: CI
-    uses: deemp/workflows/.github/workflows/nix-ci.yaml@1.0.0
-    secrets: inherit

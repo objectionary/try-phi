@@ -17,6 +17,7 @@ env:
 
 jobs:
   update-locks:
+    name: Update flake locks
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3

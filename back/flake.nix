@@ -21,37 +21,29 @@
     flake-utils.lib.eachDefaultSystem (system:
     let
       pkgs = nixpkgs.legacyPackages.${system};
-      inherit (haskell-tools.functions.${system}) toolsGHC;
-      inherit (toolsGHC "902") stack callCabal justStaticExecutables;
+      inherit (haskell-tools.functions.${system}) haskellTools;
+      inherit (haskellTools "902" { } (_: [ ]) [ ]) stack callCabal justStaticExecutable callCabal2nix;
 
-      try-phi-back =
+      name = "back";
+      
+      back =
         let
-          eo-utils = callCabal "eo-utils" ./language-utils/eo-utils { };
-          phi-utils = callCabal "phi-utils" ./language-utils/phi-utils { };
-          language-utils = callCabal "language-utils" ./language-utils {
+          eo-utils = callCabal2nix "eo-utils" ./language-utils/eo-utils { };
+          phi-utils = callCabal2nix "phi-utils" ./language-utils/phi-utils { };
+          language-utils = callCabal2nix "language-utils" ./language-utils {
             inherit phi-utils eo-utils;
           };
-          back_ = callCabal "try-phi-back" ./. {
+          back_ = callCabal2nix "try-phi-back" ./. {
             inherit language-utils phi-utils eo-utils;
           };
         in
-        justStaticExecutables back_;
-
-      back = pkgs.stdenv.mkDerivation {
-        buildInputs = [ try-phi-back ];
-        name = "back";
-        src = self;
-        installPhase = "
-          mkdir -p $out/bin
-          ln -s ${try-phi-back}/bin/try-phi-back-exe $out/bin/back
-        ";
-      };
+        justStaticExecutable name back_;
 
       backDocker = pkgs.dockerTools.buildLayeredImage {
         name = back.name;
         tag = "latest";
         contents = [ back ];
-        config.Entrypoint = [ "back" ];
+        config.Entrypoint = [ name ];
       };
     in
     {

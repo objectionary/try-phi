@@ -1,7 +1,0 @@
-resolver: lts-19.18
-
-packages:
-  - .
-
-ghc-options:
-  "$everything": -haddock

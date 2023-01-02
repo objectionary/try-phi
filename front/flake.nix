@@ -40,7 +40,7 @@
           };
           buildGHPages = {
             text = ''npm run build:gh-pages'';
-            runtimeInputs = [ shellTools.nodejs-16_x shellTools.purescript ];
+            runtimeInputs = [ shellTools.nodejs-16_x ];
           };
         };
 

@@ -29,7 +29,7 @@ It is combined with [EO](https://github.com/objectionary/eo) editor. EO is based
   sh <(curl -L https://nixos.org/nix/install) --no-daemon
   ```
 
-- Enable [flakes](https://nixos.wiki/wiki/Flakes#Permanent)
+- Enable [flakes](https://nixos.wiki/wiki/flakes/8ee5d35e592860636adb57cee3e27c98de04202a#Permanent)
 
 - Enter the repo
 
@@ -51,7 +51,7 @@ It is combined with [EO](https://github.com/objectionary/eo) editor. EO is based
 
 - Install [direnv](https://nix.dev/tutorials/declarative-and-reproducible-developer-environments#direnv-automatically-activating-the-environment-on-directory-change) - steps 1, 2
 
-- [Enable flakes](https://nixos.wiki/wiki/Flakes#Enable_flakes)
+- [Enable flakes](https://nixos.wiki/wiki/flakes/8ee5d35e592860636adb57cee3e27c98de04202a#Enable_flakes)
 
 - Allow direnv in flake folders
 

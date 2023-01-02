@@ -108,6 +108,7 @@
         "dir": "drv-tools",
         "owner": "deemp",
         "repo": "flakes",
+        "rev": "8ee5d35e592860636adb57cee3e27c98de04202a",
         "type": "github"
       }
     },
@@ -346,6 +347,7 @@
         "dir": "source-flake/flake-utils",
         "owner": "deemp",
         "repo": "flakes",
+        "rev": "8ee5d35e592860636adb57cee3e27c98de04202a",
         "type": "github"
       }
     },
@@ -511,6 +513,7 @@
         "dir": "codium",
         "owner": "deemp",
         "repo": "flakes",
+        "rev": "8ee5d35e592860636adb57cee3e27c98de04202a",
         "type": "github"
       }
     },
@@ -548,6 +551,7 @@
         "dir": "devshell",
         "owner": "deemp",
         "repo": "flakes",
+        "rev": "8ee5d35e592860636adb57cee3e27c98de04202a",
         "type": "github"
       }
     },
@@ -904,6 +908,7 @@
         "dir": "source-flake/nixpkgs",
         "owner": "deemp",
         "repo": "flakes",
+        "rev": "8ee5d35e592860636adb57cee3e27c98de04202a",
         "type": "github"
       }
     },
@@ -955,6 +960,7 @@
         "dir": "language-tools/purescript",
         "owner": "deemp",
         "repo": "flakes",
+        "rev": "8ee5d35e592860636adb57cee3e27c98de04202a",
         "type": "github"
       }
     },

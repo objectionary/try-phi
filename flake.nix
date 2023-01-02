@@ -12,6 +12,7 @@
     vscode-extensions.follows = "vscode-extensions_/vscode-extensions";
     haskell-tools.url = github:deemp/flakes?dir=language-tools/haskell;
     purescript-tools.url = github:deemp/flakes?dir=language-tools/purescript;
+    workflows.url = "github:deemp/flakes?dir=workflows";
   };
   outputs =
     { self
@@ -24,6 +25,7 @@
     , haskell-tools
     , purescript-tools
     , my-devshell
+    , workflows
     , ...
     }:
     flake-utils.lib.eachDefaultSystem (system:
@@ -34,104 +36,151 @@
       inherit (drv-tools.functions.${system}) mkShellApps mkBin;
       inherit (flakes-tools.functions.${system}) mkFlakesTools;
       inherit (my-codium.configs.${system}) extensions settingsNix;
-      inherit (haskell-tools.functions.${system}) toolsGHC;
+      inherit (haskell-tools.functions.${system}) haskellTools;
+      inherit (workflows.functions.${system})
+        writeWorkflow run nixCI_ stepsIf expr
+        mkAccessors genAttrsId;
+      inherit (workflows.configs.${system}) steps os oss nixCI;
 
-      haskellTools = { inherit (toolsGHC ghcVersion) stack hls ghc; };
       pursTools = purescript-tools.toolSets.${system}.shellTools;
       devshell = my-devshell.devshell.${system};
       inherit (my-devshell.functions.${system}) mkCommands;
 
-      writeSettings = writeSettingsJSON settingsNix;
       backDir = "back";
       frontDir = "front";
       scripts =
-        let
-          dockerHubImage = "try-phi-back";
-          appName = "try-phi-back";
-          host = "127.0.0.1";
-          name = "back";
-          port = "8082";
-          result = "result";
-          tag = "latest";
-          username = "deemp";
-          apps1 =
-            mkShellApps {
-              back = {
-                text = "cd ${backDir} && nix run";
-                description = "Run backend";
-              };
-              front = {
-                text = "cd ${frontDir} && nix run";
-                description = "Run frontend";
-              };
-              backDockerBuild =
-                {
-                  text = ''
-                    nix build -o ${result} ./${backDir}#images.${system}.${name}
-                    docker load < ${result}
-                  '';
-                  runtimeInputs = [ pkgs.docker ];
-                  description = "nix build an image and load it to docker";
-                };
-            };
-          apps2 = mkShellApps {
-            backDockerRun =
-              {
-                text = ''
-                  ${mkBin apps1.backDockerBuild}
-                  docker run -p ${host}:${port}:${port} ${name}:${tag}
-                '';
-                runtimeInputs = [ pkgs.docker ];
-                description = "Run ${name} in a docker container";
-              };
-            backDockerPush =
-              {
-                text = ''
-                  ${mkBin apps1.backDockerBuild}
-                  docker tag ${name}:${tag} ${username}/${dockerHubImage}:${tag}
-                  docker push ${username}/${dockerHubImage}:${tag}
-                '';
-                runtimeInputs = [ pkgs.docker ];
-                description = "Push ${name} to Docker Hub";
-              };
-            backReleaseHeroku =
-              {
-                text = ''
-                  ${mkBin apps1.backDockerBuild}
-                  docker login --username=_ --password=$(heroku auth:token) registry.heroku.com
-                  docker tag ${name}:${tag} registry.heroku.com/${appName}/web
-                  docker push registry.heroku.com/${appName}/web
-                  heroku container:release web -a ${appName}
-                '';
-                runtimeInputs = [ pkgs.docker ];
-                description = "Release to ${name} on Heroku";
-              };
+        (mkShellApps {
+          back = {
+            text = "cd ${backDir} && nix run";
+            description = "Run backend";
           };
+          front = {
+            text = "cd ${frontDir} && nix run";
+            description = "Run frontend";
+          };
+        }) // {
+          writeSettings = writeSettingsJSON settingsNix;
+          writeWorkflows = writeWorkflow "ci" workflow;
+        };
+
+      names = mkAccessors {
+        matrix.os = "";
+        secrets = genAttrsId [ "GITHUB_TOKEN" "HEROKU_API_KEY" "HEROKU_EMAIL" ];
+      };
+
+      workflow =
+        let
+          job1 = "_1_update_flake_locks";
+          job2 = "_2_push_to_cachix";
+          job3 = "_3_front";
+          job4 = "_4_back";
+          herokuAppName = "try-phi-back";
         in
-        apps1 // apps2;
-      codiumTools = builtins.attrValues (
-        scripts // {
-          inherit (pkgs) heroku;
-          inherit (haskellTools) stack ghc;
-          inherit (pursTools)
-            nodejs-16_x
-            purescript
-            spago
-            ;
-          inherit writeSettings;
-        }
-      );
+        nixCI // {
+          jobs = {
+            "${job1}" = {
+              name = "Update flake locks";
+              runs-on = os.ubuntu-20;
+              steps =
+                [
+                  steps.checkout
+                  steps.installNix
+                  steps.configGitAsGHActions
+                  steps.updateLocksAndCommit
+                ];
+            };
+            "${job2}" = {
+              name = "Push to cachix";
+              needs = job1;
+              strategy.matrix.os = oss;
+              runs-on = expr names.matrix.os;
+              steps =
+                [
+                  steps.checkout
+                  steps.installNix
+                  steps.logInToCachix
+                  steps.pushFlakesToCachix
+                ];
+            };
+            "${job3}" =
+              let
+                dir = "front";
+              in
+              {
+                name = "Publish front";
+                needs = job1;
+                runs-on = os.ubuntu-20;
+                steps = [
+                  steps.checkout
+                  steps.installNix
+                  {
+                    name = "Build";
+                    run = ''
+                      cd ${dir}
+                      nix develop -c bash -c '
+                        npm run build:gh-pages
+                      '
+                    '';
+                  }
+                  {
+                    name = "GitHub Pages action";
+                    uses = "peaceiris/actions-gh-pages@v3.9.0";
+                    "with" = {
+                      github_token = expr names.secrets.GITHUB_TOKEN;
+                      publish_dir = "./front/docs";
+                      force_orphan = true;
+                    };
+                  }
+                ];
+              };
+            "${job4}" = {
+              name = "Release to Heroku";
+              needs = job1;
+              runs-on = os.ubuntu-20;
+              steps =
+                [
+                  steps.checkout
+                  steps.installNix
+                  {
+                    name = "Log in to Heroku";
+                    # TODO switch to AkhileshNS/heroku-deploy
+                    # https://github.com/AkhileshNS/heroku-deploy/pull/151
+                    uses = "deemp/heroku-deploy@master";
+                    "with" = {
+                      heroku_api_key = expr names.secrets.HEROKU_API_KEY;
+                      heroku_email = expr names.secrets.HEROKU_EMAIL;
+                      heroku_app_name = herokuAppName;
+                      justlogin = true;
+                    };
+                  }
+                  {
+                    name = "Release app on Heroku";
+                    run = ''
+                      cd ${backDir}
+                      nix run .#herokuRelease
+                    '';
+                  }
+                ];
+            };
+          };
+        };
+
+      codiumTools = builtins.attrValues scripts;
+
       codium = mkCodium {
-        extensions = { inherit (extensions) nix haskell misc github markdown purescript; };
+        extensions = { inherit (extensions) nix misc github markdown; };
         runtimeDependencies =
           codiumTools ++
           (builtins.attrValues {
             inherit (pursTools) dhall-lsp-server purescript-language-server purs-tidy;
-            inherit (haskellTools) hls;
+            inherit (pursTools) nodejs-16_x purescript spago;
           });
       };
+
       flakesTools = mkFlakesTools [ "front" "back" "." ];
       tools = codiumTools ++ [ codium ];
+
+
     in
     {
       packages = {

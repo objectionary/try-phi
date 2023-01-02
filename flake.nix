@@ -8,9 +8,6 @@
     my-codium.url = github:deemp/flakes?dir=codium;
     my-devshell.url = github:deemp/flakes?dir=devshell;
     drv-tools.url = github:deemp/flakes?dir=drv-tools;
-    vscode-extensions_.url = github:deemp/flakes?dir=source-flake/vscode-extensions;
-    vscode-extensions.follows = "vscode-extensions_/vscode-extensions";
-    haskell-tools.url = github:deemp/flakes?dir=language-tools/haskell;
     purescript-tools.url = github:deemp/flakes?dir=language-tools/purescript;
     workflows.url = "github:deemp/flakes?dir=workflows";
   };
@@ -20,9 +17,7 @@
     , nixpkgs
     , flakes-tools
     , my-codium
-    , vscode-extensions
     , drv-tools
-    , haskell-tools
     , purescript-tools
     , my-devshell
     , workflows
@@ -36,12 +31,6 @@
       inherit (drv-tools.functions.${system}) mkShellApps mkBin;
       inherit (flakes-tools.functions.${system}) mkFlakesTools;
       inherit (my-codium.configs.${system}) extensions settingsNix;
-      inherit (haskell-tools.functions.${system}) haskellTools;
-      inherit (workflows.functions.${system})
-        writeWorkflow run nixCI_ stepsIf expr
-        mkAccessors genAttrsId;
-      inherit (workflows.configs.${system}) steps os oss nixCI;
-
       pursTools = purescript-tools.toolSets.${system}.shellTools;
       devshell = my-devshell.devshell.${system};
       inherit (my-devshell.functions.${system}) mkCommands;
@@ -60,108 +49,9 @@
           };
         }) // {
           writeSettings = writeSettingsJSON settingsNix;
-          writeWorkflows = writeWorkflow "ci" workflow;
-        };
-
-      names = mkAccessors {
-        matrix.os = "";
-        secrets = genAttrsId [ "GITHUB_TOKEN" "HEROKU_API_KEY" "HEROKU_EMAIL" ];
-      };
-
-      workflow =
-        let
-          job1 = "_1_update_flake_locks";
-          job2 = "_2_push_to_cachix";
-          job3 = "_3_front";
-          job4 = "_4_back";
-          herokuAppName = "try-phi-back";
-        in
-        nixCI // {
-          jobs = {
-            "${job1}" = {
-              name = "Update flake locks";
-              runs-on = os.ubuntu-20;
-              steps =
-                [
-                  steps.checkout
-                  steps.installNix
-                  steps.configGitAsGHActions
-                  steps.updateLocksAndCommit
-                ];
-            };
-            "${job2}" = {
-              name = "Push to cachix";
-              needs = job1;
-              strategy.matrix.os = oss;
-              runs-on = expr names.matrix.os;
-              steps =
-                [
-                  steps.checkout
-                  steps.installNix
-                  steps.logInToCachix
-                  steps.pushFlakesToCachix
-                ];
-            };
-            "${job3}" =
-              let
-                dir = "front";
-              in
-              {
-                name = "Publish front";
-                needs = job1;
-                runs-on = os.ubuntu-20;
-                steps = [
-                  steps.checkout
-                  steps.installNix
-                  {
-                    name = "Build";
-                    run = ''
-                      cd ${dir}
-                      nix develop -c bash -c '
-                        npm run build:gh-pages
-                      '
-                    '';
-                  }
-                  {
-                    name = "GitHub Pages action";
-                    uses = "peaceiris/actions-gh-pages@v3.9.0";
-                    "with" = {
-                      github_token = expr names.secrets.GITHUB_TOKEN;
-                      publish_dir = "./front/docs";
-                      force_orphan = true;
-                    };
-                  }
-                ];
-              };
-            "${job4}" = {
-              name = "Release to Heroku";
-              needs = job1;
-              runs-on = os.ubuntu-20;
-              steps =
-                [
-                  steps.checkout
-                  steps.installNix
-                  {
-                    name = "Log in to Heroku";
-                    # TODO switch to AkhileshNS/heroku-deploy
-                    # https://github.com/AkhileshNS/heroku-deploy/pull/151
-                    uses = "deemp/heroku-deploy@master";
-                    "with" = {
-                      heroku_api_key = expr names.secrets.HEROKU_API_KEY;
-                      heroku_email = expr names.secrets.HEROKU_EMAIL;
-                      heroku_app_name = herokuAppName;
-                      justlogin = true;
-                    };
-                  }
-                  {
-                    name = "Release app on Heroku";
-                    run = ''
-                      cd ${backDir}
-                      nix run .#herokuRelease
-                    '';
-                  }
-                ];
-            };
+          writeWorkflows = import ./nix-files/workflow.nix {
+            name = "ci";
+            inherit workflows backDir frontDir system;
           };
         };
 
@@ -172,14 +62,12 @@
         runtimeDependencies =
           codiumTools ++
           (builtins.attrValues {
-            inherit (pursTools) dhall-lsp-server purescript-language-server purs-tidy;
-            inherit (pursTools) nodejs-16_x purescript spago;
+            inherit (pursTools) dhall-lsp-server purescript-language-server purs-tidy nodejs-16_x purescript spago;
           });
       };
 
       flakesTools = mkFlakesTools [ "front" "back" "." ];
       tools = codiumTools ++ [ codium ];
-
 
     in
     {

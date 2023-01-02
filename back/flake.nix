@@ -100,7 +100,7 @@
                 runtimeInputs = [ pkgs.docker ];
                 description = "Run ${localImageName} in a docker container";
               };
-            releaseOnHeroku =
+            herokuRelease =
               {
                 text = ''
                   ${mkBin scripts1.dockerBuild}

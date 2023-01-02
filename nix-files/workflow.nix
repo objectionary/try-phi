@@ -53,9 +53,7 @@ let
                 name = "Build";
                 run = ''
                   cd ${dir}
-                  nix develop -c bash -c '
-                    npm run build:gh-pages
-                  '
+                  nix run .#buildGHPages
                 '';
               }
               {

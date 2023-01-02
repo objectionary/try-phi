@@ -6,53 +6,62 @@
     nixpkgs.follows = "nixpkgs_/nixpkgs";
     flake-utils_.url = github:deemp/flakes?dir=source-flake/flake-utils;
     flake-utils.follows = "flake-utils_/flake-utils";
-    gitignore_.url = github:deemp/flakes?dir=source-flake/gitignore;
-    gitignore.follows = "gitignore_/gitignore";
-    dream2nix_.url = github:deemp/flakes?dir=source-flake/dream2nix;
-    dream2nix.follows = "dream2nix_/dream2nix";
     drv-tools.url = github:deemp/flakes?dir=drv-tools;
     purescript-tools.url = github:deemp/flakes?dir=language-tools/purescript;
+    my-devshell.url = github:deemp/flakes?dir=devshell;
+    my-codium.url = github:deemp/flakes?dir=codium;
   };
 
   outputs =
     { self
     , nixpkgs
     , flake-utils
-    , gitignore
-    , dream2nix
     , drv-tools
     , purescript-tools
+    , my-devshell
+    , my-codium
     , ...
     }:
       with flake-utils.lib;
       eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        nodeOutputs =
-          dream2nix.lib.makeFlakeOutputs {
-            systems = [ system ];
-            config.projectRoot = ./.;
-            source = gitignore.lib.gitignoreSource ./.;
-            settings = [
-              {
-                subsystemInfo.nodejs = 16;
-              }
-            ];
-          };
-        shellTools = purescript-tools.toolSets.${system}.shellTools;
+        inherit (builtins) attrValues;
+        shellTools = purescript-tools.shellTools.${system};
+        inherit (my-devshell.functions.${system}) mkShell mkCommands;
         inherit (drv-tools.functions.${system}) mkShellApps;
+        inherit (my-codium.configs.${system}) extensions settingsNix;
+        inherit (my-codium.functions.${system}) writeSettingsJSON mkCodium;
+
         scripts = mkShellApps {
           default = {
             text = "npm run quick-start";
             runtimeInputs = [ shellTools.nodejs-16_x ];
           };
+          buildGHPages = {
+            text = ''
+              npm run build:gh-pages
+            '';
+            runtimeInputs = [ shellTools.nodejs-16_x ];
+          };
         };
+
+        codiumTools = attrValues { inherit (shellTools) purescript nodejs-16_x spago; };
+        codium = mkCodium {
+          extensions = { inherit (extensions) nix misc github markdown purescript; };
+          runtimeDependencies = codiumTools ++ (attrValues {
+            inherit (shellTools) dhall-lsp-server purescript-language-server purs-tidy;
+          });
+        };
+
+        tools = codiumTools ++ [ codium ];
       in
       {
         packages = scripts;
-        devShells.default = nodeOutputs.devShells.${system}.default.overrideAttrs (fin: prev: {
-          buildInputs = prev.buildInputs ++ (builtins.attrValues shellTools);
-        });
+        devShells.default = mkShell {
+          packages = tools;
+          commands = mkCommands "tools" tools;
+        };
       });
 
   nixConfig = {

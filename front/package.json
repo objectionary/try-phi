@@ -9,17 +9,18 @@
     "npx": "^10.2.2",
     "parcel": "2.5.0",
     "process": "^0.11.10",
-    "util": "^0.12.4"
+    "util": "^0.12.4",
+    "spago": "^0.20.9"
   },
   "scripts": {
-    "build": "spago build",
+    "build": "npx spago build",
     "dev": "npx parcel dev/index.html --open",
-    "test": "spago test",
+    "test": "npx spago test",
     "prequick-start": "npm i",
     "quick-start": "npm run build",
     "postquick-start": "npm run dev",
     "prebuild:min": "rm -rf min && mkdir min && cp dev/* min/",
-    "build:min": "spago bundle-app --to min/index.js --minify && parcel build min/index.html",
+    "build:min": "npx spago bundle-app --to min/index.js --minify && npx parcel build min/index.html",
     "build:gh-pages": "npm run build:min && cp -TR min docs",
     "build:prod": "npm run build:min && cp -TR min prod",
     "postbuild:prod": "npx http-server prod -o"

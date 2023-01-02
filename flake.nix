@@ -32,8 +32,7 @@
       inherit (flakes-tools.functions.${system}) mkFlakesTools;
       inherit (my-codium.configs.${system}) extensions settingsNix;
       pursTools = purescript-tools.toolSets.${system}.shellTools;
-      devshell = my-devshell.devshell.${system};
-      inherit (my-devshell.functions.${system}) mkCommands;
+      inherit (my-devshell.functions.${system}) mkShell mkCommands;
 
       backDir = "back";
       frontDir = "front";
@@ -59,16 +58,12 @@
 
       codium = mkCodium {
         extensions = { inherit (extensions) nix misc github markdown; };
-        runtimeDependencies =
-          codiumTools ++
-          (builtins.attrValues {
-            inherit (pursTools) dhall-lsp-server purescript-language-server purs-tidy nodejs-16_x purescript spago;
-          });
+        runtimeDependencies = codiumTools;
       };
 
-      flakesTools = mkFlakesTools [ "front" "back" "." ];
       tools = codiumTools ++ [ codium ];
-
+      
+      flakesTools = mkFlakesTools [ "front" "back" "." ];
     in
     {
       packages = {
@@ -76,7 +71,7 @@
         updateLocks = flakesTools.updateLocks;
       } // scripts;
 
-      devShells.default = devshell.mkShell {
+      devShells.default = mkShell {
         packages = tools;
         commands = mkCommands "tools" tools;
       };

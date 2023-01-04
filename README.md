@@ -77,15 +77,3 @@ It is combined with [EO](https://github.com/objectionary/eo) editor. EO is based
   - Command palette -> `Tasks: Terminate Task` -> `All Running Tasks`>
 
 - In case of problems reload the window (`Ctrl` + `Shift` + `P` -> `Developer: Reload window`) and repeat previous commands to start the server and the client
-
-## Host on Yandex Cloud
-
-1. Build and load a container `back:latest`: `nix run .#backDocker`
-1. Push it to Docker Hub
-1. ssh to Yandex Cloud VM
-1. Tag, pull, run the container and expose its ports: `docker run -p 0.0.0.0:8082:8082 back:latest back`
-   1. Use `0.0.0.0` to listen to any network interface - [SO](https://stackoverflow.com/a/20778887)
-   1. `sudo netstat -ntlpu` should show that your app uses `0.0.0.0`
-1. Enable forwarding from docker containers to the outside world - [src](https://docs.docker.com/network/bridge/#enable-forwarding-from-docker-containers-to-the-outside-world)
-1. Buy a cheap domain on `reg.ru`, for example. Make a DNS record that maps to the VM's IP
-   1. Wait, check that record using nslookup until it shows the correct IP (1h+)

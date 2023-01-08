@@ -5,10 +5,8 @@
 [![Hits-of-Code](https://hitsofcode.com/github/objectionary/try-phi?branch=main)](https://hitsofcode.com/view/github/objectionary/try-phi?branch=main)
 ![Lines of code](https://img.shields.io/tokei/lines/github/objectionary/try-phi?style=flat-square)
 
-This is an experimental interpreter for a variant of 𝜑-calculus.
-Right now we implement it as a term rewriting system.
-
-It is combined with [EO](https://github.com/objectionary/eo) editor. EO is based on 𝜑-calculus.
+This is an experimental interpreter for a variant of [𝜑-calculus](https://arxiv.org/abs/2204.07454), the base language of [EO](https://github.com/objectionary/eo).
+We implement it as a term rewriting system.
 
 ## Usage
 

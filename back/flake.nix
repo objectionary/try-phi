@@ -80,7 +80,6 @@
           port = "8082";
           result = "result";
           tag = "latest";
-          username = "deemp";
 
           scripts1 = mkShellApps {
             dockerBuild = {

@@ -1,37 +1,26 @@
 {
   description = "Try-phi back end";
   inputs = {
-    nixpkgs_.url = github:deemp/flakes/8ee5d35e592860636adb57cee3e27c98de04202a?dir=source-flake/nixpkgs;
+    nixpkgs_.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=source-flake/nixpkgs;
     nixpkgs.follows = "nixpkgs_/nixpkgs";
-    flake-utils_.url = github:deemp/flakes/8ee5d35e592860636adb57cee3e27c98de04202a?dir=source-flake/flake-utils;
+    flake-utils_.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=source-flake/flake-utils;
     flake-utils.follows = "flake-utils_/flake-utils";
-    haskell-tools.url = github:deemp/flakes/8ee5d35e592860636adb57cee3e27c98de04202a?dir=language-tools/haskell;
-    devshell.url = github:deemp/flakes/8ee5d35e592860636adb57cee3e27c98de04202a?dir=devshell;
-    drv-tools.url = github:deemp/flakes/8ee5d35e592860636adb57cee3e27c98de04202a?dir=drv-tools;
-    vscode-extensions_.url = github:deemp/flakes/8ee5d35e592860636adb57cee3e27c98de04202a?dir=source-flake/vscode-extensions;
-    vscode-extensions.follows = "vscode-extensions_/vscode-extensions";
-    my-codium.url = github:deemp/flakes/8ee5d35e592860636adb57cee3e27c98de04202a?dir=codium;
+    haskell-tools.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=language-tools/haskell;
+    devshell.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=devshell;
+    drv-tools.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=drv-tools;
+    codium.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=codium;
   };
 
   outputs =
-    { self
-    , nixpkgs
-    , flake-utils
-    , haskell-tools
-    , devshell
-    , drv-tools
-    , vscode-extensions
-    , my-codium
-    , ...
-    }:
-    flake-utils.lib.eachDefaultSystem (system:
+    inputs:
+    inputs.flake-utils.lib.eachDefaultSystem (system:
     let
-      pkgs = nixpkgs.legacyPackages.${system};
-      inherit (my-codium.functions.${system}) writeSettingsJSON mkCodium;
-      inherit (devshell.functions.${system}) mkShell mkCommands;
-      inherit (drv-tools.functions.${system}) mkShellApps mkBin;
-      inherit (haskell-tools.functions.${system}) haskellTools;
-      inherit (my-codium.configs.${system}) extensions settingsNix;
+      pkgs = inputs.nixpkgs.legacyPackages.${system};
+      inherit (inputs.codium.functions.${system}) writeSettingsJSON mkCodium;
+      inherit (inputs.devshell.functions.${system}) mkShell mkCommands;
+      inherit (inputs.drv-tools.functions.${system}) mkShellApps mkBin;
+      inherit (inputs.haskell-tools.functions.${system}) toolsGHC;
+      inherit (inputs.codium.configs.${system}) extensions settingsNix;
 
       packageName = "try-phi-back";
       override =
@@ -57,12 +46,21 @@
           };
         };
 
-      inherit (haskellTools "902" override (ps: [ ps."${packageName}" ps.eo-utils ps.phi-utils ps.language-utils ]) [ ])
+      inherit (toolsGHC {
+        version = "902";
+        inherit override;
+        packages = ps: [
+          ps.${packageName}
+          ps.eo-utils
+          ps.phi-utils
+          ps.language-utils
+        ];
+      })
         cabal hpack callCabal justStaticExecutable
         callCabal2nix haskellPackages hls implicit-hie;
 
       exeName = "back";
-      back = justStaticExecutable exeName haskellPackages."${packageName}";
+      back = justStaticExecutable exeName haskellPackages.${packageName};
 
       localImageName = "back";
       backImage = pkgs.dockerTools.buildLayeredImage {

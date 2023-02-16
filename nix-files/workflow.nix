@@ -12,7 +12,7 @@ let
     secrets = genAttrsId [ "GITHUB_TOKEN" "HEROKU_API_KEY" "HEROKU_EMAIL" ];
   };
   workflow =
-    nixCI // {
+    {
       jobs = {
         "${job1}" = {
           name = "Update flake locks";
@@ -77,9 +77,7 @@ let
               steps.installNix
               {
                 name = "Log in to Heroku";
-                # TODO switch to AkhileshNS/heroku-deploy
-                # https://github.com/AkhileshNS/heroku-deploy/pull/151
-                uses = "deemp/heroku-deploy@master";
+                uses = "AkhileshNS/heroku-deploy@master";
                 "with" = {
                   heroku_api_key = expr names.secrets.HEROKU_API_KEY;
                   heroku_email = expr names.secrets.HEROKU_EMAIL;

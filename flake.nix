@@ -1,15 +1,15 @@
 {
   inputs = {
-    nixpkgs_.url = github:deemp/flakes/8ee5d35e592860636adb57cee3e27c98de04202a?dir=source-flake/nixpkgs;
+    nixpkgs_.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=source-flake/nixpkgs;
     nixpkgs.follows = "nixpkgs_/nixpkgs";
-    flake-utils_.url = github:deemp/flakes/8ee5d35e592860636adb57cee3e27c98de04202a?dir=source-flake/flake-utils;
+    flake-utils_.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=source-flake/flake-utils;
     flake-utils.follows = "flake-utils_/flake-utils";
-    flakes-tools.url = github:deemp/flakes/8ee5d35e592860636adb57cee3e27c98de04202a?dir=flakes-tools;
-    my-codium.url = github:deemp/flakes/8ee5d35e592860636adb57cee3e27c98de04202a?dir=codium;
-    my-devshell.url = github:deemp/flakes/8ee5d35e592860636adb57cee3e27c98de04202a?dir=devshell;
-    drv-tools.url = github:deemp/flakes/8ee5d35e592860636adb57cee3e27c98de04202a?dir=drv-tools;
-    purescript-tools.url = github:deemp/flakes/8ee5d35e592860636adb57cee3e27c98de04202a?dir=language-tools/purescript;
-    workflows.url = "github:deemp/flakes/8ee5d35e592860636adb57cee3e27c98de04202a?dir=workflows";
+    flakes-tools.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=flakes-tools;
+    my-codium.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=codium;
+    my-devshell.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=devshell;
+    drv-tools.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=drv-tools;
+    purescript-tools.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=language-tools/purescript;
+    workflows.url = "github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=workflows";
   };
   outputs =
     { self

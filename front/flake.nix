@@ -2,36 +2,26 @@
   description = "Try-phi front end";
 
   inputs = {
-    nixpkgs_.url = github:deemp/flakes/8ee5d35e592860636adb57cee3e27c98de04202a?dir=source-flake/nixpkgs;
+    nixpkgs_.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=source-flake/nixpkgs;
     nixpkgs.follows = "nixpkgs_/nixpkgs";
-    flake-utils_.url = github:deemp/flakes/8ee5d35e592860636adb57cee3e27c98de04202a?dir=source-flake/flake-utils;
+    flake-utils_.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=source-flake/flake-utils;
     flake-utils.follows = "flake-utils_/flake-utils";
-    drv-tools.url = github:deemp/flakes/8ee5d35e592860636adb57cee3e27c98de04202a?dir=drv-tools;
-    purescript-tools.url = github:deemp/flakes/8ee5d35e592860636adb57cee3e27c98de04202a?dir=language-tools/purescript;
-    my-devshell.url = github:deemp/flakes/8ee5d35e592860636adb57cee3e27c98de04202a?dir=devshell;
-    my-codium.url = github:deemp/flakes/8ee5d35e592860636adb57cee3e27c98de04202a?dir=codium;
+    drv-tools.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=drv-tools;
+    purescript-tools.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=language-tools/purescript;
+    devshell.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=devshell;
+    codium.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=codium;
   };
 
-  outputs =
-    { self
-    , nixpkgs
-    , flake-utils
-    , drv-tools
-    , purescript-tools
-    , my-devshell
-    , my-codium
-    , ...
-    }:
-      with flake-utils.lib;
-      eachDefaultSystem (system:
+  outputs = inputs:
+    inputs.flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = nixpkgs.legacyPackages.${system};
+        pkgs = inputs.nixpkgs.legacyPackages.${system};
+        shellTools = inputs.purescript-tools.shellTools.${system};
+        inherit (inputs.devshell.functions.${system}) mkShell mkCommands;
+        inherit (inputs.drv-tools.functions.${system}) mkShellApps;
+        inherit (inputs.codium.configs.${system}) extensions settingsNix;
+        inherit (inputs.codium.functions.${system}) writeSettingsJSON mkCodium;
         inherit (builtins) attrValues;
-        shellTools = purescript-tools.shellTools.${system};
-        inherit (my-devshell.functions.${system}) mkShell mkCommands;
-        inherit (drv-tools.functions.${system}) mkShellApps;
-        inherit (my-codium.configs.${system}) extensions settingsNix;
-        inherit (my-codium.functions.${system}) writeSettingsJSON mkCodium;
 
         scripts = mkShellApps {
           default = {

@@ -1,45 +1,47 @@
 # Try-phi backend
 
-## Dependencies
+## Quick start
 
-- Install [stack](https://docs.haskellstack.org/en/stable/README/)
+1. [Install Nix](https://github.com/deemp/flakes/blob/main/README/InstallNix.md)
 
-## Run
-
-* Build and execute
+1. Enter the dir.
 
   ```sh
-  sh run.sh
+  git clone https://github.com/objectionary/try-phi
+  cd try-phi/back
   ```
 
-## Deploy to Heroku
+1. Run `back end`.
 
-- Read [this](https://hackernoon.com/for-all-the-world-to-see-deploying-haskell-with-heroku-7ea46f827ce) till `web: run-server`
+  ```console
+  nix run
+  ```
 
-- Select a port when running locally:
+## Development
 
-```haskell
-startApp :: IO ()
-startApp = catchIOError
-  (do
-    port <- read <$> getEnv "Port"
-    print port
-    run port app)
-  (\_ -> run 8082 app)
-```
+1. Start a deshell.
 
-- Next, add a `Procfile` and [commit](https://devcenter.heroku.com/articles/procfile#deploying-to-heroku) it to `heroku`
+  ```console
+  nix develop
+  ```
 
-- Return to the [guide](https://hackernoon.com/for-all-the-world-to-see-deploying-haskell-with-heroku-7ea46f827ce)
+1. Build the package
 
-- `push` and get
+  ```console
+  cabal build
+  ```
 
-```sh
-2022-06-25T14:39:52.239150+00:00 heroku[web.1]: State changed from crashed to starting
-2022-06-25T14:39:53.260912+00:00 heroku[web.1]: Starting process with command `try-servant-exe`
-2022-06-25T14:40:53.904920+00:00 heroku[web.1]: Error R10 (Boot timeout) -> Web process failed to bind to $PORT within 60 seconds of launch
-2022-06-25T14:40:53.936273+00:00 heroku[web.1]: Stopping process with SIGKILL
-2022-06-25T14:40:54.126423+00:00 heroku[web.1]: Process exited with status 137
-2022-06-25T14:40:54.215588+00:00 heroku[web.1]: State changed from starting to crashed
+1. (Optionally) Start `VSCodium`.
 
-```
+  ```console
+  nix run .#writeSettings
+  nix run .#codium .
+  ```
+
+1. In a `.hs` file, hover over a function. `HLS` should start giving the type info soon.
+
+1. [Troubleshoot](https://github.com/deemp/flakes/blob/main/README/Troubleshooting.md) if necessary
+
+## References
+
+- Heroku's [Container Registry & Runtime (Docker Deploys)](https://devcenter.heroku.com/articles/container-registry-and-runtime#dockerfile-commands-and-runtime)

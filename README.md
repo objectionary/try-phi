@@ -19,26 +19,18 @@ We implement it as a term rewriting system.
 - [EO editor](https://github.com/deemp/eo-editor)
 - [Phi editor](https://github.com/deemp/phi-editor)
 
-## Prerequisites
+## Quick start
 
-- Install [Nix](https://nixos.org/download.html) (Single-user installation)
+1. [Install Nix](https://github.com/deemp/flakes/blob/main/README/InstallNix.md)
 
-  ```sh
-  sh <(curl -L https://nixos.org/nix/install) --no-daemon
-  ```
-
-- Enable [flakes](https://nixos.wiki/wiki/flakes/8ee5d35e592860636adb57cee3e27c98de04202a#Permanent)
-
-- Enter the repo
+1. Enter the repo.
 
   ```sh
   git clone https://github.com/objectionary/try-phi
   cd try-phi
   ```
 
-## Quick start
-
-- Run back and front in separate terminals
+1. Run `back end` and `front end` in separate terminals.
 
   ```console
   nix run .#back
@@ -47,11 +39,7 @@ We implement it as a term rewriting system.
 
 ## Development
 
-- Install [direnv](https://nix.dev/tutorials/declarative-and-reproducible-developer-environments#direnv-automatically-activating-the-environment-on-directory-change) - steps 1, 2
-
-- [Enable flakes](https://nixos.wiki/wiki/flakes/8ee5d35e592860636adb57cee3e27c98de04202a#Enable_flakes)
-
-- Allow direnv in flake folders
+1. Allow `direnv` in flake folders.
 
   ```sh
   direnv allow
@@ -59,19 +47,17 @@ We implement it as a term rewriting system.
   (cd back && direnv allow && stack build)
   ```
 
-- Open Codium
+1. Start a deshell.
 
   ```console
   nix develop
-  codium .
   ```
 
-- Hotkey for `Command palette` - `Ctrl` (`Cmd`) + `Shift` + `P`
+1. (Optionally) Start `VSCodium`.
 
-- Start app - a browser window should open
-  - Command palette -> `Tasks: Run Task` -> `Run app`
+  ```console
+  nix run .#writeSettings
+  nix run .#codium .
+  ```
 
-- Terminate app
-  - Command palette -> `Tasks: Terminate Task` -> `All Running Tasks`>
-
-- In case of problems reload the window (`Ctrl` + `Shift` + `P` -> `Developer: Reload window`) and repeat previous commands to start the server and the client
+1. In a `.hs` file, hover over a function. `HLS` should start giving the type info soon.

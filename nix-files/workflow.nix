@@ -1,7 +1,7 @@
 { workflows, backDir, frontDir, name, system }:
 let
   inherit (workflows.functions.${system}) writeWorkflow expr mkAccessors genAttrsId;
-  inherit (workflows.configs.${system}) steps os oss nixCI;
+  inherit (workflows.configs.${system}) steps os oss nixCI on;
   job1 = "_1_update_flake_locks";
   job2 = "_2_push_to_cachix";
   job3 = "_3_front";
@@ -12,22 +12,22 @@ let
     secrets = genAttrsId [ "GITHUB_TOKEN" "HEROKU_API_KEY" "HEROKU_EMAIL" ];
   };
   workflow =
-    {
+    nixCI // {
       jobs = {
-        "${job1}" = {
-          name = "Update flake locks";
-          runs-on = os.ubuntu-20;
-          steps =
-            [
-              steps.checkout
-              steps.installNix
-              steps.configGitAsGHActions
-              steps.updateLocksAndCommit
-            ];
-        };
+        # "${job1}" = {
+        #   name = "Update flake locks";
+        #   runs-on = os.ubuntu-20;
+        #   steps =
+        #     [
+        #       steps.checkout
+        #       steps.installNix
+        #       steps.configGitAsGHActions
+        #       steps.updateLocksAndCommit
+        #     ];
+        # };
         "${job2}" = {
           name = "Push to cachix";
-          needs = job1;
+          # needs = job1;
           strategy.matrix.os = oss;
           runs-on = expr names.matrix.os;
           steps =
@@ -44,7 +44,7 @@ let
           in
           {
             name = "Publish front";
-            needs = job1;
+            # needs = job1;
             runs-on = os.ubuntu-20;
             steps = [
               steps.checkout
@@ -68,8 +68,8 @@ let
             ];
           };
         "${job4}" = {
-          name = "Release to Heroku";
-          needs = job1;
+          name = "Publish back";
+          # needs = job1;
           runs-on = os.ubuntu-20;
           steps =
             [

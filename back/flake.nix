@@ -1,14 +1,14 @@
 {
   description = "Try-phi back end";
   inputs = {
-    nixpkgs_.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=source-flake/nixpkgs;
+    nixpkgs_.url = github:deemp/flakes?dir=source-flake/nixpkgs;
     nixpkgs.follows = "nixpkgs_/nixpkgs";
-    flake-utils_.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=source-flake/flake-utils;
+    flake-utils_.url = github:deemp/flakes?dir=source-flake/flake-utils;
     flake-utils.follows = "flake-utils_/flake-utils";
-    haskell-tools.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=language-tools/haskell;
-    devshell.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=devshell;
-    drv-tools.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=drv-tools;
-    codium.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=codium;
+    haskell-tools.url = github:deemp/flakes?dir=language-tools/haskell;
+    devshell.url = github:deemp/flakes?dir=devshell;
+    drv-tools.url = github:deemp/flakes?dir=drv-tools;
+    codium.url = github:deemp/flakes?dir=codium;
   };
 
   outputs =
@@ -17,7 +17,7 @@
     let
       pkgs = inputs.nixpkgs.legacyPackages.${system};
       inherit (inputs.codium.functions.${system}) writeSettingsJSON mkCodium;
-      inherit (inputs.devshell.functions.${system}) mkShell mkCommands;
+      inherit (inputs.devshell.functions.${system}) mkShell mkCommands mkRunCommands;
       inherit (inputs.drv-tools.functions.${system}) mkShellApps mkBin;
       inherit (inputs.haskell-tools.functions.${system}) toolsGHC;
       inherit (inputs.codium.configs.${system}) extensions settingsNix;
@@ -59,15 +59,19 @@
         cabal hpack callCabal justStaticExecutable
         callCabal2nix haskellPackages hls implicit-hie;
 
-      exeName = "back";
-      back = justStaticExecutable exeName haskellPackages.${packageName};
+      binaryName = "back";
+
+      back = justStaticExecutable {
+        package = haskellPackages.${packageName};
+        inherit binaryName;
+      };
 
       localImageName = "back";
       backImage = pkgs.dockerTools.buildLayeredImage {
         name = localImageName;
         tag = "latest";
         contents = [ back ];
-        config.Entrypoint = [ exeName ];
+        config.Entrypoint = [ binaryName ];
       };
 
       scripts =
@@ -110,33 +114,38 @@
                 description = "Release ${herokuAppName} on Heroku";
               };
           };
-          scripts3 = {
-            writeSettings = writeSettingsJSON {
-              inherit (settingsNix) haskell todo-tree files editor gitlens
-                git nix-ide workbench markdown-all-in-one markdown-language-features;
-            };
-          };
         in
-        scripts1 // scripts2 // scripts3;
-      codiumTools = [ hpack cabal pkgs.heroku implicit-hie ];
-      codium = mkCodium {
-        extensions = { inherit (extensions) nix haskell misc github markdown; };
-        runtimeDependencies = codiumTools ++ [ hls ];
-      };
-      tools = codiumTools ++ [ codium ];
-    in
-    {
+        scripts1 // scripts2;
+
+      tools = [ hpack cabal pkgs.heroku implicit-hie ];
+
       packages = {
         default = back;
+
+        writeSettings = writeSettingsJSON {
+          inherit (settingsNix) haskell todo-tree files editor gitlens
+            git nix-ide workbench markdown-all-in-one markdown-language-features;
+        };
+        codium = mkCodium {
+          extensions = { inherit (extensions) nix haskell misc github markdown; };
+          runtimeDependencies = tools ++ [ hls ];
+        };
       } // scripts;
 
       devShells = {
         default = mkShell {
           packages = tools;
           bash.extra = ''export LANG="C.UTF-8";'';
-          commands = mkCommands "tools" tools;
+          commands =
+            mkCommands "tools" tools ++
+            mkRunCommands "ide" { "codium ." = packages.codium; inherit (packages) writeSettings; } ++
+            mkRunCommands "image" { inherit (packages) dockerBuild dockerRun herokuRelease; }
+          ;
         };
       };
+    in
+    {
+      inherit packages devShells;
 
       image = backImage;
     });

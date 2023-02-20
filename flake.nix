@@ -1,15 +1,15 @@
 {
   inputs = {
-    nixpkgs_.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=source-flake/nixpkgs;
+    nixpkgs_.url = github:deemp/flakes?dir=source-flake/nixpkgs;
     nixpkgs.follows = "nixpkgs_/nixpkgs";
-    flake-utils_.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=source-flake/flake-utils;
+    flake-utils_.url = github:deemp/flakes?dir=source-flake/flake-utils;
     flake-utils.follows = "flake-utils_/flake-utils";
-    flakes-tools.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=flakes-tools;
-    my-codium.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=codium;
-    my-devshell.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=devshell;
-    drv-tools.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=drv-tools;
-    purescript-tools.url = github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=language-tools/purescript;
-    workflows.url = "github:deemp/flakes/e306bf22309d95557ab569a2672184a64fb3f7d2?dir=workflows";
+    flakes-tools.url = github:deemp/flakes?dir=flakes-tools;
+    my-codium.url = github:deemp/flakes?dir=codium;
+    my-devshell.url = github:deemp/flakes?dir=devshell;
+    drv-tools.url = github:deemp/flakes?dir=drv-tools;
+    purescript-tools.url = github:deemp/flakes?dir=language-tools/purescript;
+    workflows.url = "github:deemp/flakes?dir=workflows";
   };
   outputs =
     { self
@@ -32,49 +32,46 @@
       inherit (flakes-tools.functions.${system}) mkFlakesTools;
       inherit (my-codium.configs.${system}) extensions settingsNix;
       pursTools = purescript-tools.toolSets.${system}.shellTools;
-      inherit (my-devshell.functions.${system}) mkShell mkCommands;
+      inherit (my-devshell.functions.${system}) mkShell mkRunCommands;
 
       backDir = "back";
       frontDir = "front";
       scripts =
-        (mkShellApps {
-          back = {
-            text = "cd ${backDir} && nix run";
-            description = "Run backend";
+        mkShellApps
+          {
+            back = {
+              text = "cd ${backDir} && nix run";
+              description = "Run backend";
+            };
+            front = {
+              text = "cd ${frontDir} && nix run";
+              description = "Run frontend";
+            };
           };
-          front = {
-            text = "cd ${frontDir} && nix run";
-            description = "Run frontend";
-          };
-        }) // {
-          writeSettings = writeSettingsJSON settingsNix;
-          writeWorkflows = import ./nix-files/workflow.nix {
-            name = "ci";
-            inherit workflows backDir frontDir system;
-          };
+
+      packages = {
+        inherit (mkFlakesTools [ "front" "back" "." ]) pushToCachix updateLocks;
+
+        writeSettings = writeSettingsJSON settingsNix;
+        codium = mkCodium {
+          extensions = { inherit (extensions) nix misc github markdown; };
         };
 
-      codiumTools = builtins.attrValues scripts;
-
-      codium = mkCodium {
-        extensions = { inherit (extensions) nix misc github markdown; };
-        runtimeDependencies = codiumTools;
-      };
-
-      tools = codiumTools ++ [ codium ];
-
-      flakesTools = mkFlakesTools [ "front" "back" "." ];
-    in
-    {
-      packages = {
-        pushToCachix = flakesTools.pushToCachix;
-        updateLocks = flakesTools.updateLocks;
+        writeWorkflows = import ./nix-files/workflow.nix {
+          name = "ci";
+          inherit workflows backDir frontDir system;
+        };
       } // scripts;
 
       devShells.default = mkShell {
-        packages = tools;
-        commands = mkCommands "tools" tools;
+        commands =
+          mkRunCommands "ide" { "codium ." = packages.codium; inherit (packages) writeSettings; } ++
+          mkRunCommands "infra" { inherit (packages) writeWorkflows pushToCachix updateLocks; }
+        ;
       };
+    in
+    {
+      inherit packages devShells;
     });
 
   nixConfig = {

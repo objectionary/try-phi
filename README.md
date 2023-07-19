@@ -14,10 +14,10 @@ We implement it as a term rewriting system.
 
 ## Components
 
-- [Back end](./back/)
-- [Front end](./front/)
-- [EO editor](https://github.com/deemp/eo-editor)
-- [Phi editor](https://github.com/deemp/phi-editor)
+- [Back end](./back#readme)
+- [Front end](./front#readme)
+- [EO editor](./eo-editor#readme)
+- [Phi editor](./phi-editor#readme)
 
 ## Quick start
 
@@ -25,39 +25,39 @@ We implement it as a term rewriting system.
 
 1. Enter the repo.
 
-  ```sh
-  git clone https://github.com/objectionary/try-phi
-  cd try-phi
-  ```
+    ```sh
+    git clone https://github.com/objectionary/try-phi
+    cd try-phi
+    ```
 
 1. Run `back end` and `front end` in separate terminals.
 
-  ```console
-  nix run .#back
-  nix run .#front
-  ```
+    ```console
+    nix run .#back
+    nix run .#front
+    ```
 
 ## Development
 
 1. Allow `direnv` in flake folders.
 
-  ```sh
-  direnv allow
-  (cd front && direnv allow)
-  (cd back && direnv allow && stack build)
-  ```
+    ```sh
+    direnv allow
+    (cd front && direnv allow)
+    (cd back && direnv allow)
+    ```
 
 1. Start a deshell.
 
-  ```console
-  nix develop
-  ```
+    ```console
+    nix develop
+    ```
 
 1. (Optionally) Start `VSCodium`.
 
-  ```console
-  nix run .#writeSettings
-  nix run .#codium .
-  ```
+    ```console
+    nix run .#writeSettings
+    nix run .#codium .
+    ```
 
 1. In a `.hs` file, hover over a function. `HLS` should start giving the type info soon.

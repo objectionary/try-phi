@@ -1,65 +1,75 @@
 {
   description = "Try-phi front end";
 
-  inputs = {
-    nixpkgs_.url = github:deemp/flakes?dir=source-flake/nixpkgs;
-    nixpkgs.follows = "nixpkgs_/nixpkgs";
-    flake-utils_.url = github:deemp/flakes?dir=source-flake/flake-utils;
-    flake-utils.follows = "flake-utils_/flake-utils";
-    drv-tools.url = github:deemp/flakes?dir=drv-tools;
-    purescript-tools.url = github:deemp/flakes?dir=language-tools/purescript;
-    devshell.url = github:deemp/flakes?dir=devshell;
-    codium.url = github:deemp/flakes?dir=codium;
-  };
+  inputs = { };
 
-  outputs = inputs:
-    inputs.flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = inputs.nixpkgs.legacyPackages.${system};
-        shellTools = inputs.purescript-tools.shellTools.${system};
-        inherit (inputs.devshell.functions.${system}) mkShell mkCommands mkRunCommands;
-        inherit (inputs.drv-tools.functions.${system}) mkShellApps;
-        inherit (inputs.codium.configs.${system}) extensions settingsNix;
-        inherit (inputs.codium.functions.${system}) writeSettingsJSON mkCodium;
-        inherit (builtins) attrValues;
-        
-        scripts = mkShellApps {
-          default = {
-            text = "npm run quick-start";
-            runtimeInputs = [ shellTools.nodejs-16_x ];
-            description = "Run front";
-          };
-          buildGHPages = {
-            text = ''npm run build:gh-pages'';
-            runtimeInputs = [ shellTools.nodejs-16_x ];
-            description = "Build GitHub Pages";
-          };
+  outputs =
+    inputs:
+    let
+      inputs_ =
+        let flakes = (import ../.).outputs.inputs.flakes; in
+        {
+          inherit (flakes.source-flake) flake-utils nixpkgs;
+          inherit (flakes) drv-tools devshell codium;
+          purescript-tools = flakes.language-tools.purescript;
         };
 
-        tools = with shellTools; [ purescript nodejs-16_x spago ];
+      outputs = outputs_ { } // { inputs = inputs_; outputs = outputs_; };
 
-        packages = {
-          codium = mkCodium {
-            extensions = { inherit (extensions) nix misc github markdown purescript; };
-            runtimeDependencies = tools ++ (attrValues {
-              inherit (shellTools) dhall-lsp-server purescript-language-server purs-tidy;
-            });
+      outputs_ =
+        inputs__:
+        let inputs = inputs_ // inputs__; in
+
+        inputs.flake-utils.lib.eachDefaultSystem (system:
+        let
+          pkgs = inputs.nixpkgs.legacyPackages.${system};
+          pursPkgs = inputs.purescript-tools.packages.${system};
+          inherit (inputs.devshell.lib.${system}) mkShell mkCommands mkRunCommands;
+          inherit (inputs.drv-tools.lib.${system}) mkShellApps;
+          inherit (inputs.codium.lib.${system}) extensions settingsNix extensionsCommon;
+          inherit (inputs.codium.lib.${system}) writeSettingsJSON mkCodium;
+
+          scripts = mkShellApps {
+            default = {
+              text = "npm run quick-start";
+              runtimeInputs = [ pursPkgs.nodejs_18 ];
+              description = "Run front";
+            };
+            buildGHPages = {
+              text = ''npm run build:gh-pages'';
+              runtimeInputs = [ pursPkgs.nodejs_18 ];
+              description = "Build GitHub Pages";
+            };
           };
-          writeSettings = writeSettingsJSON settingsNix;
-        } // scripts;
 
-        devShells.default = mkShell {
-          packages = tools;
-          commands =
-            mkCommands "tools" tools ++
-            mkRunCommands "ide" { "codium ." = packages.codium; inherit (packages) writeSettings; } ++
-            mkRunCommands "scripts" { inherit (packages) default buildGHPages; }
-          ;
-        };
-      in
-      {
-        inherit packages devShells;
-      });
+          tools = with pursPkgs; [
+            purescript
+            nodejs_18
+            spago
+            dhall-lsp-server
+            purescript-language-server
+            purs-tidy
+          ];
+
+          packages = {
+            codium = mkCodium { extensions = extensionsCommon // { inherit (extensions) purescript; }; };
+            writeSettings = writeSettingsJSON settingsNix;
+          } // scripts;
+
+          devShells.default = mkShell {
+            packages = tools;
+            commands =
+              mkCommands "tools" tools ++
+              mkRunCommands "ide" { "codium ." = packages.codium; inherit (packages) writeSettings; } ++
+              mkRunCommands "scripts" { inherit (packages) default buildGHPages; }
+            ;
+          };
+        in
+        {
+          inherit packages devShells;
+        });
+    in
+    outputs;
 
   nixConfig = {
     extra-substituters = [

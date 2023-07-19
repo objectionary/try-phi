@@ -1,63 +1,59 @@
 jobs:
-  _2_push_to_cachix:
-    name: Push to cachix
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Checkout this repo
-        uses: actions/checkout@v3
-      - name: Install Nix
-        uses: cachix/install-nix-action@v18
-        with:
-          extra_nix_config: "access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}\nsubstituters = https://cache.nixos.org/ https://cache.iog.io https://nix-community.cachix.org https://deemp.cachix.org \ntrusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= haskell-language-server.cachix.org-1:juFfHrwkOxqIOZShtC4YC1uT1bBcq2RSvC7OMKx0Nz8= deemp.cachix.org-1:9shDxyR2ANqEPQEEYDL/xIOnoPwxHot21L5fiZnFL18=\n"
-          install_url: https://releases.nixos.org/nix/nix-2.11.1/install
-      - name: Log in to Cachix
-        uses: cachix/cachix-action@v12
-        with:
-          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-          name: ${{ secrets.CACHIX_CACHE }}
-      - env:
-          CACHIX_CACHE: ${{ secrets.CACHIX_CACHE }}
-        name: Push flakes to Cachix
-        run: nix run .#pushToCachix
-    strategy:
-      matrix:
-        os:
-          - macos-11
-          - macos-12
-          - ubuntu-20.04
-          - ubuntu-22.04
-  _3_front:
+  _1_front:
     name: Publish front
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout this repo
         uses: actions/checkout@v3
       - name: Install Nix
-        uses: cachix/install-nix-action@v18
+        uses: nixbuild/nix-quick-install-action@v25
         with:
-          extra_nix_config: "access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}\nsubstituters = https://cache.nixos.org/ https://cache.iog.io https://nix-community.cachix.org https://deemp.cachix.org \ntrusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= haskell-language-server.cachix.org-1:juFfHrwkOxqIOZShtC4YC1uT1bBcq2RSvC7OMKx0Nz8= deemp.cachix.org-1:9shDxyR2ANqEPQEEYDL/xIOnoPwxHot21L5fiZnFL18=\n"
-          install_url: https://releases.nixos.org/nix/nix-2.11.1/install
+          nix_conf: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            substituters = https://cache.nixos.org/ https://nix-community.cachix.org https://cache.iog.io https://deemp.cachix.org
+            trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= deemp.cachix.org-1:9shDxyR2ANqEPQEEYDL/xIOnoPwxHot21L5fiZnFL18=
+            keep-outputs = true
+      - name: Restore and cache Nix store
+        uses: nix-community/cache-nix-action@v1
+        with:
+          key: nix-${{ runner.os }}-front-${{ hashfiles('**/flake.nix', '**/flake.lock') }}
+          restore-keys: |
+            nix-${{ runner.os }}-front-${{ hashfiles('**/flake.nix', '**/flake.lock') }}
+            nix-${{ runner.os }}-front-
       - name: Build
-        run: |
+        run: |-
+          ROOT_DIR=$PWD
           cd front
+          nix profile install .#buildGHPages
           nix run .#buildGHPages
+          cd $ROOT_DIR
       - name: GitHub Pages action
         uses: peaceiris/actions-gh-pages@v3.9.0
         with:
           force_orphan: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./front/docs
-  _4_back:
+  _2_back:
     name: Publish back
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout this repo
         uses: actions/checkout@v3
       - name: Install Nix
-        uses: cachix/install-nix-action@v18
+        uses: nixbuild/nix-quick-install-action@v25
         with:
-          extra_nix_config: "access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}\nsubstituters = https://cache.nixos.org/ https://cache.iog.io https://nix-community.cachix.org https://deemp.cachix.org \ntrusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= haskell-language-server.cachix.org-1:juFfHrwkOxqIOZShtC4YC1uT1bBcq2RSvC7OMKx0Nz8= deemp.cachix.org-1:9shDxyR2ANqEPQEEYDL/xIOnoPwxHot21L5fiZnFL18=\n"
-          install_url: https://releases.nixos.org/nix/nix-2.11.1/install
+          nix_conf: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            substituters = https://cache.nixos.org/ https://nix-community.cachix.org https://cache.iog.io https://deemp.cachix.org
+            trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= deemp.cachix.org-1:9shDxyR2ANqEPQEEYDL/xIOnoPwxHot21L5fiZnFL18=
+            keep-outputs = true
+      - name: Restore and cache Nix store
+        uses: nix-community/cache-nix-action@v1
+        with:
+          key: nix-${{ runner.os }}-back-${{ hashfiles('**/flake.nix', '**/flake.lock') }}
+          restore-keys: |
+            nix-${{ runner.os }}-back-${{ hashfiles('**/flake.nix', '**/flake.lock') }}
+            nix-${{ runner.os }}-back-
       - name: Log in to Heroku
         uses: AkhileshNS/heroku-deploy@master
         with:
@@ -66,9 +62,26 @@ jobs:
           heroku_email: ${{ secrets.HEROKU_EMAIL }}
           justlogin: true
       - name: Release app on Heroku
-        run: |
+        run: |-
+          ROOT_DIR=$PWD
           cd back
+          nix profile install .#herokuRelease
           nix run .#herokuRelease
+          cd $ROOT_DIR
+  _3_purge_caches:
+    name: Purge cache
+    needs:
+      - _1_front
+      - _2_back
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Purge cache
+        uses: deemp/purge-cache@v1
+        with:
+          accessed: true
+          created: true
+          debug: true
+          max-age: 172800
 name: Nix CI
 "on":
   pull_request: {}

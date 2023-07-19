@@ -1,154 +1,162 @@
 {
   description = "Try-phi back end";
-  inputs = {
-    nixpkgs_.url = github:deemp/flakes?dir=source-flake/nixpkgs;
-    nixpkgs.follows = "nixpkgs_/nixpkgs";
-    flake-utils_.url = github:deemp/flakes?dir=source-flake/flake-utils;
-    flake-utils.follows = "flake-utils_/flake-utils";
-    haskell-tools.url = github:deemp/flakes?dir=language-tools/haskell;
-    devshell.url = github:deemp/flakes?dir=devshell;
-    drv-tools.url = github:deemp/flakes?dir=drv-tools;
-    codium.url = github:deemp/flakes?dir=codium;
-  };
+
+  inputs = { };
 
   outputs =
     inputs:
-    inputs.flake-utils.lib.eachDefaultSystem (system:
     let
-      pkgs = inputs.nixpkgs.legacyPackages.${system};
-      inherit (inputs.codium.functions.${system}) writeSettingsJSON mkCodium;
-      inherit (inputs.devshell.functions.${system}) mkShell mkCommands mkRunCommands;
-      inherit (inputs.drv-tools.functions.${system}) mkShellApps mkBin;
-      inherit (inputs.haskell-tools.functions.${system}) toolsGHC;
-      inherit (inputs.codium.configs.${system}) extensions settingsNix;
-
-      packageName = "try-phi-back";
-      override =
+      inputs_ =
+        let flakes = (import ../.).outputs.inputs.flakes; in
         {
-          overrides = self: super: {
-            eo-utils = super.callCabal2nix "eo-utils" ./language-utils/eo-utils { };
-            phi-utils = super.callCabal2nix "phi-utils" ./language-utils/phi-utils { };
-            language-utils = super.callCabal2nix "language-utils" ./language-utils {
-              inherit (self) phi-utils eo-utils;
-            };
-            "${packageName}" =
-              let
-                back_ = super.callCabal2nix packageName ./. {
-                  inherit (self) language-utils phi-utils eo-utils;
-                };
-              in
-              pkgs.haskell.lib.overrideCabal back_
-                (_: {
-                  librarySystemDepends = [
-                    pkgs.zlib
-                  ];
-                });
-          };
+          inherit (flakes.source-flake) flake-utils nixpkgs;
+          inherit (flakes) drv-tools devshell codium;
+          haskell-tools = flakes.language-tools.haskell;
         };
 
-      inherit (toolsGHC {
-        version = "902";
-        inherit override;
-        packages = ps: [
-          ps.${packageName}
-          ps.eo-utils
-          ps.phi-utils
-          ps.language-utils
-        ];
-      })
-        cabal hpack callCabal justStaticExecutable
-        callCabal2nix haskellPackages hls implicit-hie;
+      outputs = outputs_ { } // { inputs = inputs_; outputs = outputs_; };
 
-      binaryName = "back";
-
-      back = justStaticExecutable {
-        package = haskellPackages.${packageName};
-        inherit binaryName;
-      };
-
-      localImageName = "back";
-      backImage = pkgs.dockerTools.buildLayeredImage {
-        name = localImageName;
-        tag = "latest";
-        contents = [ back ];
-        config.Entrypoint = [ binaryName ];
-      };
-
-      scripts =
+      outputs_ =
+        inputs__:
+        let inputs = inputs_ // inputs__; in
+        inputs.flake-utils.lib.eachDefaultSystem (system:
         let
-          dockerHubImageName = "try-phi-back";
-          herokuAppName = "try-phi-back";
-          host = "127.0.0.1";
-          port = "8082";
-          result = "result";
-          tag = "latest";
+          pkgs = inputs.nixpkgs.legacyPackages.${system};
+          inherit (inputs.codium.lib.${system}) writeSettingsJSON mkCodium;
+          inherit (inputs.devshell.lib.${system}) mkShell mkCommands mkRunCommands;
+          inherit (inputs.drv-tools.lib.${system}) mkShellApps mkBin;
+          inherit (inputs.haskell-tools.lib.${system}) toolsGHC;
+          inherit (inputs.codium.lib.${system}) extensions settingsNix;
 
-          scripts1 = mkShellApps {
-            dockerBuild = {
-              text = ''docker load < ${backImage}'';
-              runtimeInputs = [ pkgs.docker ];
-              description = "Load an image into docker";
+          packageName = "try-phi-back";
+          override =
+            {
+              overrides = self: super: {
+                eo-utils = super.callCabal2nix "eo-utils" ./language-utils/eo-utils { };
+                phi-utils = super.callCabal2nix "phi-utils" ./language-utils/phi-utils { };
+                language-utils = super.callCabal2nix "language-utils" ./language-utils {
+                  inherit (self) phi-utils eo-utils;
+                };
+                "${packageName}" =
+                  let
+                    back_ = super.callCabal2nix packageName ./. {
+                      inherit (self) language-utils phi-utils eo-utils;
+                    };
+                  in
+                  pkgs.haskell.lib.overrideCabal back_
+                    (_: {
+                      librarySystemDepends = [
+                        pkgs.zlib
+                      ];
+                    });
+              };
             };
+
+          inherit (toolsGHC {
+            version = "928";
+            inherit override;
+            packages = ps: [
+              ps.${packageName}
+              ps.eo-utils
+              ps.phi-utils
+              ps.language-utils
+            ];
+          })
+            cabal hpack callCabal justStaticExecutable
+            callCabal2nix haskellPackages hls implicit-hie;
+
+          binaryName = "back";
+
+          back = justStaticExecutable {
+            package = haskellPackages.${packageName};
+            inherit binaryName;
           };
 
-          scripts2 = mkShellApps {
-            dockerRun =
-              {
-                text = ''
-                  ${mkBin scripts1.dockerBuild}
-                  docker run -p ${host}:${port}:${port} ${localImageName}:${tag}
-                '';
-                runtimeInputs = [ pkgs.docker ];
-                description = "Run ${localImageName} in a docker container";
+          localImageName = "back";
+          backImage = pkgs.dockerTools.buildLayeredImage {
+            name = localImageName;
+            tag = "latest";
+            contents = [ back ];
+            config.Entrypoint = [ binaryName ];
+          };
+
+          scripts =
+            let
+              dockerHubImageName = "try-phi-back";
+              herokuAppName = "try-phi-back";
+              host = "127.0.0.1";
+              port = "8082";
+              result = "result";
+              tag = "latest";
+
+              scripts1 = mkShellApps {
+                dockerBuild = {
+                  text = ''docker load < ${backImage}'';
+                  runtimeInputs = [ pkgs.docker ];
+                  description = "Load an image into docker";
+                };
               };
-            herokuRelease =
-              {
-                text = ''
-                  ${mkBin scripts1.dockerBuild}
-                  docker login --username=_ --password=$(heroku auth:token) registry.heroku.com
-                  docker tag ${localImageName}:${tag} registry.heroku.com/${herokuAppName}/web
-                  docker push registry.heroku.com/${herokuAppName}/web
-                  heroku container:release web -a ${herokuAppName}
-                '';
-                runtimeInputs = [ pkgs.docker pkgs.heroku ];
-                description = "Release ${herokuAppName} on Heroku";
+
+              scripts2 = mkShellApps {
+                dockerRun =
+                  {
+                    text = ''
+                      ${mkBin scripts1.dockerBuild}
+                      docker run -p ${host}:${port}:${port} ${localImageName}:${tag}
+                    '';
+                    runtimeInputs = [ pkgs.docker ];
+                    description = "Run ${localImageName} in a docker container";
+                  };
+                herokuRelease =
+                  {
+                    text = ''
+                      ${mkBin scripts1.dockerBuild}
+                      docker login --username=_ --password=$(heroku auth:token) registry.heroku.com
+                      docker tag ${localImageName}:${tag} registry.heroku.com/${herokuAppName}/web
+                      docker push registry.heroku.com/${herokuAppName}/web
+                      heroku container:release web -a ${herokuAppName}
+                    '';
+                    runtimeInputs = [ pkgs.docker pkgs.heroku ];
+                    description = "Release ${herokuAppName} on Heroku";
+                  };
               };
+            in
+            scripts1 // scripts2;
+
+          tools = [ hpack cabal pkgs.heroku implicit-hie ];
+
+          packages = {
+            default = back;
+
+            writeSettings = writeSettingsJSON {
+              inherit (settingsNix) haskell todo-tree files editor gitlens
+                git nix-ide workbench markdown-all-in-one markdown-language-features;
+            };
+            codium = mkCodium {
+              extensions = { inherit (extensions) nix haskell misc github markdown; };
+              runtimeDependencies = tools ++ [ hls ];
+            };
+          } // scripts;
+
+          devShells = {
+            default = mkShell {
+              packages = tools;
+              bash.extra = ''export LANG="C.UTF-8";'';
+              commands =
+                mkCommands "tools" tools ++
+                mkRunCommands "ide" { "codium ." = packages.codium; inherit (packages) writeSettings; } ++
+                mkRunCommands "image" { inherit (packages) dockerBuild dockerRun herokuRelease; }
+              ;
+            };
           };
         in
-        scripts1 // scripts2;
+        {
+          inherit packages devShells;
 
-      tools = [ hpack cabal pkgs.heroku implicit-hie ];
-
-      packages = {
-        default = back;
-
-        writeSettings = writeSettingsJSON {
-          inherit (settingsNix) haskell todo-tree files editor gitlens
-            git nix-ide workbench markdown-all-in-one markdown-language-features;
-        };
-        codium = mkCodium {
-          extensions = { inherit (extensions) nix haskell misc github markdown; };
-          runtimeDependencies = tools ++ [ hls ];
-        };
-      } // scripts;
-
-      devShells = {
-        default = mkShell {
-          packages = tools;
-          bash.extra = ''export LANG="C.UTF-8";'';
-          commands =
-            mkCommands "tools" tools ++
-            mkRunCommands "ide" { "codium ." = packages.codium; inherit (packages) writeSettings; } ++
-            mkRunCommands "image" { inherit (packages) dockerBuild dockerRun herokuRelease; }
-          ;
-        };
-      };
+          image = backImage;
+        });
     in
-    {
-      inherit packages devShells;
-
-      image = backImage;
-    });
+    outputs;
 
   nixConfig = {
     extra-substituters = [

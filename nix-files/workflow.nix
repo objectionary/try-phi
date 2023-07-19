@@ -1,60 +1,32 @@
 { workflows, backDir, frontDir, name, system }:
 let
-  inherit (workflows.functions.${system}) writeWorkflow expr mkAccessors genAttrsId;
-  inherit (workflows.configs.${system}) steps os oss nixCI on;
-  job1 = "_1_update_flake_locks";
-  job2 = "_2_push_to_cachix";
-  job3 = "_3_front";
-  job4 = "_4_back";
+  inherit (workflows.lib.${system}) writeWorkflow expr mkAccessors genAttrsId run steps os oss nixCI on;
+  job1 = "_1_front";
+  job2 = "_2_back";
+  job3 = "_3_purge_caches";
   herokuAppName = "try-phi-back";
   names = mkAccessors {
     matrix.os = "";
     secrets = genAttrsId [ "GITHUB_TOKEN" "HEROKU_API_KEY" "HEROKU_EMAIL" ];
   };
+  back = import ../back;
+  front = import ../front;
   workflow =
-    nixCI // {
+
+    (nixCI { }) // {
       jobs = {
-        # "${job1}" = {
-        #   name = "Update flake locks";
-        #   runs-on = os.ubuntu-20;
-        #   steps =
-        #     [
-        #       steps.checkout
-        #       steps.installNix
-        #       steps.configGitAsGHActions
-        #       steps.updateLocksAndCommit
-        #     ];
-        # };
-        "${job2}" = {
-          name = "Push to cachix";
-          # needs = job1;
-          strategy.matrix.os = oss;
-          runs-on = expr names.matrix.os;
-          steps =
-            [
-              steps.checkout
-              steps.installNix
-              steps.logInToCachix
-              steps.pushFlakesToCachix
-            ];
-        };
-        "${job3}" =
-          let
-            dir = "front";
-          in
+        "${job1}" =
+          let dir = "front"; in
           {
             name = "Publish front";
-            # needs = job1;
-            runs-on = os.ubuntu-20;
+            runs-on = os.ubuntu-22;
             steps = [
               steps.checkout
-              steps.installNix
+              (steps.installNix { })
+              (steps.cacheNix { keyJob = "front"; })
               {
                 name = "Build";
-                run = ''
-                  cd ${dir}
-                  nix run .#buildGHPages
-                '';
+                run = run.nixScript { inherit dir; inDir = true; name = "buildGHPages"; };
               }
               {
                 name = "GitHub Pages action";
@@ -67,14 +39,14 @@ let
               }
             ];
           };
-        "${job4}" = {
+        "${job2}" = {
           name = "Publish back";
-          # needs = job1;
-          runs-on = os.ubuntu-20;
+          runs-on = os.ubuntu-22;
           steps =
             [
               steps.checkout
-              steps.installNix
+              (steps.installNix { })
+              (steps.cacheNix { keyJob = "back"; })
               {
                 name = "Log in to Heroku";
                 uses = "AkhileshNS/heroku-deploy@master";
@@ -87,13 +59,11 @@ let
               }
               {
                 name = "Release app on Heroku";
-                run = ''
-                  cd ${backDir}
-                  nix run .#herokuRelease
-                '';
+                run = run.nixScript { dir = backDir; inDir = true; name = "herokuRelease"; };
               }
             ];
         };
+        "${job3}" = (nixCI { purgeCacheDependsOn = [ job1 job2 ]; }).jobs.purgeCache;
       };
     };
 in

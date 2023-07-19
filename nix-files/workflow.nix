@@ -26,9 +26,9 @@ let
               (steps.cacheNix {
                 keyJob = "front";
                 linuxGCEnabled = true;
-                linuxMaxStoreSize = 0;
+                linuxMaxStoreSize = 900000000;
                 macosGCEnabled = true;
-                macosMaxStoreSize = 0;
+                macosMaxStoreSize = 900000000;
               })
               {
                 name = "Build";
@@ -55,9 +55,9 @@ let
               (steps.cacheNix {
                 keyJob = "back";
                 linuxGCEnabled = true;
-                linuxMaxStoreSize = 0;
+                linuxMaxStoreSize = 7000000000;
                 macosGCEnabled = true;
-                macosMaxStoreSize = 0;
+                macosMaxStoreSize = 7000000000;
               })
               {
                 name = "Log in to Heroku";

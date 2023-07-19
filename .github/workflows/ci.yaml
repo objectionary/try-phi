@@ -18,11 +18,10 @@ jobs:
         with:
           key: nix-${{ runner.os }}-front-${{ hashfiles('**/flake.nix', '**/flake.lock') }}
           linux-gc-enabled: true
-          linux-max-store-size: 0
+          linux-max-store-size: 900000000
           macos-gc-enabled: true
-          macos-max-store-size: 0
+          macos-max-store-size: 900000000
           restore-keys: |
-            nix-${{ runner.os }}-front-${{ hashfiles('**/flake.nix', '**/flake.lock') }}
             nix-${{ runner.os }}-front-
       - name: Build
         run: |-
@@ -56,11 +55,10 @@ jobs:
         with:
           key: nix-${{ runner.os }}-back-${{ hashfiles('**/flake.nix', '**/flake.lock') }}
           linux-gc-enabled: true
-          linux-max-store-size: 0
+          linux-max-store-size: 7000000000
           macos-gc-enabled: true
-          macos-max-store-size: 0
+          macos-max-store-size: 7000000000
           restore-keys: |
-            nix-${{ runner.os }}-back-${{ hashfiles('**/flake.nix', '**/flake.lock') }}
             nix-${{ runner.os }}-back-
       - name: Log in to Heroku
         uses: AkhileshNS/heroku-deploy@master

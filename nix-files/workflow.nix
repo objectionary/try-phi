@@ -23,7 +23,13 @@ let
             steps = [
               steps.checkout
               (steps.installNix { })
-              (steps.cacheNix { keyJob = "front"; })
+              (steps.cacheNix {
+                keyJob = "front";
+                linuxGCEnabled = true;
+                linuxMaxStoreSize = 0;
+                macosGCEnabled = true;
+                macosMaxStoreSize = 0;
+              })
               {
                 name = "Build";
                 run = run.nixScript { inherit dir; inDir = true; name = front.packages.${system}.buildGHPages.pname; };
@@ -46,7 +52,13 @@ let
             [
               steps.checkout
               (steps.installNix { })
-              (steps.cacheNix { keyJob = "back"; })
+              (steps.cacheNix {
+                keyJob = "back";
+                linuxGCEnabled = true;
+                linuxMaxStoreSize = 0;
+                macosGCEnabled = true;
+                macosMaxStoreSize = 0;
+              })
               {
                 name = "Log in to Heroku";
                 uses = "AkhileshNS/heroku-deploy@master";
@@ -63,7 +75,9 @@ let
               }
             ];
         };
-        "${job3}" = (nixCI { purgeCacheNeeds = [ job1 job2 ]; }).jobs.purgeCache;
+        "${job3}" = (nixCI {
+          purgeCacheNeeds = [ job1 job2 ];
+        }).jobs.purgeCache;
       };
     };
 in

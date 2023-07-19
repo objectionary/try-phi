@@ -17,6 +17,10 @@ jobs:
         uses: nix-community/cache-nix-action@v1
         with:
           key: nix-${{ runner.os }}-front-${{ hashfiles('**/flake.nix', '**/flake.lock') }}
+          linux-gc-enabled: true
+          linux-max-store-size: 0
+          macos-gc-enabled: true
+          macos-max-store-size: 0
           restore-keys: |
             nix-${{ runner.os }}-front-${{ hashfiles('**/flake.nix', '**/flake.lock') }}
             nix-${{ runner.os }}-front-
@@ -51,6 +55,10 @@ jobs:
         uses: nix-community/cache-nix-action@v1
         with:
           key: nix-${{ runner.os }}-back-${{ hashfiles('**/flake.nix', '**/flake.lock') }}
+          linux-gc-enabled: true
+          linux-max-store-size: 0
+          macos-gc-enabled: true
+          macos-max-store-size: 0
           restore-keys: |
             nix-${{ runner.os }}-back-${{ hashfiles('**/flake.nix', '**/flake.lock') }}
             nix-${{ runner.os }}-back-

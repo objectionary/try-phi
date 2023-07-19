@@ -26,7 +26,7 @@ let
               (steps.cacheNix { keyJob = "front"; })
               {
                 name = "Build";
-                run = run.nixScript { inherit dir; inDir = true; name = "buildGHPages"; };
+                run = run.nixScript { inherit dir; inDir = true; name = front.packages.${system}.buildGHPages.pname; };
               }
               {
                 name = "GitHub Pages action";
@@ -59,7 +59,7 @@ let
               }
               {
                 name = "Release app on Heroku";
-                run = run.nixScript { dir = backDir; inDir = true; name = "herokuRelease"; };
+                run = run.nixScript { dir = backDir; inDir = true; name = back.packages.${system}.herokuRelease.pname; };
               }
             ];
         };

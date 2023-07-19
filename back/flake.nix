@@ -24,31 +24,21 @@
           pkgs = inputs.nixpkgs.legacyPackages.${system};
           inherit (inputs.codium.lib.${system}) writeSettingsJSON mkCodium;
           inherit (inputs.devshell.lib.${system}) mkShell mkCommands mkRunCommands;
-          inherit (inputs.drv-tools.lib.${system}) mkShellApps mkBin;
+          inherit (inputs.drv-tools.lib.${system}) mkShellApps getExe;
           inherit (inputs.haskell-tools.lib.${system}) toolsGHC;
-          inherit (inputs.codium.lib.${system}) extensions settingsNix;
+          inherit (inputs.codium.lib.${system}) extensions settingsNix extensionsCommon settingsCommonNix;
 
           packageName = "try-phi-back";
           override =
             {
               overrides = self: super: {
-                eo-utils = super.callCabal2nix "eo-utils" ./language-utils/eo-utils { };
-                phi-utils = super.callCabal2nix "phi-utils" ./language-utils/phi-utils { };
-                language-utils = super.callCabal2nix "language-utils" ./language-utils {
-                  inherit (self) phi-utils eo-utils;
-                };
+                eo-utils = self.callCabal2nix "eo-utils" ./eo-utils { };
+                phi-utils = self.callCabal2nix "phi-utils" ./phi-utils { };
+                language-utils = self.callCabal2nix "language-utils" ./language-utils { inherit (self) phi-utils eo-utils; };
                 "${packageName}" =
-                  let
-                    back_ = super.callCabal2nix packageName ./. {
-                      inherit (self) language-utils phi-utils eo-utils;
-                    };
-                  in
-                  pkgs.haskell.lib.overrideCabal back_
-                    (_: {
-                      librarySystemDepends = [
-                        pkgs.zlib
-                      ];
-                    });
+                  pkgs.haskell.lib.overrideCabal
+                    (self.callCabal2nix packageName ./${packageName} { inherit (self) language-utils phi-utils eo-utils; })
+                    (x: { librarySystemDepends = [ pkgs.zlib ] ++ (x.librarySystemDepends or [ ]); });
               };
             };
 
@@ -62,7 +52,7 @@
               ps.language-utils
             ];
           })
-            cabal hpack callCabal justStaticExecutable
+            cabal ghc hpack callCabal justStaticExecutable
             callCabal2nix haskellPackages hls implicit-hie;
 
           binaryName = "back";
@@ -82,8 +72,8 @@
 
           scripts =
             let
-              dockerHubImageName = "try-phi-back";
-              herokuAppName = "try-phi-back";
+              dockerHubImageName = packageName;
+              herokuAppName = packageName;
               host = "127.0.0.1";
               port = "8082";
               result = "result";
@@ -101,7 +91,7 @@
                 dockerRun =
                   {
                     text = ''
-                      ${mkBin scripts1.dockerBuild}
+                      ${getExe scripts1.dockerBuild}
                       docker run -p ${host}:${port}:${port} ${localImageName}:${tag}
                     '';
                     runtimeInputs = [ pkgs.docker ];
@@ -110,7 +100,7 @@
                 herokuRelease =
                   {
                     text = ''
-                      ${mkBin scripts1.dockerBuild}
+                      ${getExe scripts1.dockerBuild}
                       docker login --username=_ --password=$(heroku auth:token) registry.heroku.com
                       docker tag ${localImageName}:${tag} registry.heroku.com/${herokuAppName}/web
                       docker push registry.heroku.com/${herokuAppName}/web
@@ -123,19 +113,13 @@
             in
             scripts1 // scripts2;
 
-          tools = [ hpack cabal pkgs.heroku implicit-hie ];
+          tools = [ hpack cabal pkgs.heroku implicit-hie hls ];
 
           packages = {
             default = back;
 
-            writeSettings = writeSettingsJSON {
-              inherit (settingsNix) haskell todo-tree files editor gitlens
-                git nix-ide workbench markdown-all-in-one markdown-language-features;
-            };
-            codium = mkCodium {
-              extensions = { inherit (extensions) nix haskell misc github markdown; };
-              runtimeDependencies = tools ++ [ hls ];
-            };
+            writeSettings = writeSettingsJSON (settingsCommonNix // { inherit (settingsNix) haskell; });
+            codium = mkCodium { extensions = extensionsCommon // { inherit (extensions) haskell; }; };
           } // scripts;
 
           devShells = {

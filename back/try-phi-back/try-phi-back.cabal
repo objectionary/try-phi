@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.35.0.
+-- This file has been generated from package.yaml by hpack version 0.35.2.
 --
 -- see: https://github.com/sol/hpack
 
@@ -13,10 +13,7 @@ author:         Author name here
 maintainer:     example@example.com
 copyright:      2022 Author name here
 license:        BSD3
-license-file:   LICENSE
 build-type:     Simple
-extra-source-files:
-    README.md
 
 source-repository head
   type: git

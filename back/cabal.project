@@ -1,7 +1,1 @@
-packages: ./try-phi-back.cabal
-packages: ./language-utils/language-utils.cabal
-packages: ./language-utils/eo-utils/eo-utils.cabal
-packages: ./language-utils/phi-utils/phi-utils.cabal
-
-package *
-    ghc-options: -haddock
+packages: try-phi-back language-utils eo-utils phi-utils

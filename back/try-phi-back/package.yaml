@@ -6,8 +6,8 @@ author: "Author name here"
 maintainer: "example@example.com"
 copyright: "2022 Author name here"
 
-extra-source-files:
-  - README.md
+# extra-source-files:
+#   - README.md
 
 # Metadata used when publishing your package
 # synopsis:            Short description of your package

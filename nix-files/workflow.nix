@@ -63,7 +63,7 @@ let
               }
             ];
         };
-        "${job3}" = (nixCI { purgeCacheDependsOn = [ job1 job2 ]; }).jobs.purgeCache;
+        "${job3}" = (nixCI { purgeCacheNeeds = [ job1 job2 ]; }).jobs.purgeCache;
       };
     };
 in

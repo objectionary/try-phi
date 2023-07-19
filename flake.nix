@@ -21,7 +21,7 @@
         let
           pkgs = inputs.nixpkgs.legacyPackages.${system};
           inherit (inputs.codium.lib.${system}) writeSettingsJSON mkCodium;
-          inherit (inputs.drv-tools.lib.${system}) mkShellApps mkBin;
+          inherit (inputs.drv-tools.lib.${system}) mkShellApps getExe;
           inherit (inputs.flakes-tools.lib.${system}) mkFlakesTools;
           inherit (inputs.codium.lib.${system}) extensions settingsNixCommon extensionsCommon;
           inherit (inputs.devshell.lib.${system}) mkShell mkRunCommands;
@@ -56,6 +56,7 @@
             commands =
               mkRunCommands "ide" { "codium ." = packages.codium; inherit (packages) writeSettings; }
               ++ mkRunCommands "infra" { inherit (packages) writeWorkflows pushToCachix updateLocks; }
+              ++ mkRunCommands "project" { inherit (packages) back front; }
             ;
           };
         in

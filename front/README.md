@@ -6,7 +6,7 @@ This is a `PureScript` version of `try-phi` front end. Previously, it was writte
 
 1. [Install Nix](https://github.com/deemp/flakes/blob/main/README/InstallNix.md)
 
-1. Switch to this directory
+1. Enter this directory
 
     ```sh
     git clone https://github.com/objectionary/try-phi
@@ -14,6 +14,12 @@ This is a `PureScript` version of `try-phi` front end. Previously, it was writte
     ```
 
 1. Run project:
+
+    ```console
+    nix run
+    ```
+
+    or
 
     ```console
     nix develop

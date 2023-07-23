@@ -19,7 +19,7 @@
   , "media-types"
   , "ordered-collections"
   , "prelude"
-  , "purescript-web-url"
+  , "web-url"
   , "strings"
   , "tuples"
   , "web-dom"

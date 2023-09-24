@@ -3,23 +3,11 @@
 
   inputs = { };
 
-  outputs =
-    inputs:
-    let
-      inputs_ =
-        let flakes = (import ../.).outputs.inputs.flakes; in
-        {
-          inherit (flakes.source-flake) flake-utils nixpkgs;
-          inherit (flakes) drv-tools devshell codium;
-          haskell-tools = flakes.language-tools.haskell;
-        };
-
-      outputs = outputs_ { } // { inputs = inputs_; outputs = outputs_; };
-
-      outputs_ =
-        inputs__:
-        let inputs = inputs_ // inputs__; in
-        inputs.flake-utils.lib.eachDefaultSystem (system:
+  outputs = inputs:
+    let flakes = (import ../.).outputs.inputs.flakes; in
+    flakes.makeFlake {
+      inputs = { inherit (flakes.all) flake-utils nixpkgs drv-tools devshell codium haskell-tools; };
+      perSystem = { inputs, system }:
         let
           pkgs = inputs.nixpkgs.legacyPackages.${system};
           inherit (inputs.codium.lib.${system}) writeSettingsJSON mkCodium;
@@ -29,18 +17,17 @@
           inherit (inputs.codium.lib.${system}) extensions settingsNix extensionsCommon settingsCommonNix;
 
           packageName = "try-phi-back";
-          override =
-            {
-              overrides = self: super: {
-                eo-utils = self.callCabal2nix "eo-utils" ./eo-utils { };
-                phi-utils = self.callCabal2nix "phi-utils" ./phi-utils { };
-                language-utils = self.callCabal2nix "language-utils" ./language-utils { inherit (self) phi-utils eo-utils; };
-                "${packageName}" =
-                  pkgs.haskell.lib.overrideCabal
-                    (self.callCabal2nix packageName ./${packageName} { inherit (self) language-utils phi-utils eo-utils; })
-                    (x: { librarySystemDepends = [ pkgs.zlib ] ++ (x.librarySystemDepends or [ ]); });
-              };
+          override = {
+            overrides = self: super: {
+              eo-utils = self.callCabal2nix "eo-utils" ./eo-utils { };
+              phi-utils = self.callCabal2nix "phi-utils" ./phi-utils { };
+              language-utils = self.callCabal2nix "language-utils" ./language-utils { inherit (self) phi-utils eo-utils; };
+              "${packageName}" =
+                pkgs.haskell.lib.overrideCabal
+                  (self.callCabal2nix packageName ./${packageName} { inherit (self) language-utils phi-utils eo-utils; })
+                  (x: { librarySystemDepends = [ pkgs.zlib ] ++ (x.librarySystemDepends or [ ]); });
             };
+          };
 
           inherit (toolsGHC {
             version = "928";
@@ -138,9 +125,9 @@
           inherit packages devShells;
 
           image = backImage;
-        });
-    in
-    outputs;
+        };
+    };
+
 
   nixConfig = {
     extra-substituters = [

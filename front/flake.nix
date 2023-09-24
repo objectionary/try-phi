@@ -3,24 +3,11 @@
 
   inputs = { };
 
-  outputs =
-    inputs:
-    let
-      inputs_ =
-        let flakes = (import ../.).outputs.inputs.flakes; in
-        {
-          inherit (flakes.source-flake) flake-utils nixpkgs;
-          inherit (flakes) drv-tools devshell codium;
-          purescript-tools = flakes.language-tools.purescript;
-        };
-
-      outputs = outputs_ { } // { inputs = inputs_; outputs = outputs_; };
-
-      outputs_ =
-        inputs__:
-        let inputs = inputs_ // inputs__; in
-
-        inputs.flake-utils.lib.eachDefaultSystem (system:
+  outputs = inputs:
+    let flakes = (import ../.).outputs.inputs.flakes; in
+    flakes.makeFlake {
+      inputs = { inherit (flakes.all) flake-utils nixpkgs drv-tools devshell codium purescript-tools; };
+      perSystem = { inputs, system }:
         let
           pkgs = inputs.nixpkgs.legacyPackages.${system};
           pursPkgs = inputs.purescript-tools.packages.${system};
@@ -67,9 +54,8 @@
         in
         {
           inherit packages devShells;
-        });
-    in
-    outputs;
+        };
+    };
 
   nixConfig = {
     extra-substituters = [

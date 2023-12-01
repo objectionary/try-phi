@@ -31,11 +31,13 @@ jobs:
           nix run .#buildGHPages
           cd $ROOT_DIR
       - name: GitHub Pages action
-        uses: peaceiris/actions-gh-pages@v3.9.0
+        uses: peaceiris/actions-gh-pages@v3
         with:
           force_orphan: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./front/docs
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
   _2_back:
     name: Publish back
     runs-on: ubuntu-22.04

@@ -12,7 +12,7 @@
   "dependencies": {
     "@lezer/lr": "^1.2.0",
     "@lezer/common": "^1.0.0",
-    "esbuild": "^0.14.50",
+    "esbuild": "^0.20.0",
     "esbuild-node-externals": "^1.4.1",
     "esm": "^3.2.25",
     "parcel": "^2.6.2"

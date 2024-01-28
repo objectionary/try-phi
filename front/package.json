@@ -3,7 +3,7 @@
   "private": true,
   "devDependencies": {
     "buffer": "^6.0.3",
-    "esbuild": "^0.18.14",
+    "esbuild": "^0.20.0",
     "gh-pages": "^5.0.0",
     "http-server": "^14.1.1",
     "npx": "^10.2.2",
